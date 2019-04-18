@@ -1,0 +1,132 @@
+# World
+
+## Meta properties
+
+### Map discretization properties
+discretization_data:
+  res: 0.1
+  cost_lethal: 100
+  cost_inscribed: 50
+  cost_circumscribed: 20
+  cost_possibly_nonfree: 10
+
+### Force pushes only for all objects
+force_pushes_only: True
+
+## Robot
+robot:
+  name: pepper
+  radius: 0.5 # [m]
+  g_fov_min_radius: 0.0 # [m]
+  g_fov_max_radius: 2.0 # [m]
+  g_fov_opening_angle: 120.0 # [degrees]
+  s_fov_min_radius: 0.0 #0.9 # [m]
+  s_fov_max_radius: 2.0 #3.2 # [m]
+  s_fov_opening_angle: 120.0 #90.0 # [degrees]
+
+  initial_pose: [0.0, -3.5, 90.0] # x, y, theta
+
+## Object(s)
+objects:
+  - name: "wall_ext_top"
+    type: "wall"
+    polygon:
+      - [-5.0, 5.0]
+      - [5.0, 5.0]
+      - [5.0, 6.0]
+      - [-5.0, 6.0]
+  - name: "wall_ext_bottom"
+    type: "wall"
+    polygon:
+      - [-5.0, -5.0]
+      - [5.0, -5.0]
+      - [5.0, -6.0]
+      - [-5.0, -6.0]
+  - name: "wall_ext_left"
+    type: "wall"
+    polygon:
+      - [-6.0, 6.0]
+      - [-5.0, 6.0]
+      - [-5.0, -6.0]
+      - [-6.0, -6.0]
+  - name: "wall_ext_right"
+    type: "wall"
+    polygon:
+      - [6.0, 6.0]
+      - [6.0, -6.0]
+      - [5.0, -6.0]
+      - [5.0, 6.0]
+  - name: "wall_mid_top_left"
+    type: "wall"
+    polygon:
+      - [-5.0, 1.0]
+      - [-5.0, 0.8]
+      - [-1.0, 0.8]
+      - [-1.0, 1.0]
+  - name: "wall_mid_top_right"
+    type: "wall"
+    polygon:
+      - [1.0, 1.0]
+      - [1.0, 0.8]
+      - [5.0, 0.8]
+      - [5.0, 1.0]
+  - name: "wall_mid_bottom_left"
+    type: "wall"
+    polygon:
+      - [-5.0, -1.0]
+      - [-5.0, -0.8]
+      - [-1.0, -0.8]
+      - [-1.0, -1.0]
+  - name: "wall_mid_bottom_right"
+    type: "wall"
+    polygon:
+      - [1.0, -1.0]
+      - [1.0, -0.8]
+      - [5.0, -0.8]
+      - [5.0, -1.0]
+  - name: "movable_box"
+    type: "box"
+    polygon:
+      - [-0.5, -1.5]
+      - [-0.5, -2.5]
+      - [0.5, -2.5]
+      - [0.5, -1.5]
+  - name: "second_movable_box"
+    type: "box"
+    polygon:
+      - [-2.0, 0.2]
+      - [-2.0, -0.3]
+      - [-1.0, -0.3]
+      - [-1.0, 0.2]
+
+# Movable Whitelist
+whitelist:
+  - "box"
+
+# List of push-only objects
+push_only_list:
+  - "box"
+
+# Taboo zone(s)
+taboos:
+  - name: "top_doorway_taboo"
+    cost: 1.0
+    polygon:
+      - [-0.90, 2.0]
+      - [-0.90, 0.0]
+      - [0.90, 0.0]
+      - [0.90, 2.0]
+  - name: "bottom_doorway_taboo"
+    cost: 1.0
+    polygon:
+      - [-0.90, 0.0]
+      - [-0.90, -2.0]
+      - [0.90, -2.0]
+      - [0.90, 0.0]
+  - name: "wall_mid_bottom_left_taboo"
+    cost: 1.0
+    polygon:
+      - [-4.95, -1.05]
+      - [-1.0, -1.05]
+      - [-1.0, -2.5]
+      - [-4.95, -2.5]

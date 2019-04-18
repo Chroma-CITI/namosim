@@ -1,0 +1,4 @@
+shapely>=1.6
+numpy>=1.0
+ptpython>=2.0
+pyyaml>=3.0

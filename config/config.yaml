@@ -1,0 +1,62 @@
+# Simulation
+simulation_frequency: 20 # [Hz]
+
+
+# ROS topics
+
+ros_publisher_default_queue_size: 10
+
+
+## Real world knowledge
+movables_topic: "/test/movables"
+movables_topic_activated: True
+unmovables_topic: "/test/unmovables"
+unmovables_topic_activated: True
+unknowns_topic: "/test/unknowns"
+unknowns_topic_activated: False
+robot_topic: "/test/robot"
+robot_topic_activated: True
+taboos_topic: "/test/taboos"
+taboos_topic_activated: True
+
+robot_g_fov_topic: "/test/robot_g_fov"
+robot_g_fov_topic_activated: True
+robot_s_fov_topic: "/test/robot_s_fov"
+robot_s_fov_topic_activated: True
+
+## Robot Knowledge
+entities_in_g_fov_topic: "/test/entities_in_g_fov"
+entities_in_g_fov_topic_activated: True
+entities_in_s_fov_topic: "/test/entities_in_s_fov"
+entities_in_s_fov_topic_activated: True
+costmap_topic: "/test/map"
+costmap_topic_activated: True
+
+## A star
+path_grid_cells_topic: "/test/path_grid_cells"
+path_grid_cells_topic_activated: False
+real_path_topic: "/test/real_path"
+real_path_topic_activated: False
+a_star_open_heap_topic:  "/test/open_heap_cells"
+a_star_open_heap_topic_activated: False
+a_star_close_set_topic: "/test/close_set_cells"
+a_star_close_set_topic_activated: False
+
+### Map topics
+#static_map_topic: "/map"
+#merged_occ_grid_topic: "/robot_occ_grid"
+#simulated_occ_grid_topic: "/simulated/occ_grid"
+#
+### Navigation topics
+#push_poses_topic: "/simulated/all_push_poses"
+#goal_topic: "/move_base_simple/goal"
+#simulated_pose_topic: "/simulated/pose"
+#simulated_fov_pointcloud_topic: "/simulated/fov_pointcloud"
+#local_goal_pose_topic: "/local_goal_pose"
+#initial_pose_topic: "/initialpose"
+#point_clicked_topic: "/clicked_point"
+#simulated_robot_polygonal_footprint_topic: "/simulated/robot_polygonal_footprint"
+#simulated_robot_polygonal_fov_topic: "/simulated/robot_polygonal_fov"
+#
+### Gazebo connection topics
+#gazebo_model_states_topic: "/gazebo/model_states"

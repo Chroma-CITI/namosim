@@ -1,0 +1,2 @@
+class EntityPlacementException(Exception):
+    pass
