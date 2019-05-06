@@ -7,3 +7,7 @@ class DiscretizationData:
         self.cost_circumscribed = cost_circumscribed
         self.cost_possibly_nonfree = cost_possibly_nonfree
         self.grid_pose = [0.0, 0.0, 0.0]
+        self.width = 0.0
+        self.height = 0.0
+        self.d_width = 0
+        self.d_height = 0

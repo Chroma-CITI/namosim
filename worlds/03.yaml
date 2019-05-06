@@ -19,80 +19,79 @@ robot:
   name: pepper
   radius: 0.5 # [m]
   g_fov_min_radius: 0.0 # [m]
-  g_fov_max_radius: 2.0 # [m]
-  g_fov_opening_angle: 120.0 # [degrees]
-  s_fov_min_radius: 0.0 #0.9 # [m]
-  s_fov_max_radius: 2.0 #3.2 # [m]
-  s_fov_opening_angle: 120.0 #90.0 # [degrees]
-
-  initial_pose: [-3.0, -4.0, 180.0] # x, y, theta
-#  initial_pose: [0.0, -3.5, 90.0] # x, y, theta
+  g_fov_max_radius: 2.4 # [m]
+  g_fov_opening_angle: 100.0 # [degrees]
+  s_fov_min_radius: 0.0 # 0.7 # [m]
+  s_fov_max_radius: 2.4 # 2.0 # [m]
+  s_fov_opening_angle: 100.0 # 100.0 # [degrees]
+  initial_pose: [0.0, -2.7, 90.0] # x, y, theta
+#  initial_pose: [0.0, -3.25, 90.0] # x, y, theta
 
 ## Object(s)
 objects:
   - name: "wall_ext_top"
     type: "wall"
     polygon:
-      - [-5.0, 5.0]
-      - [5.0, 5.0]
-      - [5.0, 6.0]
-      - [-5.0, 6.0]
+      - [-2.2, 3.5]
+      - [3.2, 3.5]
+      - [3.2, 3.7]
+      - [-2.2, 3.7]
   - name: "wall_ext_bottom"
     type: "wall"
     polygon:
-      - [-5.0, -5.0]
-      - [5.0, -5.0]
-      - [5.0, -6.0]
-      - [-5.0, -6.0]
+      - [-2.2, -3.5]
+      - [3.2, -3.5]
+      - [3.2, -3.7]
+      - [-2.2, -3.7]
   - name: "wall_ext_left"
     type: "wall"
     polygon:
-      - [-6.0, 6.0]
-      - [-5.0, 6.0]
-      - [-5.0, -6.0]
-      - [-6.0, -6.0]
+      - [-2.2, 3.5]
+      - [-2.0, 3.5]
+      - [-2.0, -3.5]
+      - [-2.2, -3.5]
   - name: "wall_ext_right"
     type: "wall"
     polygon:
-      - [6.0, 6.0]
-      - [6.0, -6.0]
-      - [5.0, -6.0]
-      - [5.0, 6.0]
+      - [3.2, 3.5]
+      - [3.2, -3.5]
+      - [3.0, -3.5]
+      - [3.0, 3.5]
   - name: "wall_mid_top_left"
     type: "wall"
     polygon:
-      - [-5.0, 1.0]
-      - [-5.0, 0.8]
-      - [-1.0, 0.8]
-      - [-1.0, 1.0]
+      - [-2.0, 0.9]
+      - [-2.0, 0.7]
+      - [-1.0, 0.7]
+      - [-1.0, 0.9]
   - name: "wall_mid_top_right"
     type: "wall"
     polygon:
-      - [1.0, 1.0]
-      - [1.0, 0.8]
-      - [5.0, 0.8]
-      - [5.0, 1.0]
+      - [1.0, 0.9]
+      - [1.0, 0.7]
+      - [3.0, 0.7]
+      - [3.0, 0.9]
   - name: "wall_mid_bottom_left"
     type: "wall"
     polygon:
-      - [-5.0, -1.0]
-      - [-5.0, -0.8]
-      - [-1.0, -0.8]
-      - [-1.0, -1.0]
+      - [-2.0, -0.9]
+      - [-2.0, -0.7]
+      - [-1.0, -0.7]
+      - [-1.0, -0.9]
   - name: "wall_mid_bottom_right"
     type: "wall"
     polygon:
-      - [1.0, -1.0]
-      - [1.0, -0.8]
-      - [5.0, -0.8]
-      - [5.0, -1.0]
+      - [1.0, -0.9]
+      - [1.0, -0.7]
+      - [3.0, -0.7]
+      - [3.0, -0.9]
   - name: "movable_box"
     type: "box"
     polygon:
-      - [-0.5, -1.5]
-      - [-0.5, -2.5]
-      - [0.5, -2.5]
-      - [0.5, -1.5]
+      - [-0.5, -1.1]
+      - [-0.5, -2.1]
+      - [0.5, -2.1]
+      - [0.5, -1.1]
   - name: "second_movable_box"
     type: "box"
     polygon:
@@ -114,21 +113,21 @@ taboos:
   - name: "top_doorway_taboo"
     cost: 1.0
     polygon:
-      - [-0.95, 2.0]
+      - [-0.95, 1.9]
       - [-0.95, 0.0]
       - [0.95, 0.0]
-      - [0.95, 2.0]
+      - [0.95, 1.9]
   - name: "bottom_doorway_taboo"
     cost: 1.0
     polygon:
       - [-0.95, 0.0]
-      - [-0.95, -2.0]
-      - [0.95, -2.0]
+      - [-0.95, -1.9]
+      - [0.95, -1.9]
       - [0.95, 0.0]
   - name: "wall_mid_bottom_left_taboo"
     cost: 1.0
     polygon:
-      - [-4.95, -1.05]
-      - [-1.0, -1.05]
-      - [-1.0, -2.5]
-      - [-4.95, -2.5]
+      - [-1.95, -0.95]
+      - [-1.0, -0.95]
+      - [-1.0, -2.1]
+      - [-1.95, -2.1]

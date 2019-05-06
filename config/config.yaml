@@ -35,12 +35,11 @@ costmap_topic_activated: True
 ## A star
 path_grid_cells_topic: "/test/path_grid_cells"
 path_grid_cells_topic_activated: False
-real_path_topic: "/test/real_path"
-real_path_topic_activated: False
 a_star_open_heap_topic:  "/test/open_heap_cells"
 a_star_open_heap_topic_activated: False
 a_star_close_set_topic: "/test/close_set_cells"
 a_star_close_set_topic_activated: False
+
 
 ### Map topics
 #static_map_topic: "/map"

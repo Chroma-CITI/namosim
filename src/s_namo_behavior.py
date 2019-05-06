@@ -7,6 +7,7 @@ from obstacle import Obstacle
 from shapely import affinity
 from shapely.ops import cascaded_union
 from shapely.geometry import Polygon, Point
+from shapely.errors import TopologicalError
 
 
 class SNAMOBehavior:
@@ -14,12 +15,18 @@ class SNAMOBehavior:
         self.simulator = simulator
         self.robot_uid = robot_uid
         self.initial_world = initial_world
+        self.world = copy.deepcopy(self.initial_world)
 
         self.check_new_opening_activated = True
+        self.social_placement_choice_activated = True
+        self.social_movability_evaluation_activated = False
+        self.reset_knowledge_activated = False
         self.manip_weight = 1.0
 
     def execute(self, q_init, q_goal, rp):
-        world = copy.deepcopy(self.initial_world)
+        world = copy.deepcopy(self.initial_world) if self.reset_knowledge_activated else self.world
+        rp.publish_goal(q_init, q_goal, world.entities[self.robot_uid].polygon)
+
         q_r = q_init
         e_l, m_l = [], []
         exec_success = True
@@ -57,10 +64,13 @@ class SNAMOBehavior:
         for entity in world.entities.values():
             if isinstance(entity, Obstacle):
                 if entity.movability == "movable" or entity.movability == "unknown":
+                    # c1_est = float("inf")
                     c3_est = float("inf")
-                    for q_manip in entity.actions.values():
+                    for q_manip in entity.get_actions(world.dd).values():
+                        # c1_est = min(c1_est, np.linalg.norm([q_manip[0] - q_r[0], q_manip[1] - q_r[1]]))
                         c3_est = min(c3_est, np.linalg.norm([q_goal[0] - q_manip[0], q_goal[1] - q_manip[1]]))
-                    self.update_list(e_l, entity.uid, c3_est)
+                        self.update_list(e_l, entity.uid, c3_est)
+                    # self.update_list(e_l, entity.uid, c1_est + c3_est)
                 if entity.movability == "unmovable":
                     self.remove_from_list(e_l, entity.uid)
                     self.remove_from_list(m_l, entity.uid)
@@ -96,67 +106,77 @@ class SNAMOBehavior:
         obs = world.entities[o_uid]
         robot = world.entities[world.robot_uid]
 
-        rp.publish_q_manips_for_obs(obs.actions.values())
+        rp.publish_q_manips_for_obs(obs.get_actions(world.dd).values())
 
-        for unit_translation, q_manip in obs.actions.items():
-            c_1 = Path(a_star.a_star_real_path(world.get_grid(), q_r, q_manip, world.dd, rp), obstacle_uid=o_uid)
+        for unit_translation, q_manip in obs.get_actions(world.dd).items():
+            c_1 = Path(a_star.a_star_real_path(world.get_grid(), q_r, q_manip, world.dd, rp), o_uid=o_uid)
             rp.publish_c_1(c_1)
             if not c_1.has_infinite_cost():
-                total_translation = np.array(unit_translation)
-                init_robot_polygon = affinity.translate(robot.polygon, q_manip[0] - q_r[0], q_manip[1] - q_r[1])
-                init_robot_polygon = affinity.rotate(init_robot_polygon, q_manip[2] - q_r[2] % 360.0)
-                target_robot_polygon = affinity.translate(init_robot_polygon,
-                                                          total_translation[0], total_translation[1])
-                target_obs_polygon = affinity.translate(obs.polygon, total_translation[0], total_translation[1])
+                c_0_is_valid, c_1_is_valid = True, True
 
-                rp.publish_sim(init_robot_polygon, obs.polygon, "/init")
-                rp.publish_sim(target_robot_polygon, target_obs_polygon, "/target")
+                if self.social_movability_evaluation_activated:
+                    if obs.movability == "unknown":
+                        q_look_index = self._get_last_look_q(robot, obs, c_1)
+                        if q_look_index is not None:
+                            c_0, c_1 = self._split_at_pose(c_1, q_look_index, o_uid)
+                        else:
+                            c_0, c_1 = self.compute_c_0_c_1(world, robot, obs, q_r, q_manip, rp)
+                        c_0_is_valid, c_1_is_valid = not c_0.has_infinite_cost(), not c_1.has_infinite_cost()
 
-                is_step_success = self._is_step_success(world, o_uid, robot.polygon, target_robot_polygon,
-                                                        obs.polygon, target_obs_polygon)
-                q_sim = (target_robot_polygon.centroid.coords[0][0],
-                         target_robot_polygon.centroid.coords[0][1],
-                         robot.pose[2])
-                c_est = c_1.cost + np.linalg.norm(total_translation)*self.manip_weight + np.linalg.norm(
-                    [q_goal[0] - q_sim[0], q_goal[1] - q_sim[1]])
-                while c_est <= p_opt[0].cost and is_step_success:
-                    if (self._check_new_opening(world, obs, target_obs_polygon, q_goal)
-                            and self._not_in_taboo(world.taboos, target_obs_polygon)):
-                        c_2 = Path.line_path(q_manip, q_sim, weigth=self.manip_weight,
-                                             unit_translation=unit_translation, is_transfer=True, obstacle_uid=o_uid)
-                        rp.publish_c_2(c_2)
-                        world_copy = copy.deepcopy(world)
-                        world_copy.translate_entity(o_uid, total_translation)
-                        c_3 = Path(a_star.a_star_real_path(world_copy.get_grid(), q_sim, q_goal, world_copy.dd, rp),
-                                   obstacle_uid=o_uid)
-                        rp.publish_c_3(c_3)
-                        if not c_3.has_infinite_cost():
-                            p = Plan([c_1, c_2, c_3])
-                            if p.cost < p_best.cost:
-                                p_best = p
-                                if p.cost < p_opt[0].cost:
-                                    p_opt[0] = p
-                                    rp.publish_costmap(world_copy, "/robot_sim")
-                                    rp.publish_p_opt(p_opt[0])
-                    # Increment one step
-                    total_translation = total_translation + np.array(unit_translation)
-                    target_robot_polygon = affinity.translate(
-                        init_robot_polygon, total_translation[0], total_translation[1])
-                    target_obs_polygon = affinity.translate(obs.polygon, total_translation[0], total_translation[1])
+                if c_0_is_valid and c_1_is_valid:
+                    init_robot_polygon = affinity.translate(robot.polygon, q_manip[0] - q_r[0], q_manip[1] - q_r[1])
+                    init_robot_polygon = affinity.rotate(init_robot_polygon, q_manip[2] - q_r[2] % 360.0)
 
-                    rp.publish_sim(target_robot_polygon, target_obs_polygon, "/target")
+                    rp.publish_sim(init_robot_polygon, obs.polygon, "/init")
 
-                    is_step_success = self._is_step_success(world, o_uid, robot.polygon, target_robot_polygon,
-                                                            obs.polygon, target_obs_polygon)
-                    q_sim = (target_robot_polygon.centroid.coords[0][0],
-                             target_robot_polygon.centroid.coords[0][1],
-                             q_manip[2])
-                    c_est = c_1.cost + np.linalg.norm(total_translation)*self.manip_weight + np.linalg.norm(
-                        [q_goal[0] - q_sim[0], q_goal[1] - q_sim[1]])
+                    total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
+                        world, obs, [0.0, 0.0], unit_translation, q_manip, q_goal, c_1, init_robot_polygon, rp)
+                    
+                    while c_est <= p_opt[0].cost and is_step_success:
+                        if (self._check_new_opening(world, obs, target_obs_polygon, q_goal)
+                                and self._not_in_taboo(world.taboos, target_obs_polygon)):
+                            c_2 = Path.line_path(q_manip, q_sim, weigth=self.manip_weight,
+                                                 unit_translation=unit_translation, is_transfer=True, o_uid=o_uid)
+                            rp.publish_c_2(c_2)
+                            world_copy = copy.deepcopy(world)
+                            world_copy.translate_entity(o_uid, total_translation)
+                            c_3 = Path(a_star.a_star_real_path(world_copy.get_grid(), q_sim, q_goal, world_copy.dd, rp),
+                                       o_uid=o_uid)
+                            rp.publish_c_3(c_3)
+                            if not c_3.has_infinite_cost():
+                                p = Plan([c_1, c_2, c_3])
+                                if p.cost < p_best.cost:
+                                    p_best = p
+                                    if p.cost < p_opt[0].cost:
+                                        p_opt[0] = p
+                                        rp.publish_costmap(world_copy, "/robot_sim")
+                                        rp.publish_p_opt(p_opt[0])
+                        # Increment one step
+                        total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
+                            world, obs, total_translation, unit_translation, q_manip, q_goal,
+                            c_1, init_robot_polygon, rp)
 
             rp.cleanup_eval_c1_c2_c3_sim_init_target()
         rp.cleanup_q_manips_for_obs()
         return p_best
+
+    def _sim_one_step(self, world, obs, p_total_translation, unit_translation, q_manip, q_goal,
+                      c_1, init_robot_polygon, rp):
+        total_translation = p_total_translation + np.array(unit_translation)
+        target_robot_polygon = affinity.translate(
+            init_robot_polygon, total_translation[0], total_translation[1])
+        target_obs_polygon = affinity.translate(obs.polygon, total_translation[0], total_translation[1])
+        rp.publish_sim(target_robot_polygon, target_obs_polygon, "/target")
+
+        is_step_success = self._is_step_success(world, obs.uid, init_robot_polygon, target_robot_polygon,
+                                                obs.polygon, target_obs_polygon)
+        q_sim = (target_robot_polygon.centroid.coords[0][0],
+                 target_robot_polygon.centroid.coords[0][1],
+                 q_manip[2])
+        c_est = c_1.cost + np.linalg.norm(total_translation) * self.manip_weight + np.linalg.norm(
+            [q_goal[0] - q_sim[0], q_goal[1] - q_sim[1]])
+
+        return total_translation, is_step_success, q_sim, c_est, target_obs_polygon
 
     def _is_step_success(self, world, o_uid, init_robot_polygon, target_robot_polygon,
                          init_obs_polygon, target_obs_polygon):
@@ -188,12 +208,18 @@ class SNAMOBehavior:
 
         for entity_uid, entity in world.entities.items():
             if entity_uid != world.robot_uid and entity_uid != obs.uid:
-                init_blocking_area = init_inflated_obs_polygon.intersection(entity.polygon)
-                target_blocking_area = target_inflated_robot_polygon.intersection(entity.polygon)
-                if isinstance(init_blocking_area, Polygon):
-                    init_blocking_areas[entity_uid] = init_blocking_area
-                if isinstance(target_blocking_area, Polygon):
-                    target_blocking_areas[entity_uid] = target_blocking_area
+                try:
+                    init_blocking_area = init_inflated_obs_polygon.intersection(entity.polygon)
+                    if isinstance(init_blocking_area, Polygon):
+                        init_blocking_areas[entity_uid] = init_blocking_area
+                except TopologicalError:
+                    pass
+                try:
+                    target_blocking_area = target_inflated_robot_polygon.intersection(entity.polygon)
+                    if isinstance(target_blocking_area, Polygon):
+                        target_blocking_areas[entity_uid] = target_blocking_area
+                except TopologicalError:
+                    pass  # There is no intersection...
 
         for init_blocking_area in init_blocking_areas.values():
             if self._check_still_blocked(init_blocking_area, target_blocking_areas):
@@ -209,10 +235,40 @@ class SNAMOBehavior:
         return False
 
     def _not_in_taboo(self, taboos, target_obs_polygon):
-        for taboo in taboos.values():
-            if target_obs_polygon.intersects(taboo.polygon):
-                return False
+        if self.social_placement_choice_activated:
+            for taboo in taboos.values():
+                if target_obs_polygon.intersects(taboo.polygon):
+                    return False
         return True
+
+    def _get_last_look_q(self, robot, obs, path):
+        index = len(path.path) - 1
+        while index != -1:
+            look_pose = path.path[index]
+            trans = [look_pose[0] - robot.pose[0], look_pose[1] - robot.pose[1]]
+            rot = look_pose[2] - robot.pose[2] % 360.0
+            displaced_fov_polygon = affinity.rotate(affinity.translate(robot.s_fov_polygon, trans[0], trans[1]), rot)
+            if obs.polygon.within(displaced_fov_polygon):
+                return index
+        return None
+
+    def _split_at_pose(self, c_1_in, q_look_index, o_uid, c_0_in=None):
+        c_1_in_is_c_0 = (q_look_index == (len(c_1_in.path) - 1))
+        c_0_out = Path((c_0_in.path if c_0_in is not None else []) + (
+            c_1_in.path[0:q_look_index + 1] if not c_1_in_is_c_0 else c_1_in.path), is_observation=True, o_uid=o_uid)
+        c_1_out = Path((c_1_in.path[q_look_index + 1:len(c_1_in.path)] if not c_1_in_is_c_0
+                        else [c_1_in.path[len(c_1_in.path) - 1]]), o_uid=o_uid)
+        return c_0_out, c_1_out
+
+    def compute_c_0_c_1(self, world, robot, obs, q_r, q_manip, rp):
+        if self.social_movability_evaluation_activated:
+            q_l = obs.get_q_l(world, rp)
+            c_0_path, c_1_path = a_star.two_way_multi_goal_a_star(world.get_grid(), q_r, q_l, q_manip, world.dd, rp)
+            q_look_index = self._get_last_look_q(robot, obs, c_1_path)
+            if q_look_index is not None:
+                return self._split_at_pose(c_1_path, q_look_index, obs.uid, c_0_path)
+            else:
+                return Path([]), Path([])
 
     def find_in_list(self, array, uid):
         items = [item for item in array if item[0] == uid]

@@ -1,26 +1,29 @@
 import numpy as np
-import conversion
+import utils
 from shapely.geometry import LineString, Point
 from shapely import affinity
 from shapely.ops import cascaded_union
 
 
 class Path:
-    def __init__(self, path, weight=1.0, is_transfer=False, obstacle_uid=None, translation=None, cost=None):
+    def __init__(self, path, weight=1.0, is_transfer=False, is_observation=False,
+                 o_uid=None, translation=None, cost=None):
         self.path = path
         self.weight = weight
         self.is_transfer = is_transfer
-        self.obstacle_uid = obstacle_uid
+        self.is_observation = is_observation
+        self.obstacle_uid = o_uid
         self.translation = translation
         self.cost = cost if cost is not None else self.__sum_of_euclidean_distances() * weight
 
     @classmethod
-    def line_path(cls, start_pose, goal_pose, weigth, unit_translation, is_transfer=False, obstacle_uid=None):
+    def line_path(cls, start_pose, goal_pose, weigth, unit_translation,
+                  is_transfer=False, is_observation=False, o_uid=None):
         path = [start_pose]
         unit_dist = np.linalg.norm(unit_translation)
         dist_to_go = np.linalg.norm([goal_pose[0] - start_pose[0], goal_pose[1] - start_pose[1]])
         cost = dist_to_go * weigth
-        yaw = conversion.yaw_from_direction(unit_translation)
+        yaw = utils.yaw_from_direction(unit_translation)
         prev_pose = start_pose
         dist_to_go = dist_to_go - unit_dist
         while dist_to_go > 0.0:
@@ -32,7 +35,7 @@ class Path:
             prev_pose = intermediate_pose
         path.append(goal_pose)
 
-        return cls(path, weigth, is_transfer, obstacle_uid, unit_translation, cost)
+        return cls(path, weigth, is_transfer, False, o_uid, unit_translation, cost)
 
     def has_infinite_cost(self):
         return True if self.cost == float("inf") else False
@@ -57,7 +60,7 @@ class Path:
         # If transfer path:
         if self.is_transfer:
             # First, check if the obstacle is still movable,
-            if world.entities[self.obstacle_uid].movability != "movable":
+            if world.entities[self.obstacle_uid].movability == "unmovable":
                 return False
 
             # Third, add obstacle swept area to bounding polygon, so that this collision is checked too.
@@ -95,6 +98,8 @@ class Path:
     def __sum_of_euclidean_distances(self):
         if len(self.path) == 0:
             return float("inf")
+        elif len(self.path) == 1:
+            return 0.0
 
         total = 0.0
         prev_pose = self.path[0]

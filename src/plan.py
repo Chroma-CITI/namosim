@@ -33,7 +33,7 @@ class Plan:
                     try:
                         next_path = self.path_components[i + 1]
                         if (next_path.is_transfer and tuple(next_path.path[0]) !=
-                                world.entities[next_path.obstacle_uid].actions[next_path.translation]):
+                                world.entities[next_path.obstacle_uid].get_actions(world.dd)[next_path.translation]):
                             return False
                     except (IndexError, KeyError):
                         continue

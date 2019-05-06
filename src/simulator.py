@@ -5,6 +5,7 @@ from obstacle import Obstacle
 
 import time
 import copy
+import numpy as np
 from threading import Thread
 from ptpython.repl import embed
 
@@ -19,6 +20,11 @@ class Simulator:
     def __init__(self, config_file_path, world_file_path):
         # Create ros_publisher
         self.rp = RosPublisher(config_file_path)
+        self.rp.cleanup_all()
+
+        self.provide_walls = True
+        self.display_sim_knowledge_only_once = True
+        self.goals = []
 
         # Create world from world description yaml file
         self.world = World()
@@ -26,8 +32,11 @@ class Simulator:
         self.rp.cleanup_world("/sim")
         self.rp.publish_world(self.world, "/sim")
 
-        self.goals = []
+        if self.display_sim_knowledge_only_once:
+            time.sleep(2.0)
+            self.rp.cleanup_world("/sim")
 
+        # Create robot world knowledge from simulation knowledge according to rules
         robot_world = self._create_robot_world_from_sim_world()
         self.rp.cleanup_world("/robot")
         self.rp.publish_world(robot_world, "/robot")
@@ -36,7 +45,6 @@ class Simulator:
         self.robot_behavior = SNAMOBehavior(self, robot_world, robot_world.robot_uid)
 
         self.user_preempted = False
-
         self.run_thread = Thread(target=self.run)
         self.run_thread.start()
 
@@ -66,8 +74,8 @@ class Simulator:
         sim_robot = self.world.entities[robot_world.robot_uid]
         trans = [sim_robot.pose[0] - robot_pose[0], sim_robot.pose[1] - robot_pose[1]]
         rot = (sim_robot.pose[2] - robot_pose[2]) % 360
-        robot_world.entities[robot_world.robot_uid].translate(trans[0], trans[1], robot_world.dd)
-        robot_world.entities[robot_world.robot_uid].rotate(rot, robot_world.dd)
+        robot_world.translate_entity(robot_world.robot_uid, trans)
+        robot_world.rotate_entity(robot_world.robot_uid, rot)
 
         # Get entities in real-world fovs, merge the result and update in robot_world
         entities_in_g_fov = self.world.get_entities_in_g_fov_seethrough(robot_world.robot_uid)
@@ -117,22 +125,21 @@ class Simulator:
                         return False
 
         # If all collision checks have passed, apply step and return True
-        robot.translate(target_trans[0], target_trans[1], self.world.dd)
-        robot.rotate(target_rot, self.world.dd)
+        self.world.translate_entity(robot.uid, target_trans)
+        self.world.rotate_entity(robot.uid, target_rot)
         if next_step.is_transfer:
-            obstacle.translate(target_trans[0], target_trans[1], self.world.dd)
+            self.world.translate_entity(obstacle.uid, target_trans)
             # No rotation for now
 
-        self.world._update_grid() # TODO: Again, make this automatic on world change...
-
-        self.rp.publish_world(self.world, "/sim")
+        if not self.display_sim_knowledge_only_once:
+            self.rp.publish_world(self.world, "/sim")
 
         return True
 
     def _create_robot_world_from_sim_world(self):
         entities = dict()
         for entity_uid, entity in self.world.entities.items():
-            if isinstance(entity, Robot) or (isinstance(entity, Obstacle) and entity.type == "wall"):
+            if isinstance(entity, Robot) or ((isinstance(entity, Obstacle) and entity.type == "wall") if self.provide_walls else True):
                 entities[entity_uid] = copy.deepcopy(entity)
 
         return World(entities, copy.deepcopy(self.world.taboos), self.world.robot_uid,
@@ -144,14 +151,18 @@ if __name__ == '__main__':
     import rospy
     rospy.init_node('world_gui_test_node', log_level=rospy.INFO)
 
-    sim = Simulator(config_file_path="/home/xia0ben/catkin_ws/src/namo_navigation/config/config.yaml",
-                    world_file_path="/home/xia0ben/catkin_ws/src/namo_navigation/worlds/03.yaml")
+    import os
 
-    # sim.add_goal(3.0, 0.0, 0.0)
-    sim.add_goal(3.0, 3.0, 0.0)
+    cwd = os.getcwd()
+    print(cwd)
 
-    # sim.add_goal(-3.5, -2.0, 270)
-    # sim.add_goal(4.0, -2.0, 180)
+    sim = Simulator(config_file_path="../config/config.yaml",
+                    world_file_path="../worlds/04.yaml")
+
+    # World 3 goals
+    # sim.add_goal(2.0, 0.0, 0.0)
+    # sim.add_goal(2.0, 2.0, 0.0)
+    sim.add_goal(-1.0, -1.0, 180.0)
 
     banner = """
     Welcome in the S-NAMO simulator !
