@@ -1,5 +1,22 @@
 import math
 
+# Constants
+TAXI_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0))
+CHESSBOARD_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1))
+
+
+def get_neighbors(cell, width, height, neighborhood=CHESSBOARD_NEIGHBORHOOD):
+    neighbors = set()
+    for i, j in neighborhood:
+        neighbor = cell[0] + i, cell[1] + j
+        if is_in_matrix(neighbor, width, height):
+            neighbors.add(neighbor)
+    return neighbors
+
+
+def is_in_matrix(cell, width, height):
+    return 0 <= cell[0] < width and 0 <= cell[1] < height
+
 
 def real_to_grid(real_x, real_y, dd):
     return int((real_x - dd.grid_pose[0]) / dd.res), int((real_y - dd.grid_pose[1]) / dd.res)
