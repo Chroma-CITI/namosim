@@ -20,7 +20,7 @@ class StandardBehavior:
 
             if not p_opt.is_valid(self.world):
                 p_opt = Plan([Path(a_star.a_star_real_path(
-                    self.world.get_grid(), q_r, q_goal, self.world.dd, rp))])
+                    self.world.get_inflated_grid(), q_r, q_goal, self.world.dd, rp))])
 
             if p_opt.is_not_empty():
                 next_step = p_opt.pop_next_step()

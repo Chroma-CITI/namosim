@@ -17,39 +17,38 @@ from s_namo_behavior import SNAMOBehavior
 
 
 class Simulator:
-    def __init__(self, config_file_path, world_file_path):
+    def __init__(self, world_file_path):
         # Create ros_publisher
-        self.rp = RosPublisher(config_file_path)
+        self.rp = RosPublisher()
         self.rp.cleanup_all()
 
         self.provide_walls = True
-        self.display_sim_knowledge_only_once = True
-        self.goals = []
+        self.display_sim_knowledge_only_once = False
 
         # Create world from world description yaml file
         self.world = World()
-        self.world.load_from_yaml(world_file_path)
-        self.rp.cleanup_world("/sim")
-        self.rp.publish_world(self.world, "/sim")
+        self.goals = self.world.load_from_yaml(world_file_path)
+        self.rp.cleanup_sim_world()
+        self.rp.publish_sim_world(self.world)
 
         if self.display_sim_knowledge_only_once:
             time.sleep(2.0)
-            self.rp.cleanup_world("/sim")
+            self.rp.cleanup_sim_world()
 
         # Create robot world knowledge from simulation knowledge according to rules
         robot_world = self._create_robot_world_from_sim_world()
-        self.rp.cleanup_world("/robot")
-        self.rp.publish_world(robot_world, "/robot")
+        self.rp.cleanup_robot_world()
+        self.rp.publish_robot_world(robot_world)
 
         # self.robot_behavior = StandardBehavior(self, robot_world, robot_world.robot_uid)
         self.robot_behavior = SNAMOBehavior(self, robot_world, robot_world.robot_uid)
 
-        self.user_preempted = False
-        self.run_thread = Thread(target=self.run)
-        self.run_thread.start()
+        # self.user_preempted = False
+        # self.run_thread = Thread(target=self.run)
+        # self.run_thread.start()
 
     def run(self):
-        print("Run thread started")
+        print("Run started")
         while True:
             # print("Run thread runnning")
             if not self.goals:
@@ -59,6 +58,7 @@ class Simulator:
                 while self.goals:
                     self.robot_behavior.execute(self.world.entities[self.world.robot_uid].pose, self.goals[0], self.rp)
                     self.goals.pop(0)
+                break
 
     def add_goal(self, x, y, yaw):
         self.goals.append([x, y, yaw])
@@ -105,7 +105,7 @@ class Simulator:
         obs_rot_convex_hull, obs_trans_convex_hull, obstacle = None, None, None
         if next_step.is_transfer:
             obstacle = self.world.entities[next_step.obstacle_uid]
-            if obstacle.movability == "unmovable":
+            if robot.deduce_movability(obstacle.type) == "unmovable":
                 return False
             target_obs_polygon_rot = affinity.rotate(obstacle.polygon, target_rot, 'centroid')
             target_obs_polygon_rot_trans = affinity.translate(target_obs_polygon_rot, target_trans[0],
@@ -132,7 +132,7 @@ class Simulator:
             # No rotation for now
 
         if not self.display_sim_knowledge_only_once:
-            self.rp.publish_world(self.world, "/sim")
+            self.rp.publish_sim_world(self.world)
 
         return True
 
@@ -142,39 +142,36 @@ class Simulator:
             if isinstance(entity, Robot) or ((isinstance(entity, Obstacle) and entity.type == "wall") if self.provide_walls else True):
                 entities[entity_uid] = copy.deepcopy(entity)
 
-        return World(entities, copy.deepcopy(self.world.taboos), self.world.robot_uid,
-                     copy.deepcopy(self.world.whitelist), copy.deepcopy(self.world.push_only_list),
-                     self.world.force_pushes_only, copy.deepcopy(self.world.dd))
+        return World(entities, copy.deepcopy(self.world.taboos), self.world.robot_uid, copy.deepcopy(self.world.dd))
 
 
 if __name__ == '__main__':
     import rospy
     rospy.init_node('world_gui_test_node', log_level=rospy.INFO)
 
-    import os
-
-    cwd = os.getcwd()
-    print(cwd)
-
-    sim = Simulator(config_file_path="../config/config.yaml",
-                    world_file_path="../worlds/04.yaml")
+    sim = Simulator(world_file_path="../data/worlds/moghaddam_planning_2016_benchmark/01/01.yaml")
 
     # World 3 goals
     # sim.add_goal(2.0, 0.0, 0.0)
     # sim.add_goal(2.0, 2.0, 0.0)
-    sim.add_goal(-1.0, -1.0, 180.0)
 
-    banner = """
-    Welcome in the S-NAMO simulator !
-    
-    You are within the program now: you can access the simulator's
-    functions simply by calling it's python functions, like so:
-    
-    sim.help()
-    
-    To Exit, press Ctrl+z.
-    """
+    sim.run()
 
-    print(banner)
+    pass
+    # World 4 goals
+    # sim.add_goal(-1.0, -1.0, 180.0)
 
-    embed(globals(), locals())
+    # banner = """
+    # Welcome in the S-NAMO simulator !
+    #
+    # You are within the program now: you can access the simulator's
+    # functions simply by calling it's python functions, like so:
+    #
+    # sim.help()
+    #
+    # To Exit, press Ctrl+z.
+    # """
+    #
+    # print(banner)
+    #
+    # embed(globals(), locals())
