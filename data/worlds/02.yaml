@@ -5,6 +5,7 @@
 ### Map discretization properties
 discretization_data:
   res: 0.1
+  inflation_radius: 0.50
   cost_lethal: 100
   cost_inscribed: 50
   cost_circumscribed: 20

@@ -1,0 +1,21 @@
+name: Round Robot 01
+radius: 0.5 # [m]
+sensors:
+  - g_sensor_01:
+    type: perfect_circular_geometry_sensor
+      g_fov_min_radius: 0.0 # [m]
+      g_fov_max_radius: 5.0 # [m]
+      g_fov_opening_angle: 180.0 # [degrees]
+  - g_sensor_02:
+    type: perfect_circular_semantic_sensor
+      s_fov_min_radius: 0.0 #0.9 # [m]
+      s_fov_max_radius: 5.0 #3.2 # [m]
+      s_fov_opening_angle: 180.0 #90.0 # [degrees]
+
+# Movable Whitelist
+whitelist:
+  - "box"
+
+# List of push-only objects
+push_only_list:
+  - "box"

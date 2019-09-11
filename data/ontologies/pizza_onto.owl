@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+         xml:base="http://www.lesfleursdunormal.fr/static/_downloads/pizza_onto.owl"
+         xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+         xmlns="http://www.lesfleursdunormal.fr/static/_downloads/pizza_onto.owl#"
+         xmlns:owl="http://www.w3.org/2002/07/owl#"
+         xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+
+<owl:Ontology rdf:about="http://www.lesfleursdunormal.fr/static/_downloads/pizza_onto.owl"/>
+
+<owl:ObjectProperty rdf:about="#has_topping">
+  <rdfs:domain rdf:resource="#Pizza"/>
+  <rdfs:range rdf:resource="#Topping"/>
+</owl:ObjectProperty>
+
+<owl:Class rdf:about="#CheeseTopping">
+  <rdfs:subClassOf rdf:resource="#Topping"/>
+</owl:Class>
+
+<owl:Class rdf:about="#FishTopping">
+  <rdfs:subClassOf rdf:resource="#Topping"/>
+</owl:Class>
+
+<owl:Class rdf:about="#MeatTopping">
+  <rdfs:subClassOf rdf:resource="#Topping"/>
+</owl:Class>
+
+<owl:Class rdf:about="#Pizza">
+  <owl:disjointWith rdf:resource="#Topping"/>
+</owl:Class>
+
+<owl:Class rdf:about="#TomatoTopping">
+  <rdfs:subClassOf rdf:resource="#Topping"/>
+</owl:Class>
+
+<owl:Class rdf:about="#Topping"/>
+
+<owl:Class rdf:about="#NonVegetarianPizza">
+  <rdfs:subClassOf rdf:resource="#Pizza"/>
+  <owl:equivalentClass>
+    <owl:Class>
+      <owl:intersectionOf rdf:parseType="Collection">
+        <rdf:Description rdf:about="#Pizza"/>
+        <owl:Class>
+          <owl:unionOf rdf:parseType="Collection">
+            <owl:Restriction>
+              <owl:onProperty rdf:resource="#has_topping"/>
+              <owl:someValuesFrom rdf:resource="#MeatTopping"/>
+            </owl:Restriction>
+            <owl:Restriction>
+              <owl:onProperty rdf:resource="#has_topping"/>
+              <owl:someValuesFrom rdf:resource="#FishTopping"/>
+            </owl:Restriction>
+          </owl:unionOf>
+        </owl:Class>
+      </owl:intersectionOf>
+    </owl:Class>
+  </owl:equivalentClass>
+</owl:Class>
+
+<Pizza rdf:about="#test_pizza_01">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#NamedIndividual"/>
+  <has_topping rdf:resource="#cheesetopping1"/>
+  <has_topping rdf:resource="#tomatotopping1"/>
+  <has_topping rdf:resource="#meattopping1"/>
+</Pizza>
+
+<CheeseTopping rdf:about="#cheesetopping1">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#NamedIndividual"/>
+</CheeseTopping>
+
+<TomatoTopping rdf:about="#tomatotopping1">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#NamedIndividual"/>
+</TomatoTopping>
+
+<MeatTopping rdf:about="#meattopping1">
+  <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#NamedIndividual"/>
+</MeatTopping>
+
+<owl:AllDisjointClasses>
+  <owl:members rdf:parseType="Collection">
+    <rdf:Description rdf:about="#CheeseTopping"/>
+    <rdf:Description rdf:about="#FishTopping"/>
+    <rdf:Description rdf:about="#MeatTopping"/>
+    <rdf:Description rdf:about="#TomatoTopping"/>
+  </owl:members>
+</owl:AllDisjointClasses>
+
+
+</rdf:RDF>

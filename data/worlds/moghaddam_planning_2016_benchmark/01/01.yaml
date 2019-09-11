@@ -1,0 +1,91 @@
+# World
+
+## Files to load
+files:
+  geometry_file: "01.svg"
+  # TODO ontology_file: ../../../ontologies/main.owl
+
+## World geometry interpretation properties
+geometry_scale: 0.2 # SVG measurements will be multiplied by this value
+
+## World discretization properties
+discretization_data:
+  res: 0.1
+  inflation_radius: 0.35
+  cost_lethal: 100
+  cost_inscribed: 50
+  cost_circumscribed: 20
+  cost_possibly_nonfree: 10
+
+## World physical entities/zones
+things:
+  entities:
+    -
+        name: "pepper"
+        type: "robot"
+        geometry:
+            from: "file"
+            id: "robot_01"
+        # orientation_id: # Points to a 2-points path object in SVG that gives the entity's direction
+        # pose:
+        #   position:
+        #     x: 0.0
+        #     y: 0.0
+        #   orientation:
+        #     z: 0.0
+        # radius: 0.25 # [m] # Creates a circular robot with radius
+        # polygon:
+        #   - [...]
+        movable_whitelist:
+            - "table"
+        push_only_list:
+            - "table"
+        force_pushes_only: True
+        sensors:
+            perfect_g_fov:
+                min_radius: 0.0 # [m]
+                max_radius: 2.4 # [m]
+                opening_angle: 180.0 # [degrees]
+            perfect_s_fov:
+                min_radius: 0.0 # 0.7 # [m]
+                max_radius: 2.4 # 2.0 # [m]
+                opening_angle: 180.0 # 100.0 # [degrees]
+    -
+        name: "Border wall"
+        type: "wall"
+        geometry:
+            from: "file"
+            id: "wall_01"
+    -
+        name: "Top pillar"
+        type: "wall"
+        geometry:
+            from: "file"
+            id: "wall_02"
+    -
+        name: "Bottom pillar"
+        type: "wall"
+        geometry:
+            from: "file"
+            id: "wall_03"
+    -
+        name: "Top table"
+        type: "table"
+        geometry:
+            from: "file"
+            id: "table_01"
+    # -
+    #     name: "Bottom table"
+    #     type: "table"
+    #     geometry:
+    #         from: "file"
+    #         id: "table_02"
+
+  zones:
+    goals:
+    -
+        geometry:
+          from: "file"
+          id: "goal_01"
+          # orientation_id:
+    # taboos:
