@@ -1,18 +1,18 @@
-import yaml
 import time
 import math
 import numpy as np
 
-from shapely.ops import triangulate
+import triangulate
 from shapely import affinity
 
 import rospy
 import tf
+from tf2_ros import StaticTransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import Pose, Quaternion, Point, Vector3, PoseArray, PoseStamped, Polygon as RosPolygon, Point32,\
-    PolygonStamped
-from std_msgs.msg import Header, ColorRGBA
+from geometry_msgs.msg import Pose, Quaternion, Point, Vector3, PoseArray, PoseStamped, TransformStamped
+from std_msgs.msg import Header, ColorRGBA, Float32MultiArray, MultiArrayLayout, MultiArrayDimension
 from nav_msgs.msg import Path, GridCells, OccupancyGrid, MapMetaData
+from grid_map_msgs.msg import GridMap
 
 import utils
 from robot import Robot
@@ -37,15 +37,40 @@ def world_to_costmap(world):
     costmap = OccupancyGrid(header=init_header())
     costmap.info.map_load_time = costmap.header.stamp
     costmap.info.resolution = world.dd.res
-    costmap.info.width = world.get_grid().shape[0]
-    costmap.info.height = world.get_grid().shape[1]
+    costmap.info.width = world.get_inflated_grid().shape[0]
+    costmap.info.height = world.get_inflated_grid().shape[1]
     costmap.info.origin.position.x = world.dd.grid_pose[0]
     costmap.info.origin.position.y = world.dd.grid_pose[1]
     costmap.info.origin.position.z = -0.1
-    costmap.data = np.fliplr(np.rot90(world.get_grid(), 3)).flatten().astype(np.int8).tolist()
+    costmap.data = np.fliplr(np.rot90(world.get_inflated_grid(), 3)).flatten().astype(np.int8).tolist()
 
     return costmap
 
+
+def costmap_to_grid_map(costmap, dd):
+    grid_map = GridMap()
+    grid_map.info.header = Header(stamp=rospy.Time.now(), frame_id="gridmap")
+    grid_map.info.resolution = dd.res
+    grid_map.info.length_x = costmap.shape[0] * dd.res
+    grid_map.info.length_y = costmap.shape[1] * dd.res
+    grid_map.info.pose.position.x = 0.0
+    grid_map.info.pose.position.y = 0.0
+    grid_map.info.pose.position.z = -10.0
+    grid_map.layers = ["elevation"]
+    inflated_costmap_data = Float32MultiArray(
+        layout=MultiArrayLayout(
+            dim=[MultiArrayDimension(label="column_index",
+                                     size=costmap.shape[1],
+                                     stride=costmap.shape[1]*costmap.shape[0]),
+                 MultiArrayDimension(label="row_index",
+                                     size=costmap.shape[0],
+                                     stride=costmap.shape[0])],
+            data_offset=0),
+        data=(costmap.flatten('F') / float(dd.cost_lethal)).astype(np.float32).tolist()
+    )
+    grid_map.data = [inflated_costmap_data]
+
+    return grid_map
 
 def grid_cells_to_ros_cells(grid_cells, dd):
     ros_cells = init_grid_cells(dd.res)
@@ -91,9 +116,9 @@ def polygon_to_triangle_list(polygon, namespace, p_id, frame_id, color, z_index)
                     color=color,
                     scale=Vector3(1.0, 1.0, 1.0),
                     points=[])
-    triangles = triangulate(polygon)
+    triangles = triangulate.triangulate(list(polygon.exterior.coords))
     for triangle in triangles:
-        for point in triangle.exterior.coords[:len(triangle.exterior.coords) - 1]:
+        for point in triangle:
             marker.points.append(Point(point[0], point[1], z_index))
     return marker
 
@@ -125,6 +150,7 @@ def pose_to_arrow(pose, namespace, p_id, frame_id, color, z_index, shaft_diamete
                     header=Header(frame_id=frame_id, stamp=rospy.Time.now()),
                     color=color)
     return marker
+
 
 def string_to_text(string, coordinates, namespace, p_id, frame_id, color, z_index, text_height):
     marker = Marker(type=Marker.TEXT_VIEW_FACING,
@@ -199,53 +225,74 @@ def publish_once(publisher, msg):
 
 
 class RosPublisher:
-    def __init__(self, config_path):
-        config = yaml.load(open(config_path))
-
+    def __init__(self):
         # Actual topics
-        self.movables_topic = config["movables_topic"]
-        self.unmovables_topic = config["unmovables_topic"]
-        self.unknowns_topic = config["unknowns_topic"]
-        self.robot_topic = config["robot_topic"]
-        self.taboos_topic = config["taboos_topic"]
+        self.min_max_inflated_polygons_topic = "/robot/compute_c_0_c1/min_max_inflated_polygons"
+        self.path_grid_cells_topic = "/test/path_grid_cells"
+        self.a_star_open_heap_topic = "/test/open_heap_cells"
+        self.a_star_close_set_topic = "/test/close_set_cells"
+        self.multi_a_star_open_heap_topic = "/test/multigoal_a_star_open_heap"
+        self.multi_a_star_close_set_topic = "/test/multigoal_a_star_close_set"
+        self.q_l_cells_topic = "/robot/compute_c_0_c1/q_l_cells"
+        self.q_l_poses_topic = "/robot/compute_c_0_c1/q_l_poses"
+        self.robot_goal_topic = "/robot/goal"
+        self.obs_manip_poses_topic = "/test/obs_manip_poses"
+        self.c_1_topic = "/robot/p_opt/c_1"
+        self.c_2_topic = "/robot/p_opt/c_2"
+        self.c_3_topic = "/robot/p_opt/c_3"
+        self.robot_costmap = "/robot_sim/costmap"
+        self.eval_c_1_topic = "/robot/eval_c_1"
+        self.eval_c_2_topic = "/robot/eval_c_2"
+        self.eval_c_3_topic = "/robot/eval_c_3"
+        self.robot_sim_topic = "/robot/sim"
+        self.robot_knowledge_topic = "/robot/knowledge"
+        self.sim_knowledge_topic = "/sim/knowledge"
+        self.robot_costmap_topic = "/robot/costmap"
+        self.sim_costmap_topic = "/sim/costmap"
+        self.robot_sim_costmap_topic = "/robot_sim/costmap"
+        self.test_gridmap_topic = "/test/gridmap"
 
-        self.robot_g_fov_topic = config["robot_g_fov_topic"]
-        self.robot_s_fov_topic = config["robot_s_fov_topic"]
-
-        self.entities_in_g_fov_topic = config["entities_in_g_fov_topic"]
-
-        self.entities_in_s_fov_topic = config["entities_in_s_fov_topic"]
-        self.costmap_topic = config["costmap_topic"]
-        self.path_grid_cells_topic = config["path_grid_cells_topic"]
-
-        self.a_star_open_heap_topic = config["a_star_open_heap_topic"]
-        self.a_star_close_set_topic = config["a_star_close_set_topic"]
+        self.social_cells_topic = "/test/social_cells"
 
         # Dictionary of Publishers
-        self.publishers = dict()
+        self.default_queue_size = 10
+        self.publishers = {
+            self.min_max_inflated_polygons_topic: rospy.Publisher(self.min_max_inflated_polygons_topic, MarkerArray, queue_size=self.default_queue_size),
+            self.path_grid_cells_topic: rospy.Publisher(self.path_grid_cells_topic, GridCells, queue_size=self.default_queue_size),
+            self.a_star_open_heap_topic: rospy.Publisher(self.a_star_open_heap_topic, GridCells, queue_size=self.default_queue_size),
+            self.a_star_close_set_topic: rospy.Publisher(self.a_star_close_set_topic, GridCells, queue_size=self.default_queue_size),
+            self.multi_a_star_open_heap_topic: rospy.Publisher(self.multi_a_star_open_heap_topic, GridCells, queue_size=self.default_queue_size),
+            self.multi_a_star_close_set_topic: rospy.Publisher(self.multi_a_star_close_set_topic, GridCells, queue_size=self.default_queue_size),
+            self.q_l_cells_topic: rospy.Publisher(self.q_l_cells_topic, GridCells, queue_size=self.default_queue_size),
+            self.q_l_poses_topic: rospy.Publisher(self.q_l_poses_topic, PoseArray, queue_size=self.default_queue_size),
+            self.robot_goal_topic: rospy.Publisher(self.robot_goal_topic, MarkerArray, queue_size=self.default_queue_size),
+            self.obs_manip_poses_topic: rospy.Publisher(self.obs_manip_poses_topic, PoseArray, queue_size=self.default_queue_size),
+            self.c_1_topic: rospy.Publisher(self.c_1_topic, Path, queue_size=self.default_queue_size),
+            self.c_2_topic: rospy.Publisher(self.c_2_topic, Path, queue_size=self.default_queue_size),
+            self.c_3_topic: rospy.Publisher(self.c_3_topic, Path, queue_size=self.default_queue_size),
+            self.robot_costmap: rospy.Publisher(self.robot_costmap, OccupancyGrid, queue_size=self.default_queue_size),
+            self.eval_c_1_topic: rospy.Publisher(self.eval_c_1_topic, Path, queue_size=self.default_queue_size),
+            self.eval_c_2_topic: rospy.Publisher(self.eval_c_2_topic, Path, queue_size=self.default_queue_size),
+            self.eval_c_3_topic: rospy.Publisher(self.eval_c_3_topic, Path, queue_size=self.default_queue_size),
+            self.robot_sim_topic: rospy.Publisher(self.robot_sim_topic, MarkerArray, queue_size=self.default_queue_size),
+            self.robot_knowledge_topic: rospy.Publisher(self.robot_knowledge_topic, MarkerArray, queue_size=self.default_queue_size),
+            self.sim_knowledge_topic: rospy.Publisher(self.sim_knowledge_topic, MarkerArray, queue_size=self.default_queue_size),
+            self.robot_costmap_topic: rospy.Publisher(self.robot_costmap_topic, OccupancyGrid, queue_size=self.default_queue_size),
+            self.sim_costmap_topic: rospy.Publisher(self.sim_costmap_topic, OccupancyGrid, queue_size=self.default_queue_size),
+            self.robot_sim_costmap_topic: rospy.Publisher(self.robot_sim_costmap_topic, OccupancyGrid, queue_size=self.default_queue_size),
+            self.test_gridmap_topic: rospy.Publisher(self.test_gridmap_topic, GridMap, queue_size= self.default_queue_size),
+            self.social_cells_topic: rospy.Publisher(self.social_cells_topic, GridCells, queue_size= self.default_queue_size)
+            }
+        time.sleep(0.5)  # wait_publisher_is_ready(publisher)
 
         # Dictionary of Activation variables
         self.is_activated = dict()
 
-        self.is_activated[self.movables_topic] = config["movables_topic_activated"]
-        self.is_activated[self.unmovables_topic] = config["unmovables_topic_activated"]
-        self.is_activated[self.unknowns_topic] = config["unknowns_topic_activated"]
-        self.is_activated[self.robot_topic] = config["robot_topic_activated"]
-        self.is_activated[self.taboos_topic] = config["taboos_topic_activated"]
+        self.is_activated[self.path_grid_cells_topic] = False
+        self.is_activated[self.a_star_open_heap_topic] = False
+        self.is_activated[self.a_star_close_set_topic] = False
 
-        self.is_activated[self.robot_g_fov_topic] = config["robot_g_fov_topic_activated"]
-        self.is_activated[self.robot_s_fov_topic] = config["robot_s_fov_topic_activated"]
-
-        self.is_activated[self.entities_in_g_fov_topic] = config["entities_in_g_fov_topic_activated"]
-
-        self.is_activated[self.entities_in_s_fov_topic] = config["entities_in_s_fov_topic_activated"]
-        self.is_activated[self.costmap_topic] = config["costmap_topic_activated"]
-        self.is_activated[self.path_grid_cells_topic] = config["path_grid_cells_topic_activated"]
-
-        self.is_activated[self.a_star_open_heap_topic] = config["a_star_open_heap_topic_activated"]
-        self.is_activated[self.a_star_close_set_topic] = config["a_star_close_set_topic_activated"]
-
-        self.rate = rospy.Rate(20)
+        self.rate = rospy.Rate(20000000)
 
         self.frame_id = "/map"
 
@@ -280,66 +327,81 @@ class RosPublisher:
         self.border_width = 0.075
         self.text_height = 0.2
 
-    def publish(self, topic, msg, force_publish_once=False):
+        # Setup Static Transform for grid map (Hack so that it is properly placed in view)
+        # TODO Parameterize this with the rest so that it can be changed from GUI
+        broadcaster = StaticTransformBroadcaster()
+
+        world_to_gridmap_transform = TransformStamped()
+        world_to_gridmap_transform.header.stamp = rospy.Time.now()
+        world_to_gridmap_transform.header.frame_id = "map"
+        world_to_gridmap_transform.child_frame_id = "gridmap"
+        world_to_gridmap_transform.transform.translation.z = -1.5
+
+        broadcaster.sendTransform(world_to_gridmap_transform)
+
+    def publish(self, topic, msg):
         self.rate.sleep()
-        try:
-            publisher = self.publishers[topic]
-        except KeyError:
-            publisher = rospy.Publisher(topic, type(msg), queue_size=10)
-            self.publishers[topic] = publisher
-            time.sleep(0.5)  # wait_publisher_is_ready(publisher)
-        if force_publish_once:
-            publish_once(publisher, msg)
-        else:
+        publisher = self.publishers[topic]
+        connections = publisher.get_num_connections()
+        if connections > 0:
             publisher.publish(msg)
 
-    def world_to_marker_array(self, world, namespace):
+    def world_to_marker_array(self, world):
         marker_array = MarkerArray()
         markers = []
+        robot = world.entities[world.robot_uid]
         for entity in world.entities.values():
             if isinstance(entity, Robot):
                 markers = markers + entity_to_markers(
-                    entity, namespace + "/robot", entity.uid, self.frame_id, self.robot_color, self.robot_border_color,
+                    entity, "/robot", entity.uid, self.frame_id, self.robot_color, self.robot_border_color,
                     self.text_color_on_filling, self.text_color_on_empty, self.entities_z_index,
                     self.border_width, self.text_height, add_border=False, add_text=False)
 
-                markers.append(polygon_to_line_strip(entity.s_fov_polygon, namespace + "/robot/s_fov", 0,
+                markers.append(polygon_to_line_strip(entity.s_fov_polygon, "/robot/s_fov", 0,
                                                      self.frame_id, self.s_fov_border_color, self.fov_z_index,
                                                      self.fov_line_width))
-                markers.append(polygon_to_line_strip(entity.g_fov_polygon, namespace + "/robot/g_fov", 0,
+                markers.append(polygon_to_line_strip(entity.g_fov_polygon, "/robot/g_fov", 0,
                                                      self.frame_id, self.g_fov_border_color, self.fov_z_index,
                                                      self.fov_line_width))
             if isinstance(entity, Obstacle):
-                if entity.movability == "movable":
+                entity_movability = robot.deduce_movability(entity.type)
+                if entity_movability == "movable":
                     markers = markers + entity_to_markers(
-                        entity, namespace + "/obstacles", entity.uid, self.frame_id, self.movable_obstacle_color,
+                        entity, "/obstacles", entity.uid, self.frame_id, self.movable_obstacle_color,
                         self.movable_obstacle_border_color, self.text_color_on_filling, self.text_color_on_empty,
                         self.entities_z_index, self.border_width, self.text_height, add_border=False, add_text=False)
-                if entity.movability == "unmovable":
+                if entity_movability == "unmovable":
                     markers = markers + entity_to_markers(
-                        entity, namespace + "/obstacles", entity.uid, self.frame_id, self.unmovable_obstacle_color,
+                        entity, "/obstacles", entity.uid, self.frame_id, self.unmovable_obstacle_color,
                         self.unmovable_obstacle_border_color, self.text_color_on_filling, self.text_color_on_empty,
                         self.entities_z_index, self.border_width, self.text_height, add_border=False, add_text=False)
-                if entity.movability == "unknown":
+                if entity_movability == "unknown":
                     markers = markers + entity_to_markers(
-                        entity, namespace + "/obstacles", entity.uid, self.frame_id, self.unknown_obstacle_color,
+                        entity, "/obstacles", entity.uid, self.frame_id, self.unknown_obstacle_color,
                         self.unknown_obstacle_border_color, self.text_color_on_filling, self.text_color_on_empty,
                         self.entities_z_index, self.border_width, self.text_height, add_border=False, add_text=False)
         for taboo in world.taboos.values():
             markers = markers + entity_to_markers(
-                taboo, namespace + "/taboos", taboo.uid, self.frame_id, self.taboo_color, self.taboo_border_color,
+                taboo, "/taboos", taboo.uid, self.frame_id, self.taboo_color, self.taboo_border_color,
                 self.text_color_on_filling, self.text_color_on_empty, self.taboos_z_index,
                 self.border_width, self.text_height, add_border=False, add_text=False)
         marker_array.markers = markers
         return marker_array
 
-    def publish_world(self, world, namespace="/sim"):
-        self.publish(namespace + "/knowledge", self.world_to_marker_array(world, namespace))
-        self.publish_costmap(world, namespace)
+    def publish_sim_world(self, world):
+        self.publish(self.sim_knowledge_topic, self.world_to_marker_array(world))
+        self.publish(self.sim_costmap_topic,  world_to_costmap(world))
 
-    def publish_costmap(self, world, namespace):
-        costmap = world_to_costmap(world)
-        self.publish(namespace + "/costmap", costmap)
+    def publish_robot_world(self, world):
+        self.publish(self.robot_knowledge_topic, self.world_to_marker_array(world))
+        self.publish(self.robot_costmap_topic,  world_to_costmap(world))
+
+    def publish_robot_sim_costmap(self, world):
+        self.publish(self.robot_sim_costmap_topic, world_to_costmap(world))
+
+    def publish_grid_map(self, costmap, dd):
+        grid_map = costmap_to_grid_map(costmap, dd)
+        self.publish(self.test_gridmap_topic, grid_map)
 
     def publish_a_star_open_heap(self, open_heap, dd):
         if self.is_activated[self.a_star_open_heap_topic]:
@@ -354,48 +416,45 @@ class RosPublisher:
             close_set_cells = grid_cells_to_ros_cells(list(close_set), dd)
             self.publish(self.a_star_close_set_topic, close_set_cells)
 
+    def publish_social_cells(self, social_cells_set, dd):
+        ros_cells = grid_cells_to_ros_cells(list(social_cells_set), dd)
+        self.publish(self.social_cells_topic, ros_cells)
+
     def publish_multigoal_a_star_open_heap(self, open_heap, dd):
         open_heap_data = []
         for element in open_heap:
             open_heap_data.append(element[1])
         open_heap_cells = grid_cells_to_ros_cells(open_heap_data, dd)
-        self.publish("/test/multigoal_a_star_open_heap", open_heap_cells)
+        self.publish(self.a_star_open_heap_topic, open_heap_cells)
 
     def publish_multigoal_a_star_close_set(self, close_set, dd):
         close_set_cells = grid_cells_to_ros_cells(list(close_set), dd)
-        self.publish("/test/multigoal_a_star_close_set", close_set_cells)
+        self.publish(self.a_star_close_set_topic, close_set_cells)
 
     def publish_grid_path(self, grid_path, dd):
         if self.is_activated[self.path_grid_cells_topic]:
             path_grid_cells = grid_cells_to_ros_cells(grid_path, dd)
             self.publish(self.path_grid_cells_topic, path_grid_cells)
 
-    def publish_real_path(self, topic, real_path):
-        path = real_path_to_ros_path(real_path)
-        self.publish(topic, path)
-
     def publish_q_manips_for_obs(self, poses):
         pose_array = poses_to_poses_array(poses)
-        self.publish("/test/obs_manip_poses", pose_array)
+        self.publish(self.obs_manip_poses_topic, pose_array)
 
     def publish_c_1(self, c1):
-        self.publish_real_path("/robot/eval_c_1", c1.path)
+        self.publish(self.eval_c_1_topic, real_path_to_ros_path(c1.path))
 
     def publish_c_2(self, c2):
-        self.publish_real_path("/robot/eval_c_2", c2.path)
+        self.publish(self.eval_c_2_topic, real_path_to_ros_path(c2.path))
 
     def publish_c_3(self, c3):
-        self.publish_real_path("/robot/eval_c_3", c3.path)
+        self.publish(self.eval_c_3_topic, real_path_to_ros_path(c3.path))
 
-    def publish_plan(self, plan_prefix, plan):
+    def publish_p_opt(self, plan):
         if plan.path_components:
-            self.publish_real_path("/robot" + plan_prefix + "/c_1", plan.path_components[0].path)
+            self.publish(self.c_1_topic, real_path_to_ros_path(plan.path_components[0].path))
         if len(plan.path_components) == 3:
-            self.publish_real_path("/robot" + plan_prefix + "/c_2", plan.path_components[1].path)
-            self.publish_real_path("/robot" + plan_prefix + "/c_3", plan.path_components[2].path)
-
-    def publish_p_opt(self, p_opt):
-        self.publish_plan("/p_opt", p_opt)
+            self.publish(self.c_2_topic, real_path_to_ros_path(plan.path_components[1].path))
+            self.publish(self.c_3_topic, real_path_to_ros_path(plan.path_components[2].path))
 
     def publish_sim(self, robot_polygon, obs_polygon, namespace="/init"):
         robot_color = self.robot_border_color if namespace == "/target" else self.robot_color
@@ -415,15 +474,15 @@ class RosPublisher:
             polygon_to_line_strip(max_inflated_polygon, "/max_inflated_polygon", 0, self.frame_id,
                                   self.max_inflated_polygon_border_color,
                                   self.entities_z_index, self.border_width)])
-        self.publish("/robot/compute_c_0_c1/min_max_inflated_polygons", marker_array)
+        self.publish(self.min_max_inflated_polygons_topic, marker_array)
 
     def publish_q_l_cells(self, cells, dd):
         close_set_cells = grid_cells_to_ros_cells(list(cells), dd)
-        self.publish("/robot/compute_c_0_c1/q_l_cells", close_set_cells)
+        self.publish(self.q_l_cells_topic, close_set_cells)
 
     def publish_q_l_poses(self, poses):
         pose_array = poses_to_poses_array(poses)
-        self.publish("/robot/compute_c_0_c1/q_l_poses", pose_array)
+        self.publish(self.q_l_poses_topic, pose_array)
 
     def publish_goal(self, q_init, q_goal, polygon):
         polygon_at_goal_pose = affinity.translate(polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
@@ -433,37 +492,41 @@ class RosPublisher:
                                   self.fov_z_index, self.border_width)])
             # pose_to_arrow(q_goal, "/pose", 0, self.frame_id, self.robot_border_color,
             #               self.entities_z_index, 0.5, 0.2, 0.0)])
-        self.publish("/robot/goal", marker_array)
+        self.publish(self.robot_goal_topic, marker_array)
 
-    def cleanup_world(self, namespace="/sim"):
-        self.publish(namespace + "/knowledge", make_delete_all_marker(self.frame_id))
-        self.publish(namespace + "/costmap", OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
+    def cleanup_sim_world(self):
+        self.publish(self.sim_knowledge_topic, make_delete_all_marker(self.frame_id))
+        self.publish(self.sim_costmap_topic, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
+
+    def cleanup_robot_world(self):
+        self.publish(self.robot_knowledge_topic, make_delete_all_marker(self.frame_id))
+        self.publish(self.robot_costmap_topic, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
 
     def cleanup_eval_c1_c2_c3_sim_init_target(self):
-        self.publish("/robot/eval_c_1", init_ros_path())
-        self.publish("/robot/eval_c_2", init_ros_path())
-        self.publish("/robot/eval_c_3", init_ros_path())
-        self.publish("/robot/sim", make_delete_all_marker(self.frame_id))
+        self.publish(self.eval_c_1_topic, init_ros_path())
+        self.publish(self.eval_c_2_topic, init_ros_path())
+        self.publish(self.eval_c_3_topic, init_ros_path())
+        self.publish(self.robot_sim_topic, make_delete_all_marker(self.frame_id))
 
     def cleanup_p_opt(self):
-        self.publish("/robot/p_opt/c_1", init_ros_path())
-        self.publish("/robot/p_opt/c_2", init_ros_path())
-        self.publish("/robot/p_opt/c_3", init_ros_path())
-        self.publish("/robot_sim/costmap", OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
+        self.publish(self.c_1_topic, init_ros_path())
+        self.publish(self.c_2_topic, init_ros_path())
+        self.publish(self.c_3_topic, init_ros_path())
+        self.publish(self.robot_costmap, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
 
     def cleanup_q_manips_for_obs(self):
         pose_array = PoseArray(header=Header(frame_id=self.frame_id, stamp=rospy.Time.now()), poses=[])
-        self.publish("/test/obs_manip_poses", pose_array)
+        self.publish(self.obs_manip_poses_topic, pose_array)
 
     def cleanup_goal(self):
-        self.publish("/robot/goal", make_delete_all_marker(self.frame_id))
+        self.publish(self.robot_goal_topic, make_delete_all_marker(self.frame_id))
 
     def cleanup_q_l_cells_poses(self):
-        self.publish("/robot/compute_c_0_c1/q_l_cells", init_grid_cells(0.1))
-        self.publish("/robot/compute_c_0_c1/q_l_poses", PoseArray(header=init_header()))
+        self.publish(self.q_l_cells_topic, init_grid_cells(0.1))
+        self.publish(self.q_l_poses_topic, PoseArray(header=init_header()))
 
     def cleanup_min_max_inflated(self):
-        self.publish("/robot/compute_c_0_c1/min_max_inflated_polygons", make_delete_all_marker(self.frame_id))
+        self.publish(self.min_max_inflated_polygons_topic, make_delete_all_marker(self.frame_id))
 
     def cleanup_a_star_open_heap(self):
         self.publish(self.a_star_open_heap_topic, init_grid_cells(0.1))
@@ -472,17 +535,17 @@ class RosPublisher:
         self.publish(self.a_star_close_set_topic, init_grid_cells(0.1))
 
     def cleanup_multigoal_a_star_open_heap(self):
-        self.publish("/test/multigoal_a_star_open_heap", init_grid_cells(0.1))
+        self.publish(self.a_star_open_heap_topic, init_grid_cells(0.1))
 
     def cleanup_multigoal_a_star_close_set(self):
-        self.publish("/test/multigoal_a_star_close_set", init_grid_cells(0.1))
+        self.publish(self.a_star_close_set_topic, init_grid_cells(0.1))
 
     def cleanup_grid_path(self):
         self.publish(self.path_grid_cells_topic, init_grid_cells(0.1))
 
     def cleanup_all(self):
-        self.cleanup_world(namespace="/sim")
-        self.cleanup_world(namespace="/robot")
+        self.cleanup_sim_world()
+        self.cleanup_robot_world()
         self.cleanup_eval_c1_c2_c3_sim_init_target()
         self.cleanup_p_opt()
         self.cleanup_q_manips_for_obs()
