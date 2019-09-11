@@ -1,8 +1,7 @@
-from entity import Entity
+from thing import Thing
 
 
-class Taboo(Entity):
+class Taboo(Thing):
 
-    def __init__(self, name, polygon, dd, cost, uid=0):
-        Entity.__init__(self, name, polygon, dd, uid)
-        self.cost = cost
+    def __init__(self, name, polygon, pose, uid=0):
+        Thing.__init__(self, name, polygon, pose, uid)

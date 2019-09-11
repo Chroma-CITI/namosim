@@ -1,18 +1,17 @@
-from entity import Entity
+from thing import Thing
 import shapely.affinity as affinity
 from shapely.geometry import Point, LineString, Polygon
 import numpy as np
 
 
-class Robot(Entity):
+class Robot(Thing):
 
-    def __init__(self, name, dd, full_geometry_acquired, radius, initial_pose,
+    def __init__(self, name, full_geometry_acquired, polygon, pose,
                  g_fov_max_radius, g_fov_min_radius, g_fov_opening_angle,
-                 s_fov_max_radius, s_fov_min_radius, s_fov_opening_angle):
-        polygon = Point(initial_pose[0], initial_pose[1]).buffer(radius)
-        Entity.__init__(self, name, polygon, dd, full_geometry_acquired)
-        self.radius = radius
-        self.pose = initial_pose
+                 s_fov_max_radius, s_fov_min_radius, s_fov_opening_angle,
+                 push_only_list, force_pushes_only, movable_whitelist):
+        polygon = polygon
+        Thing.__init__(self, name, polygon, pose, full_geometry_acquired)
         self.g_fov_max_radius = g_fov_max_radius
         self.g_fov_min_radius = g_fov_min_radius
         self.g_fov_opening_angle = g_fov_opening_angle
@@ -23,13 +22,17 @@ class Robot(Entity):
         self.g_fov_polygon = self._create_fov(self.g_fov_max_radius, self.g_fov_min_radius, g_fov_opening_angle)
         self.s_fov_polygon = self._create_fov(self.s_fov_max_radius, self.s_fov_min_radius, s_fov_opening_angle)
 
+        self.push_only_list = push_only_list
+        self.force_pushes_only = force_pushes_only
+        self.movable_whitelist = movable_whitelist
+
     def rotate(self, angle):
-        Entity.rotate(self, angle)
+        Thing.rotate(self, angle)
         self.g_fov_polygon = affinity.rotate(self.g_fov_polygon, angle, (self.pose[0], self.pose[1]))
         self.s_fov_polygon = affinity.rotate(self.s_fov_polygon, angle, (self.pose[0], self.pose[1]))
 
     def translate(self, xoff, yoff, dd):
-        Entity.translate(self, xoff, yoff, dd)
+        Thing.translate(self, xoff, yoff, dd)
         self.g_fov_polygon = affinity.translate(self.g_fov_polygon, xoff, yoff)
         self.s_fov_polygon = affinity.translate(self.s_fov_polygon, xoff, yoff)
 
@@ -43,6 +46,20 @@ class Robot(Entity):
         points = coords_inner + list(reversed(coords_outer))
 
         return Polygon(points)
+
+    def deduce_movability(self, obstacle_type):
+        if obstacle_type == "unknown":
+            return "unknown"
+        elif obstacle_type in self.movable_whitelist:
+            return "movable"
+        else:
+            return "unmovable"
+
+    def deduce_push_only(self, obstacle_type):
+        if self.force_pushes_only or obstacle_type in self.push_only_list:
+            return True
+        else:
+            return False
 
     @staticmethod
     def _create_shapely_arc(robot_init_pose, radius, opening_angle, numsegments=15):

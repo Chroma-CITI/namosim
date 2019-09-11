@@ -7,22 +7,24 @@ from shapely.ops import cascaded_union
 
 class Path:
     def __init__(self, path, weight=1.0, is_transfer=False, is_observation=False,
-                 o_uid=None, translation=None, cost=None):
+                 o_uid=None, translation=None, phys_cost=None, social_cost=0.0):
         self.path = path
         self.weight = weight
         self.is_transfer = is_transfer
         self.is_observation = is_observation
         self.obstacle_uid = o_uid
         self.translation = translation
-        self.cost = cost if cost is not None else self.__sum_of_euclidean_distances() * weight
+        self.phys_cost = phys_cost if phys_cost is not None else self.__sum_of_euclidean_distances() * weight
+        self.social_cost = social_cost
+        self.total_cost = self.phys_cost * (1 + self.social_cost)
 
     @classmethod
     def line_path(cls, start_pose, goal_pose, weigth, unit_translation,
-                  is_transfer=False, is_observation=False, o_uid=None):
+                  is_transfer=False, is_observation=False, o_uid=None, social_cost=0.0, social_cost_weight=0.0):
         path = [start_pose]
         unit_dist = np.linalg.norm(unit_translation)
         dist_to_go = np.linalg.norm([goal_pose[0] - start_pose[0], goal_pose[1] - start_pose[1]])
-        cost = dist_to_go * weigth
+        phys_cost = dist_to_go * weigth
         yaw = utils.yaw_from_direction(unit_translation)
         prev_pose = start_pose
         dist_to_go = dist_to_go - unit_dist
@@ -35,15 +37,15 @@ class Path:
             prev_pose = intermediate_pose
         path.append(goal_pose)
 
-        return cls(path, weigth, is_transfer, False, o_uid, unit_translation, cost)
+        return cls(path, weigth, is_transfer, False, o_uid, unit_translation, phys_cost, social_cost)
 
     def has_infinite_cost(self):
-        return True if self.cost == float("inf") else False
+        return True if self.total_cost == float("inf") else False
 
     def is_not_empty(self):
         return bool(self.path)
 
-    def is_valid(self, world):
+    def is_valid(self, world, blocked_obstacles):
         if self.has_infinite_cost():
             return False
 
@@ -53,14 +55,16 @@ class Path:
         for pose in self.path:
             positions_array.append([pose[0], pose[1]])
         if len(positions_array) == 1:
-            bounding_polygon = Point(positions_array[0]).buffer(world.entities[world.robot_uid].radius)
+            bounding_polygon = Point(positions_array[0]).buffer(world.dd.inflation_radius)
         else:
-            bounding_polygon = LineString(positions_array).buffer(world.entities[world.robot_uid].radius)
+            bounding_polygon = LineString(positions_array).buffer(world.dd.inflation_radius)
 
         # If transfer path:
         if self.is_transfer:
             # First, check if the obstacle is still movable,
-            if world.entities[self.obstacle_uid].movability == "unmovable":
+            robot = world.entities[world.robot_uid]
+            obstacle = world.entities[self.obstacle_uid]
+            if robot.deduce_movability(obstacle.type) == "unmovable" or obstacle.uid in blocked_obstacles:
                 return False
 
             # Third, add obstacle swept area to bounding polygon, so that this collision is checked too.

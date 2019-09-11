@@ -1,4 +1,4 @@
-from entity import Entity
+from thing import Thing
 import utils
 import numpy as np
 
@@ -7,34 +7,26 @@ from math import floor, ceil
 from shapely.geometry import Point, box
 
 
-class Obstacle(Entity):
+class Obstacle(Thing):
 
-    def __init__(self, name, polygon, dd, full_geometry_acquired, type_in, movability, pushes_only=False, uid=0):
-        Entity.__init__(self, name, polygon, dd, full_geometry_acquired, uid)
+    def __init__(self, name, polygon, pose, full_geometry_acquired, type_in, uid=0):
+        Thing.__init__(self, name, polygon, pose, full_geometry_acquired, uid)
         self.type = type_in
-        self.movability = movability
 
-        self.pushes_only = pushes_only
-
-        self.actions = self._compute_possible_actions(dd.inflation_radius, dd.res)
+        self.actions = dict()
         self._is_actions_valid = False
 
         self.q_l = []
         self._is_q_l_valid = False
 
-    def set_polygon(self, polygon, dd):
-        self.polygon = polygon
-        self.pose = [list(self.polygon.centroid.coords)[0][0],
-                     list(self.polygon.centroid.coords)[0][1],
-                     self.pose[2]]
-        self._make_inflated_polygon(dd)
-        self._discretize(dd)
-        if self.movability != "unmovable":
+    def set_polygon(self, polygon, dd, movability="unknown"):
+        Thing.set_polygon(self, polygon, dd)
+        if movability != "unmovable":
             self._is_actions_valid = False
 
-    def get_actions(self, dd):
+    def get_actions(self, dd, pushes_only):
         if not self._is_actions_valid:
-            self.actions = self._compute_possible_actions(dd.inflation_radius, dd.res)
+            self.actions = self._compute_possible_actions(dd.inflation_radius, dd.res, pushes_only)
             self._is_actions_valid = True
         return self.actions
 
@@ -45,20 +37,18 @@ class Obstacle(Entity):
         return self.q_l
 
     def translate(self, xoff, yoff, dd):
-        Entity.translate(self, xoff, yoff, dd)
-        if self.movability != "unmovable":
-            self._is_actions_valid = False
+        Thing.translate(self, xoff, yoff, dd)
+        self._is_actions_valid = False
 
     def rotate(self, angle):
-        Entity.rotate(self, angle)
-        if self.movability != "unmovable":
-            self._is_actions_valid = False
+        Thing.rotate(self, angle)
+        self._is_actions_valid = False
 
     @staticmethod
     def _isclose(a, b, abs_tol=1e-06):
         return abs(a - b) <= abs_tol
 
-    def _compute_possible_actions(self, dist_from_border, manip_unit_length):
+    def _compute_possible_actions(self, dist_from_border, manip_unit_length, pushes_only):
         actions = dict()
 
         polygon = self.polygon
@@ -91,7 +81,7 @@ class Obstacle(Entity):
             manip_pose = (manip_point[0], manip_point[1], utils.yaw_from_direction(unit_translation))
 
             actions[tuple(unit_translation)] = manip_pose
-            if not self.pushes_only:
+            if not pushes_only:
                 actions[tuple(-1.0 * unit_translation)] = manip_pose
         return actions
 
@@ -116,9 +106,9 @@ class Obstacle(Entity):
         min_cell_y = int(floor((min_y - map_min_y) / world.dd.res))
         min_cell_y = min_cell_y if min_cell_y >= 0 else 0
         max_cell_x = min_cell_x + d_width
-        max_cell_x = max_cell_x if max_cell_x <= world.get_grid().shape[0] else world.get_grid().shape[0]
+        max_cell_x = max_cell_x if max_cell_x <= world.get_inflated_grid().shape[0] else world.get_inflated_grid().shape[0]
         max_cell_y = min_cell_y + d_height
-        max_cell_y = max_cell_y if max_cell_y <= world.get_grid().shape[1] else world.get_grid().shape[1]
+        max_cell_y = max_cell_y if max_cell_y <= world.get_inflated_grid().shape[1] else world.get_inflated_grid().shape[1]
 
         q_look = dict()
 
@@ -147,12 +137,12 @@ class Obstacle(Entity):
                     #             point_not_in_any_inflated_obstacle = False
                     #             break
                     # if point_not_in_any_inflated_obstacle:
-                    if world.get_grid()[i][j] < world.dd.cost_possibly_nonfree:
+                    if world.get_inflated_grid()[i][j] < world.dd.cost_possibly_nonfree:
 
                         # Check if the obstacle can be seen from this point, and get best angle to view it
                         best_angle = self._best_q_angle(observation_position, fov_min_r, fov_max_r, fov_angle)
                         if best_angle is not None:
-                            q_look[(i, j)] =(observation_position[0], observation_position[1], best_angle)
+                            q_look[(i, j)] = (observation_position[0], observation_position[1], best_angle)
 
         rp.publish_q_l_poses(q_look.values())
         rp.publish_q_l_cells(q_look.keys(), world.dd)
