@@ -2,7 +2,7 @@
 
 ## Files to load
 files:
-  geometry_file: "01.svg"
+  geometry_file: "./01.svg"
   # TODO ontology_file: ../../../ontologies/main.owl
 
 ## World geometry interpretation properties
