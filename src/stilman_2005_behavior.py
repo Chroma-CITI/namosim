@@ -11,6 +11,12 @@ import shapely.affinity as affinity
 
 
 class Stilman2005Behavior:
+    """
+    TODO (as documented on 2019-09-12):
+      - Finish up manip_search method by completing tasks written in-place (about 1-days work)
+      - Add visualization to all methods (about 1-days work) and try to have them all run
+      - Debug and integrate the algorithm into the bigger frame of the simulator (1 to 2 days)
+    """
 
     def __init__(self, simulator, sim_world, robot_uid):
         self.simulator = simulator
@@ -79,12 +85,12 @@ class Stilman2005Behavior:
 
         o_1, c_1 = self._rch(avoid_list, prev_list, x_f)
         while (o_1, c_1) != (None, None):
-            w_t_plus_2, tho_m, cost = self._manip_search(w_t, o_1, c_1)
+            w_t_plus_2, tho_n, tho_m, cost = self._manip_search(w_t, o_1, c_1)
 
             if tho_m is not None:
                 future_plan = self._select_connect(w_t_plus_2, prev_list.append(c_1), x_f)
                 if future_plan is not None:
-                    tho_n = self._find_path(w_t, x_t, tho_m[0])
+                    # tho_n = self._find_path(w_t, x_t, tho_m[0])  # Line comes from original algorithm, but does not make sense ?
                     return [tho_n, tho_m].append(future_plan)
 
             avoid_list.add((o_1, c_1))
@@ -104,7 +110,7 @@ class Stilman2005Behavior:
         :return: the pair (o_1 , c_1) of the first obstacle in the path, and the first component of free space.
         Returns (None, None) if no path exists.
 
-        TODO: Add visualization of closed_set, open_queue, x_1 and x_2 as GridCells
+        TODO: - Add visualization of closed_set, open_queue, x_1 and x_2 as GridCells
               and self.connected_grid as OccupancyGrid.
         """
         r_t = self.robot.pose
@@ -169,8 +175,7 @@ class Stilman2005Behavior:
         w_t_plus_2 = copy.deepcopy(w_t)
         obstacle = w_t_plus_2.entities[o_1]
         robot = w_t_plus_2.entities[self.robot.uid]
-        # TODO Implement get_obstacle_counter_grid following Appendix A
-        grid = w_t_plus_2.get_obstacle_counter_grid()
+        # grid = w_t_plus_2.get_obstacle_counter_grid()
         dd = w_t_plus_2.dd
         start_cell = utils.real_to_grid(robot.pose[0], robot.pose[1], dd)
 
@@ -179,25 +184,30 @@ class Stilman2005Behavior:
         #  - points from middle of sides: refactor existing get_actions method
         #  - points sampled along buffered polygon (to create from scratch)
         #  - points sampled along lines parallel to sides, s.t. we have at least a robot width from endpoints (scratch)
-        navigation_points = obstacle.get_sampled_navigation_points()
+        navigation_poses = obstacle.get_sampled_navigation_points()
 
         # 2 - Convert navigation points to navigation cells
         nav_cells = set()
-        for point in navigation_points:
-            nav_cells.add(utils.real_to_grid(point[0], point[1], dd))
+        nav_cell_to_nav_pose = dict()
+        for nav_pose in navigation_poses:
+            nav_cell = utils.real_to_grid(nav_pose[0], nav_pose[1], dd)
+            nav_cells.add(nav_cell)
+            nav_cell_to_nav_pose[nav_cell] = nav_pose
 
         # 3 - Find paths to all accessible navigation cells and only keep these
         paths_to_nav_cells = a_star.multi_goal_astar(grid, start_cell, nav_cells, dd, self.rp)  # Is a dict
 
-        # 4 - Only keep accesible cells in nav_cells
+        # 4 - Only keep accessible cells in nav_cells
         for cell, cost_and_path in paths_to_nav_cells:
             if cost_and_path[0] == float("inf"):
                 nav_cells.remove(cell)
 
-        # 6 - Compute obstacle counter grid without robot and obstacle
+        # 5 - Compute obstacle counter grid without robot and obstacle
         grid_without = w_t_plus_2.get_obstacle_counter_grid(exluded_entites=[self.robot.uid, o_1])
 
-        # 7 - Explore robot action space
+        # 6 - Explore robot action space
+        # Action tree nodes to currently explore. Ordered by min phys cost.
+        best_action_tree_node_for_cell = []
         for cell in nav_cells:
             # Action tree nodes to currently explore. Ordered by min phys cost.
             cur_action_leaves_to_explore = []
@@ -206,8 +216,8 @@ class Stilman2005Behavior:
             # Action tree nodes for which there is a successful plan. Ordered by total min cost.
             successful_action_tree_nodes = []
 
-            best_in_cur_action_leaves_to_explore = cur_action_leaves_to_explore[0]
-            best_in_successful_action_tree_nodes = successful_action_tree_nodes[0]
+            best_in_cur_action_leaves_to_explore = cur_action_leaves_to_explore[0].action_tree_node
+            best_in_successful_action_tree_nodes = successful_action_tree_nodes[0].action_tree_node
 
             while best_in_cur_action_leaves_to_explore.phys_cost <= best_in_successful_action_tree_nodes.total_cost:
                 for leaf in cur_action_leaves_to_explore:
@@ -218,10 +228,15 @@ class Stilman2005Behavior:
                         new_robot_poly = action(old_robot_poly)
                         new_obstacle_poly = action(old_obstacle_poly)
 
-                        # Is the robot in contact with ANOTHER obstacle ?
+                        # TODO: Implement collision detection between obstacles/robot:
+                        #  - first, the same as it was done previously, by iterating over polygonal entities and using
+                        #  shapely
+                        #  - second, by applying the fully discretized method described by Stilman,
+                        #  get_obstacle_counter_grid following Appendix A
+                        # Is the robot intersecting with ANOTHER obstacle ?
                         is_robot_colliding =
 
-                        # Is the obstacle in contact with ANOTHER obstacle ?
+                        # Is the obstacle intersecting with ANOTHER obstacle ?
                         is_obstacle_colliding =
 
                         is_manip_success = not (is_robot_colliding or is_obstacle_colliding)
@@ -231,26 +246,41 @@ class Stilman2005Behavior:
                             # TODO: properly write def __e(r_i, r_j, o) to compute the energy cost of moving between
                             #  configuration r_i and r_j, while (or not) moving an obstacle
                             phys_cost = leaf.phys_cost + __e(r_i, r_j, obstacle)
+                            # TODO: get social grid and extract social cost value, as is done in s_namo_behavior class
                             social_cost = compute_social_cost()
                             new_leaf = ActionTreeNode(phys_cost=phys_cost, social_cost=social_cost,
                                                       parent=leaf, action=action,
                                                       robot_poly=new_robot_poly, obstacle_poly=new_obstacle_poly)
-                            heapq.heappush(next_action_leaves_to_explore, ActionHeapsNode(new_leaf.phys_cost, new_leaf))
+                            heapq.heappush(
+                                next_action_leaves_to_explore, ActionHeapNode(new_leaf.phys_cost, new_leaf))
 
-                            # Check if there is a navigation plan from current robot cell to any cell of c_1 that is not
-                            # covered by the new_obstacle_poly. If so, add new_leaf to successful_action_tree_nodes
-                            has_created_new_opening_to_c_1 =
+                            # TODO: Check if there is a navigation plan from current robot cell to any cell of c_1 that
+                            #   is not covered by the new_obstacle_poly. Extra: apply new local opening detection
+                            #   algorithm to gain performance ?
+                            has_created_new_opening_to_c_1 = find_path()
 
                             if has_created_new_opening_to_c_1:
-                                heapq.heappush(successful_action_tree_nodes, new_leaf)
-                best_in_cur_action_leaves_to_explore = cur_action_leaves_to_explore[0]
-                best_in_successful_action_tree_nodes = successful_action_tree_nodes[0]
+                                heapq.heappush(
+                                    successful_action_tree_nodes, ActionHeapNode(new_leaf.total_cost, new_leaf))
+                best_in_cur_action_leaves_to_explore = cur_action_leaves_to_explore[0].action_tree_node
+                best_in_successful_action_tree_nodes = successful_action_tree_nodes[0].action_tree_node
                 cur_action_leaves_to_explore = next_action_leaves_to_explore
 
-            best_plan_for_cell[cell] = best_in_successful_action_tree_nodes
+            # TODO:
+            nav_plus_manip_total_cost = best_in_successful_action_tree_nodes.total_cost +
+            heapq.heappush(
+                best_action_tree_node_for_cell, CellActionHeapNode(nav_plus_manip_total_cost,
+                                                                   cell,
+                                                                   best_in_successful_action_tree_nodes))
 
-        best_plan = best_plan_for_cell[0]  # Supposing best_plan_for_cell is a min heap
-        return best_plan
+        best_action_tree_node = best_action_tree_node_for_cell[0].action_tree_node
+        best_contact_cell = best_action_tree_node_for_cell[0].cell
+        cost = best_action_tree_node_for_cell[0].cost
+        tho_n = utils.grid_path_to_real_path(
+            paths_to_nav_cells[best_contact_cell], robot.pose, nav_cell_to_nav_pose[best_contact_cell], dd)
+        best_action_branch = self.__get_actions_branch(best_action_tree_node)
+        tho_m = self.__actions_branch_to_path(best_action_branch)
+        return w_t_plus_2, tho_n, tho_m, cost
 
 
     def _find_path(self, w_t, x_t, x_f):
@@ -334,6 +364,9 @@ class Stilman2005Behavior:
             branch.append(branch[-1].parent)
         return branch
 
+    def __actions_branch_to_path(self, actions_branch):
+        pass
+
 
 class HeapQueueElement:
     def __init__(self, x_i, f, o_f, c_f):
@@ -365,9 +398,22 @@ class ActionTreeNode:
         self.social_cost = social_cost
         self.total_cost = self.phys_cost * (1 + self.social_cost)
 
-class ActionHeapsNode:
+class ActionHeapNode:
     def __init__(self, cost, action_tree_node):
         self.cost = cost
+        self.action_tree_node = action_tree_node
+
+    def __cmp__(self, other):
+        return cmp(self.cost, other.cost)
+
+    def __lt__(self, other):
+        return self.cost < other.cost
+
+
+class CellActionHeapNode:
+    def __init__(self, cost, cell, action_tree_node):
+        self.cost = cost
+        self.cell = cell
         self.action_tree_node = action_tree_node
 
     def __cmp__(self, other):
