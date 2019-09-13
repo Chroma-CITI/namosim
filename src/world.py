@@ -1,6 +1,6 @@
 import yaml
 import numpy as np
-from math import ceil, floor
+from math import ceil, floor, sqrt
 import copy
 
 from robot import Robot
@@ -88,23 +88,39 @@ class World:
         yaml_working_directory = os.path.dirname(yaml_abs_path)
         geometry_file_path = os.path.join(yaml_working_directory, config["files"]["geometry_file"])
         geometry_file = minidom.parse(geometry_file_path)
-        svg_geometries = {path.getAttribute("id"): path.getAttribute('d') for path in geometry_file.getElementsByTagName('path')}
-        shapely_polygons = dict()
+        svg_paths = {path.getAttribute("id"): path.getAttribute('d') for path in geometry_file.getElementsByTagName('path')}
+        # svg_circles = {
+        #     circle.getAttribute("id"): {
+        #         "cx": circle.getAttribute('cx'),
+        #         "cy": circle.getAttribute('cy'),
+        #         "r": circle.getAttribute('r')} for circle in geometry_file.getElementsByTagName('circle')}
+        shapely_geoms = dict()
         # Convert imported geometry to shapely polygons
-        for svg_id, svg_geometry in svg_geometries.items():
-            parse_result = parse_path(svg_geometry)
-            polygon_pts = parse_result.to_polygons()[0] * config["geometry_scale"]
-            polygon_pts[:, 1] = -polygon_pts[:, 1] # Mirror on y-axis
-            shapely_polygons[svg_id] = Polygon(polygon_pts)
+        for svg_id, svg_path in svg_paths.items():
+            parse_result = parse_path(svg_path)
+            geom_pts = parse_result._vertices * config["geometry_scale"]
+            geom_pts[:, 1] = -geom_pts[:, 1] # Mirror on y-axis
+            if len(geom_pts) >= 3:
+                shapely_geoms[svg_id] = Polygon(geom_pts)
+            elif len(geom_pts) == 2:
+                shapely_geoms[svg_id] = LineString(geom_pts)
+            elif len(geom_pts) == 1:
+                shapely_geoms[svg_id] = Point(geom_pts)
+        # for svg_id, svg_circle in svg_circles.items():
+        #     shapely_geoms[svg_id] = Point(float(svg_circle["cx"]) * config["geometry_scale"],
+        #                                      float(svg_circle["cy"]) * config["geometry_scale"]).buffer(
+        #         float(svg_circle["r"]) * config["geometry_scale"])
         # TODO Fix this so that it only accounts for obstacles in polygon layer otherwise, things might get messy with
         #  direction vectors that get outside of the obstacle polygons
         # Center the imported geometries
-        unioned_polygons = cascaded_union(shapely_polygons.values())
+        unioned_polygons = cascaded_union(shapely_geoms.values())
         bounding_box = box(unioned_polygons.bounds[0], unioned_polygons.bounds[1],
                            unioned_polygons.bounds[2], unioned_polygons.bounds[3])
+        print(list(bounding_box.exterior.coords))
         translation_to_center = [bounding_box.centroid.coords[0][0], bounding_box.centroid.coords[0][1]]
-        for svg_id, polygon in shapely_polygons.items():
-            shapely_polygons[svg_id] = affinity.translate(polygon, -translation_to_center[0], -translation_to_center[1])
+        print(str(translation_to_center))
+        for svg_id, polygon in shapely_geoms.items():
+            shapely_geoms[svg_id] = affinity.translate(polygon, -translation_to_center[0], -translation_to_center[1])
 
         # Get map discretization parameters
         self.dd = DiscretizationData(res=config["discretization_data"]["res"],
@@ -119,7 +135,7 @@ class World:
             pose = [None, None, 0.0] # x, y, theta
             if "orientation_id" in entity_data["geometry"]:
                 # If a drawn vector in the SVG is defined as orientation, use it
-                orientation_polygon = shapely_polygons[entity_data["geometry"]["orientation_id"]]
+                orientation_polygon = shapely_geoms[entity_data["geometry"]["orientation_id"]]
                 if orientation_polygon:
                     pose[2] = 0.0 # TODO Check if orientation object exists and that polygon has only one side
             if "pose" in entity_data["geometry"]:
@@ -134,7 +150,7 @@ class World:
             polygon = Polygon()
             if entity_data["geometry"]["from"] == "file":
                 # If geometry is defined in SVG file, prioritize using it
-                polygon = shapely_polygons[entity_data["geometry"]["id"]]
+                polygon = shapely_geoms[entity_data["geometry"]["id"]]
             elif entity_data["geometry"]["from"] == "polygon":
                 # If geometry manually defined in yaml file, use it before radius-defined but after SVG if exists
                 polygon = Polygon(entity_data["geometry"]["polygon"])
@@ -163,6 +179,11 @@ class World:
                                   force_pushes_only=entity_data["force_pushes_only"],
                                   movable_whitelist=entity_data["movable_whitelist"])
 
+                # Prevent specified inflation radius to be smaller than actual polygon
+
+                if new_robot.min_inflation_radius > self.dd.inflation_radius:
+                    self.dd.inflation_radius = new_robot.min_inflation_radius
+
                 self.add_entity(new_robot)
             else:
                 new_object = Obstacle(name=entity_data["name"],
@@ -179,7 +200,7 @@ class World:
             if ("goals" in config["things"]["zones"]
                     and isinstance(config["things"]["zones"]["goals"], list)):
                 for goal_data in config["things"]["zones"]["goals"]:
-                    goal_polygon = shapely_polygons[goal_data["geometry"]["id"]]
+                    goal_polygon = shapely_geoms[goal_data["geometry"]["id"]]
                     # TODO: Fix this so that orientation can be specified by vector in SVG and position can be
                     #       determined from YAML file if wanted
                     goals.append([goal_polygon.centroid.coords[0][0], goal_polygon.centroid.coords[0][1], 0.0])
@@ -273,7 +294,6 @@ class World:
                     self.invalidate_saved_costmaps((entity.uid,))
                     self._is_inflated_grid_valid = False
 
-
     def update_from_s_fov(self, entities):
         for entity_uid, entity in entities.items():
             if isinstance(entity, Obstacle):
@@ -343,10 +363,11 @@ class World:
         min_x, min_y, max_x, max_y = float("inf"), float("inf"), -float("inf"), -float("inf")
         for entity_uid, entity in self.entities.items():
             cur_min_x, cur_min_y, cur_max_x, cur_max_y = entity.polygon.bounds
-            min_x = cur_min_x - self.dd.res if cur_min_x < min_x else min_x
-            min_y = cur_min_y - self.dd.res if cur_min_y < min_y else min_y
-            max_x = cur_max_x + self.dd.res if cur_max_x > max_x else max_x
-            max_y = cur_max_y + self.dd.res if cur_max_y > max_y else max_y
+            min_x = cur_min_x if cur_min_x < min_x else min_x
+            min_y = cur_min_y if cur_min_y < min_y else min_y
+            max_x = cur_max_x if cur_max_x > max_x else max_x
+            max_y = cur_max_y if cur_max_y > max_y else max_y
+            print(entity.name)
         return min_x, min_y, max_x, max_y
 
     def _update_grid(self):
@@ -368,7 +389,7 @@ class World:
         self.dd.grid_pose = [min_x, min_y, 0.0]
         self.dd.width, self.dd.height = width, height
 
-        d_width, d_height = int(floor(width / self.dd.res)), int(floor(height / self.dd.res))
+        d_width, d_height = int(round(width / self.dd.res)), int(round(height / self.dd.res))
         self.dd.d_width, self.dd.d_height = d_width, d_height
 
         grid = np.zeros((d_width, d_height))
@@ -390,15 +411,17 @@ class World:
                     for x in range(min_cell_x, max_cell_x):
                         j = 0
                         for y in range(min_cell_y, max_cell_y):
-                            try:
-                                if grid[x][y] < discrete_inflated_polygon[i][j]:
-                                    grid[x][y] = discrete_inflated_polygon[i][j]
-                                if discrete_inflated_polygon[i][j] == self.dd.cost_lethal:
-                                    entity_discrete_cells_set.append((x, y))
-                                if self.dd.cost_possibly_nonfree <= discrete_inflated_polygon[i][j] < self.dd.cost_lethal:
-                                    entity_discrete_inflated_cells_set.append((x, y))
-                            except IndexError:
-                                pass  # Trim non-lethal obstacle cells around map
+                            # VERY IMPORTANT CONDITION: OTHERWISE INDEX NEGATIVELY WILL START FROM END OF ARRAY !
+                            if x >= 0 and y >= 0:
+                                try:
+                                    if grid[x][y] < discrete_inflated_polygon[i][j]:
+                                        grid[x][y] = discrete_inflated_polygon[i][j]
+                                    if discrete_inflated_polygon[i][j] == self.dd.cost_lethal:
+                                        entity_discrete_cells_set.append((x, y))
+                                    if self.dd.cost_possibly_nonfree <= discrete_inflated_polygon[i][j] < self.dd.cost_lethal:
+                                        entity_discrete_inflated_cells_set.append((x, y))
+                                except IndexError:
+                                    pass  # Trim non-lethal obstacle cells around map
                             j = j + 1
                         i = i + 1
                     entity.set_discrete_cells_set(entity_discrete_cells_set)
@@ -408,14 +431,16 @@ class World:
                     for x in range(min_cell_x, max_cell_x):
                         j = 0
                         for y in range(min_cell_y, max_cell_y):
-                            try:
-                                if grid[x][y] < discrete_inflated_polygon[i][j]:
-                                    grid[x][y] = discrete_inflated_polygon[i][j]
-                            except IndexError:
-                                pass  # Trim non-lethal obstacle cells around map
+                            # VERY IMPORTANT CONDITION: OTHERWISE INDEX NEGATIVELY WILL START FROM END OF ARRAY !
+                            if x >= 0 and y >= 0:
+                                try:
+                                    if grid[x][y] < discrete_inflated_polygon[i][j]:
+                                        grid[x][y] = discrete_inflated_polygon[i][j]
+                                except IndexError:
+                                    pass  # Trim non-lethal obstacle cells around map
                             j = j + 1
                         i = i + 1
-
+        # plt.imshow(grid); plt.show()
         self._inflated_grid = grid
 
     def get_discrete_cells_set_for_entity_uid(self, entity_uid):
@@ -456,20 +481,17 @@ class World:
         grid_without_entities = world_copy_without_entities.get_inflated_grid()
         grid_without_entities[grid_without_entities < self.dd.cost_lethal] = 1.0
         grid_without_entities[grid_without_entities == self.dd.cost_lethal] = 0.0
-        plt.imshow(grid_without_entities)
-        plt.show()
+        # plt.imshow(grid_without_entities); plt.show()
 
         # Distance transform
         # test_distance_transform = scipy_morph.distance_transform_cdt(grid_without_entities, 'chessboard')
         test_distance_transform = scipy_morph.distance_transform_edt(grid_without_entities)
-        plt.imshow(test_distance_transform)
-        plt.show()
+        # plt.imshow(test_distance_transform); plt.show()
 
         # Skeleton
         test_skeleton = skimage_morph.skeletonize(grid_without_entities)
         # test_skeleton = medial_axis(grid_without_entities, return_distance=True)[0]
-        plt.imshow(test_skeleton)
-        plt.show()
+        # plt.imshow(test_skeleton); plt.show()
 
         skeleton_cells_arrays = np.where(test_skeleton == True)
         final_array = np.full(test_distance_transform.shape, -1)
@@ -494,8 +516,7 @@ class World:
         prev_set = cur_set
         while cur_set:
             rp.publish_grid_map(final_array / float(self.decimals_multiplicator / 100), self.dd)
-            plt.imshow(final_array)
-            plt.show()
+            # plt.imshow(final_array); plt.show()
             next_set = set()
             for current in cur_set:
                 for i, j in neighborhood_4:
@@ -591,8 +612,7 @@ class World:
                             closed_set.add(neighbor_cell)
                     current_component_index -= 1
 
-        plt.imshow(connected_grid)
-        plt.show()
+        # plt.imshow(connected_grid); plt.show()
         nb_components = -current_component_index
         return connected_grid, nb_components
 
