@@ -2,6 +2,7 @@ from thing import Thing
 import shapely.affinity as affinity
 from shapely.geometry import Point, LineString, Polygon
 import numpy as np
+from math import sqrt
 
 
 class Robot(Thing):
@@ -25,6 +26,8 @@ class Robot(Thing):
         self.push_only_list = push_only_list
         self.force_pushes_only = force_pushes_only
         self.movable_whitelist = movable_whitelist
+
+        self.min_inflation_radius = self.compute_inflation_radius()
 
     def rotate(self, angle):
         Thing.rotate(self, angle)
@@ -77,3 +80,13 @@ class Robot(Thing):
                                               Point(robot_init_pose[0], robot_init_pose[1]))
 
         return arc_after_trans_rot
+
+    def compute_inflation_radius(self):
+        robot_rect_envelope_pts = list(self.polygon.minimum_rotated_rectangle.exterior.coords)
+        robot_polygon_radius = 0.
+        for i in range(len(robot_rect_envelope_pts) - 1):
+            point_a, point_b = robot_rect_envelope_pts[i], robot_rect_envelope_pts[i + 1]
+            side_length = sqrt((point_b[0] - point_a[0]) ** 2 + (point_b[1] - point_a[1]) ** 2)
+            if side_length > robot_polygon_radius:
+                robot_polygon_radius = side_length
+        return robot_polygon_radius
