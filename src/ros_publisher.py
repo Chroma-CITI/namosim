@@ -336,6 +336,10 @@ class RosPublisher:
         world_to_gridmap_transform.header.frame_id = "map"
         world_to_gridmap_transform.child_frame_id = "gridmap"
         world_to_gridmap_transform.transform.translation.z = -1.5
+        world_to_gridmap_transform.transform.rotation.x = 0.0
+        world_to_gridmap_transform.transform.rotation.y = 0.0
+        world_to_gridmap_transform.transform.rotation.z = 1.0
+        world_to_gridmap_transform.transform.rotation.w = 0.0
 
         broadcaster.sendTransform(world_to_gridmap_transform)
 
