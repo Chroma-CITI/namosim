@@ -142,14 +142,15 @@ class Simulator:
             if isinstance(entity, Robot) or ((isinstance(entity, Obstacle) and entity.type == "wall") if self.provide_walls else True):
                 entities[entity_uid] = copy.deepcopy(entity)
 
-        return World(entities, copy.deepcopy(self.world.taboos), self.world.robot_uid, copy.deepcopy(self.world.dd))
+        return World(entities, copy.deepcopy(self.world._taboo_zones), self.world.robot_uid, copy.deepcopy(self.world.dd))
 
 
 if __name__ == '__main__':
     import rospy
     rospy.init_node('world_gui_test_node', log_level=rospy.INFO)
-
-    sim = Simulator(world_file_path="../data/worlds/moghaddam_planning_2016_benchmark/01/01.yaml")
+    # sim = Simulator(world_file_path="../data/worlds/moghaddam_planning_2016_benchmark/01/01.yaml")
+    sim = Simulator(world_file_path="../data/worlds/first_level/01_two_rooms_corridor/01_two_rooms_corridor.yaml")
+    # sim = Simulator(world_file_path="../data/worlds/first_level/03_big_crossing/03_big_crossing.yaml")
 
     # World 3 goals
     # sim.add_goal(2.0, 0.0, 0.0)
