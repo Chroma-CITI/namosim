@@ -1,6 +1,6 @@
 import yaml
 import numpy as np
-from math import ceil, floor, sqrt
+from math import ceil, floor, sqrt, atan2
 import copy
 
 from robot import Robot
@@ -16,69 +16,35 @@ from shapely.geometry import Polygon, Point, box, LineString
 from shapely.ops import cascaded_union
 from shapely.errors import TopologicalError
 
-# TODO REMOVE BELOW
-import skimage.morphology as skimage_morph
-from skimage.morphology import medial_axis
-import scipy.ndimage.morphology as scipy_morph
-import matplotlib.pyplot as plt
-import cv2
-# TODO REMOVE ABOVE
-
 from xml.dom import minidom
 from svgpath2mpl import parse_path
 import os
 import shapely.affinity as affinity
-import networkx as nx
+
+from probabilist_occupancy_grid import ProbabilistOccupancyGrid
+from binary_occupancy_grid import BinaryOccupancyGrid
+from binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
+from social_topological_occupation_cost_grid import SocialTopologicalOccupationCostGrid
 
 
 class World:
 
-    # Constructor
     def __init__(self, entities=None, taboos=None, robot_uid=None, dd=None, inflated_grid=None):
 
         self.entities = entities if entities is not None else dict()
-        self.taboos = taboos if taboos is not None else dict()
 
         self.robot_uid = robot_uid
 
         self.dd = dd
-        self._inflated_grid = inflated_grid
-        self._is_inflated_grid_valid = False
 
-        # Social costmaps related fields
-        # TODO Properly parameterize all this...
-        self.saved_social_costmaps = dict()
-        self.use_social_layer = True
+        self._taboo_zones = taboos if taboos is not None else dict()
 
-        self.half_1_u_p = 0.45
-        self.half_2_u_p = 0.70
-        self.half_3_u_p = 0.90
-        self.half_4_u_p = 1.20
+        self._probabilist_occupancy_grids = dict()
+        self._binary_occupancy_grid = dict()
+        self._binary_inflated_occupancy_grid = dict()
+        self._social_topological_occupation_cost_grids = dict()
 
-        self.cost_value_at_0_u_p = 0.0
-        self.cost_value_before_1_u_p = 0.1
-        self.cost_value_at_1_u_p = 1.0
-        self.cost_value_at_2_u_p = 0.9
-        self.cost_value_at_3_u_p = 0.75
-        self.cost_value_at_4_u_p_and_beyond = 0.25
-
-        self.curve_0_to_1_u_p = (self.cost_value_before_1_u_p - self.cost_value_at_0_u_p) / (self.half_1_u_p - 0.0)
-        self.offset_0_to_1_u_p = self.cost_value_before_1_u_p - self.curve_0_to_1_u_p * self.half_1_u_p
-
-        self.curve_1_to_2_u_p = (self.cost_value_at_2_u_p - self.cost_value_at_1_u_p) / (self.half_2_u_p - self.half_1_u_p)
-        self.offset_1_to_2_u_p = self.cost_value_at_2_u_p - self.curve_1_to_2_u_p * self.half_2_u_p
-
-        self.curve_2_to_3_u_p = (self.cost_value_at_3_u_p - self.cost_value_at_2_u_p) / (self.half_3_u_p - self.half_2_u_p)
-        self.offset_2_to_3_u_p = self.cost_value_at_3_u_p - self.curve_2_to_3_u_p * self.half_3_u_p
-
-        self.curve_3_to_4_u_p = (self.cost_value_at_4_u_p_and_beyond - self.cost_value_at_3_u_p) / (self.half_4_u_p - self.half_3_u_p)
-        self.offset_3_to_4_u_p = self.cost_value_at_4_u_p_and_beyond - self.curve_3_to_4_u_p * self.half_4_u_p
-
-        self.decay_factor = 0.1
-        self.keep_number_of_decimals = 10
-        self.decimals_multiplicator = 10 ** self.keep_number_of_decimals
-        self.decay_limit = self.decimals_multiplicator * self.cost_value_at_4_u_p_and_beyond
-
+    # Constructor
     def load_from_yaml(self, path_to_file):
         # Import YAML world configuration file
         yaml_abs_path = os.path.abspath(path_to_file)
@@ -95,16 +61,21 @@ class World:
         #         "cy": circle.getAttribute('cy'),
         #         "r": circle.getAttribute('r')} for circle in geometry_file.getElementsByTagName('circle')}
         shapely_geoms = dict()
+        SCALING_CONSTANT = 1. / 3.5433
+        scaling_value = SCALING_CONSTANT * config["geometry_scale"]
         # Convert imported geometry to shapely polygons
         for svg_id, svg_path in svg_paths.items():
             parse_result = parse_path(svg_path)
-            geom_pts = parse_result._vertices * config["geometry_scale"]
+            geom_pts = parse_result._vertices * scaling_value
             geom_pts[:, 1] = -geom_pts[:, 1] # Mirror on y-axis
             if len(geom_pts) >= 3:
+                # shapely_geoms[svg_id] = affinity.scale(Polygon(geom_pts), scaling_value, scaling_value)
                 shapely_geoms[svg_id] = Polygon(geom_pts)
             elif len(geom_pts) == 2:
+                # shapely_geoms[svg_id] = affinity.scale(LineString(geom_pts), scaling_value, scaling_value)
                 shapely_geoms[svg_id] = LineString(geom_pts)
             elif len(geom_pts) == 1:
+                # shapely_geoms[svg_id] = affinity.scale(Point(geom_pts), scaling_value, scaling_value)
                 shapely_geoms[svg_id] = Point(geom_pts)
         # for svg_id, svg_circle in svg_circles.items():
         #     shapely_geoms[svg_id] = Point(float(svg_circle["cx"]) * config["geometry_scale"],
@@ -116,9 +87,8 @@ class World:
         unioned_polygons = cascaded_union(shapely_geoms.values())
         bounding_box = box(unioned_polygons.bounds[0], unioned_polygons.bounds[1],
                            unioned_polygons.bounds[2], unioned_polygons.bounds[3])
-        print(list(bounding_box.exterior.coords))
+        # print(str((bounding_box.bounds[2] - bounding_box.bounds[0], bounding_box.bounds[3] - bounding_box.bounds[1])))
         translation_to_center = [bounding_box.centroid.coords[0][0], bounding_box.centroid.coords[0][1]]
-        print(str(translation_to_center))
         for svg_id, polygon in shapely_geoms.items():
             shapely_geoms[svg_id] = affinity.translate(polygon, -translation_to_center[0], -translation_to_center[1])
 
@@ -135,9 +105,10 @@ class World:
             pose = [None, None, 0.0] # x, y, theta
             if "orientation_id" in entity_data["geometry"]:
                 # If a drawn vector in the SVG is defined as orientation, use it
-                orientation_polygon = shapely_geoms[entity_data["geometry"]["orientation_id"]]
-                if orientation_polygon:
-                    pose[2] = 0.0 # TODO Check if orientation object exists and that polygon has only one side
+                orientation_geom = list(shapely_geoms[entity_data["geometry"]["orientation_id"]].coords)
+                orientation_vector = [orientation_geom[1][0] - orientation_geom[0][0],
+                                      orientation_geom[1][1] - orientation_geom[0][1]]
+                pose[2] = utils.yaw_from_direction(orientation_vector)
             if "pose" in entity_data["geometry"]:
                 # If a pose is manually described in the YAML file, override the possibly SVG-computed orientation
                 yaml_pose = entity_data["geometry"]["pose"]
@@ -209,12 +180,7 @@ class World:
                 for thing_data in config["things"]["zones"]["taboos"]:
                     new_taboo = Taboo(name=thing_data["name"],
                                       polygon=Polygon(thing_data["polygon"]))
-                    self.taboos[new_taboo.uid] = new_taboo
-
-        self._is_inflated_grid_valid = False
-        self.saved_social_costmaps = dict()
-
-        self.compute_discrete_connected_components()
+                    self._taboo_zones[new_taboo.uid] = new_taboo
 
         return goals
 
@@ -230,16 +196,25 @@ class World:
             self.robot_uid = new_entity.uid
 
         self._is_inflated_grid_valid = False
+        self._is_int_grid_valid = False
         self.invalidate_saved_costmaps((new_entity.uid,))
+        self.new_entities[new_entity.uid] = new_entity
 
     def remove_entity(self, entity_uid):
+        removed_entity = self.entities[entity_uid]
         if entity_uid in self.entities:
             del self.entities[entity_uid]
         else:
             print("Warning, you tried to remove an entity that is not registered in this world !")
 
         self._is_inflated_grid_valid = False
+        self._is_int_grid_valid = False
         self.invalidate_saved_costmaps((entity_uid,))
+        self.prev_entities[removed_entity.uid] = removed_entity
+        if removed_entity.uid in self.new_entities:
+            # Prevents artifacts if translation/rotation is applied to removed object before removal, which could in
+            # some cases lead to the obstacle be re-added to the grid after it has been removed
+            del self.new_entities[removed_entity.uid]
 
     def remove_entities(self, entities_uids):
         for entity_uid in entities_uids:
@@ -247,16 +222,29 @@ class World:
 
     def translate_entity(self, entity_uid, translation):
         entity = self.entities[entity_uid]
-        entity.translate(translation[0], translation[1], self.dd)
         if entity_uid != self.robot_uid:
             self._is_inflated_grid_valid = False
             self.invalidate_saved_costmaps((entity_uid,))
+            self._is_int_grid_valid = False
+            if entity.uid not in self.prev_entities:
+                entity_prev = copy.deepcopy(entity)
+                self.prev_entities[entity_prev.uid] = entity_prev
+            if entity.uid not in self.new_entities:
+                self.new_entities[entity.uid] = entity
+        entity.translate(translation[0], translation[1], self.dd)
 
     def rotate_entity(self, entity_uid, rotation):
-        self.entities[entity_uid].rotate(rotation)
+        entity = self.entities[entity_uid]
         if entity_uid != self.robot_uid:
             self._is_inflated_grid_valid = False
             self.invalidate_saved_costmaps((entity_uid,))
+            self._is_int_grid_valid = False
+            if entity.uid not in self.prev_entities:
+                entity_prev = copy.deepcopy(entity)
+                self.prev_entities[entity_prev.uid] = entity_prev
+            if entity.uid not in self.new_entities:
+                self.new_entities[entity.uid] = entity
+        entity.rotate(rotation)
 
     def update_from_g_fov(self, entities):
         for entity_uid, entity in entities.items():
@@ -267,6 +255,11 @@ class World:
                     self_entity_movability = self.entities[self.robot_uid].deduce_movability(self_entity.type)
                     # If self entity full geometry has not been acquired, update it
                     if not self_entity.full_geometry_acquired:
+                        if entity.uid not in self.prev_entities:
+                            entity_prev = copy.deepcopy(self_entity)
+                            self.prev_entities[entity_prev.uid] = entity_prev
+                        if entity.uid not in self.new_entities:
+                            self.new_entities[entity.uid] = entity
                         if entity.full_geometry_acquired:
                             self_entity.set_polygon(entity.polygon, self.dd, self_entity_movability)
                             self_entity.full_geometry_acquired = True
@@ -276,6 +269,7 @@ class World:
                                 self.dd, self_entity_movability)
                         self.invalidate_saved_costmaps((entity.uid,))
                         self._is_inflated_grid_valid = False
+                        self._is_int_grid_valid = False
                     # If it is already known, only translate/rotate the polygon appropriately
                     else:
                         if (entity.full_geometry_acquired
@@ -291,8 +285,6 @@ class World:
                 # If entity is not registered yet, create it
                 except KeyError:
                     self.add_entity(entity)
-                    self.invalidate_saved_costmaps((entity.uid,))
-                    self._is_inflated_grid_valid = False
 
     def update_from_s_fov(self, entities):
         for entity_uid, entity in entities.items():
@@ -353,234 +345,44 @@ class World:
                                                              uid=entity_uid)
         return entities_in_s_fov
 
-    def get_inflated_grid(self):
-        if not self._is_inflated_grid_valid:
-            self._update_grid()
-            self._is_inflated_grid_valid = True
-        return self._inflated_grid
-
-    def _get_map_bounds(self):
-        min_x, min_y, max_x, max_y = float("inf"), float("inf"), -float("inf"), -float("inf")
+    def get_map_bounds(self):
+        if len(self.entities) == 0:
+            raise ValueError("There are no entities to populate the grid, it can't be created !")
+        all_entity_polygons_in_map = []
         for entity_uid, entity in self.entities.items():
-            cur_min_x, cur_min_y, cur_max_x, cur_max_y = entity.polygon.bounds
-            min_x = cur_min_x if cur_min_x < min_x else min_x
-            min_y = cur_min_y if cur_min_y < min_y else min_y
-            max_x = cur_max_x if cur_max_x > max_x else max_x
-            max_y = cur_max_y if cur_max_y > max_y else max_y
-            print(entity.name)
-        return min_x, min_y, max_x, max_y
+            all_entity_polygons_in_map.append(entity.polygon)
+        unioned_polygons = cascaded_union(all_entity_polygons_in_map)
+        return unioned_polygons.bounds
 
-    def _update_grid(self):
-        # Don't create grid if we don't have dd data
+    def _update_dd_and_reset_grids(self):
         if self.dd is None:
-            return
+            raise ValueError("Discretization data (dd) is None, this should not be happening !")
 
-        if self.dd.width != 0.0 and self.dd.height != 0.0 and self.dd.d_width != 0 and self.dd.d_height != 0:
-            min_x, min_y = self.dd.grid_pose[0], self.dd.grid_pose[1]
-            max_x, max_y = self.dd.grid_pose[0] + self.dd.width, self.dd.grid_pose[1] + self.dd.height
-        else:
-            min_x, min_y, max_x, max_y = self._get_map_bounds()
-
-        # No grid can be created without entities to populate it...
-        if min_x == float("inf") or min_y == float("inf") or max_x == -float("inf") or max_y == -float("inf"):
-            return
-
+        min_x, min_y, max_x, max_y = self.get_map_bounds()
         width, height = max_x - min_x, max_y - min_y
-        self.dd.grid_pose = [min_x, min_y, 0.0]
-        self.dd.width, self.dd.height = width, height
 
-        d_width, d_height = int(round(width / self.dd.res)), int(round(height / self.dd.res))
-        self.dd.d_width, self.dd.d_height = d_width, d_height
+        is_dd_same = (self.dd.grid_pose[0] == min_x and self.dd.grid_pose[1] == min_y
+                      and self.dd.width == width and self.dd.height == height)
+        if not is_dd_same:
+            self.dd.grid_pose = [min_x, min_y, 0.0]
+            self.dd.width, self.dd.height = width, height
+            self.dd.d_width, self.dd.d_height = (int(round(self.dd.width / self.dd.res)),
+                                                 int(round(self.dd.height / self.dd.res)))
+            self._int_grid = np.zeros((self.dd.d_width, self.dd.d_height), dtype=np.int16)
+            self.new_entities = copy.copy(self.entities)
+            self.prev_entities = dict()
+            self.saved_social_costmaps = dict()
 
-        grid = np.zeros((d_width, d_height))
-
-        for entity_uid, entity in self.entities.items():
-            if entity_uid != self.robot_uid:
-                e_min_x, e_min_y, e_max_x, e_max_y = entity.get_inflated_polygon(self.dd).bounds
-
-                min_cell_x = int(round((e_min_x - min_x) / self.dd.res))
-                min_cell_y = int(round((e_min_y - min_y) / self.dd.res))
-                discrete_inflated_polygon = entity.get_discrete_inflated_polygon(self.dd)
-                max_cell_x = min_cell_x + discrete_inflated_polygon.shape[0]
-                max_cell_y = min_cell_y + discrete_inflated_polygon.shape[1]
-
-                if self.use_social_layer and not entity.is_discrete_cell_set_valid():
-                    entity_discrete_cells_set = []
-                    entity_discrete_inflated_cells_set = []
-                    i = 0
-                    for x in range(min_cell_x, max_cell_x):
-                        j = 0
-                        for y in range(min_cell_y, max_cell_y):
-                            # VERY IMPORTANT CONDITION: OTHERWISE INDEX NEGATIVELY WILL START FROM END OF ARRAY !
-                            if x >= 0 and y >= 0:
-                                try:
-                                    if grid[x][y] < discrete_inflated_polygon[i][j]:
-                                        grid[x][y] = discrete_inflated_polygon[i][j]
-                                    if discrete_inflated_polygon[i][j] == self.dd.cost_lethal:
-                                        entity_discrete_cells_set.append((x, y))
-                                    if self.dd.cost_possibly_nonfree <= discrete_inflated_polygon[i][j] < self.dd.cost_lethal:
-                                        entity_discrete_inflated_cells_set.append((x, y))
-                                except IndexError:
-                                    pass  # Trim non-lethal obstacle cells around map
-                            j = j + 1
-                        i = i + 1
-                    entity.set_discrete_cells_set(entity_discrete_cells_set)
-                    entity.set_discrete_inflated_cells_set(entity_discrete_inflated_cells_set)
-                else:
-                    i = 0
-                    for x in range(min_cell_x, max_cell_x):
-                        j = 0
-                        for y in range(min_cell_y, max_cell_y):
-                            # VERY IMPORTANT CONDITION: OTHERWISE INDEX NEGATIVELY WILL START FROM END OF ARRAY !
-                            if x >= 0 and y >= 0:
-                                try:
-                                    if grid[x][y] < discrete_inflated_polygon[i][j]:
-                                        grid[x][y] = discrete_inflated_polygon[i][j]
-                                except IndexError:
-                                    pass  # Trim non-lethal obstacle cells around map
-                            j = j + 1
-                        i = i + 1
-        # plt.imshow(grid); plt.show()
-        self._inflated_grid = grid
-
-    def get_discrete_cells_set_for_entity_uid(self, entity_uid):
-        entity = self.entities[entity_uid]
-        if not entity.is_discrete_cell_set_valid():
-            self._update_grid()
-        return entity.get_discrete_cells_set()
-
-    def get_discrete_inflated_cells_set_for_entity_uid(self, entity_uid):
-        entity = self.entities[entity_uid]
-        if not entity.is_discrete_inflated_cell_set_valid():
-            self._update_grid()
-        return entity.get_discrete_inflated_cells_set()
-
-    def get_social_costmap_for_entities_uids(self, entities_uids, rp, restrict_4_neighbors=False):
-        if entities_uids in self.saved_social_costmaps:
-            return self.saved_social_costmaps[entities_uids]
+    def get_social_costmap(self, entity_uids_to_ignore, rp, restrict_4_neighbors=False):
+        if entity_uids_to_ignore in self.saved_social_costmaps:
+            return self.saved_social_costmaps[entity_uids_to_ignore]
         else:
-            new_costmap = self._compute_social_costmap_for_entities(entities_uids, rp, restrict_4_neighbors)
-            self.saved_social_costmaps[entities_uids] = new_costmap
+            new_costmap = self._compute_social_costmap_for_entities(entity_uids_to_ignore, rp, restrict_4_neighbors)
+            self.saved_social_costmaps[entity_uids_to_ignore] = new_costmap
             return new_costmap
 
-    def _compute_social_costmap_for_entities(self, entities_uids, rp, restrict_4_neighbors=True):
-        # Acceptable transitions from current grid element to neighbors
-        neighborhood_4 = [(0, 1), (0, -1), (1, 0), (-1, 0)]
-        neighborhood_8 = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-        if restrict_4_neighbors:
-            neighborhood = neighborhood_4
-        else:
-            neighborhood = neighborhood_8
-
-        # TODO :
-        #  - Add support for restrict_4_neighbors
-        #  - Add loop for building the final_array from the skeleton values
-        world_copy_without_entities = copy.deepcopy(self)
-        world_copy_without_entities.remove_entities(entities_uids)
-
-        grid_without_entities = world_copy_without_entities.get_inflated_grid()
-        grid_without_entities[grid_without_entities < self.dd.cost_lethal] = 1.0
-        grid_without_entities[grid_without_entities == self.dd.cost_lethal] = 0.0
-        # plt.imshow(grid_without_entities); plt.show()
-
-        # Distance transform
-        # test_distance_transform = scipy_morph.distance_transform_cdt(grid_without_entities, 'chessboard')
-        test_distance_transform = scipy_morph.distance_transform_edt(grid_without_entities)
-        # plt.imshow(test_distance_transform); plt.show()
-
-        # Skeleton
-        test_skeleton = skimage_morph.skeletonize(grid_without_entities)
-        # test_skeleton = medial_axis(grid_without_entities, return_distance=True)[0]
-        # plt.imshow(test_skeleton); plt.show()
-
-        skeleton_cells_arrays = np.where(test_skeleton == True)
-        final_array = np.full(test_distance_transform.shape, -1)
-        width, height = final_array.shape[0], final_array.shape[1]
-        skeleton_cells_nb = len(skeleton_cells_arrays[0])
-        closed_cell_set = set()
-
-        ordered_value_list = []
-
-        for i in range(skeleton_cells_nb):
-            x, y = skeleton_cells_arrays[0][i], skeleton_cells_arrays[1][i]
-            closed_cell_set.add((x, y))
-            value = int(self.skeleteton_social_cost_function(test_distance_transform[x][y]) * self.decimals_multiplicator)
-            final_array[x][y] = value
-            if value not in ordered_value_list:
-                ordered_value_list.append(value)
-                ordered_value_list.sort()
-
-
-        # Min variant
-        cur_set = closed_cell_set
-        prev_set = cur_set
-        while cur_set:
-            rp.publish_grid_map(final_array / float(self.decimals_multiplicator / 100), self.dd)
-            # plt.imshow(final_array); plt.show()
-            next_set = set()
-            for current in cur_set:
-                for i, j in neighborhood_4:
-                    neighbor = current[0] + i, current[1] + j
-                    if neighbor not in cur_set and neighbor not in prev_set:
-                        # Check that neighbor exists within the map
-                        if utils.is_in_matrix(neighbor, width, height) and grid_without_entities[neighbor[0]][neighbor[1]] != 0.0:
-                            # MIN CASE
-                            _min = float("inf")
-                            # # AVG CASE
-                            # _avg = 0
-                            # _count = 0
-                            for k, l in neighborhood_4:
-                                neighbor_of_neighbor = neighbor[0] + k, neighbor[1] + l
-                                if utils.is_in_matrix(neighbor_of_neighbor, width, height):
-                                    n_o_n_value = final_array[neighbor_of_neighbor[0]][neighbor_of_neighbor[1]]
-                                    # print("Value at current cell {cell} : {val}".format(
-                                    #     cell=str(current), val=final_array[current[0]][current[1]]))
-                                    # print("Value at neighbor cell {cell} : {val}".format(
-                                    #         cell=str(neighbor), val=final_array[neighbor[0]][neighbor[1]]))
-                                    # print("Value at neighbor of neighbor cell {cell} : {val}".format(
-                                    #     cell=str(neighbor_of_neighbor), val=n_o_n_value))
-                                    # print("----------------------------------------------------------------------")
-                                    # MIN CASE
-                                    if neighbor_of_neighbor not in next_set:
-                                        if n_o_n_value != -1:
-                                            if n_o_n_value < _min:
-                                                _min = n_o_n_value
-                                    # # AVG CASE
-                                    # if neighbor_of_neighbor not in next_set:
-                                    #     if n_o_n_value != -1:
-                                    #         _avg += n_o_n_value
-                                    #         _count += 1
-                            # MIN CASE
-                            final_array[neighbor[0]][neighbor[1]] = self.decay_function(_min)
-                            # # AVG CASE
-                            # _avg = int(float(_avg) / float(_count))
-                            # final_array[neighbor[0]][neighbor[1]] = self.decay_function(_avg)
-                            next_set.add(neighbor)
-            prev_set = cur_set
-            cur_set = next_set
-
-        rp.publish_grid_map(final_array / float(self.decimals_multiplicator / 100), self.dd)
-
-        return final_array / float(self.decimals_multiplicator / 100)
-
-    def skeleteton_social_cost_function(self, dist_in_cells):
-        dist_real = dist_in_cells * self.dd.res
-
-        if 0.0 < dist_real < self.half_1_u_p:
-            return self.curve_0_to_1_u_p * dist_real + self.offset_0_to_1_u_p
-        elif self.half_1_u_p <= dist_real < self.half_2_u_p:
-            return self.curve_1_to_2_u_p * dist_real + self.offset_1_to_2_u_p
-        elif self.half_2_u_p <= dist_real < self.half_3_u_p:
-            return self.curve_2_to_3_u_p * dist_real + self.offset_2_to_3_u_p
-        elif self.half_3_u_p <= dist_real < self.half_4_u_p:
-            return self.curve_3_to_4_u_p * dist_real + self.offset_3_to_4_u_p
-        elif self.half_4_u_p <= dist_real:
-            return self.cost_value_at_4_u_p_and_beyond
-        else:
-            return -1.0
-
-    def decay_function(self, cost):
-        return cost - cost * self.decay_factor
+    def get_binary_occupancy_grid(self, entity_uids_to_ignore):
+        if entity_uids_to_ignore in self._binary_occupancy_grid:
 
     def invalidate_saved_costmaps(self, changed_entities):
         for entities in self.saved_social_costmaps.keys():
@@ -687,67 +489,3 @@ class World:
     #
     #     for entity_uid, entity in entities_in_g_fov_seethrough.items():
     #         for point in entity.polygon.exterior.coords:
-
-    # def _update_grid_dynamic(self):
-    #     # Don't create grid if we don't have dd data
-    #     if self.dd is None:
-    #         return
-    #
-    #     if self.dd.width != 0.0 and self.dd.height != 0.0 and self.dd.d_width != 0 and self.dd.d_height != 0:
-    #         min_x, min_y = self.dd.grid_pose[0], self.dd.grid_pose[1]
-    #         max_x, max_y = self.dd.grid_pose[0] + self.dd.width, self.dd.grid_pose[1] + self.dd.height
-    #     else:
-    #         min_x, min_y, max_x, max_y = self._get_map_bounds()
-    #
-    #     # No grid can be created without entities to populate it...
-    #     if min_x == float("inf") or min_y == float("inf") or max_x == -float("inf") or max_y == -float("inf"):
-    #         return
-    #
-    #     width, height = max_x - min_x, max_y - min_y
-    #     grid_pose = [min_x, min_y, 0.0]
-    #     d_width, d_height = int(ceil(width / self.dd.res)), int(ceil(height / self.dd.res))
-    #
-    #     is_grid_same = (self.dd.grid_pose == grid_pose and self.dd.width == width and self.dd.height == height
-    #                     and self.dd.d_width == d_width and self.dd.d_height == d_height)
-    #     if not is_grid_same:
-    #         self.dd.grid_pose = grid_pose
-    #         self.dd.width, self.dd.height = width, height
-    #         self.dd.d_width, self.dd.d_height = d_width, d_height
-    #         self._grid = np.zeros((d_width, d_height))
-    #         self._supergrid = np.full((d_width, d_height), {})
-    #
-    #     for entity_uid, entity in self.entities.items():
-    #         entity_is_not_robot = entity_uid != self.robot_uid
-    #         grid_not_same_or_same_but_entities_moved = (not is_grid_same or
-    #                                                     (is_grid_same and not entity.are_discrete_cells_sets_valid()))
-    #
-    #         if entity_is_not_robot and grid_not_same_or_same_but_entities_moved:
-    #             e_min_x, e_min_y, e_max_x, e_max_y = entity.get_inflated_polygon(self.dd).bounds
-    #
-    #             min_cell_x = int(round((e_min_x - min_x) / self.dd.res))
-    #             min_cell_y = int(round((e_min_y - min_y) / self.dd.res))
-    #             discrete_inflated_polygon = entity.get_discrete_inflated_polygon(self.dd)
-    #             max_cell_x = min_cell_x + discrete_inflated_polygon.shape[0]
-    #             max_cell_y = min_cell_y + discrete_inflated_polygon.shape[1]
-    #
-    #             entity_discrete_cells_set = set()
-    #             entity_discrete_inflated_cells_set = set()
-    #
-    #             i = 0
-    #             for x in range(min_cell_x, max_cell_x):
-    #                 j = 0
-    #                 for y in range(min_cell_y, max_cell_y):
-    #                     self._supergrid =
-    #
-    #
-    #                     if self._grid[x][y] < discrete_inflated_polygon[i][j]:
-    #                         self._grid[x][y] = discrete_inflated_polygon[i][j]
-    #
-    #                     if discrete_inflated_polygon[i][j] == self.dd.cost_lethal:
-    #                         entity_discrete_cells_set.add((i, j))
-    #                     elif self.dd.cost_possibly_nonfree < discrete_inflated_polygon[i][j] < self.dd.cost_lethal:
-    #                         entity_discrete_inflated_cells_set.add((i, j))
-    #                     j = j + 1
-    #                 i = i + 1
-    #             entity.set_discrete_cells_set(entity_discrete_cells_set)
-    #             entity.set_discrete_inflated_cells_set(entity_discrete_inflated_cells_set)

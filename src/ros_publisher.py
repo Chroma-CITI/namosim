@@ -37,8 +37,8 @@ def world_to_costmap(world):
     costmap = OccupancyGrid(header=init_header())
     costmap.info.map_load_time = costmap.header.stamp
     costmap.info.resolution = world.dd.res
-    costmap.info.width = world.get_inflated_grid().shape[0]
-    costmap.info.height = world.get_inflated_grid().shape[1]
+    costmap.info.width = world.dd.d_width
+    costmap.info.height = world.dd.d_height
     costmap.info.origin.position.x = world.dd.grid_pose[0]
     costmap.info.origin.position.y = world.dd.grid_pose[1]
     costmap.info.origin.position.z = -0.1

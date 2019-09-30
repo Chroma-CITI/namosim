@@ -107,11 +107,13 @@ class Obstacle(Thing):
         min_cell_y = int(floor((min_y - map_min_y) / world.dd.res))
         min_cell_y = min_cell_y if min_cell_y >= 0 else 0
         max_cell_x = min_cell_x + d_width
-        max_cell_x = max_cell_x if max_cell_x <= world.get_inflated_grid().shape[0] else world.get_inflated_grid().shape[0]
+        max_cell_x = max_cell_x if max_cell_x <= world.dd.d_width else world.dd.d_width
         max_cell_y = min_cell_y + d_height
-        max_cell_y = max_cell_y if max_cell_y <= world.get_inflated_grid().shape[1] else world.get_inflated_grid().shape[1]
+        max_cell_y = max_cell_y if max_cell_y <= world.dd.d_height else world.dd.d_height
 
         q_look = dict()
+
+        grid = world.get_inflated_grid()
 
         for i in range(min_cell_x, max_cell_x):
             for j in range(min_cell_y, max_cell_y):
@@ -138,7 +140,7 @@ class Obstacle(Thing):
                     #             point_not_in_any_inflated_obstacle = False
                     #             break
                     # if point_not_in_any_inflated_obstacle:
-                    if world.get_inflated_grid()[i][j] < world.dd.cost_possibly_nonfree:
+                    if grid[i][j] < world.dd.cost_possibly_nonfree:
 
                         # Check if the obstacle can be seen from this point, and get best angle to view it
                         best_angle = self._best_q_angle(observation_position, fov_min_r, fov_max_r, fov_angle)

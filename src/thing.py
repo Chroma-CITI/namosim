@@ -1,5 +1,6 @@
 from math import ceil
 import numpy as np
+import utils
 
 import shapely.affinity as affinity
 from shapely.geometry import Polygon
@@ -23,6 +24,9 @@ class Thing:
         self.inflated_polygon = None
         self._is_inflated_polygon_valid = False
 
+        self.discrete_polygon = None
+        self._is_discrete_polygon_valid = False
+
         self.discrete_inflated_polygon = None
         self._is_discrete_inflated_polygon_valid = False
 
@@ -37,43 +41,38 @@ class Thing:
 
     def get_inflated_polygon(self, dd):
         if not self._is_inflated_polygon_valid:
-            self._make_inflated_polygon(dd)
-            self._is_inflated_polygon_valid = True
+            self._inflate_polygon(dd)
         return self.inflated_polygon
+
+    def get_discrete_polygon(self, dd):
+        if not self._is_discrete_polygon_valid:
+            self._discretize_to_grid(dd)
+        return self.discrete_polygon
 
     def get_discrete_inflated_polygon(self, dd):
         if not self._is_discrete_inflated_polygon_valid:
-            self._discretize(dd)
-            self._is_discrete_inflated_polygon_valid = True
+            self._discretize_to_grid(dd)
         return self.discrete_inflated_polygon
 
-    def get_discrete_cells_set(self):
+    def get_discrete_cells_set(self, dd):
+        if not self._is_discrete_cell_set_valid:
+            self._discretize_to_cell_sets(dd)
         return self.discrete_cells_set
 
-    def is_discrete_cell_set_valid(self):
-        return self._is_discrete_cell_set_valid
-
-    def set_discrete_cells_set(self, discrete_cells_set):
-        self.discrete_cells_set = discrete_cells_set
-        self._is_discrete_cell_set_valid = True
-
-    def get_discrete_inflated_cells_set(self):
+    def get_discrete_inflated_cells_set(self, dd):
+        if not self._is_discrete_inflated_cell_set_valid:
+            self._discretize_to_cell_sets(dd)
         return self.discrete_inflated_cells_set
-
-    def is_discrete_inflated_cell_set_valid(self):
-        return self._is_discrete_inflated_cell_set_valid
-
-    def set_discrete_inflated_cells_set(self, discrete_inflated_cells_set):
-        self.discrete_inflated_cells_set = discrete_inflated_cells_set
-        self._is_discrete_inflated_cell_set_valid = True
 
     def set_polygon(self, polygon, dd):
         self.polygon = polygon
         self.pose = [list(self.polygon.centroid.coords)[0][0],
                      list(self.polygon.centroid.coords)[0][1],
                      self.pose[2]]
-        self._make_inflated_polygon(dd)
-        self._discretize(dd)
+
+        self._is_inflated_polygon_valid = False
+        self._is_discrete_polygon_valid = False
+        self._is_discrete_inflated_polygon_valid = False
         self._is_discrete_cell_set_valid = False
         self._is_discrete_inflated_cell_set_valid = False
 
@@ -81,28 +80,35 @@ class Thing:
         # May be improved for cases with modulo 90-degrees rotations with specific update of discrete_polygon.
         self.polygon = affinity.rotate(self.polygon, angle, 'centroid')
         self.pose[2] = (self.pose[2] + angle) % 360
+
         self._is_inflated_polygon_valid = False
+        self._is_discrete_polygon_valid = False
         self._is_discrete_inflated_polygon_valid = False
         self._is_discrete_cell_set_valid = False
         self._is_discrete_inflated_cell_set_valid = False
 
     def translate(self, xoff, yoff, dd):
+        # May be improved for cases where the translation is equal to a multiple of the resolution
         self.polygon = affinity.translate(self.polygon, xoff, yoff)
         self.pose[0], self.pose[1] = list(self.polygon.centroid.coords)[0][0], list(self.polygon.centroid.coords)[0][1]
+
         self._is_inflated_polygon_valid = False
         if (xoff / dd.res != 0.0) or (yoff / dd.res != 0.0):
+            self._is_discrete_polygon_valid = False
             self._is_discrete_inflated_polygon_valid = False
         self._is_discrete_cell_set_valid = False
         self._is_discrete_inflated_cell_set_valid = False
 
-    def _make_inflated_polygon(self, dd):
+    def _inflate_polygon(self, dd):
         if dd.inflation_radius == 0.0:
             self.inflated_polygon = self.polygon
         else:
             self.inflated_polygon = self.polygon.buffer(dd.inflation_radius)
+        self._is_inflated_polygon_valid = True
 
-    def _discretize(self, dd):
-        min_x, min_y, max_x, max_y = self.inflated_polygon.bounds
+    def _discretize_to_grid(self, dd):
+        inflated_polygon = self.get_inflated_polygon(dd)
+        min_x, min_y, max_x, max_y = inflated_polygon.bounds
 
         width, height = max_x - min_x, max_y - min_y
 
@@ -120,8 +126,49 @@ class Thing:
                 if cell.intersects(self.polygon):
                     discrete_polygon_grid[i][j] = dd.cost_lethal
                     discrete_inflated_polygon_grid[i][j] = dd.cost_lethal
-                elif cell.intersects(self.inflated_polygon):
+                elif cell.intersects(inflated_polygon):
                     discrete_inflated_polygon_grid[i][j] = dd.cost_inscribed
 
         self.discrete_polygon = discrete_polygon_grid
         self.discrete_inflated_polygon = discrete_inflated_polygon_grid
+        self._is_discrete_polygon_valid = True
+        self._is_discrete_inflated_polygon_valid = True
+
+    def _discretize_to_cell_sets(self, dd):
+        inflated_polygon = self.get_inflated_polygon(dd)
+        min_x, min_y, max_x, max_y = inflated_polygon.bounds
+
+        width, height = max_x - min_x, max_y - min_y
+
+        d_width, d_height = int(ceil(width / dd.res)), int(ceil(height / dd.res))
+
+        discrete_cells_set = set()
+        discrete_inflated_cells_set = set()
+
+        min_cell_x = int(round((min_x - dd.grid_pose[0]) / dd.res))
+        min_cell_y = int(round((min_y - dd.grid_pose[1]) / dd.res))
+        max_cell_x = min_cell_x + d_width
+        max_cell_y = min_cell_y + d_height
+
+        i = 0
+        for x in range(min_cell_x, max_cell_x):
+            j = 0
+            for y in range(min_cell_y, max_cell_y):
+                cell_polygon = Polygon([(min_x + float(i) * dd.res, min_y + float(j) * dd.res),
+                                        (min_x + float(i+1) * dd.res, min_y + float(j) * dd.res),
+                                        (min_x + float(i+1) * dd.res, min_y + float(j+1) * dd.res),
+                                        (min_x + float(i) * dd.res, min_y + float(j+1) * dd.res)])
+                is_in_matrix = utils.is_in_matrix((x, y), dd.d_width, dd.d_height)
+                if is_in_matrix:
+                    if cell_polygon.intersects(self.polygon):
+                        discrete_cells_set.add((x, y))
+                        discrete_inflated_cells_set.add((x, y))
+                    elif cell_polygon.intersects(inflated_polygon):
+                        discrete_inflated_cells_set.add((x, y))
+                j += 1
+            i += 1
+
+        self.discrete_cells_set = discrete_cells_set
+        self.discrete_inflated_cells_set = discrete_inflated_cells_set
+        self._is_discrete_cell_set_valid = True
+        self._is_discrete_inflated_cell_set_valid = True

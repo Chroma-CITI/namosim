@@ -24,7 +24,7 @@ class SNAMOBehavior:
         self.social_movability_evaluation_activated = False
         self.reset_knowledge_activated = False
         self.use_social_layer = True
-        self.manip_weight = 1.0
+        self.manip_weight = 2.0
 
     def execute(self, q_init, q_goal, rp):
         self.world = copy.deepcopy(self.initial_world) if self.reset_knowledge_activated else self.world
@@ -109,7 +109,7 @@ class SNAMOBehavior:
     def make_plan_for_obs(self, q_r, q_goal, o_uid, p_opt, rp):
         p_best = Plan([Path([])])
         obs = self.world.entities[o_uid]
-        robot = self.world.entities[self.world.robot_uid]
+        robot = self.world.entities[self.robot_uid]
 
         obs_is_push_only = self.robot.deduce_push_only(obs.type)
         rp.publish_q_manips_for_obs(obs.get_actions(self.world.dd, obs_is_push_only).values())
@@ -194,11 +194,14 @@ class SNAMOBehavior:
 
     def _is_step_success(self, world, o_uid, init_robot_polygon, target_robot_polygon,
                          init_obs_polygon, target_obs_polygon):
-        robot_swept_area = cascaded_union([init_robot_polygon, target_robot_polygon]).convex_hull
-        obs_swept_area = cascaded_union([init_obs_polygon, target_obs_polygon]).convex_hull
+        try:
+            robot_swept_area = cascaded_union([init_robot_polygon, target_robot_polygon]).convex_hull
+            obs_swept_area = cascaded_union([init_obs_polygon, target_obs_polygon]).convex_hull
+        except Exception:
+            pass
 
         for entity_uid, entity in world.entities.items():
-            if entity_uid != world.robot_uid and entity_uid != o_uid:
+            if entity_uid != self.robot_uid and entity_uid != o_uid:
                 if entity.polygon.intersects(robot_swept_area) or entity.polygon.intersects(obs_swept_area):
                     return False
         return True
@@ -225,7 +228,7 @@ class SNAMOBehavior:
         target_blocking_areas = dict()
 
         for entity_uid, entity in world.entities.items():
-            if entity_uid != world.robot_uid and entity_uid != obs.uid:
+            if entity_uid != self.robot_uid and entity_uid != obs.uid:
                 try:
                     init_blocking_area = init_inflated_obs_polygon.intersection(entity.polygon)
                     if isinstance(init_blocking_area, Polygon):
@@ -294,8 +297,9 @@ class SNAMOBehavior:
 
     # --- BIG PROPOSITION 1: COMPUTE A FREE SPACE AFFORDANCE FOR LEAVING OBJECTS ---
 
-    def get_social_cost_for_entity(self, entity_uid, world, world_copy, rp, aggregation_type='sum'):
-        social_costmap = world.get_social_costmap_for_entities_uids((entity_uid,), rp)
+    def get_social_cost_for_entity(self, entity_uid, world, world_copy, rp, aggregation_type='avg'):
+
+        social_costmap = world.get_social_costmap((entity_uid,), rp)
         entity_cells = world_copy.get_discrete_cells_set_for_entity_uid(entity_uid)
         rp.publish_social_cells(entity_cells, world.dd)
 
