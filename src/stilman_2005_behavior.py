@@ -203,7 +203,7 @@ class Stilman2005Behavior:
                 nav_cells.remove(cell)
 
         # 5 - Compute obstacle counter grid without robot and obstacle
-        grid_without = w_t_plus_2.get_obstacle_counter_grid(exluded_entites=[self.robot.uid, o_1])
+        grid_without = w_t_plus_2.get_obstacle_counter_grid(excluded_entites=[self.robot.uid, o_1])
 
         # 6 - Explore robot action space
         # Action tree nodes to currently explore. Ordered by min phys cost.
