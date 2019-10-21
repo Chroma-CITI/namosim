@@ -63,10 +63,11 @@ class Simulator:
                         agent_navigation_goals.append(goals[config_goal["name"]])
 
                 if agent_behavior_name == "navigation_only_behavior":
-                    self.agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(self, agent_world, agent_uid,
-                                                                                   agent_navigation_goals)
+                    self.agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
+                        self, agent_world, agent_uid, agent_navigation_goals, behavior_config)
                 elif agent_behavior_name == "wu_levihn_2014_behavior":
-                    self.agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(self, agent_world, agent_uid)
+                    self.agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
+                        self, agent_world, agent_uid, agent_navigation_goals, behavior_config)
                 elif agent_behavior_name == "stilman_2005_behavior":
                     self.agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(self, agent_world, agent_uid)
                 else:
