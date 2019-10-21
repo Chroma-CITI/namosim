@@ -1,47 +1,85 @@
-from ros_publisher import RosPublisher
-from world import World
-from robot import Robot
-from obstacle import Obstacle
+from src.display.ros_publisher import RosPublisher
+from src.worldreps.entity_based.world import World
+from src.worldreps.entity_based.robot import Robot
+from src.worldreps.entity_based.obstacle import Obstacle
 
 import time
 import copy
-import numpy as np
-from threading import Thread
-from ptpython.repl import embed
+import yaml
+import os
 
 from shapely import affinity
 from shapely.ops import cascaded_union
 
-from standard_behavior import StandardBehavior
-from s_namo_behavior import SNAMOBehavior
+from src.behaviors.navigation_only_behavior import NavigationOnlyBehavior
+from src.behaviors.wu_levihn_2014_behavior import WuLevihn2014Behavior
+from src.behaviors.stilman_2005_behavior import Stilman2005Behavior
+
+from src.behaviors.plan.basic_actions import ActionGoalsFinished, ActionGoalResult
 
 
 class Simulator:
-    def __init__(self, world_file_path):
-        # Create ros_publisher
+    def __init__(self, simulation_file_path):
+        # Import YAML world configuration file
+        behavior_yaml_abs_path = os.path.abspath(simulation_file_path)
+        config = yaml.load(open(behavior_yaml_abs_path))
+
+        # Save general simulation parameters
+        self.provide_walls = config["provide_walls"]
+        self.display_sim_knowledge_only_once = config["display_sim_knowledge_only_once"]
+
+        # Reinitialize rviz display
         self.rp = RosPublisher()
         self.rp.cleanup_all()
 
-        self.provide_walls = True
-        self.display_sim_knowledge_only_once = False
-
         # Create world from world description yaml file
-        self.world = World()
-        self.goals = self.world.load_from_yaml(world_file_path)
+        world_file_path = config["files"]["world_file"]
+        world_yaml_abs_path = os.path.join(os.path.dirname(behavior_yaml_abs_path), world_file_path)
+        self.ref_world = World()
+        goals = self.ref_world.load_from_yaml(world_yaml_abs_path)
+
+        # Associate autonomous agents with behaviors
+        self.temp_agent_uid = 0  # FIXME Remove this variable after refactoring publish world so that
+        self.agent_uid_to_behavior = dict()
+        for agent_to_behavior_config in config["agents_behaviors"]:
+            agent_name = agent_to_behavior_config["agent_name"]
+            agent_uid = self.ref_world.get_entity_uid_from_name(agent_name)
+            self.temp_agent_uid = agent_uid
+            if agent_name in self.agent_uid_to_behavior:
+                raise RuntimeError("You can only associate a single behavior with entity: {entity_name}.".format(
+                    entity_name=agent_name
+                ))
+            else:
+                agent_world = self._create_robot_world_from_sim_world()
+                self.rp.cleanup_robot_world()
+                self.rp.publish_robot_world(agent_world, self.temp_agent_uid)
+
+                behavior_config = agent_to_behavior_config["behavior"]
+                agent_behavior_name = behavior_config["name"]
+
+                agent_navigation_goals = []
+                for config_goal in behavior_config["navigation_goals"]:
+                    if config_goal["name"] in goals:
+                        agent_navigation_goals.append(goals[config_goal["name"]])
+
+                if agent_behavior_name == "navigation_only_behavior":
+                    self.agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(self, agent_world, agent_uid,
+                                                                                   agent_navigation_goals)
+                elif agent_behavior_name == "wu_levihn_2014_behavior":
+                    self.agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(self, agent_world, agent_uid)
+                elif agent_behavior_name == "stilman_2005_behavior":
+                    self.agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(self, agent_world, agent_uid)
+                else:
+                    raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
+                                              "'{b_name}' that is not implemented yet."
+                                              "Maybe you mispelled something ?".format(agent_name=agent_name,
+                                                                                       b_name=agent_behavior_name))
         self.rp.cleanup_sim_world()
-        self.rp.publish_sim_world(self.world)
+        self.rp.publish_sim_world(self.ref_world, self.temp_agent_uid)
 
         if self.display_sim_knowledge_only_once:
             time.sleep(2.0)
             self.rp.cleanup_sim_world()
-
-        # Create robot world knowledge from simulation knowledge according to rules
-        robot_world = self._create_robot_world_from_sim_world()
-        self.rp.cleanup_robot_world()
-        self.rp.publish_robot_world(robot_world)
-
-        # self.robot_behavior = StandardBehavior(self, robot_world, robot_world.robot_uid)
-        self.robot_behavior = SNAMOBehavior(self, robot_world, robot_world.robot_uid)
 
         # self.user_preempted = False
         # self.run_thread = Thread(target=self.run)
@@ -49,53 +87,34 @@ class Simulator:
 
     def run(self):
         print("Run started")
-        while True:
-            # print("Run thread runnning")
-            if not self.goals:
-                time.sleep(1)
 
-            else:
-                while self.goals:
-                    self.robot_behavior.execute(self.world.entities[self.world.robot_uid].pose, self.goals[0], self.rp)
-                    self.goals.pop(0)
-                break
+        # TODO Test this execution loop to see if it works with multiple (agent_uid, behavior) tuples at once
+        #  (Especially check if properly deterministic)
+        agent_uid_to_last_action_result = dict()
+        while self.agent_uid_to_behavior:
+            for agent_uid, behavior in self.agent_uid_to_behavior.items():
+                last_action_result = (True if agent_uid not in agent_uid_to_last_action_result
+                                      else agent_uid_to_last_action_result[agent_uid])
+                behavior.sense(self.ref_world, last_action_result)
+                action = behavior.think()
 
-    def add_goal(self, x, y, yaw):
-        self.goals.append([x, y, yaw])
+                # If there are no more goals to execute for the agent behavior, then remove it
+                if isinstance(action, ActionGoalsFinished):
+                    del self.agent_uid_to_behavior[agent_uid]
+                elif not isinstance(action, ActionGoalResult):
+                    action_result = self.act(agent_uid, action)
+                    agent_uid_to_last_action_result[agent_uid] = action_result
 
-    def override_goal(self, x, y, yaw):
-        self.goals = [[x, y, yaw]]
-        # May need to stop the run thread and relaunch it from here: BAD IDEA !
-
-    def update_robot_knowledge(self, robot_world):
-        robot_pose = robot_world.entities[robot_world.robot_uid].pose
-
-        # Update robot pose in sim_world and sim_robot_pose subsequently
-        sim_robot = self.world.entities[robot_world.robot_uid]
-        trans = [sim_robot.pose[0] - robot_pose[0], sim_robot.pose[1] - robot_pose[1]]
-        rot = (sim_robot.pose[2] - robot_pose[2]) % 360
-        robot_world.translate_entity(robot_world.robot_uid, trans)
-        robot_world.rotate_entity(robot_world.robot_uid, rot)
-
-        # Get entities in real-world fovs, merge the result and update in robot_world
-        entities_in_g_fov = self.world.get_entities_in_g_fov_seethrough(robot_world.robot_uid)
-        robot_world.update_from_g_fov(entities_in_g_fov)
-        entities_in_s_fov = self.world.get_entities_in_s_fov_seethrough(robot_world.robot_uid)
-        robot_world.update_from_s_fov(entities_in_s_fov)
-
-        # if self.user_preempted:
-        #     pass  # TODO PASS IT TO THE EXECUTION LOOP OF BEHAVIOR
-
-    def try_exe_next_step(self, robot_uid, next_step):
+    def act(self, robot_uid, next_step):
         if next_step is None:
             return True
 
-        robot = self.world.entities[robot_uid]
+        robot = self.ref_world.entities[robot_uid]
 
         current_pose = robot.pose
 
         target_trans = [next_step.target_pose[0] - current_pose[0], next_step.target_pose[1] - current_pose[1]]
-        target_rot = (next_step.target_pose[2] - current_pose[2]) % 360
+        target_rot = (next_step.target_pose[2] - current_pose[2]) % 360.
 
         target_robot_polygon_rot = affinity.rotate(copy.deepcopy(robot.polygon), target_rot, 'centroid')
         target_robot_polygon_rot_trans = affinity.translate(target_robot_polygon_rot, target_trans[0], target_trans[1])
@@ -104,7 +123,7 @@ class Simulator:
 
         obs_rot_convex_hull, obs_trans_convex_hull, obstacle = None, None, None
         if next_step.is_transfer:
-            obstacle = self.world.entities[next_step.obstacle_uid]
+            obstacle = self.ref_world.entities[next_step.obstacle_uid]
             if robot.deduce_movability(obstacle.type) == "unmovable":
                 return False
             target_obs_polygon_rot = affinity.rotate(obstacle.polygon, target_rot, 'centroid')
@@ -113,7 +132,7 @@ class Simulator:
             obs_rot_convex_hull = cascaded_union([obstacle.polygon, target_obs_polygon_rot]).convex_hull
             obs_trans_convex_hull = cascaded_union([target_obs_polygon_rot, target_obs_polygon_rot_trans]).convex_hull
 
-        for entity_uid, entity in self.world.entities.items():
+        for entity_uid, entity in self.ref_world.entities.items():
             if (entity_uid != robot_uid
                     and (True if next_step.obstacle_uid is None else entity_uid != next_step.obstacle_uid)):
                 if (robot_rot_convex_hull.intersects(entity.polygon)
@@ -125,54 +144,24 @@ class Simulator:
                         return False
 
         # If all collision checks have passed, apply step and return True
-        self.world.translate_entity(robot.uid, target_trans)
-        self.world.rotate_entity(robot.uid, target_rot)
+        self.ref_world.translate_entity(robot.uid, target_trans)
+        self.ref_world.rotate_entity(robot.uid, target_rot)
         if next_step.is_transfer:
-            self.world.translate_entity(obstacle.uid, target_trans)
+            self.ref_world.translate_entity(obstacle.uid, target_trans)
             # No rotation for now
 
         if not self.display_sim_knowledge_only_once:
-            self.rp.publish_sim_world(self.world)
+            self.rp.publish_sim_world(self.ref_world, self.temp_agent_uid)
 
         return True
 
     def _create_robot_world_from_sim_world(self):
         entities = dict()
-        for entity_uid, entity in self.world.entities.items():
-            if isinstance(entity, Robot) or ((isinstance(entity, Obstacle) and entity.type == "wall") if self.provide_walls else True):
+        for entity_uid, entity in self.ref_world.entities.items():
+            if (isinstance(entity, Robot)
+                    or ((isinstance(entity, Obstacle) and entity.type == "wall") if self.provide_walls else True)):
                 entities[entity_uid] = copy.deepcopy(entity)
 
-        return World(entities, copy.deepcopy(self.world._taboo_zones), self.world.robot_uid, copy.deepcopy(self.world.dd))
-
-
-if __name__ == '__main__':
-    import rospy
-    rospy.init_node('world_gui_test_node', log_level=rospy.INFO)
-    # sim = Simulator(world_file_path="../data/worlds/moghaddam_planning_2016_benchmark/01/01.yaml")
-    sim = Simulator(world_file_path="../data/worlds/first_level/01_two_rooms_corridor/01_two_rooms_corridor.yaml")
-    # sim = Simulator(world_file_path="../data/worlds/first_level/03_big_crossing/03_big_crossing.yaml")
-
-    # World 3 goals
-    # sim.add_goal(2.0, 0.0, 0.0)
-    # sim.add_goal(2.0, 2.0, 0.0)
-
-    sim.run()
-
-    pass
-    # World 4 goals
-    # sim.add_goal(-1.0, -1.0, 180.0)
-
-    # banner = """
-    # Welcome in the S-NAMO simulator !
-    #
-    # You are within the program now: you can access the simulator's
-    # functions simply by calling it's python functions, like so:
-    #
-    # sim.help()
-    #
-    # To Exit, press Ctrl+z.
-    # """
-    #
-    # print(banner)
-    #
-    # embed(globals(), locals())
+        return World(entities=entities,
+                     taboo_zones=copy.deepcopy(self.ref_world.taboo_zones),
+                     dd=copy.deepcopy(self.ref_world.dd))
