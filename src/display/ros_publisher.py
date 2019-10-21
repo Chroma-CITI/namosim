@@ -37,7 +37,7 @@ def init_ros_path():
 
 
 def world_to_costmap(world, robot_uid):
-    world_grid = world.get_probabilist_occupancy_grid((robot_uid,))
+    world_grid = world.get_binary_inflated_occupancy_grid((robot_uid,))
     costmap = OccupancyGrid(header=init_header())
     costmap.info.map_load_time = costmap.header.stamp
     costmap.info.resolution = world.dd.res
