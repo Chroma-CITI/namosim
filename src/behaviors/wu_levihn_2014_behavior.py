@@ -1,6 +1,7 @@
 import src.behaviors.algorithms.a_star
 from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
+from src.behaviors.algorithms.multi_goal_a_star import two_way_multi_goal_a_star
 import numpy as np
 import copy
 from src.worldreps.entity_based.obstacle import Obstacle
@@ -12,20 +13,21 @@ from src.display.ros_publisher import RosPublisher
 
 
 class WuLevihn2014Behavior:
-    def __init__(self, simulator, initial_world, robot_uid):
+    def __init__(self, simulator, initial_world, robot_uid, navigation_goals, behavior_config):
         self.simulator = simulator
-        self.robot_uid = robot_uid
         self.initial_world = initial_world
+        self.robot_uid = robot_uid
+
         self.world = copy.deepcopy(self.initial_world)
         self.robot = self.world.entities[self.robot_uid]
         self.blocked_obstacles = set()
 
-        self.check_new_opening_activated = False # TODO DO NOT REACTIVATE UNTIL BUG FIX
-        self.social_placement_choice_activated = False
-        self.social_movability_evaluation_activated = False
-        self.reset_knowledge_activated = False
-        self.use_social_layer = True
-        self.manip_weight = 2.0
+        self.check_new_opening_activated = behavior_config["parameters"]["check_new_opening_activated"]
+        self.social_placement_choice_activated = behavior_config["parameters"]["social_placement_choice_activated"]
+        self.social_movability_evaluation_activated = behavior_config["parameters"]["social_movability_evaluation_activated"]
+        self.reset_knowledge_activated = behavior_config["parameters"]["reset_knowledge_activated"]
+        self.use_social_layer = behavior_config["parameters"]["use_social_layer"]
+        self.manip_weight = behavior_config["parameters"]["manip_weight"]
 
         self.rp = RosPublisher()
 
@@ -142,7 +144,7 @@ class WuLevihn2014Behavior:
 
                     total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
                         self.world, obs, [0.0, 0.0], unit_translation, q_manip, q_goal, c_1, init_robot_polygon)
-                    
+
                     while c_est <= p_opt[0].total_cost and is_step_success:
                         if (self._check_new_opening(self.world, obs, target_obs_polygon, q_goal)
                                 and self._not_in_taboo(self.world.taboos, target_obs_polygon)):
@@ -200,11 +202,8 @@ class WuLevihn2014Behavior:
 
     def _is_step_success(self, world, o_uid, init_robot_polygon, target_robot_polygon,
                          init_obs_polygon, target_obs_polygon):
-        try:
-            robot_swept_area = cascaded_union([init_robot_polygon, target_robot_polygon]).convex_hull
-            obs_swept_area = cascaded_union([init_obs_polygon, target_obs_polygon]).convex_hull
-        except Exception:
-            pass
+        robot_swept_area = cascaded_union([init_robot_polygon, target_robot_polygon]).convex_hull
+        obs_swept_area = cascaded_union([init_obs_polygon, target_obs_polygon]).convex_hull
 
         for entity_uid, entity in world.entities.items():
             if entity_uid != self.robot_uid and entity_uid != o_uid:
@@ -294,7 +293,7 @@ class WuLevihn2014Behavior:
     def compute_c_0_c_1(self, world, robot, obs, q_r, q_manip):
         if self.social_movability_evaluation_activated:
             q_l = obs.get_q_l(world)
-            c_0_path, c_1_path = src.behaviors.algorithms.a_star.two_way_multi_goal_a_star(world.get_grid(), q_r, q_l, q_manip, world.dd)
+            c_0_path, c_1_path = two_way_multi_goal_a_star(world.get_grid(), q_r, q_l, q_manip, world.dd)
             q_look_index = self._get_last_look_q(robot, obs, c_1_path)
             if q_look_index is not None:
                 return self._split_at_pose(c_1_path, q_look_index, obs.uid, c_0_path)
