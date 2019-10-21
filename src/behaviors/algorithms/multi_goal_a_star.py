@@ -4,8 +4,6 @@ from src.utils import utils
 from a_star import heuristic_cost_estimate, dist_between
 from src.display.ros_publisher import RosPublisher
 
-rp = RosPublisher()
-
 
 def two_way_multi_goal_a_star(grid, start_pose, intermediate_cells_and_poses, goal_pose, dd,
                               restrict_4_neighbors=False, authorize_goal_in_occupied_zone = False):
@@ -88,6 +86,7 @@ def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neig
     # Initially, only the start node is known.
     heappush(open_heap, (fscore[start_cell], start_cell))
 
+    rp = RosPublisher()
     rp.publish_multigoal_a_star_open_heap(open_heap, dd)
 
     # While open_heap is not empty == While there are discovered nodes that have not been evaluated
