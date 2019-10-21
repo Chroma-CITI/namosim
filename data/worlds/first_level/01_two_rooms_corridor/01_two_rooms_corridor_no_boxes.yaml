@@ -98,18 +98,6 @@ things:
         geometry:
           from: "file"
           id: "wall_mid_bottom_right"
-    -
-        name: "movable_box"
-        type: "box"
-        geometry:
-          from: "file"
-          id: "movable_box"
-    -
-        name: "second_movable_box"
-        type: "box"
-        geometry:
-          from: "file"
-          id: "second_movable_box"
 
   zones:
     goals:
