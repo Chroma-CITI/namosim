@@ -14,56 +14,58 @@ from src.display.ros_publisher import RosPublisher
 
 class WuLevihn2014Behavior:
     def __init__(self, simulator, initial_world, robot_uid, navigation_goals, behavior_config):
-        self.simulator = simulator
-        self.initial_world = initial_world
-        self.robot_uid = robot_uid
+        self._simulator = simulator
+        self._initial_world = initial_world
+        self._robot_uid = robot_uid
+        self._navigation_goals = navigation_goals
+        self._behavior_config = behavior_config
 
-        self.world = copy.deepcopy(self.initial_world)
-        self.robot = self.world.entities[self.robot_uid]
-        self.blocked_obstacles = set()
+        self._check_new_opening_activated = behavior_config["parameters"]["check_new_opening_activated"]
+        self._social_placement_choice_activated = behavior_config["parameters"]["social_placement_choice_activated"]
+        self._social_movability_evaluation_activated = behavior_config["parameters"]["social_movability_evaluation_activated"]
+        self._reset_knowledge_activated = behavior_config["parameters"]["reset_knowledge_activated"]
+        self._use_social_layer = behavior_config["parameters"]["use_social_layer"]
+        self._manip_weight = behavior_config["parameters"]["manip_weight"]
 
-        self.check_new_opening_activated = behavior_config["parameters"]["check_new_opening_activated"]
-        self.social_placement_choice_activated = behavior_config["parameters"]["social_placement_choice_activated"]
-        self.social_movability_evaluation_activated = behavior_config["parameters"]["social_movability_evaluation_activated"]
-        self.reset_knowledge_activated = behavior_config["parameters"]["reset_knowledge_activated"]
-        self.use_social_layer = behavior_config["parameters"]["use_social_layer"]
-        self.manip_weight = behavior_config["parameters"]["manip_weight"]
+        self._world = copy.deepcopy(self._initial_world)
+        self._robot = self._world.entities[self._robot_uid]
+        self._blocked_obstacles = set()
 
-        self.rp = RosPublisher()
+        self._rp = RosPublisher()
 
     def execute(self, q_init, q_goal):
-        self.world = copy.deepcopy(self.initial_world) if self.reset_knowledge_activated else self.world
-        self.robot = self.world.entities[self.robot_uid]
-        self.rp.publish_goal(q_init, q_goal, self.world.entities[self.robot_uid].polygon)
+        self._world = copy.deepcopy(self._initial_world) if self._reset_knowledge_activated else self._world
+        self._robot = self._world.entities[self._robot_uid]
+        self._rp.publish_goal(q_init, q_goal, self._world.entities[self._robot_uid].polygon)
 
         q_r = q_init
         e_l, m_l = [], []
         exec_success = True
         p_opt = [Plan([Path(
-            src.behaviors.algorithms.a_star.a_star_real_path(self.world.get_grid(), q_r, q_goal, self.world.dd))])]
-        self.rp.publish_p_opt(p_opt[0])
+            src.behaviors.algorithms.a_star.a_star_real_path(self._world.get_grid(), q_r, q_goal, self._world.dd))])]
+        self._rp.publish_p_opt(p_opt[0])
 
         while not all(np.isclose(q_r, q_goal, rtol=0.00001)):
-            self.simulator.update_robot_knowledge(self.world, self.robot_uid)
-            q_r = self.world.entities[self.robot_uid].pose
-            self.rp.publish_robot_world(self.world, self.robot_uid)
+            self._simulator.update_robot_knowledge(self._world, self._robot_uid)
+            q_r = self._world.entities[self._robot_uid].pose
+            self._rp.publish_robot_world(self._world, self._robot_uid)
 
-            is_p_opt_valid = p_opt[0].is_valid(self.world, self.blocked_obstacles)
+            is_p_opt_valid = p_opt[0].is_valid(self._world, self._blocked_obstacles)
             if not is_p_opt_valid or not exec_success:
-                self.rp.cleanup_p_opt()
+                self._rp.cleanup_p_opt()
                 p_opt = [Plan([Path(
-                    src.behaviors.algorithms.a_star.a_star_real_path(self.world.get_grid(), q_r, q_goal, self.world.dd))])]
-                self.rp.publish_p_opt(p_opt[0])
+                    src.behaviors.algorithms.a_star.a_star_real_path(self._world.get_grid(), q_r, q_goal, self._world.dd))])]
+                self._rp.publish_p_opt(p_opt[0])
                 self.make_plan(q_r, q_goal, p_opt, e_l, m_l)
 
             if not p_opt[0].is_empty() and not p_opt[0].has_infinite_cost():
                 step = p_opt[0].pop_next_step()
-                exec_success = self.simulator.act(self.robot_uid, step)
+                exec_success = self._simulator.act(self._robot_uid, step)
                 # If execution of a manipulation step failed, then obstacle is set as unmovable and remembered
                 if not exec_success and step.is_transfer:
-                    blocked_obstacle = self.world.entities[step.obstacle_uid]
-                    self.blocked_obstacles.add(blocked_obstacle.uid)
-                    self.initial_world.add_entity(blocked_obstacle)
+                    blocked_obstacle = self._world.entities[step.obstacle_uid]
+                    self._blocked_obstacles.add(blocked_obstacle.uid)
+                    self._initial_world.add_entity(blocked_obstacle)
                 # If an object is moved, free space is created, thus we invalidate m_l
                 if exec_success and step is not None and step.is_transfer:
                     m_l = []
@@ -73,16 +75,16 @@ class WuLevihn2014Behavior:
 
     def make_plan(self, q_r, q_goal, p_opt, e_l, m_l):
         # Update e_l
-        for entity in self.world.entities.values():
+        for entity in self._world.entities.values():
             if isinstance(entity, Obstacle):
-                entity_movability = self.robot.deduce_movability(entity.type)
-                if (entity.uid not in self.blocked_obstacles
+                entity_movability = self._robot.deduce_movability(entity.type)
+                if (entity.uid not in self._blocked_obstacles
                         and entity_movability == "movable" or entity_movability == "unknown"):
                     c3_est = float("inf")
-                    for q_manip in entity.get_actions(self.world.dd, self.robot.deduce_push_only(entity.type)).values():
+                    for q_manip in entity.get_actions(self._world.dd, self._robot.deduce_push_only(entity.type)).values():
                         c3_est = min(c3_est, np.linalg.norm([q_goal[0] - q_manip[0], q_goal[1] - q_manip[1]]))
                         self.update_list(e_l, entity.uid, c3_est)
-                elif entity_movability == "unmovable" or entity.uid in self.blocked_obstacles:
+                elif entity_movability == "unmovable" or entity.uid in self._blocked_obstacles:
                     self.remove_from_list(e_l, entity.uid)
                     self.remove_from_list(m_l, entity.uid)
 
@@ -115,69 +117,69 @@ class WuLevihn2014Behavior:
 
     def make_plan_for_obs(self, q_r, q_goal, o_uid, p_opt):
         p_best = Plan([Path([])])
-        obs = self.world.entities[o_uid]
-        robot = self.world.entities[self.robot_uid]
+        obs = self._world.entities[o_uid]
+        robot = self._world.entities[self._robot_uid]
 
-        obs_is_push_only = self.robot.deduce_push_only(obs.type)
-        self.rp.publish_q_manips_for_obs(obs.get_actions(self.world.dd, obs_is_push_only).values())
+        obs_is_push_only = self._robot.deduce_push_only(obs.type)
+        self._rp.publish_q_manips_for_obs(obs.get_actions(self._world.dd, obs_is_push_only).values())
 
-        for unit_translation, q_manip in obs.get_actions(self.world.dd, obs_is_push_only).items():
-            c_1 = Path(src.behaviors.algorithms.a_star.a_star_real_path(self.world.get_grid(), q_r, q_manip, self.world.dd), o_uid=o_uid)
-            self.rp.publish_c_1(c_1)
+        for unit_translation, q_manip in obs.get_actions(self._world.dd, obs_is_push_only).items():
+            c_1 = Path(src.behaviors.algorithms.a_star.a_star_real_path(self._world.get_grid(), q_r, q_manip, self._world.dd), o_uid=o_uid)
+            self._rp.publish_c_1(c_1)
             if not c_1.has_infinite_cost():
                 c_0_is_valid, c_1_is_valid = True, True
 
-                if self.social_movability_evaluation_activated:
-                    if self.robot.deduce_movability(obs.type) == "unknown":
+                if self._social_movability_evaluation_activated:
+                    if self._robot.deduce_movability(obs.type) == "unknown":
                         q_look_index = self._get_last_look_q(robot, obs, c_1)
                         if q_look_index is not None:
                             c_0, c_1 = self._split_at_pose(c_1, q_look_index, o_uid)
                         else:
-                            c_0, c_1 = self.compute_c_0_c_1(self.world, robot, obs, q_r, q_manip)
+                            c_0, c_1 = self.compute_c_0_c_1(self._world, robot, obs, q_r, q_manip)
                         c_0_is_valid, c_1_is_valid = not c_0.has_infinite_cost(), not c_1.has_infinite_cost()
 
                 if c_0_is_valid and c_1_is_valid:
                     init_robot_polygon = affinity.translate(robot.polygon, q_manip[0] - q_r[0], q_manip[1] - q_r[1])
                     init_robot_polygon = affinity.rotate(init_robot_polygon, q_manip[2] - q_r[2] % 360.0)
 
-                    self.rp.publish_sim(init_robot_polygon, obs.polygon, "/init")
+                    self._rp.publish_sim(init_robot_polygon, obs.polygon, "/init")
 
                     total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
-                        self.world, obs, [0.0, 0.0], unit_translation, q_manip, q_goal, c_1, init_robot_polygon)
+                        self._world, obs, [0.0, 0.0], unit_translation, q_manip, q_goal, c_1, init_robot_polygon)
 
                     while c_est <= p_opt[0].total_cost and is_step_success:
-                        if (self._check_new_opening(self.world, obs, target_obs_polygon, q_goal)
-                                and self._not_in_taboo(self.world.taboos, target_obs_polygon)):
-                            world_copy = copy.deepcopy(self.world)
+                        if (self._check_new_opening(self._world, obs, target_obs_polygon, q_goal)
+                                and self._not_in_taboo(self._world.taboos, target_obs_polygon)):
+                            world_copy = copy.deepcopy(self._world)
                             world_copy.translate_entity(o_uid, total_translation)
-                            if self.use_social_layer:
-                                social_cost = self.get_social_cost_for_entity(o_uid, self.world, world_copy)
-                                c_2 = Path.line_path(q_manip, q_sim, weigth=self.manip_weight,
+                            if self._use_social_layer:
+                                social_cost = self.get_social_cost_for_entity(o_uid, self._world, world_copy)
+                                c_2 = Path.line_path(q_manip, q_sim, weigth=self._manip_weight,
                                                      unit_translation=unit_translation, is_transfer=True, o_uid=o_uid,
                                                      social_cost=social_cost)
                             else:
-                                c_2 = Path.line_path(q_manip, q_sim, weigth=self.manip_weight,
+                                c_2 = Path.line_path(q_manip, q_sim, weigth=self._manip_weight,
                                                      unit_translation=unit_translation, is_transfer=True, o_uid=o_uid)
-                            self.rp.publish_c_2(c_2)
+                            self._rp.publish_c_2(c_2)
                             c_3 = Path(
                                 src.behaviors.algorithms.a_star.a_star_real_path(world_copy.get_grid(), q_sim, q_goal, world_copy.dd),
                                 o_uid=o_uid)
-                            self.rp.publish_c_3(c_3)
+                            self._rp.publish_c_3(c_3)
                             if not c_3.has_infinite_cost():
                                 p = Plan([c_1, c_2, c_3])
                                 if p.total_cost < p_best.total_cost:
                                     p_best = p
                                     if p.total_cost < p_opt[0].total_cost:
                                         p_opt[0] = p
-                                        self.rp.publish_robot_sim_costmap(world_copy, self.robot_uid)
-                                        self.rp.publish_p_opt(p_opt[0])
+                                        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
+                                        self._rp.publish_p_opt(p_opt[0])
                         # Increment one step
                         total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
-                            self.world, obs, total_translation, unit_translation, q_manip, q_goal,
+                            self._world, obs, total_translation, unit_translation, q_manip, q_goal,
                             c_1, init_robot_polygon)
 
-            self.rp.cleanup_eval_c1_c2_c3_sim_init_target()
-        self.rp.cleanup_q_manips_for_obs()
+            self._rp.cleanup_eval_c1_c2_c3_sim_init_target()
+        self._rp.cleanup_q_manips_for_obs()
         return p_best
 
     # --- From original algorithm: simulate the move of the object for one step
@@ -188,14 +190,14 @@ class WuLevihn2014Behavior:
         target_robot_polygon = affinity.translate(
             init_robot_polygon, total_translation[0], total_translation[1])
         target_obs_polygon = affinity.translate(obs.polygon, total_translation[0], total_translation[1])
-        self.rp.publish_sim(target_robot_polygon, target_obs_polygon, "/target")
+        self._rp.publish_sim(target_robot_polygon, target_obs_polygon, "/target")
 
         is_step_success = self._is_step_success(world, obs.uid, init_robot_polygon, target_robot_polygon,
                                                 obs.polygon, target_obs_polygon)
         q_sim = (target_robot_polygon.centroid.coords[0][0],
                  target_robot_polygon.centroid.coords[0][1],
                  q_manip[2])
-        c_est = c_1.phys_cost + np.linalg.norm(total_translation) * self.manip_weight + np.linalg.norm(
+        c_est = c_1.phys_cost + np.linalg.norm(total_translation) * self._manip_weight + np.linalg.norm(
             [q_goal[0] - q_sim[0], q_goal[1] - q_sim[1]])
 
         return total_translation, is_step_success, q_sim, c_est, target_obs_polygon
@@ -206,7 +208,7 @@ class WuLevihn2014Behavior:
         obs_swept_area = cascaded_union([init_obs_polygon, target_obs_polygon]).convex_hull
 
         for entity_uid, entity in world.entities.items():
-            if entity_uid != self.robot_uid and entity_uid != o_uid:
+            if entity_uid != self._robot_uid and entity_uid != o_uid:
                 if entity.polygon.intersects(robot_swept_area) or entity.polygon.intersects(obs_swept_area):
                     return False
         return True
@@ -216,7 +218,7 @@ class WuLevihn2014Behavior:
     def _check_new_opening(self, world, obs, target_obs_polygon, q_goal):
         # TODO: DEBUG THIS METHOD, SEEMS NOT TO WORK PROPERLY !
         #  - For this, add visualization of the blocking areas and other various polygons
-        if not self.check_new_opening_activated:
+        if not self._check_new_opening_activated:
             return True
 
         init_inflated_obs_polygon = obs.polygon.buffer(2 * world.dd.inflation_radius)
@@ -233,7 +235,7 @@ class WuLevihn2014Behavior:
         target_blocking_areas = dict()
 
         for entity_uid, entity in world.entities.items():
-            if entity_uid != self.robot_uid and entity_uid != obs.uid:
+            if entity_uid != self._robot_uid and entity_uid != obs.uid:
                 try:
                     init_blocking_area = init_inflated_obs_polygon.intersection(entity.polygon)
                     if isinstance(init_blocking_area, Polygon):
@@ -263,7 +265,7 @@ class WuLevihn2014Behavior:
     # --- Method for ensuring that the object is not left in taboo zones ---
 
     def _not_in_taboo(self, taboos, target_obs_polygon):
-        if self.social_placement_choice_activated:
+        if self._social_placement_choice_activated:
             for taboo in taboos.values():
                 if target_obs_polygon.intersects(taboo.polygon):
                     return False
@@ -291,7 +293,7 @@ class WuLevihn2014Behavior:
         return c_0_out, c_1_out
 
     def compute_c_0_c_1(self, world, robot, obs, q_r, q_manip):
-        if self.social_movability_evaluation_activated:
+        if self._social_movability_evaluation_activated:
             q_l = obs.get_q_l(world)
             c_0_path, c_1_path = two_way_multi_goal_a_star(world.get_grid(), q_r, q_l, q_manip, world.dd)
             q_look_index = self._get_last_look_q(robot, obs, c_1_path)
@@ -306,7 +308,7 @@ class WuLevihn2014Behavior:
 
         social_costmap = world.get_social_costmap((entity_uid,))
         entity_cells = world_copy.get_discrete_cells_set_for_entity_uid(entity_uid)
-        self.rp.publish_social_cells(entity_cells, world.dd)
+        self._rp.publish_social_cells(entity_cells, world.dd)
 
         if aggregation_type == 'avg':
             _avg = 0.0
