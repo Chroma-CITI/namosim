@@ -10,6 +10,12 @@ from src.display.ros_publisher import RosPublisher
 
 
 class SocialTopologicalOccupationCostGrid:
+    """
+    Resources to do skeletonization through Voronoi's algorithm with Shapely + Scipy:
+    https://docs.scipy.org/doc/scipy-0.19.0/reference/generated/scipy.spatial.Voronoi.html
+    https://pypi.org/project/geovoronoi/
+    https://stackoverflow.com/questions/27548363/from-voronoi-tessellation-to-shapely-polygons
+    """
     def __init__(self):
         # TODO Properly parameterize all this...
         self.half_1_u_p = 0.45
