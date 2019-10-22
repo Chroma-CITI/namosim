@@ -4,7 +4,6 @@ from shapely import affinity
 from shapely.ops import cascaded_union
 from shapely.geometry import Polygon, Point
 from shapely.errors import TopologicalError
-import time
 
 from src.behaviors.algorithms.a_star import a_star_real_path
 from src.behaviors.plan.path import Path
@@ -18,6 +17,10 @@ from src.behaviors.plan.action_result import ActionSuccess
 
 
 class WuLevihn2014Behavior:
+    """
+    Implementation of Wu and Levihn's NAMO algorithm in unknown environments
+    """
+
     def __init__(self, simulator, initial_world, robot_uid, navigation_goals, behavior_config):
         self._simulator = simulator
         self._initial_world = initial_world
