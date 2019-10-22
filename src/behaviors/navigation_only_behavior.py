@@ -19,33 +19,35 @@ class NavigationOnlyBehavior:
         self._q_goal = None
         self._p_opt = None
 
-        self.rp = RosPublisher()
+        self._rp = RosPublisher()
 
     def sense(self, ref_world, last_action_result):
         self._last_action_result = last_action_result
         self._robot.update_world_from_sensors(ref_world, self._world)
-        self.rp.publish_robot_world(self._world, self._robot_uid)
+        self._rp.publish_robot_world(self._world, self._robot_uid)
 
     def think(self):
         if self._navigation_goals or self._q_goal is not None:
             if self._q_goal is None:
                 self._q_goal = self._navigation_goals.pop(0)
                 self._p_opt = Plan([Path([])])
+                q_r = self._robot.pose
+                self._rp.publish_goal(q_r, self._q_goal, self._robot.polygon)
 
             q_r = self._robot.pose
 
             # TODO Extract abs_tol constant and make it a parameter for each goal
-            is_close_enough_to_goal = all(np.isclose(q_r, self._q_goal, atol=1e-3))
+            is_close_enough_to_goal = all(np.isclose(q_r, self._q_goal, rtol=1e-5))
             if is_close_enough_to_goal:
                 print("SUCCESS: Agent '{name}' has successfully reached pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                self._q_goal, self._p_opt = None, None
+                self._q_goal = None
                 return ActionGoalSuccess()
 
             if not self._p_opt.is_valid(self._world, self._robot_uid):
                 grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
                 self._p_opt = Plan([Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd))])
-                self.rp.publish_p_opt(self._p_opt)
+                self._rp.publish_p_opt(self._p_opt)
 
             if not self._p_opt.is_empty():
                 next_step = self._p_opt.pop_next_step()
@@ -53,7 +55,7 @@ class NavigationOnlyBehavior:
             elif self._p_opt.has_infinite_cost():
                 print("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                self._q_goal, self._p_opt = None, None
+                self._q_goal = None
                 return ActionGoalFailure()
 
         else:
