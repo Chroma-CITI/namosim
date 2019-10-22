@@ -1,15 +1,19 @@
-import src.behaviors.algorithms.a_star
-from src.behaviors.plan.path import Path
-from src.behaviors.plan.plan import Plan
-from src.behaviors.algorithms.multi_goal_a_star import two_way_multi_goal_a_star
 import numpy as np
 import copy
-from src.worldreps.entity_based.obstacle import Obstacle
 from shapely import affinity
 from shapely.ops import cascaded_union
 from shapely.geometry import Polygon, Point
 from shapely.errors import TopologicalError
+
+from src.behaviors.algorithms.a_star import a_star_real_path
+from src.behaviors.plan.path import Path
+from src.behaviors.plan.plan import Plan
+from src.behaviors.algorithms.multi_goal_a_star import two_way_multi_goal_a_star
+
 from src.display.ros_publisher import RosPublisher
+from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
+from src.worldreps.entity_based.obstacle import Obstacle
+from src.behaviors.plan.action_result import IntersectionFailure, UnmanipulableFailure, ActionSuccess
 
 
 class WuLevihn2014Behavior:
@@ -30,50 +34,77 @@ class WuLevihn2014Behavior:
         self._world = copy.deepcopy(self._initial_world)
         self._robot = self._world.entities[self._robot_uid]
         self._blocked_obstacles = set()
+        self._last_action_result = True
+        self._q_goal = None
+        self._p_opt = None
+        self._e_l, self._m_l = [], []
 
         self._rp = RosPublisher()
 
-    def execute(self, q_init, q_goal):
-        self._world = copy.deepcopy(self._initial_world) if self._reset_knowledge_activated else self._world
-        self._robot = self._world.entities[self._robot_uid]
-        self._rp.publish_goal(q_init, q_goal, self._world.entities[self._robot_uid].polygon)
+    def sense(self, ref_world, last_action_result):
+        self._last_action_result = last_action_result
+        self._robot.update_world_from_sensors(ref_world, self._world)
+        self._rp.publish_robot_world(self._world, self._robot_uid)
 
-        q_r = q_init
-        e_l, m_l = [], []
-        exec_success = True
-        p_opt = [Plan([Path(
-            src.behaviors.algorithms.a_star.a_star_real_path(self._world.get_grid(), q_r, q_goal, self._world.dd))])]
-        self._rp.publish_p_opt(p_opt[0])
+    def think(self):
+        if self._navigation_goals or self._q_goal is not None:
+            # If we need to get to the next goal, reset plan, heuristic obstacle lists e_l and m_l (+ world if needed)
+            if self._q_goal is None:
+                self._q_goal = self._navigation_goals.pop(0)
+                self._world = copy.deepcopy(self._initial_world) if self._reset_knowledge_activated else self._world
+                self._robot = self._world.entities[self._robot_uid]
+                q_r = self._robot.pose
+                self._rp.publish_goal(q_r, self._q_goal, self._robot.polygon)
 
-        while not all(np.isclose(q_r, q_goal, rtol=0.00001)):
-            self._simulator.update_robot_knowledge(self._world, self._robot_uid)
-            q_r = self._world.entities[self._robot_uid].pose
-            self._rp.publish_robot_world(self._world, self._robot_uid)
+                self._e_l, self._m_l = [], []
+                self._last_action_result = ActionSuccess(None)
+                grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
+                self._p_opt = Plan([Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd))])
+                self._rp.publish_p_opt(self._p_opt)
 
-            is_p_opt_valid = p_opt[0].is_valid(self._world, self._blocked_obstacles)
-            if not is_p_opt_valid or not exec_success:
+            q_r = self._robot.pose
+
+            # TODO Extract abs_tol constant and make it a parameter for each goal
+            is_close_enough_to_goal = all(np.isclose(q_r, self._q_goal, rtol=1e-5))
+            if is_close_enough_to_goal:
+                print("SUCCESS: Agent '{name}' has successfully reached pose {nav_goal}.".format(
+                    name=self._robot.name, nav_goal=str(self._q_goal)))
+                self._q_goal = None
+                return ActionGoalSuccess()
+
+            # If execution of a manipulation step failed, then obstacle is set as unmovable and remembered
+            is_last_action_success = isinstance(self._last_action_result, ActionSuccess)
+            last_action = self._last_action_result.action
+            if not is_last_action_success and last_action is not None and last_action.is_transfer:
+                blocked_obstacle = self._world.entities[last_action.obstacle_uid]
+                self._blocked_obstacles.add(blocked_obstacle.uid)
+                self._initial_world.add_entity(blocked_obstacle)
+            # If an object is moved, free space is created, thus we invalidate m_l
+            if self._last_action_result and last_action is not None and last_action.is_transfer:
+                self._m_l = []
+
+            if not self._p_opt.is_valid(self._world, self._robot_uid) or not self._last_action_result:
+                grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
+
                 self._rp.cleanup_p_opt()
-                p_opt = [Plan([Path(
-                    src.behaviors.algorithms.a_star.a_star_real_path(self._world.get_grid(), q_r, q_goal, self._world.dd))])]
-                self._rp.publish_p_opt(p_opt[0])
-                self.make_plan(q_r, q_goal, p_opt, e_l, m_l)
+                self._p_opt = Plan([Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd))])
+                self._rp.publish_p_opt(self._p_opt)
+                self.make_plan(q_r, self._q_goal)
 
-            if not p_opt[0].is_empty() and not p_opt[0].has_infinite_cost():
-                step = p_opt[0].pop_next_step()
-                exec_success = self._simulator.act(self._robot_uid, step)
-                # If execution of a manipulation step failed, then obstacle is set as unmovable and remembered
-                if not exec_success and step.is_transfer:
-                    blocked_obstacle = self._world.entities[step.obstacle_uid]
-                    self._blocked_obstacles.add(blocked_obstacle.uid)
-                    self._initial_world.add_entity(blocked_obstacle)
-                # If an object is moved, free space is created, thus we invalidate m_l
-                if exec_success and step is not None and step.is_transfer:
-                    m_l = []
-            else:
-                return False
-        return True
+            if not self._p_opt.is_empty():
+                next_step = self._p_opt.pop_next_step()
+                return next_step
+            elif self._p_opt.has_infinite_cost():
+                print("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
+                    name=self._robot.name, nav_goal=str(self._q_goal)))
+                self._q_goal = None
+                return ActionGoalFailure()
 
-    def make_plan(self, q_r, q_goal, p_opt, e_l, m_l):
+        else:
+            print("FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
+            return ActionGoalsFinished()
+
+    def make_plan(self, q_r, q_goal):
         # Update e_l
         for entity in self._world.entities.values():
             if isinstance(entity, Obstacle):
@@ -83,39 +114,39 @@ class WuLevihn2014Behavior:
                     c3_est = float("inf")
                     for q_manip in entity.get_actions(self._world.dd, self._robot.deduce_push_only(entity.type)).values():
                         c3_est = min(c3_est, np.linalg.norm([q_goal[0] - q_manip[0], q_goal[1] - q_manip[1]]))
-                        self.update_list(e_l, entity.uid, c3_est)
+                        self.update_list(self._e_l, entity.uid, c3_est)
                 elif entity_movability == "unmovable" or entity.uid in self._blocked_obstacles:
-                    self.remove_from_list(e_l, entity.uid)
-                    self.remove_from_list(m_l, entity.uid)
+                    self.remove_from_list(self._e_l, entity.uid)
+                    self.remove_from_list(self._m_l, entity.uid)
 
         index_e_l, index_m_l = 0, 0
         evaluated_obstacles_uids = set()
 
         # Update m_l
-        while (min(self._get_cost_at_index(m_l, index_m_l), self._get_cost_at_index(e_l, index_e_l))
-               < p_opt[0].total_cost):
-            if self._get_cost_at_index(m_l, index_m_l) < self._get_cost_at_index(e_l, index_e_l):
-                o_best_uid = self._get_obs_uid_at_index(m_l, index_m_l)
+        while (min(self._get_cost_at_index(self._m_l, index_m_l), self._get_cost_at_index(self._e_l, index_e_l))
+               < self._p_opt.total_cost):
+            if self._get_cost_at_index(self._m_l, index_m_l) < self._get_cost_at_index(self._e_l, index_e_l):
+                o_best_uid = self._get_obs_uid_at_index(self._m_l, index_m_l)
                 if o_best_uid not in evaluated_obstacles_uids:
-                    p_o_best = self.make_plan_for_obs(q_r, q_goal, o_best_uid, p_opt)
+                    p_o_best = self.make_plan_for_obs(q_r, q_goal, o_best_uid)
                     if not p_o_best.has_infinite_cost():
                         self.update_list(
-                            m_l, o_best_uid, p_o_best.path_components[1].phys_cost + p_o_best.path_components[2].phys_cost)
+                            self._m_l, o_best_uid, p_o_best.path_components[1].phys_cost + p_o_best.path_components[2].phys_cost)
                     evaluated_obstacles_uids.add(o_best_uid)
                 index_m_l = index_m_l + 1
             else:
-                o_best_uid = self._get_obs_uid_at_index(e_l, index_e_l)
+                o_best_uid = self._get_obs_uid_at_index(self._e_l, index_e_l)
                 if o_best_uid not in evaluated_obstacles_uids:
                     # If the min_cost_L doesn't contain the obstacle, use best obstacle found in e_l
-                    if self.find_in_list(m_l, o_best_uid) is None:
-                        p_o_best = self.make_plan_for_obs(q_r, q_goal, o_best_uid, p_opt)
+                    if self.find_in_list(self._m_l, o_best_uid) is None:
+                        p_o_best = self.make_plan_for_obs(q_r, q_goal, o_best_uid)
                         if not p_o_best.has_infinite_cost():
                             self.update_list(
-                                m_l, o_best_uid, p_o_best.path_components[1].phys_cost + p_o_best.path_components[2].phys_cost)
+                                self._m_l, o_best_uid, p_o_best.path_components[1].phys_cost + p_o_best.path_components[2].phys_cost)
                         evaluated_obstacles_uids.add(o_best_uid)
                 index_e_l = index_e_l + 1
 
-    def make_plan_for_obs(self, q_r, q_goal, o_uid, p_opt):
+    def make_plan_for_obs(self, q_r, q_goal, o_uid):
         p_best = Plan([Path([])])
         obs = self._world.entities[o_uid]
         robot = self._world.entities[self._robot_uid]
@@ -124,7 +155,8 @@ class WuLevihn2014Behavior:
         self._rp.publish_q_manips_for_obs(obs.get_actions(self._world.dd, obs_is_push_only).values())
 
         for unit_translation, q_manip in obs.get_actions(self._world.dd, obs_is_push_only).items():
-            c_1 = Path(src.behaviors.algorithms.a_star.a_star_real_path(self._world.get_grid(), q_r, q_manip, self._world.dd), o_uid=o_uid)
+            grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
+            c_1 = Path(a_star_real_path(grid, q_r, q_manip, self._world.dd), o_uid=o_uid)
             self._rp.publish_c_1(c_1)
             if not c_1.has_infinite_cost():
                 c_0_is_valid, c_1_is_valid = True, True
@@ -147,7 +179,7 @@ class WuLevihn2014Behavior:
                     total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
                         self._world, obs, [0.0, 0.0], unit_translation, q_manip, q_goal, c_1, init_robot_polygon)
 
-                    while c_est <= p_opt[0].total_cost and is_step_success:
+                    while c_est <= self._p_opt.total_cost and is_step_success:
                         if (self._check_new_opening(self._world, obs, target_obs_polygon, q_goal)
                                 and self._not_in_taboo(self._world.taboos, target_obs_polygon)):
                             world_copy = copy.deepcopy(self._world)
@@ -161,25 +193,25 @@ class WuLevihn2014Behavior:
                                 c_2 = Path.line_path(q_manip, q_sim, weigth=self._manip_weight,
                                                      unit_translation=unit_translation, is_transfer=True, o_uid=o_uid)
                             self._rp.publish_c_2(c_2)
-                            c_3 = Path(
-                                src.behaviors.algorithms.a_star.a_star_real_path(world_copy.get_grid(), q_sim, q_goal, world_copy.dd),
-                                o_uid=o_uid)
+                            world_copy_grid = world_copy.get_binary_inflated_occupancy_grid((self._robot_uid,))
+                            c_3 = Path(a_star_real_path(world_copy_grid, q_sim, q_goal, world_copy.dd),
+                                       o_uid=o_uid)
                             self._rp.publish_c_3(c_3)
                             if not c_3.has_infinite_cost():
                                 p = Plan([c_1, c_2, c_3])
                                 if p.total_cost < p_best.total_cost:
                                     p_best = p
-                                    if p.total_cost < p_opt[0].total_cost:
-                                        p_opt[0] = p
+                                    if p.total_cost < self._p_opt.total_cost:
+                                        self._p_opt = p
                                         self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
-                                        self._rp.publish_p_opt(p_opt[0])
+                                        self._rp.publish_p_opt(self._p_opt)
                         # Increment one step
                         total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
                             self._world, obs, total_translation, unit_translation, q_manip, q_goal,
                             c_1, init_robot_polygon)
 
             self._rp.cleanup_eval_c1_c2_c3_sim_init_target()
-        self._rp.cleanup_q_manips_for_obs()
+        self._rp.cleanup_q_manipp_opts_for_obs()
         return p_best
 
     # --- From original algorithm: simulate the move of the object for one step
@@ -295,7 +327,8 @@ class WuLevihn2014Behavior:
     def compute_c_0_c_1(self, world, robot, obs, q_r, q_manip):
         if self._social_movability_evaluation_activated:
             q_l = obs.get_q_l(world)
-            c_0_path, c_1_path = two_way_multi_goal_a_star(world.get_grid(), q_r, q_l, q_manip, world.dd)
+            grid = world.get_binary_inflated_occupancy_grid(robot.uid)
+            c_0_path, c_1_path = two_way_multi_goal_a_star(grid, q_r, q_l, q_manip, world.dd)
             q_look_index = self._get_last_look_q(robot, obs, c_1_path)
             if q_look_index is not None:
                 return self._split_at_pose(c_1_path, q_look_index, obs.uid, c_0_path)
@@ -305,9 +338,8 @@ class WuLevihn2014Behavior:
     # --- BIG PROPOSITION 1: COMPUTE A FREE SPACE AFFORDANCE FOR LEAVING OBJECTS ---
 
     def get_social_cost_for_entity(self, entity_uid, world, world_copy, aggregation_type='avg'):
-
-        social_costmap = world.get_social_costmap((entity_uid,))
-        entity_cells = world_copy.get_discrete_cells_set_for_entity_uid(entity_uid)
+        social_costmap = world.get_social_topological_occupation_cost_grid((entity_uid,))
+        entity_cells = world_copy.entities[entity_uid].get_discrete_cells_set(world_copy.dd)
         self._rp.publish_social_cells(entity_cells, world.dd)
 
         if aggregation_type == 'avg':
