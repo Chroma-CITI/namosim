@@ -22,7 +22,6 @@ from taboo import Taboo
 
 
 class World:
-
     def __init__(self, entities=None, dd=None, taboo_zones=None,
                  probabilist_occupancy_grids=None, binary_occupancy_grids=None, binary_inflated_occupancy_grids=None,
                  social_topological_occupation_cost_grids=None, connected_components_grids=None):

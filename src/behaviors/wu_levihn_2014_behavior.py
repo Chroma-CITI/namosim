@@ -4,6 +4,7 @@ from shapely import affinity
 from shapely.ops import cascaded_union
 from shapely.geometry import Polygon, Point
 from shapely.errors import TopologicalError
+import time
 
 from src.behaviors.algorithms.a_star import a_star_real_path
 from src.behaviors.plan.path import Path
@@ -13,7 +14,7 @@ from src.behaviors.algorithms.multi_goal_a_star import two_way_multi_goal_a_star
 from src.display.ros_publisher import RosPublisher
 from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
 from src.worldreps.entity_based.obstacle import Obstacle
-from src.behaviors.plan.action_result import IntersectionFailure, UnmanipulableFailure, ActionSuccess
+from src.behaviors.plan.action_result import ActionSuccess
 
 
 class WuLevihn2014Behavior:
@@ -154,6 +155,9 @@ class WuLevihn2014Behavior:
         obs_is_push_only = self._robot.deduce_push_only(obs.type)
         self._rp.publish_q_manips_for_obs(obs.get_actions(self._world.dd, obs_is_push_only).values())
 
+        world_copy = copy.deepcopy(self._world)
+        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
+
         for unit_translation, q_manip in obs.get_actions(self._world.dd, obs_is_push_only).items():
             grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
             c_1 = Path(a_star_real_path(grid, q_r, q_manip, self._world.dd), o_uid=o_uid)
@@ -181,9 +185,10 @@ class WuLevihn2014Behavior:
 
                     while c_est <= self._p_opt.total_cost and is_step_success:
                         if (self._check_new_opening(self._world, obs, target_obs_polygon, q_goal)
-                                and self._not_in_taboo(self._world.taboos, target_obs_polygon)):
-                            world_copy = copy.deepcopy(self._world)
+                                and self._not_in_taboo(self._world.taboo_zones, target_obs_polygon)):
+
                             world_copy.translate_entity(o_uid, total_translation)
+                            # self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
                             if self._use_social_layer:
                                 social_cost = self.get_social_cost_for_entity(o_uid, self._world, world_copy)
                                 c_2 = Path.line_path(q_manip, q_sim, weigth=self._manip_weight,
@@ -205,13 +210,17 @@ class WuLevihn2014Behavior:
                                         self._p_opt = p
                                         self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
                                         self._rp.publish_p_opt(self._p_opt)
+
+                            world_copy.translate_entity(o_uid, -total_translation)
+                            # self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
+
                         # Increment one step
                         total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
                             self._world, obs, total_translation, unit_translation, q_manip, q_goal,
                             c_1, init_robot_polygon)
 
             self._rp.cleanup_eval_c1_c2_c3_sim_init_target()
-        self._rp.cleanup_q_manipp_opts_for_obs()
+        self._rp.cleanup_q_manips_for_obs()
         return p_best
 
     # --- From original algorithm: simulate the move of the object for one step

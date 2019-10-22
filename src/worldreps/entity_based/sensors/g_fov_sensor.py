@@ -50,11 +50,11 @@ class GFOVSensor(CircularSectorSensor):
                     # If self entity full geometry has not been acquired, update it
                     if not target_entity.full_geometry_acquired:
                         if reference_entity.full_geometry_acquired:
-                            target_world.set_polygon(target_entity.uid, reference_entity.polygon, True)
+                            target_world.set_entity_polygon(target_entity.uid, reference_entity.polygon, True)
                         else:
                             partial_polygon = cascaded_union(
                                 [target_entity.polygon, reference_entity.polygon]).convex_hull
-                            target_world.set_polygon(target_entity.uid, partial_polygon)
+                            target_world.set_entity_polygon(target_entity.uid, partial_polygon)
                     # If it is already known, only translate/rotate the polygon appropriately
                     else:
                         if reference_entity.full_geometry_acquired:
