@@ -16,6 +16,7 @@ from src.behaviors.wu_levihn_2014_behavior import WuLevihn2014Behavior
 from src.behaviors.stilman_2005_behavior import Stilman2005Behavior
 
 from src.behaviors.plan.basic_actions import ActionGoalsFinished, ActionGoalResult
+from src.behaviors.plan.action_result import IntersectionFailure, UnmanipulableFailure, ActionSuccess
 
 
 class Simulator:
@@ -94,7 +95,7 @@ class Simulator:
         agent_uid_to_last_action_result = dict()
         while self.agent_uid_to_behavior:
             for agent_uid, behavior in self.agent_uid_to_behavior.items():
-                last_action_result = (True if agent_uid not in agent_uid_to_last_action_result
+                last_action_result = (ActionSuccess if agent_uid not in agent_uid_to_last_action_result
                                       else agent_uid_to_last_action_result[agent_uid])
                 behavior.sense(self.ref_world, last_action_result)
                 action = behavior.think()
@@ -126,7 +127,7 @@ class Simulator:
         if next_step.is_transfer:
             obstacle = self.ref_world.entities[next_step.obstacle_uid]
             if robot.deduce_movability(obstacle.type) == "unmovable":
-                return False
+                return UnmanipulableFailure(next_step, next_step.obstacle_uid)
             target_obs_polygon_rot = affinity.rotate(obstacle.polygon, target_rot, 'centroid')
             target_obs_polygon_rot_trans = affinity.translate(target_obs_polygon_rot, target_trans[0],
                                                               target_trans[1])
@@ -138,13 +139,13 @@ class Simulator:
                     and (True if next_step.obstacle_uid is None else entity_uid != next_step.obstacle_uid)):
                 if (robot_rot_convex_hull.intersects(entity.polygon)
                         or robot_trans_convex_hull.intersects(entity.polygon)):
-                    return False
+                    return IntersectionFailure(next_step, robot_uid, entity.uid)
                 if next_step.is_transfer:
                     if (obs_rot_convex_hull.intersects(entity.polygon)
                             or obs_trans_convex_hull.intersects(entity.polygon)):
-                        return False
+                        return IntersectionFailure(next_step, obstacle.uid, entity.uid)
 
-        # If all collision checks have passed, apply step and return True
+        # If all collision checks have passed, apply step and return success
         self.ref_world.translate_entity(robot.uid, target_trans)
         self.ref_world.rotate_entity(robot.uid, target_rot)
         if next_step.is_transfer:
@@ -154,7 +155,7 @@ class Simulator:
         if not self.display_sim_knowledge_only_once:
             self.rp.publish_sim_world(self.ref_world, self.temp_agent_uid)
 
-        return True
+        return ActionSuccess(next_step)
 
     def _create_robot_world_from_sim_world(self):
         entities = dict()
