@@ -11,6 +11,7 @@ import shapely.affinity as affinity
 
 from src.display.ros_publisher import RosPublisher
 
+
 class Stilman2005Behavior:
     """
     TODO (as documented on 2019-09-12):
@@ -28,7 +29,7 @@ class Stilman2005Behavior:
 
         # Configuration parameters
         self.alpha = 0.5
-        self.neighborhood = src.utils.utils.CHESSBOARD_NEIGHBORHOOD
+        self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
         self.cost_for_obstacle_occupied_cells = 2.0
         self.trans_force = 1.0
         self.rot_force = 1.0
@@ -37,19 +38,19 @@ class Stilman2005Behavior:
         trans_vectors = []
         rot_angles = []
         if self.robot_type == "omni":
-            if self.neighborhood == src.utils.utils.CHESSBOARD_NEIGHBORHOOD:
-                trans_vectors = np.array(src.utils.utils.OMNI_ROBOT_CHESSBOARD_TRANS_VECTORS) * self.world.dd.res
-                rot_angles = np.array(src.utils.utils.OMNI_ROBOT_CHESSBOARD_ROT_ANGLES)
-            elif self.neighborhood == src.utils.utils.TAXI_NEIGHBORHOOD:
-                trans_vectors = np.array(src.utils.utils.OMNI_ROBOT_TAXI_TRANS_VECTORS) * self.world.dd.res
-                rot_angles = np.array(src.utils.utils.OMNI_ROBOT_TAXI_ROT_ANGLES)
+            if self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD:
+                trans_vectors = np.array(utils.OMNI_ROBOT_CHESSBOARD_TRANS_VECTORS) * self.world.dd.res
+                rot_angles = np.array(utils.OMNI_ROBOT_CHESSBOARD_ROT_ANGLES)
+            elif self.neighborhood == utils.TAXI_NEIGHBORHOOD:
+                trans_vectors = np.array(utils.OMNI_ROBOT_TAXI_TRANS_VECTORS) * self.world.dd.res
+                rot_angles = np.array(utils.OMNI_ROBOT_TAXI_ROT_ANGLES)
         elif self.robot_type == "diff":
-            if self.neighborhood == src.utils.utils.CHESSBOARD_NEIGHBORHOOD:
-                trans_vectors = np.array(src.utils.utils.DIFF_ROBOT_CHESSBOARD_TRANS_VECTORS) * self.world.dd.res
-                rot_angles = np.array(src.utils.utils.DIFF_ROBOT_CHESSBOARD_ROT_ANGLES)
-            elif self.neighborhood == src.utils.utils.TAXI_NEIGHBORHOOD:
-                trans_vectors = np.array(src.utils.utils.DIFF_ROBOT_TAXI_TRANS_VECTORS) * self.world.dd.res
-                rot_angles = np.array(src.utils.utils.DIFF_ROBOT_TAXI_ROT_ANGLES)
+            if self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD:
+                trans_vectors = np.array(utils.DIFF_ROBOT_CHESSBOARD_TRANS_VECTORS) * self.world.dd.res
+                rot_angles = np.array(utils.DIFF_ROBOT_CHESSBOARD_ROT_ANGLES)
+            elif self.neighborhood == utils.TAXI_NEIGHBORHOOD:
+                trans_vectors = np.array(utils.DIFF_ROBOT_TAXI_TRANS_VECTORS) * self.world.dd.res
+                rot_angles = np.array(utils.DIFF_ROBOT_TAXI_ROT_ANGLES)
 
         self.actions = []
         for trans_vector in trans_vectors:
@@ -63,7 +64,7 @@ class Stilman2005Behavior:
         self.rp.publish_goal(q_init, q_goal, self.robot.polygon)
         q_r = q_init
 
-        x_f = src.utils.utils.real_to_grid(q_goal[0], q_goal[1], self.world.dd)
+        x_f = utils.real_to_grid(q_goal[0], q_goal[1], self.world.dd)
 
     def _select_connect(self, w_t, prev_list, x_f):
         """
@@ -74,7 +75,7 @@ class Stilman2005Behavior:
         :return:
         """
         r_t = w_t.entities[self.robot.uid].pose
-        x_t = src.utils.utils.real_to_grid(r_t[0], r_t[1], w_t.dd)
+        x_t = utils.real_to_grid(r_t[0], r_t[1], w_t.dd)
 
         avoid_list = set()
 
@@ -115,7 +116,7 @@ class Stilman2005Behavior:
               and self.connected_grid as OccupancyGrid.
         """
         r_t = self.robot.pose
-        x_t = src.utils.utils.real_to_grid(r_t[0], r_t[1], self.world.dd)
+        x_t = utils.real_to_grid(r_t[0], r_t[1], self.world.dd)
         x_i_to_data = {x_t: CellData(g=0.0)}
 
         closed_set = set()
@@ -178,7 +179,7 @@ class Stilman2005Behavior:
         robot = w_t_plus_2.entities[self.robot.uid]
         # grid = w_t_plus_2.get_obstacle_counter_grid()
         dd = w_t_plus_2.dd
-        start_cell = src.utils.utils.real_to_grid(robot.pose[0], robot.pose[1], dd)
+        start_cell = utils.real_to_grid(robot.pose[0], robot.pose[1], dd)
 
         # 1 - Get sampled navigation points around obstacle
         # TODO Implement generic method that can have three possibilities:
@@ -277,7 +278,7 @@ class Stilman2005Behavior:
         best_action_tree_node = best_action_tree_node_for_cell[0].action_tree_node
         best_contact_cell = best_action_tree_node_for_cell[0].cell
         cost = best_action_tree_node_for_cell[0].cost
-        tho_n = src.utils.utils.grid_path_to_real_path(
+        tho_n = utils.grid_path_to_real_path(
             paths_to_nav_cells[best_contact_cell], robot.pose, nav_cell_to_nav_pose[best_contact_cell], dd)
         best_action_branch = self.__get_actions_branch(best_action_tree_node)
         tho_m = self.__actions_branch_to_path(best_action_branch)
@@ -308,7 +309,7 @@ class Stilman2005Behavior:
         return heapq.heappop(queue)
 
     def __adjacent(self, x_1):
-        return src.utils.utils.get_neighbors(x_1, self.world.dd.d_width, self.world.dd.d_height, self.neighborhood)
+        return utils.get_neighbors(x_1, self.world.dd.d_width, self.world.dd.d_height, self.neighborhood)
 
     def __enqueue(self, queue, x_i, f, o_f, c_f):
         heapq.heappush(queue, HeapQueueElement(x_i, f, o_f, c_f))
