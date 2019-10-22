@@ -15,7 +15,7 @@ agents_behaviors:
         social_placement_choice_activated: False
         social_movability_evaluation_activated: False
         reset_knowledge_activated: False
-        use_social_layer: True
+        use_social_layer: False
         manip_weight: 2.0
       navigation_goals:
         -
