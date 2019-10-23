@@ -181,7 +181,7 @@ class World:
                         if "orientation" in yaml_pose:
                             pose[2] = yaml_pose["orientation"]["z"]
 
-                    goals[goal_data["name"]] = pose
+                    goals[goal_data["name"]] = tuple(pose)
             if ("taboos" in config["things"]["zones"]
                     and isinstance(config["things"]["zones"]["taboos"], list)):
                 for thing_data in config["things"]["zones"]["taboos"]:
