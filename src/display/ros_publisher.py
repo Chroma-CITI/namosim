@@ -496,14 +496,15 @@ class RosPublisher(with_metaclass(Singleton)):
         self.publish(self.q_l_poses_topic, pose_array)
 
     def publish_goal(self, q_init, q_goal, polygon):
-        polygon_at_goal_pose = affinity.translate(polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
-        # ros_pose = pose_to_ros_pose_stamped(q_goal)
-        marker_array = MarkerArray(markers=[
-            polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, self.frame_id, self.robot_border_color,
-                                  self.fov_z_index, self.border_width)])
-            # pose_to_arrow(q_goal, "/pose", 0, self.frame_id, self.robot_border_color,
-            #               self.entities_z_index, 0.5, 0.2, 0.0)])
-        self.publish(self.robot_goal_topic, marker_array)
+        if q_goal is not None:
+            polygon_at_goal_pose = affinity.translate(polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
+            # ros_pose = pose_to_ros_pose_stamped(q_goal)
+            marker_array = MarkerArray(markers=[
+                polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, self.frame_id, self.robot_border_color,
+                                      self.fov_z_index, self.border_width)])
+                # pose_to_arrow(q_goal, "/pose", 0, self.frame_id, self.robot_border_color,
+                #               self.entities_z_index, 0.5, 0.2, 0.0)])
+            self.publish(self.robot_goal_topic, marker_array)
 
     def cleanup_sim_world(self):
         self.publish(self.sim_knowledge_topic, make_delete_all_marker(self.frame_id))
