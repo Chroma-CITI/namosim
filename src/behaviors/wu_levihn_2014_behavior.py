@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import time
 from shapely import affinity
 from shapely.ops import cascaded_union
 from shapely.geometry import Polygon, Point
@@ -10,23 +11,19 @@ from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
 from src.behaviors.algorithms.multi_goal_a_star import two_way_multi_goal_a_star
 
-from src.display.ros_publisher import RosPublisher
 from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.behaviors.plan.action_result import ActionSuccess
+from baseline_behavior import BaselineBehavior
 
 
-class WuLevihn2014Behavior:
+class WuLevihn2014Behavior(BaselineBehavior):
     """
     Implementation of Wu and Levihn's NAMO algorithm in unknown environments
     """
 
-    def __init__(self, simulator, initial_world, robot_uid, navigation_goals, behavior_config):
-        self._simulator = simulator
-        self._initial_world = initial_world
-        self._robot_uid = robot_uid
-        self._navigation_goals = navigation_goals
-        self._behavior_config = behavior_config
+    def __init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config):
+        BaselineBehavior.__init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config)
 
         self._check_new_opening_activated = behavior_config["parameters"]["check_new_opening_activated"]
         self._social_placement_choice_activated = behavior_config["parameters"]["social_placement_choice_activated"]
@@ -35,33 +32,22 @@ class WuLevihn2014Behavior:
         self._use_social_layer = behavior_config["parameters"]["use_social_layer"]
         self._manip_weight = behavior_config["parameters"]["manip_weight"]
 
-        self._world = copy.deepcopy(self._initial_world)
-        self._robot = self._world.entities[self._robot_uid]
         self._blocked_obstacles = set()
-        self._last_action_result = True
-        self._q_goal = None
-        self._p_opt = None
         self._e_l, self._m_l = [], []
 
-        self._rp = RosPublisher()
-
-    def sense(self, ref_world, last_action_result):
-        self._last_action_result = last_action_result
-        self._robot.update_world_from_sensors(ref_world, self._world)
-        self._rp.publish_robot_world(self._world, self._robot_uid)
-
     def think(self):
+        self._report.total_planning_start_time = time.time()
+
         if self._navigation_goals or self._q_goal is not None:
             # If we need to get to the next goal, reset plan, heuristic obstacle lists e_l and m_l (+ world if needed)
             if self._q_goal is None:
                 self._q_goal = self._navigation_goals.pop(0)
                 self._world = copy.deepcopy(self._initial_world) if self._reset_knowledge_activated else self._world
-                self._robot = self._world.entities[self._robot_uid]
                 q_r = self._robot.pose
                 self._rp.publish_goal(q_r, self._q_goal, self._robot.polygon)
 
                 self._e_l, self._m_l = [], []
-                self._last_action_result = ActionSuccess(None)
+                self._last_action_result = None
                 grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
                 self._p_opt = Plan([Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd))])
                 self._rp.publish_p_opt(self._p_opt)
@@ -77,23 +63,25 @@ class WuLevihn2014Behavior:
                 return ActionGoalSuccess()
 
             # If execution of a manipulation step failed, then obstacle is set as unmovable and remembered
-            is_last_action_success = isinstance(self._last_action_result, ActionSuccess)
-            last_action = self._last_action_result.action
-            if not is_last_action_success and last_action is not None and last_action.is_transfer:
-                blocked_obstacle = self._world.entities[last_action.obstacle_uid]
-                self._blocked_obstacles.add(blocked_obstacle.uid)
-                self._initial_world.add_entity(blocked_obstacle)
-            # If an object is moved, free space is created, thus we invalidate m_l
-            if self._last_action_result and last_action is not None and last_action.is_transfer:
-                self._m_l = []
+            if self._last_action_result is not None:
+                is_last_action_success = isinstance(self._last_action_result, ActionSuccess)
+                last_action = self._last_action_result.action
+                # If an object is moved, free space is created, thus we invalidate m_l
+                if last_action.is_transfer:
+                    self._m_l = []
+                    # If the manipulation action failed, then the obstacle is marked as blocked
+                    if not is_last_action_success:
+                        blocked_obstacle = self._world.entities[last_action.obstacle_uid]
+                        self._blocked_obstacles.add(blocked_obstacle.uid)
+                        self._initial_world.add_entity(blocked_obstacle)
 
-            if not self._p_opt.is_valid(self._world, self._robot_uid) or not self._last_action_result:
-                grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
+                if not self._p_opt.is_valid(self._world, self._robot_uid) or not self._last_action_result:
+                    grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
 
-                self._rp.cleanup_p_opt()
-                self._p_opt = Plan([Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd))])
-                self._rp.publish_p_opt(self._p_opt)
-                self.make_plan(q_r, self._q_goal)
+                    self._rp.cleanup_p_opt()
+                    self._p_opt = Plan([Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd))])
+                    self._rp.publish_p_opt(self._p_opt)
+                    self.make_plan(q_r, self._q_goal)
 
             if not self._p_opt.is_empty():
                 next_step = self._p_opt.pop_next_step()
@@ -105,6 +93,7 @@ class WuLevihn2014Behavior:
                 return ActionGoalFailure()
 
         else:
+            self._report.total_planning_end_time = time.time()
             print("FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
             return ActionGoalsFinished()
 
@@ -193,7 +182,8 @@ class WuLevihn2014Behavior:
                             world_copy.translate_entity(o_uid, total_translation)
                             # self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
                             if self._use_social_layer:
-                                social_cost = self.get_social_cost_for_entity(o_uid, self._world, world_copy)
+                                social_grid = world_copy.get_social_topological_occupation_cost_grid((self._robot_uid, o_uid))
+                                social_cost = world_copy.agg_grid_cost_for_entities((o_uid,), social_grid)
                                 c_2 = Path.line_path(q_manip, q_sim, weigth=self._manip_weight,
                                                      unit_translation=unit_translation, is_transfer=True, o_uid=o_uid,
                                                      social_cost=social_cost)
@@ -346,35 +336,6 @@ class WuLevihn2014Behavior:
                 return self._split_at_pose(c_1_path, q_look_index, obs.uid, c_0_path)
             else:
                 return Path([]), Path([])
-
-    # --- BIG PROPOSITION 1: COMPUTE A FREE SPACE AFFORDANCE FOR LEAVING OBJECTS ---
-
-    def get_social_cost_for_entity(self, entity_uid, world, world_copy, aggregation_type='avg'):
-        social_costmap = world.get_social_topological_occupation_cost_grid((entity_uid,))
-        entity_cells = world_copy.entities[entity_uid].get_discrete_cells_set(world_copy.dd)
-        self._rp.publish_social_cells(entity_cells, world.dd)
-
-        if aggregation_type == 'avg':
-            _avg = 0.0
-            counter = 0
-            for cell in entity_cells:
-                _avg += social_costmap[cell[0]][cell[1]]
-                counter += 1
-            return _avg / float(counter)
-        elif aggregation_type == 'sum':
-            _sum = 0.0
-            for cell in entity_cells:
-                _sum += social_costmap[cell[0]][cell[1]]
-            return _sum
-        elif aggregation_type == 'max':
-            _max = 0.0
-            for cell in entity_cells:
-                cell_value = social_costmap[cell[0]][cell[1]]
-                if cell_value > _max:
-                    _max = cell_value
-            return _max
-        else:
-            print("ALERT: Should not pass through here in get_social_cost_for_entity function...")
 
     # --- Helper methods ---
 

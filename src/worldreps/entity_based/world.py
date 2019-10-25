@@ -11,6 +11,7 @@ from svgpath2mpl import parse_path
 import src.utils.utils as utils
 from src.worldreps.entity_based.custom_exceptions import EntityPlacementException
 from src.worldreps.discretization_data import DiscretizationData
+from src.display.ros_publisher import RosPublisher
 from obstacle import Obstacle
 from src.worldreps.occupation_based.probabilist_occupancy_grid import ProbabilistOccupancyGrid
 from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid
@@ -334,3 +335,11 @@ class World:
             if entity.name == name:
                 return entity_uid
         raise LookupError("Could not find an entity in this world with name : {name}.".format(name=name))
+
+    def agg_grid_cost_for_entities(self, entities_uids, grid, aggregation_function=sum):
+        entities_cells = set()
+        for entity_uid in entities_uids:
+            entities_cells = entities_cells.union(self.entities[entity_uid].get_discrete_cells_set(self.dd))
+        RosPublisher().publish_social_cells(entities_cells, self.dd)
+        cells_values = [grid[cell[0]][cell[1]] for cell in entities_cells]
+        return aggregation_function(cells_values)

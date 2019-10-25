@@ -3,34 +3,15 @@ from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
 import numpy as np
 from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
-from src.display.ros_publisher import RosPublisher
-from src.simulation_report import SimulationReport
+from baseline_behavior import BaselineBehavior
 
 
-class NavigationOnlyBehavior(object):
-    def __init__(self, simulator, initial_world, robot_uid, navigation_goals, behavior_config):
-        self._simulator = simulator
-        self._world = initial_world
-        self._robot_uid = robot_uid
-        self._robot = self._world.entities[self._robot_uid]
-        self._navigation_goals = navigation_goals
-        self._behavior_config = behavior_config
-
-        self._last_action_result = True
-        self.__q_goal = None
-        self.__p_opt = None
-
-        self._rp = RosPublisher()
-
-        self._report = SimulationReport()
-
-    def sense(self, ref_world, last_action_result):
-        self._last_action_result = last_action_result
-        self._robot.update_world_from_sensors(ref_world, self._world)
-        self._rp.publish_robot_world(self._world, self._robot_uid)
+class NavigationOnlyBehavior(BaselineBehavior):
+    def __init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config):
+        BaselineBehavior.__init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config)
 
     def think(self):
-        if self._navigation_goals or self.__q_goal is not None:
+        if self._navigation_goals or self._q_goal is not None:
             if self._q_goal is None:
                 self._q_goal = self._navigation_goals.pop(0)
                 self._p_opt = Plan([Path([])])
@@ -60,24 +41,4 @@ class NavigationOnlyBehavior(object):
 
         else:
             print("FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
-            return ActionGoalsFinished(self._report)
-
-    @property
-    def _q_goal(self):
-        return self.__q_goal
-    
-    @_q_goal.setter
-    def _q_goal(self, _q_goal):
-        self.__q_goal = _q_goal
-        self._rp.publish_goal(self._robot.pose, self.__q_goal, self._robot.polygon)
-        self._report.plans_for_goals[_q_goal] = []
-    
-    @property
-    def _p_opt(self):
-        return self.__p_opt
-
-    @_p_opt.setter
-    def _p_opt(self, p_opt):
-        self.__p_opt = p_opt
-        self._rp.publish_p_opt(self.__p_opt)
-        self._report.plans_for_goals[self._q_goal].append(p_opt)
+            return ActionGoalsFinished()

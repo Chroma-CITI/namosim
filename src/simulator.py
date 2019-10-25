@@ -65,12 +65,12 @@ class Simulator:
 
                 if agent_behavior_name == "navigation_only_behavior":
                     self.agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
-                        self, agent_world, agent_uid, agent_navigation_goals, behavior_config)
+                        self.ref_world, agent_world, agent_uid, agent_navigation_goals, behavior_config)
                 elif agent_behavior_name == "wu_levihn_2014_behavior":
                     self.agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
-                        self, agent_world, agent_uid, agent_navigation_goals, behavior_config)
+                        self.ref_world, agent_world, agent_uid, agent_navigation_goals, behavior_config)
                 elif agent_behavior_name == "stilman_2005_behavior":
-                    self.agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(self, agent_world, agent_uid)
+                    self.agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(self.ref_world, agent_world, agent_uid)
                 else:
                     raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
                                               "'{b_name}' that is not implemented yet."
@@ -98,7 +98,10 @@ class Simulator:
                 last_action_result = (ActionSuccess if agent_uid not in agent_uid_to_last_action_result
                                       else agent_uid_to_last_action_result[agent_uid])
                 behavior.sense(self.ref_world, last_action_result)
+
+                planning_start_time = time.time()
                 action = behavior.think()
+                behavior.add_planning_duration_to_report(time.time() - planning_start_time)
 
                 # If there are no more goals to execute for the agent behavior, then remove it
                 if isinstance(action, ActionGoalsFinished):
