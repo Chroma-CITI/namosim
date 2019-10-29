@@ -207,7 +207,7 @@ class Stilman2005Behavior:
                 nav_cells.remove(cell)
 
         # 5 - Compute obstacle counter grid without robot and obstacle
-        grid_without = w_t_plus_2.get_obstacle_counter_grid(excluded_entites=[self.robot.uid, o_1])
+        binary_occupancy_grid = w_t_plus_2.get_binary_occupancy_grid((self.robot.uid, o_1))
 
         # 6 - Explore robot action space
         # Action tree nodes to currently explore. Ordered by min phys cost.
@@ -226,22 +226,19 @@ class Stilman2005Behavior:
             while best_in_cur_action_leaves_to_explore.phys_cost <= best_in_successful_action_tree_nodes.total_cost:
                 for leaf in cur_action_leaves_to_explore:
                     for action in self.actions:
-                        old_robot_poly = leaf.robot_poly
-                        old_obstacle_poly = leaf.obstacle_poly
+                        old_robot = leaf.robot
+                        old_obstacle = leaf.obstacle
 
-                        new_robot_poly = action(old_robot_poly)
-                        new_obstacle_poly = action(old_obstacle_poly)
+                        new_robot = action(copy.deepcopy(old_robot))
+                        new_obstacle = action(copy.deepcopy(old_obstacle))
 
-                        # TODO: Implement collision detection between obstacles/robot:
-                        #  - first, the same as it was done previously, by iterating over polygonal entities and using
-                        #  shapely
-                        #  - second, by applying the fully discretized method described by Stilman,
-                        #  get_obstacle_counter_grid following Appendix A
                         # Is the robot intersecting with ANOTHER obstacle ?
-                        is_robot_colliding = True # TODO FIXME
+                        is_robot_colliding = utils.is_cells_set_colliding_in_grid(
+                            new_robot.get_discrete_cells_set(dd), binary_occupancy_grid)
 
                         # Is the obstacle intersecting with ANOTHER obstacle ?
-                        is_obstacle_colliding = True # TODO FIXME
+                        is_obstacle_colliding = utils.is_cells_set_colliding_in_grid(
+                            new_obstacle.get_discrete_cells_set(dd), binary_occupancy_grid)
 
                         is_manip_success = not (is_robot_colliding or is_obstacle_colliding)
 
@@ -251,17 +248,17 @@ class Stilman2005Behavior:
                             #  configuration r_i and r_j, while (or not) moving an obstacle
                             phys_cost = leaf.phys_cost # + self.__e(r_i, r_j, obstacle) FIXME
                             # TODO: get social grid and extract social cost value, as is done in s_namo_behavior class
-                            social_cost = 1. # compute_social_cost() FIXME
+                            social_cost = 1.  # compute_social_cost() FIXME
                             new_leaf = ActionTreeNode(phys_cost=phys_cost, social_cost=social_cost,
                                                       parent=leaf, action=action,
-                                                      robot_poly=new_robot_poly, obstacle_poly=new_obstacle_poly)
+                                                      robot=new_robot, obstacle=new_obstacle)
                             heapq.heappush(
                                 next_action_leaves_to_explore, ActionHeapNode(new_leaf.phys_cost, new_leaf))
 
                             # TODO: Check if there is a navigation plan from current robot cell to any cell of c_1 that
                             #   is not covered by the new_obstacle_poly. Extra: apply new local opening detection
                             #   algorithm to gain performance ?
-                            has_created_new_opening_to_c_1 = True # find_path() FIXME
+                            has_created_new_opening_to_c_1 = True  # find_path() FIXME
 
                             if has_created_new_opening_to_c_1:
                                 heapq.heappush(
@@ -271,7 +268,7 @@ class Stilman2005Behavior:
                 cur_action_leaves_to_explore = next_action_leaves_to_explore
 
             # TODO:
-            nav_plus_manip_total_cost = best_in_successful_action_tree_nodes.total_cost # + FIXME
+            nav_plus_manip_total_cost = best_in_successful_action_tree_nodes.total_cost  # + FIXME Add social cost ?
             heapq.heappush(
                 best_action_tree_node_for_cell, CellActionHeapNode(nav_plus_manip_total_cost,
                                                                    cell,
@@ -353,13 +350,13 @@ class Stilman2005Behavior:
         return o_i
 
     def __make_translate(self, translation_vector):
-        def translate(geom):
-            return affinity.translate(geom, translation_vector[0], translation_vector[1])
+        def translate(entity):
+            return entity.translate(translation_vector[0], translation_vector[1], self.world.dd)
         return translate
 
     def __make_rotate(self, angle):
-        def rotate(geom):
-            return affinity.rotate(geom, angle)
+        def rotate(entity):
+            return entity.rotate(angle)
         return rotate
 
     def __get_actions_branch(self, action_node):
@@ -392,11 +389,11 @@ class CellData:
 
 
 class ActionTreeNode:
-    def __init__(self, phys_cost, social_cost, parent=None, action=None, robot_poly=None, obstacle_poly=None):
+    def __init__(self, phys_cost, social_cost, parent=None, action=None, robot=None, obstacle=None):
         self.parent = parent
         self.action = action
-        self.robot_poly = robot_poly
-        self.obstacle_poly = obstacle_poly
+        self.robot = robot
+        self.obstacle = obstacle
 
         self.phys_cost = phys_cost
         self.social_cost = social_cost
