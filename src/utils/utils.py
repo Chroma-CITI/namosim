@@ -58,6 +58,10 @@ def yaw_from_direction(direction_vector):
     return math.degrees(yaw)
 
 
+def direction_from_yaw(yaw):
+    return math.cos(yaw), math.sin(yaw)
+
+
 def grid_path_to_real_path(grid_path, start_pose, goal_pose, dd):
     if not grid_path:
         return []
@@ -72,3 +76,10 @@ def grid_path_to_real_path(grid_path, start_pose, goal_pose, dd):
         previous_pose = new_pose
     real_path.append(goal_pose)
     return real_path
+
+
+def is_within_interchangeable_interval(eval_value, value_a, value_b):
+    if value_a <= value_b:
+        return value_a <= eval_value <= value_b
+    else:
+        return value_b <= eval_value <= value_a
