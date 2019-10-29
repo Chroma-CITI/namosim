@@ -83,3 +83,10 @@ def is_within_interchangeable_interval(eval_value, value_a, value_b):
         return value_a <= eval_value <= value_b
     else:
         return value_b <= eval_value <= value_a
+
+
+def is_cells_set_colliding_in_grid(cells_set, grid):
+    for cell in cells_set:
+        if grid[cell[0]][cell[1]] != 0:
+            return True
+    return False
