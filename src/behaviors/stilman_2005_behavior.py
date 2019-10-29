@@ -5,6 +5,7 @@ import math
 import numpy as np
 
 import src.behaviors.algorithms.a_star
+from src.behaviors.algorithms.multi_goal_a_star import multi_goal_astar
 from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
 import shapely.affinity as affinity
@@ -177,13 +178,13 @@ class Stilman2005Behavior:
         w_t_plus_2 = copy.deepcopy(w_t)
         obstacle = w_t_plus_2.entities[o_1]
         robot = w_t_plus_2.entities[self.robot.uid]
-        # grid = w_t_plus_2.get_obstacle_counter_grid()
+        binary_inflated_occupancy_grid = w_t_plus_2.get_binary_inflated_occupancy_grid((self.robot.uid,))
         dd = w_t_plus_2.dd
         start_cell = utils.real_to_grid(robot.pose[0], robot.pose[1], dd)
 
         # 1 - Get sampled navigation points around obstacle
         # TODO Implement generic method that can have three possibilities:
-        #  - points from middle of sides
+        #  - points from middle of sides (DONE)
         #  - points sampled along buffered polygon (to create from scratch)
         #  - points sampled along lines parallel to sides, s.t. we have at least a robot width from endpoints (scratch)
         navigation_poses = obstacle.get_middle_of_sides_manipulation_poses(
@@ -198,7 +199,7 @@ class Stilman2005Behavior:
             nav_cell_to_nav_pose[nav_cell] = nav_pose
 
         # 3 - Find paths to all accessible navigation cells and only keep these
-        paths_to_nav_cells = dict()  # src.behaviors.algorithms.a_star.multi_goal_astar(grid, start_cell, nav_cells, dd)  # Is a dict TODO FIXME
+        paths_to_nav_cells = multi_goal_astar(binary_inflated_occupancy_grid, start_cell, nav_cells, dd)
 
         # 4 - Only keep accessible cells in nav_cells
         for cell, cost_and_path in paths_to_nav_cells:
