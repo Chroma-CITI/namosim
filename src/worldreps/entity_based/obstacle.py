@@ -47,27 +47,35 @@ class Obstacle(Entity):
     def _isclose(a, b, abs_tol=1e-06):
         return abs(a - b) <= abs_tol
 
-    def _compute_possible_actions(self, dist_from_border, manip_unit_length, pushes_only):
-        actions = dict()
-
+    def get_middle_of_sides_manipulation_poses(self, dist_from_sides):
+        """
+        Computes and returns the manipulation poses that are at a distance dist_from_border from the sides,
+        and facing their middle.
+        :param dist_from_sides: distance from the obstacle's sides at which the manipulation poses are computed [m]
+        :type dist_from_sides: float
+        :return: list of manipulation poses
+        :rtype: list(tuple(float, float, float))
+        """
+        poses = []
         polygon = self.polygon
-        # polygon = box(self.polygon.bounds[0], self.polygon.bounds[1], self.polygon.bounds[2], self.polygon.bounds[3])
 
-        # ALTERNATIVE METHOD BY CHANGING CARTESIAN REFERENTIAL
+        # METHOD BY CHANGING CARTESIAN REFERENTIAL
         poly_center = polygon.centroid.coords[0]
         for i in range(len(polygon.exterior.coords) - 1):
-            d = dist_from_border
-            x_a, y_a = polygon.exterior.coords[i]
-            x_b, y_b = polygon.exterior.coords[i + 1]
-            x_m, y_m = ((x_a + x_b) / 2.0, (y_a + y_b) / 2.0)
-            norm_a_b = np.linalg.norm([x_b - x_a, y_b - y_a])
+            d = dist_from_sides
+            x_a, y_a = polygon.exterior.coords[i]  # First side segment point
+            x_b, y_b = polygon.exterior.coords[i + 1]  # Second side segment point
+            x_m, y_m = ((x_a + x_b) / 2.0, (y_a + y_b) / 2.0)  # Middle of side segment
+            norm_a_b = np.linalg.norm([x_b - x_a, y_b - y_a])  # Side segment length
             if norm_a_b != 0.:
+                # Compute candidate manip points obtained by cartesian referential change
                 points = [(x_m + d * (y_b - y_a) / norm_a_b, y_m + d * (x_b - x_a) / norm_a_b),
                           (x_m + d * (y_b - y_a) / norm_a_b, y_m - d * (x_b - x_a) / norm_a_b),
                           (x_m - d * (y_b - y_a) / norm_a_b, y_m + d * (x_b - x_a) / norm_a_b),
                           (x_m - d * (y_b - y_a) / norm_a_b, y_m - d * (x_b - x_a) / norm_a_b)]
-                manip_point = (0.0, 1.0)
+                manip_point = (0., 0.)
                 max_dist = 0.0
+                # Iterate over candidate manip points to select only the closest one orthogonal to side segment
                 for x_r, y_r in points:
                     scalar_product = (x_b - x_a) * (x_r - x_m) + (y_b - y_a) * (y_r - y_m)
                     if Obstacle._isclose(scalar_product, 0.0):
@@ -76,13 +84,71 @@ class Obstacle(Entity):
                             manip_point = (x_r, y_r)
                             max_dist = norm_r_poly_center
 
-                unit_translation = (x_m - manip_point[0], y_m - manip_point[1])
-                unit_translation = (unit_translation / np.linalg.norm(unit_translation)) * manip_unit_length
-                manip_pose = (manip_point[0], manip_point[1], utils.yaw_from_direction(unit_translation))
+                # Save selected manip point in returned list
+                direction = (x_m - manip_point[0], y_m - manip_point[1])
+                manip_pose = (manip_point[0], manip_point[1], utils.yaw_from_direction(direction))
+                poses.append(manip_pose)
 
-                actions[tuple(unit_translation)] = manip_pose
-                if not pushes_only:
-                    actions[tuple(-1.0 * unit_translation)] = manip_pose
+        return poses
+
+    def get_regularly_sampled_manipulation_poses_along_buffered_poly(self, dist_from_border, sample_distance):
+        """
+        Compute buffered polygon at distance dist_from_border from original polygon sides, then sample manipulation
+        poses along this buffered polygon separated by a distance sample_distance each. Could also compute the
+        sample_distance from a nb_sampled_poses parameter ?
+        :param dist_from_border:
+        :param sample_distance:
+        :return: list of manipulation poses
+        :rtype: list(tuple(float, float, float))
+        """
+        raise NotImplementedError()
+        # Basic idea would be
+
+        # 1 - Compute sample_distance as sum_of_sides_lengths / nb_sampled_poses if not provided
+
+        # 2 - While nb_sampled_poses not reached, iterate over polygon segments
+
+        # 2.a - If distance from last sampled pose is < distance_left_to_go (successively updated from sample_distance)
+        # then add new pose on current segment
+        # else get to next segment and distance_left_to_go -= distance from last sampled pose to current segment point
+
+    def get_manipulation_poses_along_parallel_side_lines(self, dist_from_border, sample_distance):
+        """
+        Compute parallel segments at distance dist_from_border from original polygon sides, then sample manipulation
+        poses along these segments separated by a distance sample_distance each, and also preventing the footprint of
+        the robot to overflow from the sides. Could also compute the sample_distance from a nb_sampled_poses parameter ?
+        :param dist_from_border:
+        :param sample_distance:
+        :return: list of manipulation poses
+        :rtype: list(tuple(float, float, float))
+        """
+        raise NotImplementedError()
+        # Get buffered polygon at dist_from_border
+        # Only keep sides aligned to existing sides
+        # Make them as long as original sides (giving a list of LineStrings)
+        # Then sample poses along these LineStrings by iterating over them in a similar way as in the
+        # get_regularly_sampled_manipulation_poses_along_buffered_poly method
+
+    def _compute_possible_actions(self, dist_from_border, manip_unit_length, pushes_only):
+        """
+        Computes and returns unit translation vectors corresponding to the manipulation poses that are at a distance
+        dist_from_border from the sides, and facing their middle. If pushes_only, only translation vectors orientated
+        towards the obstacle are returned.
+        :param dist_from_border: distance from the obstacle's sides at which the manipulation poses are computed [m]
+        :type dist_from_border: float
+        :param manip_unit_length: norm of the unit translation vectors [m]
+        :type manip_unit_length: float
+        :param pushes_only: forces translation vectors to be orientated towards the obstacle if True
+        :return: dictionnary with translation vectors as keys, corresponding manipulation poses as values
+        :rtype: dict(tuple(float, float): tuple(float, float, float))
+        """
+        manip_poses = self.get_middle_of_sides_manipulation_poses(dist_from_border)
+        actions = dict()
+        for manip_pose in manip_poses:
+            unit_translation = utils.direction_from_yaw(manip_pose[2]) * manip_unit_length
+            actions[tuple(unit_translation)] = manip_pose
+            if not pushes_only:
+                actions[tuple(-1.0 * unit_translation)] = manip_pose
         return actions
 
     def _compute_q_l(self, world):
