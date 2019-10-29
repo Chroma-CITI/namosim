@@ -1,7 +1,7 @@
 from heapq import heappush, heappop
 import copy
 from src.utils import utils
-from a_star import heuristic_cost_estimate, dist_between
+from a_star import heuristic_cost_estimate, dist_between, CellHeapNode
 from src.display.ros_publisher import RosPublisher
 
 
@@ -51,15 +51,14 @@ def _shortest_path(start, end, came_from, reverse):
     return path
 
 
-def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neighbors=True):
+def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neighbors=True, threshold_obstacle_value=1):
+    rp = RosPublisher()
+
     # Acceptable transitions from current grid element to neighbors
     if restrict_4_neighbors:
         neighborhood = utils.TAXI_NEIGHBORHOOD
     else:
         neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
-
-    # Directions
-    directions = utils.DIRECTIONS
 
     # The set of nodes that need to be evaluated, add start if it is not already in goal_s
     to_evaluate_set = copy.deepcopy(goal_s)
@@ -71,7 +70,6 @@ def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neig
     # If a node can be reached from many nodes, cameFrom will eventually contain the
     # most efficient previous step.
     came_from = {}
-    came_from_direction = {}
 
     # The dictionary that remembers for each node, the cost of getting from the start node to that node.
     # The cost of going from start to start is zero.
@@ -84,16 +82,15 @@ def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neig
     # The set of currently discovered nodes that are not evaluated yet.
     open_heap = []
     # Initially, only the start node is known.
-    heappush(open_heap, (fscore[start_cell], start_cell))
+    heappush(open_heap, CellHeapNode(fscore[start_cell], start_cell))
 
-    rp = RosPublisher()
     rp.publish_multigoal_a_star_open_heap(open_heap, dd)
 
     # While open_heap is not empty == While there are discovered nodes that have not been evaluated
     while open_heap:
 
         # The node in open_heap having the lowest fScore[] value
-        current = heappop(open_heap)[1]
+        current = heappop(open_heap).cell
         rp.publish_multigoal_a_star_open_heap(open_heap, dd)
 
         # Exit early if goal set has been reached
@@ -110,46 +107,26 @@ def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neig
         # For each neighbor of current node in the defined neighborhood
         for i, j in neighborhood:
             neighbor = current[0] + i, current[1] + j
-            new_direction = directions[1 + i][1 + j]
 
-            # Check that neighbor exists within the map
-            if 0 <= neighbor[0] < grid.shape[0]:
-                if 0 <= neighbor[1] < grid.shape[1]:
-                    # Do not consider traversing neighbor if it is an obstacle
-                    if grid[neighbor[0]][neighbor[1]] >= dd.cost_circumscribed:
-                        if neighbor not in goal_s:
-                            continue
-                    cost_between_current_and_neighbor = dist_between(current, neighbor)
-                else:
-                    # Neighbor is outside of map in y axis
-                    continue
-            else:
-                # Neighbor is outside of map in x axis
-                continue
+            # Check that neighbor exists within the map, has not already been evaluated, is not an obstacle (except if
+            # the neighbor is the goal cell)
+            if (utils.is_in_matrix(neighbor, grid.shape[0], grid.shape[1])
+                    and neighbor not in close_set
+                    and (grid[neighbor[0]][neighbor[1]] < threshold_obstacle_value or neighbor not in goal_s)):
 
-            if restrict_4_neighbors:
-                try:
-                    previous_direction = came_from_direction[current]
-                except KeyError:
-                    previous_direction = new_direction
-                rotation_cost = (1.5 if new_direction != previous_direction else 0.0)
-                cost_between_current_and_neighbor = cost_between_current_and_neighbor + rotation_cost
+                cost_between_current_and_neighbor = dist_between(current, neighbor)
 
-            # The cost from start to a neighbor.
-            tentative_g_score = gscore[current] + cost_between_current_and_neighbor
+                # The cost from start to a neighbor.
+                tentative_g_score = gscore[current] + cost_between_current_and_neighbor
 
-            if neighbor in close_set:
-                continue  # Ignore the neighbor which is already evaluated.
-
-            # Discover a new node or update info about known one :
-            if tentative_g_score < gscore.get(neighbor, 0) or neighbor not in [i[1]for i in open_heap]:
-                # This path is the best until now. Record it!
-                came_from[neighbor] = current
-                came_from_direction[neighbor] = new_direction
-                gscore[neighbor] = tentative_g_score
-                fscore[neighbor] = tentative_g_score + _multi_heuristic_cost_estimate(neighbor, to_evaluate_set)
-                heappush(open_heap, (fscore[neighbor], neighbor))
-                rp.publish_multigoal_a_star_open_heap(open_heap, dd)
+                # Discover a new node or update info about known one :
+                if tentative_g_score < gscore[neighbor] or neighbor not in [i.cell for i in open_heap]:
+                    # This path is the best until now. Record it!
+                    came_from[neighbor] = current
+                    gscore[neighbor] = tentative_g_score
+                    fscore[neighbor] = tentative_g_score + _multi_heuristic_cost_estimate(neighbor, to_evaluate_set)
+                    heappush(open_heap, CellHeapNode(fscore[neighbor], neighbor))
+                    rp.publish_multigoal_a_star_open_heap(open_heap, dd)
 
     paths = dict()
     for goal_cell in goal_s:
