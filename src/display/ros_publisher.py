@@ -434,7 +434,7 @@ class RosPublisher(with_metaclass(Singleton)):
     def publish_multigoal_a_star_open_heap(self, open_heap, dd):
         open_heap_data = []
         for element in open_heap:
-            open_heap_data.append(element[1])
+            open_heap_data.append(element.cell)
         open_heap_cells = grid_cells_to_ros_cells(open_heap_data, dd)
         self.publish(self.a_star_open_heap_topic, open_heap_cells)
 
