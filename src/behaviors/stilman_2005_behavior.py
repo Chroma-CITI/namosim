@@ -183,10 +183,11 @@ class Stilman2005Behavior:
 
         # 1 - Get sampled navigation points around obstacle
         # TODO Implement generic method that can have three possibilities:
-        #  - points from middle of sides: refactor existing get_actions method
+        #  - points from middle of sides
         #  - points sampled along buffered polygon (to create from scratch)
         #  - points sampled along lines parallel to sides, s.t. we have at least a robot width from endpoints (scratch)
-        navigation_poses = obstacle.get_sampled_navigation_points()
+        navigation_poses = obstacle.get_middle_of_sides_manipulation_poses(
+            self.robot.dist_between_robot_front_and_center)
 
         # 2 - Convert navigation points to navigation cells
         nav_cells = set()
