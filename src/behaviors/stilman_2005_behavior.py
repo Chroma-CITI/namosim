@@ -55,7 +55,7 @@ class Stilman2005Behavior:
 
         self.actions = []
         for trans_vector in trans_vectors:
-            self.actions.append(self.__make_translate(trans_vector))
+            self.actions.append(self.__make_translate(trans_vector, self.world.dd.res))
         for rot_angle in rot_angles:
             self.actions.append(self.__make_rotate(rot_angle))
 
@@ -65,7 +65,7 @@ class Stilman2005Behavior:
         self.rp.publish_goal(q_init, q_goal, self.robot.polygon)
         q_r = q_init
 
-        x_f = utils.real_to_grid(q_goal[0], q_goal[1], self.world.dd)
+        x_f = utils.real_to_grid(q_goal[0], q_goal[1], self.world.dd.res, self.world.dd.grid_pose)
 
     def _select_connect(self, w_t, prev_list, x_f):
         """
@@ -76,7 +76,7 @@ class Stilman2005Behavior:
         :return:
         """
         r_t = w_t.entities[self.robot.uid].pose
-        x_t = utils.real_to_grid(r_t[0], r_t[1], w_t.dd)
+        x_t = utils.real_to_grid(r_t[0], r_t[1], w_t.dd.res, w_t.dd.grid_pose)
 
         avoid_list = set()
 
@@ -117,7 +117,7 @@ class Stilman2005Behavior:
               and self.connected_grid as OccupancyGrid.
         """
         r_t = self.robot.pose
-        x_t = utils.real_to_grid(r_t[0], r_t[1], self.world.dd)
+        x_t = utils.real_to_grid(r_t[0], r_t[1], self.world.dd.res, self.world.dd.grid_pose)
         x_i_to_data = {x_t: CellData(g=0.0)}
 
         closed_set = set()
@@ -180,7 +180,7 @@ class Stilman2005Behavior:
         robot = w_t_plus_2.entities[self.robot.uid]
         binary_inflated_occupancy_grid = w_t_plus_2.get_binary_inflated_occupancy_grid((self.robot.uid,))
         dd = w_t_plus_2.dd
-        start_cell = utils.real_to_grid(robot.pose[0], robot.pose[1], dd)
+        start_cell = utils.real_to_grid(robot.pose[0], robot.pose[1], dd.res, dd.grid_pose)
 
         # 1 - Get sampled navigation points around obstacle
         # TODO Implement generic method that can have three possibilities:
@@ -194,12 +194,13 @@ class Stilman2005Behavior:
         nav_cells = set()
         nav_cell_to_nav_pose = dict()
         for nav_pose in navigation_poses:
-            nav_cell = utils.real_to_grid(nav_pose[0], nav_pose[1], dd)
+            nav_cell = utils.real_to_grid(nav_pose[0], nav_pose[1], dd.res, dd.grid_pose)
             nav_cells.add(nav_cell)
             nav_cell_to_nav_pose[nav_cell] = nav_pose
 
         # 3 - Find paths to all accessible navigation cells and only keep these
-        paths_to_nav_cells = multi_goal_astar(binary_inflated_occupancy_grid, start_cell, nav_cells, dd)
+        paths_to_nav_cells = multi_goal_astar(
+            binary_inflated_occupancy_grid, start_cell, nav_cells, dd.res, dd.grid_pose)
 
         # 4 - Only keep accessible cells in nav_cells
         for cell, cost_and_path in paths_to_nav_cells:

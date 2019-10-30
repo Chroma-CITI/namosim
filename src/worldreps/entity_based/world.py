@@ -219,7 +219,7 @@ class World:
     def translate_entity(self, entity_uid, translation):
         entity = self.entities[entity_uid]
         prev_entity = copy.deepcopy(entity)
-        entity.translate(translation[0], translation[1], self.dd)
+        entity.translate(translation[0], translation[1], self.dd.res)
         self._invalidate_and_inform_grids(prev_entities={entity_uid: prev_entity},
                                           next_entities={entity_uid: entity})
 
@@ -340,6 +340,6 @@ class World:
         entities_cells = set()
         for entity_uid in entities_uids:
             entities_cells = entities_cells.union(self.entities[entity_uid].get_discrete_cells_set(self.dd))
-        RosPublisher().publish_social_cells(entities_cells, self.dd)
+        RosPublisher().publish_social_cells(entities_cells, self.dd.res, self.dd.grid_pose)
         cells_values = [grid[cell[0]][cell[1]] for cell in entities_cells]
         return aggregation_function(cells_values)

@@ -30,8 +30,8 @@ class Robot(Entity):
         self.g_fov_sensor.rotate(angle, self.pose)
         self.s_fov_sensor.rotate(angle, self.pose)
 
-    def translate(self, xoff, yoff, dd):
-        Entity.translate(self, xoff, yoff, dd)
+    def translate(self, xoff, yoff, res):
+        Entity.translate(self, xoff, yoff, res)
         self.g_fov_sensor.translate(xoff, yoff)
         self.s_fov_sensor.translate(xoff, yoff)
 

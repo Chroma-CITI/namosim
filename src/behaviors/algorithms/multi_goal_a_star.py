@@ -5,18 +5,18 @@ from a_star import heuristic_cost_estimate, dist_between, CellHeapNode
 from src.display.ros_publisher import RosPublisher
 
 
-def two_way_multi_goal_a_star(grid, start_pose, intermediate_cells_and_poses, goal_pose, dd,
+def two_way_multi_goal_a_star(grid, start_pose, intermediate_cells_and_poses, goal_pose, res, grid_pose,
                               restrict_4_neighbors=False, authorize_goal_in_occupied_zone = False):
-    start_cell = utils.real_to_grid(start_pose[0], start_pose[1], dd)
-    goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], dd)
+    start_cell = utils.real_to_grid(start_pose[0], start_pose[1], res, grid_pose)
+    goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], res, grid_pose)
 
     # Execute Multi-Goal A* from start pose to intermediate poses
     paths_q_r_q_l = multi_goal_astar(
-        grid, start_cell, intermediate_cells_and_poses.keys(), dd, True, restrict_4_neighbors)
+        grid, start_cell, intermediate_cells_and_poses.keys(), res, grid_pose, True, restrict_4_neighbors)
 
     # Execute Multi-Goal A* from goal pose to intermediate poses
     paths_q_l_q_manip = multi_goal_astar(
-        grid, goal_cell, intermediate_cells_and_poses.keys(), dd, False, restrict_4_neighbors)
+        grid, goal_cell, intermediate_cells_and_poses.keys(), res, grid_pose, False, restrict_4_neighbors)
 
     min_c_0_c_1_cost, min_c_0_disc_path, min_c_1_disc_path, best_obs_pose = float("inf"), None, None, None
     for cell, pose in intermediate_cells_and_poses.items():
@@ -26,8 +26,8 @@ def two_way_multi_goal_a_star(grid, start_pose, intermediate_cells_and_poses, go
             min_c_0_disc_path = paths_q_r_q_l[cell][1]
             min_c_1_disc_path = paths_q_l_q_manip[cell][1]
             best_obs_pose = pose
-    real_c0_path = utils.grid_path_to_real_path(min_c_0_disc_path, start_pose, best_obs_pose, dd)
-    real_c1_path = utils.grid_path_to_real_path(min_c_1_disc_path, best_obs_pose, goal_pose, dd)
+    real_c0_path = utils.grid_path_to_real_path(min_c_0_disc_path, start_pose, best_obs_pose, res, grid_pose)
+    real_c1_path = utils.grid_path_to_real_path(min_c_1_disc_path, best_obs_pose, goal_pose, res, grid_pose)
     return real_c0_path, real_c1_path
 
 
@@ -51,7 +51,7 @@ def _shortest_path(start, end, came_from, reverse):
     return path
 
 
-def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neighbors=True, threshold_obstacle_value=1):
+def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, restrict_4_neighbors=True, threshold_obstacle_value=1):
     rp = RosPublisher()
 
     # Acceptable transitions from current grid element to neighbors
@@ -84,14 +84,14 @@ def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neig
     # Initially, only the start node is known.
     heappush(open_heap, CellHeapNode(fscore[start_cell], start_cell))
 
-    rp.publish_multigoal_a_star_open_heap(open_heap, dd)
+    rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose)
 
     # While open_heap is not empty == While there are discovered nodes that have not been evaluated
     while open_heap:
 
         # The node in open_heap having the lowest fScore[] value
         current = heappop(open_heap).cell
-        rp.publish_multigoal_a_star_open_heap(open_heap, dd)
+        rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose)
 
         # Exit early if goal set has been reached
         if not to_evaluate_set:
@@ -102,7 +102,7 @@ def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neig
             to_evaluate_set.remove(current)
         except ValueError:
             pass
-        rp.publish_multigoal_a_star_close_set(close_set, dd)
+        rp.publish_multigoal_a_star_close_set(close_set, res, grid_pose)
 
         # For each neighbor of current node in the defined neighborhood
         for i, j in neighborhood:
@@ -126,7 +126,7 @@ def multi_goal_astar(grid, start_cell, goal_s, dd, reverse=True, restrict_4_neig
                     gscore[neighbor] = tentative_g_score
                     fscore[neighbor] = tentative_g_score + _multi_heuristic_cost_estimate(neighbor, to_evaluate_set)
                     heappush(open_heap, CellHeapNode(fscore[neighbor], neighbor))
-                    rp.publish_multigoal_a_star_open_heap(open_heap, dd)
+                    rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose)
 
     paths = dict()
     for goal_cell in goal_s:

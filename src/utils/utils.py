@@ -40,12 +40,12 @@ def is_in_matrix(cell, width, height):
     return 0 <= cell[0] < width and 0 <= cell[1] < height
 
 
-def real_to_grid(real_x, real_y, dd):
-    return int((real_x - dd.grid_pose[0]) / dd.res), int((real_y - dd.grid_pose[1]) / dd.res)
+def real_to_grid(real_x, real_y, res, grid_pose):
+    return int((real_x - grid_pose[0]) / res), int((real_y - grid_pose[1]) / res)
 
 
-def grid_to_real(cell_x, cell_y, dd):
-    return dd.res * float(cell_x) + dd.grid_pose[0] + dd.res * 0.5, dd.res * float(cell_y) + dd.grid_pose[1] + dd.res * 0.5
+def grid_to_real(cell_x, cell_y, res, grid_pose):
+    return res * float(cell_x) + grid_pose[0] + res * 0.5, res * float(cell_y) + grid_pose[1] + res * 0.5
 
 
 def yaw_from_direction(direction_vector):
@@ -59,16 +59,16 @@ def yaw_from_direction(direction_vector):
 
 
 def direction_from_yaw(yaw):
-    return math.cos(yaw), math.sin(yaw)
+    return math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
 
 
-def grid_path_to_real_path(grid_path, start_pose, goal_pose, dd):
+def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
     if not grid_path:
         return []
     real_path = [start_pose]
     previous_pose = start_pose
     for cell in grid_path[1:len(grid_path) - 1]:
-        real_x, real_y = grid_to_real(cell[0], cell[1], dd)
+        real_x, real_y = grid_to_real(cell[0], cell[1], res, grid_pose)
         direction_vector = (real_x - previous_pose[0], real_y - previous_pose[1])
         real_yaw = yaw_from_direction(direction_vector)
         new_pose = (real_x, real_y, real_yaw)

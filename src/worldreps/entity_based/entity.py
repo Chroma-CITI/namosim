@@ -87,13 +87,13 @@ class Entity:
         self._is_discrete_cell_set_valid = False
         self._is_discrete_inflated_cell_set_valid = False
 
-    def translate(self, xoff, yoff, dd):
+    def translate(self, xoff, yoff, res):
         # May be improved for cases where the translation is equal to a multiple of the resolution
         self.polygon = affinity.translate(self.polygon, xoff, yoff)
         self.pose[0], self.pose[1] = list(self.polygon.centroid.coords)[0][0], list(self.polygon.centroid.coords)[0][1]
 
         self._is_inflated_polygon_valid = False
-        if (xoff / dd.res != 0.0) or (yoff / dd.res != 0.0):
+        if (xoff / res != 0.0) or (yoff / res != 0.0):
             self._is_discrete_polygon_valid = False
             self._is_discrete_inflated_polygon_valid = False
         self._is_discrete_cell_set_valid = False

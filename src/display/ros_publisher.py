@@ -16,7 +16,7 @@ from std_msgs.msg import Header, ColorRGBA, Float32MultiArray, MultiArrayLayout,
 from nav_msgs.msg import Path, GridCells, OccupancyGrid, MapMetaData
 from grid_map_msgs.msg import GridMap
 
-import src.utils
+from src.utils import utils
 from src.utils.singleton import Singleton
 from src.worldreps.entity_based.robot import Robot
 from src.worldreps.entity_based.obstacle import Obstacle
@@ -76,11 +76,11 @@ def costmap_to_grid_map(costmap, dd):
 
     return grid_map
 
-def grid_cells_to_ros_cells(grid_cells, dd):
-    ros_cells = init_grid_cells(dd.res)
+def grid_cells_to_ros_cells(grid_cells, res, grid_pose):
+    ros_cells = init_grid_cells(res)
     for cell in grid_cells:
         point = Point()
-        point.x, point.y = src.utils.utils.grid_to_real(cell[0], cell[1], dd)
+        point.x, point.y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
         ros_cells.cells.append(point)
     return ros_cells
 
@@ -414,37 +414,37 @@ class RosPublisher(with_metaclass(Singleton)):
         grid_map = costmap_to_grid_map(costmap, dd)
         self.publish(self.test_gridmap_topic, grid_map)
 
-    def publish_a_star_open_heap(self, open_heap, dd):
+    def publish_a_star_open_heap(self, open_heap, res, grid_pose):
         if self.is_activated[self.a_star_open_heap_topic]:
             open_heap_data = []
             for element in open_heap:
                 open_heap_data.append(element.cell)
-            open_heap_cells = grid_cells_to_ros_cells(open_heap_data, dd)
+            open_heap_cells = grid_cells_to_ros_cells(open_heap_data, res, grid_pose)
             self.publish(self.a_star_open_heap_topic, open_heap_cells)
 
-    def publish_a_star_close_set(self, close_set, dd):
+    def publish_a_star_close_set(self, close_set, res, grid_pose):
         if self.is_activated[self.a_star_close_set_topic]:
-            close_set_cells = grid_cells_to_ros_cells(list(close_set), dd)
+            close_set_cells = grid_cells_to_ros_cells(list(close_set), res, grid_pose)
             self.publish(self.a_star_close_set_topic, close_set_cells)
 
-    def publish_social_cells(self, social_cells_set, dd):
-        ros_cells = grid_cells_to_ros_cells(list(social_cells_set), dd)
+    def publish_social_cells(self, social_cells_set, res, grid_pose):
+        ros_cells = grid_cells_to_ros_cells(list(social_cells_set), res, grid_pose)
         self.publish(self.social_cells_topic, ros_cells)
 
-    def publish_multigoal_a_star_open_heap(self, open_heap, dd):
+    def publish_multigoal_a_star_open_heap(self, open_heap, res, grid_pose):
         open_heap_data = []
         for element in open_heap:
             open_heap_data.append(element.cell)
-        open_heap_cells = grid_cells_to_ros_cells(open_heap_data, dd)
+        open_heap_cells = grid_cells_to_ros_cells(open_heap_data, res, grid_pose)
         self.publish(self.a_star_open_heap_topic, open_heap_cells)
 
-    def publish_multigoal_a_star_close_set(self, close_set, dd):
-        close_set_cells = grid_cells_to_ros_cells(list(close_set), dd)
+    def publish_multigoal_a_star_close_set(self, close_set, res, grid_pose):
+        close_set_cells = grid_cells_to_ros_cells(list(close_set), res, grid_pose)
         self.publish(self.a_star_close_set_topic, close_set_cells)
 
-    def publish_grid_path(self, grid_path, dd):
+    def publish_grid_path(self, grid_path, res, grid_pose):
         if self.is_activated[self.path_grid_cells_topic]:
-            path_grid_cells = grid_cells_to_ros_cells(grid_path, dd)
+            path_grid_cells = grid_cells_to_ros_cells(grid_path, res, grid_pose)
             self.publish(self.path_grid_cells_topic, path_grid_cells)
 
     def publish_q_manips_for_obs(self, poses):
@@ -487,8 +487,8 @@ class RosPublisher(with_metaclass(Singleton)):
                                   self.entities_z_index, self.border_width)])
         self.publish(self.min_max_inflated_polygons_topic, marker_array)
 
-    def publish_q_l_cells(self, cells, dd):
-        close_set_cells = grid_cells_to_ros_cells(list(cells), dd)
+    def publish_q_l_cells(self, cells, res, grid_pose):
+        close_set_cells = grid_cells_to_ros_cells(list(cells), res, grid_pose)
         self.publish(self.q_l_cells_topic, close_set_cells)
 
     def publish_q_l_poses(self, poses):

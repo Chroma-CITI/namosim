@@ -56,7 +56,7 @@ def reconstruct_path(came_from, end):
     return total_path
 
 
-def astar(grid, start_cell, goal_cell, dd, restrict_4_neighbors=True, threshold_obstacle_value=1):
+def astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors=True, threshold_obstacle_value=1):
     rp = RosPublisher()
 
     # Acceptable transitions from current grid element to neighbors
@@ -86,21 +86,21 @@ def astar(grid, start_cell, goal_cell, dd, restrict_4_neighbors=True, threshold_
     # Initially, only the start node is known.
     heappush(open_heap, CellHeapNode(fscore[start_cell], start_cell))
 
-    rp.publish_a_star_open_heap(open_heap, dd)
+    rp.publish_a_star_open_heap(open_heap, res, grid_pose)
 
     # While open_heap is not empty == While there are discovered nodes that have not been evaluated
     while open_heap:
 
         # The node in open_heap having the lowest fScore[] value
         current = heappop(open_heap).cell
-        rp.publish_a_star_open_heap(open_heap, dd)
+        rp.publish_a_star_open_heap(open_heap, res, grid_pose)
 
         # Exit early if goal is reached
         if current == goal_cell:
             return reconstruct_path(came_from, goal_cell)
 
         close_set.add(current)
-        rp.publish_a_star_close_set(close_set, dd)
+        rp.publish_a_star_close_set(close_set, res, grid_pose)
 
         # For each neighbor of current node in the defined neighborhood
         for i, j in neighborhood:
@@ -128,21 +128,21 @@ def astar(grid, start_cell, goal_cell, dd, restrict_4_neighbors=True, threshold_
                     gscore[neighbor] = tentative_g_score
                     fscore[neighbor] = tentative_g_score + heuristic_cost_estimate(neighbor, goal_cell)
                     heappush(open_heap, CellHeapNode(fscore[neighbor], neighbor))
-                    rp.publish_a_star_open_heap(open_heap, dd)
+                    rp.publish_a_star_open_heap(open_heap, res, grid_pose)
     return []
 
 
-def a_star_real_path(grid, start_pose, goal_pose, dd,
+def a_star_real_path(grid, start_pose, goal_pose, res, grid_pose,
                      restrict_4_neighbors=False, authorize_goal_in_occupied_zone = False):
-    start_cell = utils.real_to_grid(start_pose[0], start_pose[1], dd)
-    goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], dd)
+    start_cell = utils.real_to_grid(start_pose[0], start_pose[1], res, grid_pose)
+    goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], res, grid_pose)
 
     # Execute A*
-    astar_path = astar(grid, start_cell, goal_cell, dd, restrict_4_neighbors)
+    astar_path = astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors)
     rp = RosPublisher()
-    rp.publish_grid_path(astar_path, dd)
+    rp.publish_grid_path(astar_path, res, grid_pose)
 
     # Convert A* output to standard ROS path
-    real_path = utils.grid_path_to_real_path(astar_path, start_pose, goal_pose, dd)
+    real_path = utils.grid_path_to_real_path(astar_path, start_pose, goal_pose, res, grid_pose)
 
     return real_path

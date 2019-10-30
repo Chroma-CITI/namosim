@@ -49,7 +49,8 @@ class WuLevihn2014Behavior(BaselineBehavior):
                 self._e_l, self._m_l = [], []
                 self._last_action_result = None
                 grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
-                self._p_opt = Plan([Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd))])
+                self._p_opt = Plan(
+                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))])
                 self._rp.publish_p_opt(self._p_opt)
 
             q_r = self._robot.pose
@@ -79,7 +80,8 @@ class WuLevihn2014Behavior(BaselineBehavior):
                     grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
 
                     self._rp.cleanup_p_opt()
-                    self._p_opt = Plan([Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd))])
+                    self._p_opt = Plan(
+                        [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))])
                     self._rp.publish_p_opt(self._p_opt)
                     self.make_plan(q_r, self._q_goal)
 
@@ -152,7 +154,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
 
         for unit_translation, q_manip in obs.get_actions(self._world.dd, obs_is_push_only).items():
             grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
-            c_1 = Path(a_star_real_path(grid, q_r, q_manip, self._world.dd), o_uid=o_uid)
+            c_1 = Path(a_star_real_path(grid, q_r, q_manip, self._world.dd.res, self._world.dd.grid_pose), o_uid=o_uid)
             self._rp.publish_c_1(c_1)
             if not c_1.has_infinite_cost():
                 c_0_is_valid, c_1_is_valid = True, True
@@ -192,7 +194,8 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                                      unit_translation=unit_translation, is_transfer=True, o_uid=o_uid)
                             self._rp.publish_c_2(c_2)
                             world_copy_grid = world_copy.get_binary_inflated_occupancy_grid((self._robot_uid,))
-                            c_3 = Path(a_star_real_path(world_copy_grid, q_sim, q_goal, world_copy.dd),
+                            c_3 = Path(a_star_real_path(world_copy_grid, q_sim, q_goal,
+                                                        world_copy.dd.res, world_copy.dd.grid_pose),
                                        o_uid=o_uid)
                             self._rp.publish_c_3(c_3)
                             if not c_3.has_infinite_cost():
@@ -330,7 +333,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
         if self._social_movability_evaluation_activated:
             q_l = obs.get_q_l(world)
             grid = world.get_binary_inflated_occupancy_grid(robot.uid)
-            c_0_path, c_1_path = two_way_multi_goal_a_star(grid, q_r, q_l, q_manip, world.dd)
+            c_0_path, c_1_path = two_way_multi_goal_a_star(grid, q_r, q_l, q_manip, world.dd.res, world.dd.grid_pose)
             q_look_index = self._get_last_look_q(robot, obs, c_1_path)
             if q_look_index is not None:
                 return self._split_at_pose(c_1_path, q_look_index, obs.uid, c_0_path)

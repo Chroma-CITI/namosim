@@ -35,8 +35,8 @@ class Obstacle(Entity):
             self._is_q_l_valid = True
         return self.q_l
 
-    def translate(self, xoff, yoff, dd):
-        Entity.translate(self, xoff, yoff, dd)
+    def translate(self, xoff, yoff, res):
+        Entity.translate(self, xoff, yoff, res)
         self._is_actions_valid = False
 
     def rotate(self, angle):
