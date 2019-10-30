@@ -4,6 +4,8 @@ from src.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
 from src.utils import utils
 
 from math import sqrt
+import numpy as np
+from shapely.geometry import LineString, Point
 
 
 class Robot(Entity):
@@ -79,31 +81,16 @@ class Robot(Entity):
         :return: the distance between the robot's center and its front-facing side.
         :rtype: float
         """
-        direction = utils.direction_from_yaw(self.pose[2])
-        direction_slope = direction[1] / direction[0]
-        direction_y_intercept = (self.pose[0] * self.pose[1] - direction[1] * self.pose[0]) / direction[0]
+        direction = np.array(utils.direction_from_yaw(self.pose[2]))
+        bounds = self.polygon.bounds
+        englobing_circle_diameter = sqrt((bounds[2] - bounds[0]) ** 2 + (bounds[3] - bounds[1]) ** 2)
+        center = np.array([self.pose[0], self.pose[1]])
+        direction_line = LineString([center,
+                                     center + direction * englobing_circle_diameter])
 
-        if 0. < self.pose[2] <= 90.:
-            infinite_x, infinite_y = float("inf"), float("inf")
-        elif 90 < self.pose[2] <= 180.:
-            infinite_x, infinite_y = -float("inf"), float("inf")
-        elif 180. < self.pose[2] <= 270.:
-            infinite_x, infinite_y = -float("inf"), -float("inf")
-        else:
-            infinite_x, infinite_y = float("inf"), -float("inf")
+        # DEBUG Lines to help you understand why the world hates you
+        # import matplotlib.pyplot as plt; plt.plot(*self.polygon.exterior.xy);
+        # plt.plot(*direction_line.xy); plt.axis('equal'); plt.show()
 
-        points_iterator = iter(self.polygon.exterior.coords)
-        prev_point = points_iterator.next()
-        for cur_point in points_iterator:
-            line_slope = (cur_point[1] - prev_point[1]) / (cur_point[0] - prev_point[0])
-            line_y_intercept = cur_point[1] - line_slope * cur_point[0]
-
-            inter_x = (line_y_intercept - direction_y_intercept) / (direction_slope - line_slope)
-            inter_y = line_slope * inter_x + line_y_intercept
-
-            if (utils.is_within_interchangeable_interval(inter_x, prev_point[0], cur_point[1])
-                    and utils.is_within_interchangeable_interval(inter_y, prev_point[1], cur_point[1])
-                    and utils.is_within_interchangeable_interval(inter_x, self.pose[0], infinite_x)
-                    and utils.is_within_interchangeable_interval(inter_y, self.pose[1], infinite_y)):
-                return sqrt((inter_x - self.pose[0]) ** 2 + (inter_y - self.pose[1]) ** 2)
-        raise RuntimeError("compute_dist_between_robot_front_and_center should never reach this point.")
+        side_intersection = direction_line.intersection(self.polygon).coords[1]
+        return sqrt((side_intersection[0] - center[0]) ** 2 + (side_intersection[1] - center[1]) ** 2)
