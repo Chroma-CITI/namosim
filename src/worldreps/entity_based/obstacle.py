@@ -145,7 +145,7 @@ class Obstacle(Entity):
         manip_poses = self.get_middle_of_sides_manipulation_poses(dist_from_border)
         actions = dict()
         for manip_pose in manip_poses:
-            unit_translation = utils.direction_from_yaw(manip_pose[2]) * manip_unit_length
+            unit_translation = np.array(utils.direction_from_yaw(manip_pose[2])) * manip_unit_length
             actions[tuple(unit_translation)] = manip_pose
             if not pushes_only:
                 actions[tuple(-1.0 * unit_translation)] = manip_pose
