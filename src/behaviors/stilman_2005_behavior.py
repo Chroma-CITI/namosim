@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 
-import src.behaviors.algorithms.a_star
+from src.behaviors.algorithms.a_star import a_star_real_path, astar
 from src.behaviors.algorithms.multi_goal_a_star import multi_goal_astar
 from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
@@ -256,12 +256,8 @@ class Stilman2005Behavior:
                             heapq.heappush(
                                 next_action_leaves_to_explore, ActionHeapNode(new_leaf.phys_cost, new_leaf))
 
-                            # TODO: Check if there is a navigation plan from current robot cell to any cell of c_1 that
-                            #   is not covered by the new_obstacle_poly. Extra: apply new local opening detection
-                            #   algorithm to gain performance ?
-                            has_created_new_opening_to_c_1 = True  # find_path() FIXME
-
-                            if has_created_new_opening_to_c_1:
+                            if self._has_created_new_opening_to_c_1(binary_inflated_occupancy_grid,
+                                                                    dd.res, dd.grid_pose, cell, c_1_cells_set):
                                 heapq.heappush(
                                     successful_action_tree_nodes, ActionHeapNode(new_leaf.total_cost, new_leaf))
                 best_in_cur_action_leaves_to_explore = cur_action_leaves_to_explore[0].action_tree_node
@@ -279,18 +275,54 @@ class Stilman2005Behavior:
         best_contact_cell = best_action_tree_node_for_cell[0].cell
         cost = best_action_tree_node_for_cell[0].cost
         tho_n = utils.grid_path_to_real_path(
-            paths_to_nav_cells[best_contact_cell], robot.pose, nav_cell_to_nav_pose[best_contact_cell], dd)
+            paths_to_nav_cells[best_contact_cell], robot.pose, nav_cell_to_nav_pose[best_contact_cell],
+            dd.res, dd.grid_pose)
         best_action_branch = self.__get_actions_branch(best_action_tree_node)
+        # TODO: Implement function.
         tho_m = self.__actions_branch_to_path(best_action_branch)
         return w_t_plus_2, tho_n, tho_m, cost
 
-    def _find_path(self, w_t, x_t, x_f):
-        return True # FIXME
-        # return src.behaviors.algorithms.a_star.astar(grid=w_t.get_grid(),
-        #                                              start=x_t, goal_s=x_f,
-        #                                              dd=w_t.dd, restrict_4_neighbors=False)
+    @staticmethod
+    def _has_created_new_opening_to_c_1(inflated_grid, res, grid_pose, robot_cell, c_1_cells_set):
+        """
+        Checks if there is a path between robot_cell and a random cell in c_1_cells_set that is not covered by an
+        obstacle (especially the one considered for manipulation).
+        TODO: Extra - apply new local opening detection algorithm to gain performance ?
+        :param inflated_grid: 2D matrix of occupation data where free is 0 and > 0 is occupied
+        :type inflated_grid: numpy.array([[int16]])
+        :param res: grid resolution in [m] / cell
+        :type res: float
+        :param grid_pose: grid pose in real coords
+        :type grid_pose: tuple(float, float, float)
+        :param robot_cell: robot cell coordinates in grid
+        :type robot_cell: tuple(int, int)
+        :param c_1_cells_set: set of coordinates in c_1 free space component
+        :type c_1_cells_set: set(tuple(int, int))
+        :raises:
+            ValueError: if the cells set given for c_1 is empty : either it means that c_1 is fully covered by an
+            obstacle, or that not updating c_1 with freed cells was actually a bad idea.
+        :return: True if a path is found, False otherwise
+        """
+        if c_1_cells_set:
+            c_1_cells_set_iterator = iter(c_1_cells_set)
+            cell_in_c_1 = next(c_1_cells_set_iterator)
+            while inflated_grid[cell_in_c_1[0]][cell_in_c_1[1]] != 0:
+                try:
+                    cell_in_c_1 = next(c_1_cells_set_iterator)
+                except StopIteration:
+                    raise ValueError("_has_created_new_opening_to_c_1 could not find a new opening because"
+                                     " c_1_cells_set is entirely inaccessible to the robot")
+            astar(inflated_grid, robot_cell, cell_in_c_1, res, grid_pose)
 
-    def __make_priority_queue(self, x_i, f, o_f, c_f):
+        else:
+            raise ValueError("c_1_cells_set should never be empty !")
+
+    def _find_path(self, w_t, x_t, x_f):
+        # TODO Fix this call so that we give proper poses, not cells...
+        return a_star_real_path(w_t.get_binary_inflated_occupancy_grid.get_grid(self.robot.uid), x_t, x_f, dd=w_t.dd, restrict_4_neighbors=False)
+
+    @staticmethod
+    def __make_priority_queue(x_i, f, o_f, c_f):
         return heapq.heappush([], HeapQueueElement(x_i, f, o_f, c_f))
 
     def __h(self, x_i, x_j):
@@ -305,16 +337,19 @@ class Stilman2005Behavior:
     def __e(self, x_j):
         return 1.0 if self.grid[x_j[0]][x_j[1]] == 0.0 else self.cost_for_obstacle_occupied_cells
 
-    def __remove_first(self, queue):
+    @staticmethod
+    def __remove_first(queue):
         return heapq.heappop(queue)
 
     def __adjacent(self, x_1):
         return utils.get_neighbors(x_1, self.world.dd.d_width, self.world.dd.d_height, self.neighborhood)
 
-    def __enqueue(self, queue, x_i, f, o_f, c_f):
+    @staticmethod
+    def __enqueue(queue, x_i, f, o_f, c_f):
         heapq.heappush(queue, HeapQueueElement(x_i, f, o_f, c_f))
 
-    def __compute_current_robot_cells(self, x_init, x_cur, init_robot_cells):
+    @staticmethod
+    def __compute_current_robot_cells(x_init, x_cur, init_robot_cells):
         """
         Likely Deprecated
         :param x_init:
@@ -350,24 +385,27 @@ class Stilman2005Behavior:
                         return None
         return o_i
 
-    def __make_translate(self, translation_vector):
+    @staticmethod
+    def __make_translate(translation_vector, res):
         def translate(entity):
-            return entity.translate(translation_vector[0], translation_vector[1], self.world.dd)
+            return entity.translate(translation_vector[0], translation_vector[1], res)
         return translate
 
-    def __make_rotate(self, angle):
+    @staticmethod
+    def __make_rotate(angle):
         def rotate(entity):
             return entity.rotate(angle)
         return rotate
 
-    def __get_actions_branch(self, action_node):
+    @staticmethod
+    def __get_actions_branch(action_node):
         branch = [action_node]
         while branch[-1].parent is not None:
             branch.append(branch[-1].parent)
         return branch
 
     def __actions_branch_to_path(self, actions_branch):
-        pass
+        raise NotImplementedError()
 
 
 class HeapQueueElement:
