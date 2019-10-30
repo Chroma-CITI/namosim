@@ -12,6 +12,11 @@ class ConnectedComponentsGrid:
         self.init_grid()
 
     def init_grid(self):
+        """
+        Initialize connected components grid from occupation grid. Iterates over the occupation grid's cells until a
+        free cell that has already been evaluated is found, then proceed to create the connected component by
+        propagating over neighbors (ignoring those already evaluated).
+        """
         d_width, d_height = self._occupation_grid.shape
 
         closed_set = set()
