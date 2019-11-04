@@ -21,10 +21,8 @@ class Stilman2005Behavior(BaselineBehavior):
       - Debug and integrate the algorithm into the bigger frame of the simulator (1 to 2 days)
     """
 
-    def __init__(self, simulator, sim_world, robot_uid):
-        self.simulator = simulator
-        self.world = sim_world
-        self.robot = self.world.entities[robot_uid]
+    def __init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config):
+        BaselineBehavior.__init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config)
 
         # Configuration parameters
         self.alpha = 0.5
@@ -38,32 +36,27 @@ class Stilman2005Behavior(BaselineBehavior):
         rot_angles = []
         if self.robot_type == "omni":
             if self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD:
-                trans_vectors = np.array(utils.OMNI_ROBOT_CHESSBOARD_TRANS_VECTORS) * self.world.dd.res
+                trans_vectors = np.array(utils.OMNI_ROBOT_CHESSBOARD_TRANS_VECTORS) * self._world.dd.res
                 rot_angles = np.array(utils.OMNI_ROBOT_CHESSBOARD_ROT_ANGLES)
             elif self.neighborhood == utils.TAXI_NEIGHBORHOOD:
-                trans_vectors = np.array(utils.OMNI_ROBOT_TAXI_TRANS_VECTORS) * self.world.dd.res
+                trans_vectors = np.array(utils.OMNI_ROBOT_TAXI_TRANS_VECTORS) * self._world.dd.res
                 rot_angles = np.array(utils.OMNI_ROBOT_TAXI_ROT_ANGLES)
         elif self.robot_type == "diff":
             if self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD:
-                trans_vectors = np.array(utils.DIFF_ROBOT_CHESSBOARD_TRANS_VECTORS) * self.world.dd.res
+                trans_vectors = np.array(utils.DIFF_ROBOT_CHESSBOARD_TRANS_VECTORS) * self._world.dd.res
                 rot_angles = np.array(utils.DIFF_ROBOT_CHESSBOARD_ROT_ANGLES)
             elif self.neighborhood == utils.TAXI_NEIGHBORHOOD:
-                trans_vectors = np.array(utils.DIFF_ROBOT_TAXI_TRANS_VECTORS) * self.world.dd.res
+                trans_vectors = np.array(utils.DIFF_ROBOT_TAXI_TRANS_VECTORS) * self._world.dd.res
                 rot_angles = np.array(utils.DIFF_ROBOT_TAXI_ROT_ANGLES)
 
         self.actions = []
         for trans_vector in trans_vectors:
-            self.actions.append(self.__make_translate(trans_vector, self.world.dd.res))
+            self.actions.append(self.__make_translate(trans_vector, self._world.dd.res))
         for rot_angle in rot_angles:
             self.actions.append(self.__make_rotate(rot_angle))
 
-        self.rp = RosPublisher()
-
-    def execute(self, q_init, q_goal):
-        self.rp.publish_goal(q_init, q_goal, self.robot.polygon)
-        q_r = q_init
-
-        x_f = utils.real_to_grid(q_goal[0], q_goal[1], self.world.dd.res, self.world.dd.grid_pose)
+    def think(self):
+        pass
 
     def _select_connect(self, w_t, prev_list, x_f):
         """
@@ -73,7 +66,7 @@ class Stilman2005Behavior(BaselineBehavior):
         :param x_f:
         :return:
         """
-        r_t = w_t.entities[self.robot.uid].pose
+        r_t = w_t.entities[self._robot.uid].pose
         x_t = utils.real_to_grid(r_t[0], r_t[1], w_t.dd.res, w_t.dd.grid_pose)
 
         avoid_list = set()
@@ -114,8 +107,8 @@ class Stilman2005Behavior(BaselineBehavior):
         TODO: - Add visualization of closed_set, open_queue, x_1 and x_2 as GridCells
               and self.connected_grid as OccupancyGrid.
         """
-        r_t = self.robot.pose
-        x_t = utils.real_to_grid(r_t[0], r_t[1], self.world.dd.res, self.world.dd.grid_pose)
+        r_t = self._robot.pose
+        x_t = utils.real_to_grid(r_t[0], r_t[1], self._world.dd.res, self._world.dd.grid_pose)
         x_i_to_data = {x_t: CellData(g=0.0)}
 
         closed_set = set()
@@ -175,8 +168,8 @@ class Stilman2005Behavior(BaselineBehavior):
     def _manip_search(self, w_t, o_1, c_1_cells_set):
         w_t_plus_2 = copy.deepcopy(w_t)
         obstacle = w_t_plus_2.entities[o_1]
-        robot = w_t_plus_2.entities[self.robot.uid]
-        binary_inflated_occupancy_grid = w_t_plus_2.get_binary_inflated_occupancy_grid((self.robot.uid,))
+        robot = w_t_plus_2.entities[self._robot.uid]
+        binary_inflated_occupancy_grid = w_t_plus_2.get_binary_inflated_occupancy_grid((self._robot.uid,))
         dd = w_t_plus_2.dd
         start_cell = utils.real_to_grid(robot.pose[0], robot.pose[1], dd.res, dd.grid_pose)
 
@@ -201,12 +194,12 @@ class Stilman2005Behavior(BaselineBehavior):
             binary_inflated_occupancy_grid, start_cell, nav_cells, dd.res, dd.grid_pose)
 
         # 4 - Only keep accessible cells in nav_cells
-        for cell, cost_and_path in paths_to_nav_cells:
+        for cell, cost_and_path in paths_to_nav_cells.items():
             if cost_and_path[0] == float("inf"):
                 nav_cells.remove(cell)
 
         # 5 - Compute obstacle counter grid without robot and obstacle
-        binary_occupancy_grid = w_t_plus_2.get_binary_occupancy_grid((self.robot.uid, o_1))
+        binary_occupancy_grid = w_t_plus_2.get_binary_occupancy_grid((self._robot.uid, o_1))
 
         # 6 - Explore robot action space
         # Action tree nodes to currently explore. Ordered by min phys cost.
@@ -317,7 +310,9 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def _find_path(self, w_t, x_t, x_f):
         # TODO Fix this call so that we give proper poses, not cells...
-        return a_star_real_path(w_t.get_binary_inflated_occupancy_grid.get_grid(self.robot.uid), x_t, x_f, dd=w_t.dd, restrict_4_neighbors=False)
+        return a_star_real_path(w_t.get_binary_inflated_occupancy_grid.get_grid(self._robot.uid),
+                                x_t, x_f, w_t.dd.res,
+                                w_t.dd.grid_pose, restrict_4_neighbors=False)
 
     @staticmethod
     def __make_priority_queue(x_i, f, o_f, c_f):
@@ -340,7 +335,7 @@ class Stilman2005Behavior(BaselineBehavior):
         return heapq.heappop(queue)
 
     def __adjacent(self, x_1):
-        return utils.get_neighbors(x_1, self.world.dd.d_width, self.world.dd.d_height, self.neighborhood)
+        return utils.get_neighbors(x_1, self._world.dd.d_width, self._world.dd.d_height, self.neighborhood)
 
     @staticmethod
     def __enqueue(queue, x_i, f, o_f, c_f):
@@ -373,9 +368,9 @@ class Stilman2005Behavior(BaselineBehavior):
         o_i = None
         count = 0
         # current_robot_cells = self.__compute_current_robot_cells(x_init, x_cur, init_robot_cells)
-        for obs, entity in self.world.entities.items():
+        for obs, entity in self._world.entities.items():
             if isinstance(entity, Obstacle):
-                if x_cur in self.world.get_discrete_inflated_cells_set_for_entity_uid(obs):
+                if x_cur in self._world.get_discrete_inflated_cells_set_for_entity_uid(obs):
                     count += 1
                     if count == 1:
                         o_i = obs
@@ -429,7 +424,7 @@ class ActionTreeNode:
     def __init__(self, phys_cost, social_cost, parent=None, action=None, robot=None, obstacle=None):
         self.parent = parent
         self.action = action
-        self.robot = robot
+        self._robot = robot
         self.obstacle = obstacle
 
         self.phys_cost = phys_cost
