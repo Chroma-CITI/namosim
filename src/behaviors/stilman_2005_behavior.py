@@ -4,16 +4,16 @@ import math
 
 import numpy as np
 
+from baseline_behavior import BaselineBehavior
 from src.behaviors.algorithms.a_star import a_star_real_path, astar
 from src.behaviors.algorithms.multi_goal_a_star import multi_goal_astar
 from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
-import shapely.affinity as affinity
 
 from src.display.ros_publisher import RosPublisher
 
 
-class Stilman2005Behavior:
+class Stilman2005Behavior(BaselineBehavior):
     """
     TODO (as documented on 2019-09-12):
       - Finish up manip_search method by completing tasks written in-place (about 1-days work)
@@ -25,8 +25,6 @@ class Stilman2005Behavior:
         self.simulator = simulator
         self.world = sim_world
         self.robot = self.world.entities[robot_uid]
-        self.grid = self.world.get_grid()
-        self.connected_grid, self.nb_connected_components = self.world.compute_discrete_connected_components()
 
         # Configuration parameters
         self.alpha = 0.5
@@ -265,7 +263,7 @@ class Stilman2005Behavior:
                 cur_action_leaves_to_explore = next_action_leaves_to_explore
 
             # TODO:
-            nav_plus_manip_total_cost = best_in_successful_action_tree_nodes.total_cost  # + FIXME Add social cost ?
+            nav_plus_manip_total_cost = best_in_successful_action_tree_nodes.total_cost  # * FIXME Mult by social cost ?
             heapq.heappush(
                 best_action_tree_node_for_cell, CellActionHeapNode(nav_plus_manip_total_cost,
                                                                    cell,
