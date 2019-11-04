@@ -7,7 +7,7 @@ class ConnectedComponentsGrid:
         self._occupation_grid = occupation_grid
         self._grid = np.zeros(occupation_grid.shape, dtype=np.int16)
         self.neighborhood = neighborhood
-        self.components = dict()
+        self._components = dict()
 
         self.init_grid()
 
@@ -36,7 +36,7 @@ class ConnectedComponentsGrid:
                         if (neighbor_cell not in closed_set
                                 and self._occupation_grid[neighbor_cell[0]][neighbor_cell[1]] == 0):
                             self._grid[neighbor_cell[0]][neighbor_cell[1]] = current_component_index
-                            self.components[current_component_index].add(current_cell)
+                            self.components[current_component_index].add(neighbor_cell)
                             open_set = open_set.union(
                                 utils.get_neighbors(neighbor_cell, d_width, d_height, self.neighborhood))
                             closed_set.add(neighbor_cell)
@@ -46,3 +46,7 @@ class ConnectedComponentsGrid:
     @property
     def grid(self):
         return self._grid
+
+    @property
+    def components(self):
+        return self._components
