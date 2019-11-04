@@ -179,7 +179,7 @@ class Stilman2005Behavior(BaselineBehavior):
         #  - points sampled along buffered polygon (to create from scratch)
         #  - points sampled along lines parallel to sides, s.t. we have at least a robot width from endpoints (scratch)
         navigation_poses = obstacle.get_middle_of_sides_manipulation_poses(
-            self.robot.dist_between_robot_front_and_center)
+            self._robot.min_inflation_radius)
 
         # 2 - Convert navigation points to navigation cells
         nav_cells = set()
