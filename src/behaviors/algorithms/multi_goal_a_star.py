@@ -98,21 +98,23 @@ def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, res
             break
 
         close_set.add(current)
-        try:
+        if current in to_evaluate_set:
             to_evaluate_set.remove(current)
-        except ValueError:
-            pass
         rp.publish_multigoal_a_star_close_set(close_set, res, grid_pose)
 
         # For each neighbor of current node in the defined neighborhood
         for i, j in neighborhood:
             neighbor = current[0] + i, current[1] + j
 
+            # If neighbor's g score has not been computed yet, assign +inf
+            if neighbor not in gscore:
+                gscore[neighbor] = float("inf")
+
             # Check that neighbor exists within the map, has not already been evaluated, is not an obstacle (except if
             # the neighbor is the goal cell)
             if (utils.is_in_matrix(neighbor, grid.shape[0], grid.shape[1])
                     and neighbor not in close_set
-                    and (grid[neighbor[0]][neighbor[1]] < threshold_obstacle_value or neighbor not in goal_s)):
+                    and (grid[neighbor[0]][neighbor[1]] < threshold_obstacle_value or neighbor in goal_s)):
 
                 cost_between_current_and_neighbor = dist_between(current, neighbor)
 
