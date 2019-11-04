@@ -397,7 +397,8 @@ class Stilman2005Behavior(BaselineBehavior):
             branch.append(branch[-1].parent)
         return branch
 
-    def __actions_branch_to_path(self, actions_branch):
+    @staticmethod
+    def __actions_branch_to_path(actions_branch):
         raise NotImplementedError()
 
 
