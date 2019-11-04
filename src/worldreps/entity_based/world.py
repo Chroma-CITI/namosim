@@ -289,6 +289,7 @@ class World:
             if self._has_not_ignored_entity_changed(entities_to_ignore, prev_entities, next_entities):
                 del self._social_topological_occupation_cost_grids[entities_to_ignore]
 
+        # TODO Make the connected components grids upgradable on demand
         for entities_to_ignore, grid in self._connected_components_grids.items():
             if self._has_not_ignored_entity_changed(entities_to_ignore, prev_entities, next_entities):
                 del self._connected_components_grids[entities_to_ignore]
@@ -327,8 +328,16 @@ class World:
     def get_connected_components_grid(self, entities_to_ignore):
         self._update_dd()
         if entities_to_ignore not in self._connected_components_grids:
-            self._connected_components_grids[entities_to_ignore] = ConnectedComponentsGrid()
-        return self._connected_components_grids[entities_to_ignore].get_grid(self)
+            self._connected_components_grids[entities_to_ignore] = ConnectedComponentsGrid(
+                self.get_binary_inflated_occupancy_grid(entities_to_ignore))
+        return self._connected_components_grids[entities_to_ignore].grid
+
+    def get_connected_components(self, entities_to_ignore):
+        self._update_dd()
+        if entities_to_ignore not in self._connected_components_grids:
+            self._connected_components_grids[entities_to_ignore] = ConnectedComponentsGrid(
+                self.get_binary_inflated_occupancy_grid(entities_to_ignore))
+        return self._connected_components_grids[entities_to_ignore].components
 
     def get_entity_uid_from_name(self, name):
         for entity_uid, entity in self.entities.items():
