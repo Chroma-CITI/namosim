@@ -70,7 +70,8 @@ class Simulator:
                     self.agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
                         self.ref_world, agent_world, agent_uid, agent_navigation_goals, behavior_config)
                 elif agent_behavior_name == "stilman_2005_behavior":
-                    self.agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(self.ref_world, agent_world, agent_uid)
+                    self.agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
+                        self.ref_world, agent_world, agent_uid, agent_navigation_goals, behavior_config)
                 else:
                     raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
                                               "'{b_name}' that is not implemented yet."
