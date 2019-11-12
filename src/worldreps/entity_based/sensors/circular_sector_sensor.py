@@ -40,8 +40,8 @@ class CircularSectorSensor:
 
         return arc_after_trans_rot
 
-    def rotate(self, angle, entity_pose):
-        self.fov_polygon = affinity.rotate(self.fov_polygon, angle, (entity_pose[0], entity_pose[1]))
+    def rotate(self, angle, rot_center='centroid'):
+        self.fov_polygon = affinity.rotate(self.fov_polygon, angle, rot_center)
 
     def translate(self, xoff, yoff):
         self.fov_polygon = affinity.translate(self.fov_polygon, xoff, yoff)
