@@ -176,3 +176,19 @@ class Entity:
         self.discrete_inflated_cells_set = discrete_inflated_cells_set
         self._is_discrete_cell_set_valid = True
         self._is_discrete_inflated_cell_set_valid = True
+
+    def intersects(self, entities):
+        for entity in entities:
+            if self.polygon.intersects(entity.polygon):
+                return True
+        return False
+
+    def discrete_intersects(self, grid, dd, intersection_threshold=1):
+        for cell in self.get_discrete_cells_set(dd):
+            if grid[cell[0]][cell[1]] >= intersection_threshold:
+                return True
+        return False
+
+    def light_copy(self):
+        return Entity(name=self.name, polygon=copy.deepcopy(self.polygon), pose=self.pose,
+                      full_geometry_acquired=self.full_geometry_acquired, uid=self.uid)
