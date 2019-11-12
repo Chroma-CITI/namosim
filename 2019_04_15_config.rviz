@@ -6,10 +6,10 @@ Panels:
       Expanded:
         - /Global Options1
         - /Simulator Knowledge1/Namespaces1
-        - /Robot Knowledge1
         - /Robot Knowledge1/Namespaces1
+        - /Robot Simulated Costmap1
+        - /Robot Simulated Actions1
         - /Robot Simulated Actions1/Namespaces1
-        - /Social Costmap1
       Splitter Ratio: 0.606060624
     Tree Height: 774
   - Class: rviz/Selection
@@ -75,7 +75,7 @@ Visualization Manager:
       Value: true
     - Alpha: 0.5
       Class: rviz/Map
-      Color Scheme: map
+      Color Scheme: costmap
       Draw Behind: false
       Enabled: false
       Name: Sim Costmap
@@ -87,12 +87,12 @@ Visualization Manager:
       Class: rviz/Map
       Color Scheme: costmap
       Draw Behind: false
-      Enabled: true
+      Enabled: false
       Name: Robot Costmap
       Topic: /robot/costmap
       Unreliable: false
       Use Timestamp: false
-      Value: true
+      Value: false
     - Alpha: 0.699999988
       Class: rviz/Map
       Color Scheme: costmap
@@ -145,7 +145,14 @@ Visualization Manager:
       Marker Topic: /robot/sim
       Name: Robot Simulated Actions
       Namespaces:
-        {}
+        /blocking_areas/init: true
+        /blocking_areas/target: true
+        /diameter_inflated_polygon/init: true
+        /diameter_inflated_polygon/target: true
+        /init/obstacle/polygon: true
+        /init/robot/polygon: true
+        /target/obstacle/polygon: true
+        /target/robot/polygon: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -291,7 +298,7 @@ Visualization Manager:
       Marker Topic: /robot/goal
       Name: Goal
       Namespaces:
-        {}
+        /polygon: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -356,11 +363,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Scale: 146.649704
+      Scale: 96.4629364
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 0.535799861
-      Y: 0.269466519
+      X: 0.238433585
+      Y: -0.611633956
     Saved: ~
 Window Geometry:
   Displays:
