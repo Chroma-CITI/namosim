@@ -1,9 +1,10 @@
 from math import ceil
 import numpy as np
-from src.utils import utils
-
+import copy
 import shapely.affinity as affinity
 from shapely.geometry import Polygon
+
+from src.utils import utils
 
 
 class Entity:
@@ -75,22 +76,24 @@ class Entity:
         self._is_discrete_inflated_polygon_valid = False
         self._is_discrete_cell_set_valid = False
         self._is_discrete_inflated_cell_set_valid = False
+        return self
 
-    def rotate(self, angle):
+    def rotate(self, angle, rot_center='centroid'):
         # May be improved for cases with modulo 90-degrees rotations with specific update of discrete_polygon.
-        self.polygon = affinity.rotate(self.polygon, angle, 'centroid')
-        self.pose[2] = (self.pose[2] + angle) % 360
+        self.polygon = affinity.rotate(self.polygon, angle, origin=rot_center)
+        self.pose = (self.pose[0], self.pose[1], (self.pose[2] + angle) % 360)
 
         self._is_inflated_polygon_valid = False
         self._is_discrete_polygon_valid = False
         self._is_discrete_inflated_polygon_valid = False
         self._is_discrete_cell_set_valid = False
         self._is_discrete_inflated_cell_set_valid = False
+        return self
 
     def translate(self, xoff, yoff, res):
         # May be improved for cases where the translation is equal to a multiple of the resolution
         self.polygon = affinity.translate(self.polygon, xoff, yoff)
-        self.pose[0], self.pose[1] = list(self.polygon.centroid.coords)[0][0], list(self.polygon.centroid.coords)[0][1]
+        self.pose = (list(self.polygon.centroid.coords)[0][0], list(self.polygon.centroid.coords)[0][1], self.pose[2])
 
         self._is_inflated_polygon_valid = False
         if (xoff / res != 0.0) or (yoff / res != 0.0):
@@ -98,6 +101,7 @@ class Entity:
             self._is_discrete_inflated_polygon_valid = False
         self._is_discrete_cell_set_valid = False
         self._is_discrete_inflated_cell_set_valid = False
+        return self
 
     def _inflate_polygon(self, dd):
         if dd.inflation_radius == 0.0:
