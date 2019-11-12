@@ -487,6 +487,32 @@ class RosPublisher(with_metaclass(Singleton)):
                                   self.entities_z_index, self.border_width)])
         self.publish("/robot/sim", marker_array)
 
+    def publish_blocking_areas(self, init_blocking_areas, target_blocking_areas):
+        init_blocking_areas_markers = []
+        for i in range(len(init_blocking_areas)):
+            init_blocking_areas_markers.append(polygon_to_triangle_list(
+                init_blocking_areas[i], "/blocking_areas/init", i, self.frame_id,
+                self.init_blocking_areas_color, self.entities_z_index))
+
+        target_blocking_areas_markers = []
+        for i in range(len(target_blocking_areas)):
+            target_blocking_areas_markers.append(polygon_to_triangle_list(
+                target_blocking_areas[i], "/blocking_areas/target", i, self.frame_id,
+                self.target_blocking_areas_color, self.entities_z_index))
+
+        marker_array = MarkerArray(markers=init_blocking_areas_markers + target_blocking_areas_markers)
+        self.publish("/robot/sim", marker_array)
+
+    def publish_diameter_inflated_polygons(self, init_entity_inflated_polygon, target_entity_inflated_polygon):
+        marker_array = MarkerArray(markers=[
+            polygon_to_line_strip(init_entity_inflated_polygon, "/diameter_inflated_polygon/init", 0, self.frame_id,
+                                  self.init_diameter_inflated_polygon_color,
+                                  self.entities_z_index, self.border_width / 2.),
+            polygon_to_line_strip(target_entity_inflated_polygon, "/diameter_inflated_polygon/target", 0, self.frame_id,
+                                  self.target_diameter_inflated_polygon_color,
+                                  self.entities_z_index, self.border_width / 2.)])
+        self.publish("/robot/sim", marker_array)
+
     def publish_min_max_inflated(self, min_inflated_polygon, max_inflated_polygon):
         marker_array = MarkerArray(markers=[
             polygon_to_line_strip(min_inflated_polygon, "/min_inflated_polygon", 0, self.frame_id,
