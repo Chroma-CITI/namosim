@@ -31,6 +31,25 @@ def two_way_multi_goal_a_star(grid, start_pose, intermediate_cells_and_poses, go
     return real_c0_path, real_c1_path
 
 
+def multi_goal_a_star_real_path(grid, start_pose, goal_poses_set, res, grid_pose, reverse=True,
+                                restrict_4_neighbors=True, threshold_obstacle_value=1):
+    start_cell = utils.real_to_grid(start_pose[0], start_pose[1], res, grid_pose)
+    goal_cell_to_goal_pose = dict()
+    for goal_pose in goal_poses_set:
+        goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], res, grid_pose)
+        goal_cell_to_goal_pose[goal_cell] = goal_pose
+    goal_cell_to_cost_and_grid_path = multi_goal_astar(
+        grid, start_cell, set(goal_cell_to_goal_pose.keys()),
+        res, grid_pose, reverse, restrict_4_neighbors, threshold_obstacle_value)
+
+    goal_pose_to_cost_and_real_path = dict()
+    for goal_cell, (cost, grid_path) in goal_cell_to_cost_and_grid_path.items():
+        goal_pose = goal_cell_to_goal_pose[goal_cell]
+        goal_pose_to_cost_and_real_path[goal_pose] = (cost, utils.grid_path_to_real_path(
+            grid_path, start_pose, goal_pose, res, grid_pose))
+    return goal_pose_to_cost_and_real_path
+
+
 def _multi_heuristic_cost_estimate(cur_cell, goal_cells):
     min_dist = float("inf")
     for goal_cell in goal_cells:
@@ -51,7 +70,8 @@ def _shortest_path(start, end, came_from, reverse):
     return path
 
 
-def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, restrict_4_neighbors=True, threshold_obstacle_value=1):
+def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, restrict_4_neighbors=True,
+                     threshold_obstacle_value=1, break_at_first_goal_found=False):
     rp = RosPublisher()
 
     # Acceptable transitions from current grid element to neighbors
