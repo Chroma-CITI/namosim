@@ -104,11 +104,12 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return None
 
-    def _rch(self, avoid_list, prev_list, x_f):
+    def _rch(self, w_t, avoid_list, prev_list, r_f):
         """
         Relaxed Constraint Heuristic (RCH)
         It is a navigation planner derived from A* that allows collisions with movable obstacles.
         It selects obstacles for _select_connect to displace.
+        :param w_t: state of the world at time t
         :param avoid_list: list of obstacle+free space component (o_i , c_i) pairs to avoid
         :param prev_list: list of previously visited free space components c_j
         :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
@@ -118,12 +119,14 @@ class Stilman2005Behavior(BaselineBehavior):
         TODO: - Add visualization of closed_set, open_queue, x_1 and x_2 as GridCells
               and self.connected_grid as OccupancyGrid.
         """
-        r_t = self._robot.pose
-        x_t = utils.real_to_grid(r_t[0], r_t[1], self._world.dd.res, self._world.dd.grid_pose)
+        r_t = w_t.entities[self._robot_uid].pose
+        x_t = utils.real_to_grid(r_t[0], r_t[1], w_t.dd.res, w_t.dd.grid_pose)
+        x_f = utils.real_to_grid(r_f[0], r_f[1], w_t.dd.res, w_t.dd.grid_pose)
         x_i_to_data = {x_t: CellData(g=0.0)}
 
         closed_set = set()
-        c_0 = self.connected_grid[x_t[0]][x_t[1]]
+        binary_inflated_grid = w_t.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
+        c_0 = binary_inflated_grid[x_t[0]][x_t[1]]
         if c_0 >= 0:
             raise ValueError("Initial pose cell ({x}, {y}) is not in robot configuration space!".format(
                 x=x_t[0], y=x_t[1]
@@ -144,15 +147,15 @@ class Stilman2005Behavior(BaselineBehavior):
 
             for x_2 in self.__adjacent(x_1):
                 g_x_1 = x_i_to_data[x_1].g
-                g_x_2 = self.__g(x_2, g_x_1)
+                g_x_2 = self.__g(x_1, x_2, g_x_1)
                 x_i_to_data[x_2] = CellData(g_x_2)
-                f_x_2 = self.__f(x_2, g_x_2)
+                f_x_2 = self.__f(x_2, g_x_2, x_f)
 
                 if c_f != c_0:
                     self.__enqueue(open_queue, x_2, f_x_2, o_f, c_f)
                     continue
 
-                x_2_in_c_r_free = self.grid[x_2[0]][x_2[1]] == 0
+                x_2_in_c_r_free = binary_inflated_grid[x_2[0]][x_2[1]] == 0
                 if o_f != 0 and x_2_in_c_r_free:
                     self.__enqueue(open_queue, x_2, f_x_2, o_f, c_0)
 
@@ -163,7 +166,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 if o_f != 0 and r_exc_contained_in_o_f:
                     self.__enqueue(open_queue, x_2, f_x_2, o_f, c_0)
 
-                c_i = self.connected_grid[x_2[0]][x_2[1]]
+                c_i = binary_inflated_grid[x_2[0]][x_2[1]]
                 c_i_is_valid_component = c_i <= -1
                 if o_f != 0 and c_i_is_valid_component and c_i not in prev_list and (o_f, c_i) not in avoid_list:
                     self.__enqueue(open_queue, x_2, f_x_2, o_f, c_i)
