@@ -83,6 +83,7 @@ def costmap_to_grid_map(costmap, dd):
 
     return grid_map
 
+
 def grid_cells_to_ros_cells(grid_cells, res, grid_pose):
     ros_cells = init_grid_cells(res)
     for cell in grid_cells:
@@ -377,10 +378,10 @@ class RosPublisher(with_metaclass(Singleton)):
                     self.text_color_on_filling, self.text_color_on_empty, self.entities_z_index,
                     self.border_width, self.text_height, add_border=False, add_text=False)
 
-                markers.append(polygon_to_line_strip(entity.s_fov_sensor.fov_polygon, "/robot/s_fov", 0,
+                markers.append(polygon_to_line_strip(entity.sensors[0].fov_polygon, "/robot/s_fov", 0,
                                                      self.frame_id, self.s_fov_border_color, self.fov_z_index,
                                                      self.fov_line_width))
-                markers.append(polygon_to_line_strip(entity.g_fov_sensor.fov_polygon, "/robot/g_fov", 0,
+                markers.append(polygon_to_line_strip(entity.sensors[1].fov_polygon, "/robot/g_fov", 0,
                                                      self.frame_id, self.g_fov_border_color, self.fov_z_index,
                                                      self.fov_line_width))
             if isinstance(entity, Obstacle):
