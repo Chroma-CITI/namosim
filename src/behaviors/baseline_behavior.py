@@ -1,5 +1,6 @@
 import abc
 import copy
+from decimal import Decimal
 
 from src.display.ros_publisher import RosPublisher
 from src.behaviors.behavior_report import BehaviorReport
@@ -15,6 +16,12 @@ class BaselineBehavior(object):
         self._robot_uid = robot_uid
         self._navigation_goals = navigation_goals
         self._behavior_config = behavior_config
+
+        decimal_res = Decimal(ref_world.dd.res).as_tuple()
+        precision_exponent = -len(decimal_res.digits) - decimal_res.exponent + 2
+
+        self.rounder = 1. * (10 ** precision_exponent)
+        self.r_tol = 1. * (10 ** -precision_exponent)
 
         self.__world = copy.deepcopy(self._initial_world)
         self._robot = self._world.entities[self._robot_uid]
