@@ -95,3 +95,14 @@ class Robot(Entity):
 
         side_intersection = direction_line.intersection(self.polygon).coords[1]
         return sqrt((side_intersection[0] - center[0]) ** 2 + (side_intersection[1] - center[1]) ** 2)
+
+    def light_copy(self):
+        return Robot(name=self.name,
+                     polygon=copy.deepcopy(self.polygon),
+                     pose=self.pose,
+                     full_geometry_acquired=self.full_geometry_acquired,
+                     sensors=copy.deepcopy(self.sensors),
+                     push_only_list=copy.copy(self.push_only_list),
+                     force_pushes_only=self.force_pushes_only,
+                     movable_whitelist=copy.copy(self.movable_whitelist),
+                     uid=self.uid)
