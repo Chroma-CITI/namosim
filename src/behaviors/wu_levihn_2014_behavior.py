@@ -3,13 +3,13 @@ import copy
 import time
 from shapely import affinity
 from shapely.ops import cascaded_union
-from shapely.geometry import Polygon, Point
-from shapely.errors import TopologicalError
+from shapely.geometry import Point
 
 from src.behaviors.algorithms.a_star import a_star_real_path
 from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
 from src.behaviors.algorithms.multi_goal_a_star import two_way_multi_goal_a_star
+from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, is_move_passing_over_pose
 
 from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
 from src.worldreps.entity_based.obstacle import Obstacle
@@ -48,7 +48,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
 
                 self._e_l, self._m_l = [], []
                 self._last_action_result = None
-                grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
+                grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
                 self._p_opt = Plan(
                     [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))])
                 self._rp.publish_p_opt(self._p_opt)
@@ -77,7 +77,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                         self._initial_world.add_entity(blocked_obstacle)
 
                 if not self._p_opt.is_valid(self._world, self._robot_uid) or not self._last_action_result:
-                    grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
+                    grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
 
                     self._rp.cleanup_p_opt()
                     self._p_opt = Plan(
@@ -153,7 +153,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
         self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
 
         for unit_translation, q_manip in obs.get_actions(self._world.dd, obs_is_push_only).items():
-            grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,))
+            grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
             c_1 = Path(a_star_real_path(grid, q_r, q_manip, self._world.dd.res, self._world.dd.grid_pose), o_uid=o_uid)
             self._rp.publish_c_1(c_1)
             if not c_1.has_infinite_cost():
@@ -174,12 +174,26 @@ class WuLevihn2014Behavior(BaselineBehavior):
 
                     self._rp.publish_sim(init_robot_polygon, obs.polygon, "/init")
 
-                    total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
-                        self._world, obs, [0.0, 0.0], unit_translation, q_manip, q_goal, c_1, init_robot_polygon)
+                    total_translation, is_step_success, q_sim, c_est, target_robot_polygon, target_obs_polygon =\
+                        self._sim_one_step(
+                            self._world, obs, [0.0, 0.0], unit_translation, q_manip, q_goal, c_1, init_robot_polygon)
+
+                    init_blocking_areas = None
 
                     while c_est <= self._p_opt.total_cost and is_step_success:
-                        if (self._check_new_opening(self._world, obs, target_obs_polygon, q_goal)
-                                and self._not_in_taboo(self._world.taboo_zones, target_obs_polygon)):
+                        if self._check_new_opening_activated:
+                            other_entities_polygons = [entity.polygon for entity in self._world.entities.values()
+                                                       if entity.uid != self._robot_uid and entity.uid != obs.uid]
+                            has_new_local_opening, init_blocking_areas = check_new_local_opening(
+                                obs.polygon, target_obs_polygon, other_entities_polygons,
+                                robot.min_inflation_radius * 2., init_blocking_areas)
+                            # Don't prevent full evaluation of plans when obstacle would pass over the goal
+                            moved_polygons = [init_robot_polygon, target_robot_polygon, obs.polygon, target_obs_polygon]
+                            move_passes_over_goal = is_move_passing_over_pose(moved_polygons, q_goal)
+                            is_it_worth_fully_evaluating = has_new_local_opening or move_passes_over_goal
+                        else:
+                            is_it_worth_fully_evaluating = True
+                        if is_it_worth_fully_evaluating:
 
                             world_copy.translate_entity(o_uid, total_translation)
                             # self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
@@ -193,7 +207,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                 c_2 = Path.line_path(q_manip, q_sim, weigth=self._manip_weight,
                                                      unit_translation=unit_translation, is_transfer=True, o_uid=o_uid)
                             self._rp.publish_c_2(c_2)
-                            world_copy_grid = world_copy.get_binary_inflated_occupancy_grid((self._robot_uid,))
+                            world_copy_grid = world_copy.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
                             c_3 = Path(a_star_real_path(world_copy_grid, q_sim, q_goal,
                                                         world_copy.dd.res, world_copy.dd.grid_pose),
                                        o_uid=o_uid)
@@ -211,9 +225,10 @@ class WuLevihn2014Behavior(BaselineBehavior):
                             # self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
 
                         # Increment one step
-                        total_translation, is_step_success, q_sim, c_est, target_obs_polygon = self._sim_one_step(
-                            self._world, obs, total_translation, unit_translation, q_manip, q_goal,
-                            c_1, init_robot_polygon)
+                        total_translation, is_step_success, q_sim, c_est, target_robot_polygon, target_obs_polygon =\
+                            self._sim_one_step(
+                                self._world, obs, total_translation, unit_translation, q_manip, q_goal,
+                                c_1, init_robot_polygon)
 
             self._rp.cleanup_eval_c1_c2_c3_sim_init_target()
         self._rp.cleanup_q_manips_for_obs()
@@ -237,7 +252,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
         c_est = c_1.phys_cost + np.linalg.norm(total_translation) * self._manip_weight + np.linalg.norm(
             [q_goal[0] - q_sim[0], q_goal[1] - q_sim[1]])
 
-        return total_translation, is_step_success, q_sim, c_est, target_obs_polygon
+        return total_translation, is_step_success, q_sim, c_est, target_robot_polygon, target_obs_polygon
 
     def _is_step_success(self, world, o_uid, init_robot_polygon, target_robot_polygon,
                          init_obs_polygon, target_obs_polygon):
@@ -249,55 +264,6 @@ class WuLevihn2014Behavior(BaselineBehavior):
                 if entity.polygon.intersects(robot_swept_area) or entity.polygon.intersects(obs_swept_area):
                     return False
         return True
-
-    # --- From original algorithm: check new local openings ---
-
-    def _check_new_opening(self, world, obs, target_obs_polygon, q_goal):
-        # TODO: DEBUG THIS METHOD, SEEMS NOT TO WORK PROPERLY !
-        #  - For this, add visualization of the blocking areas and other various polygons
-        if not self._check_new_opening_activated:
-            return True
-
-        init_inflated_obs_polygon = obs.polygon.buffer(2 * world.dd.inflation_radius)
-        target_inflated_robot_polygon = target_obs_polygon.buffer(2 * world.dd.inflation_radius)
-
-        # Our improvement over the original method: _check_new_opening does not prevent evaluation of plans where the
-        # obstacle would pass over the goal
-        if Point([q_goal[0], q_goal[1]]).intersects(
-                cascaded_union([init_inflated_obs_polygon, target_inflated_robot_polygon]).convex_hull):
-            return True
-
-        # Under the assumption that obstacles are convex polygons, there can only be one blocking area per entity
-        init_blocking_areas = dict()
-        target_blocking_areas = dict()
-
-        for entity_uid, entity in world.entities.items():
-            if entity_uid != self._robot_uid and entity_uid != obs.uid:
-                try:
-                    init_blocking_area = init_inflated_obs_polygon.intersection(entity.polygon)
-                    if isinstance(init_blocking_area, Polygon):
-                        init_blocking_areas[entity_uid] = init_blocking_area
-                except TopologicalError:
-                    pass
-                try:
-                    target_blocking_area = target_inflated_robot_polygon.intersection(entity.polygon)
-                    if isinstance(target_blocking_area, Polygon):
-                        target_blocking_areas[entity_uid] = target_blocking_area
-                except TopologicalError:
-                    pass  # There is no intersection...
-
-        for init_blocking_area in init_blocking_areas.values():
-            if self._check_still_blocked(init_blocking_area, target_blocking_areas):
-                continue
-            return True  # If even one blocking area is no longer blocked, return True
-        return False  # If no blocking areas has been unblocked, return False
-
-    def _check_still_blocked(self, init_blocking_area, target_blocking_areas):
-        for target_blocking_area in target_blocking_areas.values():
-            if init_blocking_area.intersects(target_blocking_area):
-                return True  # If area is still blocked, there is no local opening here, get next init
-        # If initial blocking area does not intersect with any of the target ones, then it is no longer blocked
-        return False
 
     # --- Method for ensuring that the object is not left in taboo zones ---
 
