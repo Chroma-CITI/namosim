@@ -20,6 +20,8 @@ from src.worldreps.occupation_based.social_topological_occupation_cost_grid impo
 from src.worldreps.occupation_based.connected_components_grid import ConnectedComponentsGrid
 from robot import Robot
 from taboo import Taboo
+from sensors.g_fov_sensor import GFOVSensor
+from sensors.s_fov_sensor import SFOVSensor
 
 
 class World:
@@ -128,18 +130,18 @@ class World:
                 pose[0], pose[1] = [list(polygon.centroid.coords)[0][0], list(polygon.centroid.coords)[0][1]]
 
             if entity_data["type"] == "robot":
-                sensors = entity_data["sensors"]
+                sensors_data = entity_data["sensors"]
+
+                g_fov_sensor = GFOVSensor(sensors_data["perfect_g_fov"]["max_radius"], sensors_data["perfect_g_fov"]["min_radius"], sensors_data["perfect_g_fov"]["opening_angle"], pose)
+                s_fov_sensor = SFOVSensor(sensors_data["perfect_s_fov"]["max_radius"], sensors_data["perfect_s_fov"]["min_radius"], sensors_data["perfect_s_fov"]["opening_angle"], pose)
+
+                sensors = [g_fov_sensor, s_fov_sensor]
 
                 new_robot = Robot(name=entity_data["name"],
                                   full_geometry_acquired=True,
                                   polygon=polygon,
-                                  pose=pose,
-                                  g_fov_max_radius=sensors["perfect_g_fov"]["max_radius"],
-                                  g_fov_min_radius=sensors["perfect_g_fov"]["min_radius"],
-                                  g_fov_opening_angle=sensors["perfect_g_fov"]["opening_angle"],
-                                  s_fov_max_radius=sensors["perfect_s_fov"]["max_radius"],
-                                  s_fov_min_radius=sensors["perfect_s_fov"]["min_radius"],
-                                  s_fov_opening_angle=sensors["perfect_s_fov"]["opening_angle"],
+                                  pose=tuple(pose),
+                                  sensors=sensors,
                                   push_only_list=entity_data["push_only_list"],
                                   force_pushes_only=entity_data["force_pushes_only"],
                                   movable_whitelist=entity_data["movable_whitelist"])
