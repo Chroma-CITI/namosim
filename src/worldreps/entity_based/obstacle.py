@@ -162,7 +162,8 @@ class Obstacle(Entity):
         min_inflated_polygon = self.polygon.buffer(fov_min_r)
         max_inflated_polygon = self.polygon.buffer(fov_max_r)
 
-        rp.publish_min_max_inflated(min_inflated_polygon, max_inflated_polygon)
+        from src.display.ros_publisher import RosPublisher
+        RosPublisher().publish_min_max_inflated(min_inflated_polygon, max_inflated_polygon)
 
         map_min_x, map_min_y = world.dd.grid_pose[0], world.dd.grid_pose[1]
 
