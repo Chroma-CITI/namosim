@@ -1,6 +1,7 @@
 from src.worldreps.entity_based.entity import Entity
 from src.utils import utils
 import numpy as np
+import copy
 
 import math
 from math import floor, ceil
@@ -10,7 +11,7 @@ from shapely.geometry import Point
 class Obstacle(Entity):
 
     def __init__(self, name, polygon, pose, full_geometry_acquired, type_in, uid=0):
-        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, uid)
+        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, uid=uid)
         self.type = type_in
 
         self.actions = dict()
@@ -22,6 +23,7 @@ class Obstacle(Entity):
     def set_polygon(self, polygon, dd):
         Entity.set_polygon(self, polygon, dd)
         self._is_actions_valid = False
+        return self
 
     def get_actions(self, dd, pushes_only):
         if not self._is_actions_valid:
@@ -38,10 +40,12 @@ class Obstacle(Entity):
     def translate(self, xoff, yoff, res):
         Entity.translate(self, xoff, yoff, res)
         self._is_actions_valid = False
+        return self
 
-    def rotate(self, angle):
-        Entity.rotate(self, angle)
+    def rotate(self, angle, rot_center='centroid'):
+        Entity.rotate(self, angle, rot_center)
         self._is_actions_valid = False
+        return self
 
     @staticmethod
     def _isclose(a, b, abs_tol=1e-06):
@@ -253,3 +257,7 @@ class Obstacle(Entity):
             return utils.yaw_from_direction(direction)
         else:
             return None
+
+    def light_copy(self):
+        return Obstacle(self.name, copy.deepcopy(self.polygon), self.pose, self.full_geometry_acquired,
+                        type_in=self.type, uid=self.uid)
