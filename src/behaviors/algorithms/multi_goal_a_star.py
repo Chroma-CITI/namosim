@@ -119,7 +119,10 @@ def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, res
 
         close_set.add(current)
         if current in to_evaluate_set:
-            to_evaluate_set.remove(current)
+            if break_at_first_goal_found:
+                break
+            else:
+                to_evaluate_set.remove(current)
         rp.publish_multigoal_a_star_close_set(close_set, res, grid_pose)
 
         # For each neighbor of current node in the defined neighborhood
@@ -154,6 +157,7 @@ def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, res
     for goal_cell in goal_s:
         try:
             paths[goal_cell] = (gscore[goal_cell], _shortest_path(start_cell, goal_cell, came_from, reverse))
+            rp.publish_grid_path(paths[goal_cell][1], res, grid_pose)
         except KeyError:
-            paths[goal_cell] = (float("inf"), [])
+            pass
     return paths
