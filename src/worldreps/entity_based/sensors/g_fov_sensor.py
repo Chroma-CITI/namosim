@@ -16,7 +16,7 @@ class GFOVSensor(CircularSectorSensor):
         entities_in_fov = dict()
 
         for entity_uid, entity in world.entities.items():
-            if entity.polygon.intersects(self.fov_polygon):
+            if entity_uid != self.parent_uid and entity.polygon.intersects(self.fov_polygon):
                 if entity.polygon.within(self.fov_polygon):
                     entity_visible_polygon = entity.polygon
                     full_geometry_acquired = True
@@ -43,7 +43,7 @@ class GFOVSensor(CircularSectorSensor):
         reference_entities = self._get_entities_in_fov_seethrough(reference_world)
 
         for entity_uid, reference_entity in reference_entities.items():
-            if isinstance(reference_entity, Obstacle):
+            if isinstance(reference_entity, Obstacle) and entity_uid != self.parent_uid:
                 # If entity is already registered, update it
                 try:
                     target_entity = target_world.entities[entity_uid]
