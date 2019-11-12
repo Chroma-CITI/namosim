@@ -24,6 +24,13 @@ from src.worldreps.entity_based.obstacle import Obstacle
 # Conversion methods
 
 
+def hex_to_rgba(hex_string):
+    hex_string = hex_string.lstrip('#')
+    argb_tuple = tuple(int(hex_string[i:i + 2], 16) / 255. for i in (0, 2, 4, 6))
+    rgba_tuple = (argb_tuple[1], argb_tuple[2], argb_tuple[3], argb_tuple[0])
+    return rgba_tuple
+
+
 def init_header():
     return Header(stamp=rospy.Time.now(), frame_id="map")
 
@@ -303,28 +310,30 @@ class RosPublisher(with_metaclass(Singleton)):
 
         self.frame_id = "/map"
 
-        self.robot_color = ColorRGBA(0.427, 0.62, 0.922, 1.0)  # HEX 6d9eebff
-        self.movable_obstacle_color = ColorRGBA(0.945, 0.761, 0.196, 1.0)  # HEX f1c232ff
-        # self.unmovable_obstacle_color = ColorRGBA(0.471, 0.247, 0.016, 1.0)  # HEX 783f04ff
-        self.unmovable_obstacle_color = ColorRGBA(0.0, 0.0, 0.0, 1.0)  # HEX ffffffff
-        self.unknown_obstacle_color = ColorRGBA(0.557, 0.486, 0.765, 1.0)  # HEX 8e7cc3ff
-        self.taboo_color = ColorRGBA(0.918, 0.6, 0.6, 0.7)  # HEX ea9999ff
+        self.robot_color = ColorRGBA(*hex_to_rgba("#ff6d9eeb"))
+        self.movable_obstacle_color = ColorRGBA(*hex_to_rgba("#fff1c232"))
+        self.unmovable_obstacle_color = ColorRGBA(*hex_to_rgba("#ff000000"))
+        self.unknown_obstacle_color = ColorRGBA(*hex_to_rgba("#ff8e7cc3"))
+        self.taboo_color = ColorRGBA(*hex_to_rgba("#ffea9999"))
 
-        self.robot_border_color = ColorRGBA(0.067, 0.333, 0.8, 1.0)  # HEX 1155ccff
-        self.movable_obstacle_border_color = ColorRGBA(0.498, 0.376, 0.0, 1.0)  # HEX 7f6000
-        self.unmovable_obstacle_border_color = ColorRGBA(0.302, 0.157, 0.008, 1.0)  # HEX 4d2802
-        self.unknown_obstacle_border_color = ColorRGBA(0.208, 0.11, 0.459, 1.0)  # HEX 351c75ff
-        self.taboo_border_color = ColorRGBA(0.8, 0.0, 0.0, 0.7)  # HEX cc0000ff
-        # self.g_fov_border_color = ColorRGBA(0.067, 0.333, 0.8, 1.0)  # HEX 1155ccff
-        self.g_fov_border_color = ColorRGBA(0.427, 0.62, 0.922, 1.0)  # HEX 6d9eebff
-        # self.s_fov_border_color = self.g_fov_border_color
-        self.s_fov_border_color = ColorRGBA(0.416, 0.659, 0.31, 1.0)  # HEX 6aa84fff
+        self.robot_border_color = ColorRGBA(*hex_to_rgba("#ff1155cc"))
+        self.movable_obstacle_border_color = ColorRGBA(*hex_to_rgba("#ff7f6000"))
+        self.unmovable_obstacle_border_color = ColorRGBA(*hex_to_rgba("#ff4d2802"))
+        self.unknown_obstacle_border_color = ColorRGBA(*hex_to_rgba("#ff351c75"))
+        self.taboo_border_color = ColorRGBA(*hex_to_rgba("#ffcc0000"))
+        self.g_fov_border_color = ColorRGBA(*hex_to_rgba("#ff6d9eeb"))
+        self.s_fov_border_color = ColorRGBA(*hex_to_rgba("#ff6aa84f"))
 
-        self.min_inflated_polygon_border_color = ColorRGBA(0.4, 0.4, 0.4, 1.0)  # HEX 666666ff
-        self.max_inflated_polygon_border_color = ColorRGBA(0.4, 0.4, 0.4, 1.0)  # HEX 666666ff
+        self.min_inflated_polygon_border_color = ColorRGBA(*hex_to_rgba("#ff666666"))
+        self.max_inflated_polygon_border_color = ColorRGBA(*hex_to_rgba("#ff666666"))
 
-        self.text_color_on_filling = ColorRGBA(1.0, 1.0, 1.0, 1.0)  # HEX ffffffff
-        self.text_color_on_empty = ColorRGBA(0.0, 0.0, 0.0, 1.0)  # HEX 000000ff
+        self.text_color_on_filling = ColorRGBA(*hex_to_rgba("#ffffffff"))
+        self.text_color_on_empty = ColorRGBA(*hex_to_rgba("#ff000000"))
+
+        self.init_blocking_areas_color = ColorRGBA(*hex_to_rgba("#aafd5454"))
+        self.target_blocking_areas_color = ColorRGBA(*hex_to_rgba("#aac85ab7"))
+        self.init_diameter_inflated_polygon_color = ColorRGBA(*hex_to_rgba("#aa88dc7a"))
+        self.target_diameter_inflated_polygon_color = ColorRGBA(*hex_to_rgba("#aa24641a"))
 
         self.fov_z_index = -0.04
         self.entities_z_index = -0.05
