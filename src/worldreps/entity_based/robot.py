@@ -1,24 +1,22 @@
 from src.worldreps.entity_based.entity import Entity
-from src.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
-from src.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
 from src.utils import utils
 
 from math import sqrt
 import numpy as np
-from shapely.geometry import LineString, Point
+import copy
+from shapely.geometry import LineString
 
 
 class Robot(Entity):
 
-    def __init__(self, name, full_geometry_acquired, polygon, pose,
-                 g_fov_max_radius, g_fov_min_radius, g_fov_opening_angle,
-                 s_fov_max_radius, s_fov_min_radius, s_fov_opening_angle,
-                 push_only_list, force_pushes_only, movable_whitelist):
+    def __init__(self, name, full_geometry_acquired, polygon, pose, sensors,
+                 push_only_list, force_pushes_only, movable_whitelist, uid=0):
         polygon = polygon
-        Entity.__init__(self, name, polygon, pose, full_geometry_acquired)
+        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, uid=uid)
 
-        self.g_fov_sensor = GFOVSensor(g_fov_max_radius, g_fov_min_radius, g_fov_opening_angle, self.pose)
-        self.s_fov_sensor = SFOVSensor(s_fov_max_radius, s_fov_min_radius, s_fov_opening_angle, self.pose)
+        self.sensors = sensors
+        for sensor in sensors:
+            sensor.parent_uid = self.uid
 
         self.push_only_list = push_only_list
         self.force_pushes_only = force_pushes_only
@@ -27,15 +25,18 @@ class Robot(Entity):
         self.min_inflation_radius = self.compute_inflation_radius()
         self.dist_between_robot_front_and_center = self.compute_dist_between_robot_front_and_center()
 
-    def rotate(self, angle):
-        Entity.rotate(self, angle)
-        self.g_fov_sensor.rotate(angle, self.pose)
-        self.s_fov_sensor.rotate(angle, self.pose)
+    def rotate(self, angle, rot_center='centroid'):
+        Entity.rotate(self, angle, rot_center)
+        for sensor in self.sensors:
+            pass
+            sensor.rotate(angle, rot_center=(self.pose[0], self.pose[1]))
+        return self
 
     def translate(self, xoff, yoff, res):
         Entity.translate(self, xoff, yoff, res)
-        self.g_fov_sensor.translate(xoff, yoff)
-        self.s_fov_sensor.translate(xoff, yoff)
+        for sensor in self.sensors:
+            sensor.translate(xoff, yoff)
+        return self
 
     def update_world_from_sensors(self, reference_world, target_world):
         # Update robot pose in target world
@@ -46,8 +47,8 @@ class Robot(Entity):
         target_world.rotate_entity(self.uid, rot)
 
         # Update other entities in target world
-        self.g_fov_sensor.update_from_fov(reference_world, target_world)
-        self.s_fov_sensor.update_from_fov(reference_world, target_world)
+        for sensor in self.sensors:
+            sensor.update_from_fov(reference_world, target_world)
 
     def deduce_movability(self, obstacle_type):
         if obstacle_type == "unknown":
