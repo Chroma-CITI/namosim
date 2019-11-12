@@ -53,7 +53,7 @@ def world_to_costmap(world, robot_uid):
     costmap.info.origin.position.x = world.dd.grid_pose[0]
     costmap.info.origin.position.y = world.dd.grid_pose[1]
     costmap.info.origin.position.z = -0.1
-    costmap.data = np.fliplr(np.rot90(world_grid, 3)).flatten().astype(np.int8).tolist()
+    costmap.data = np.fliplr(np.rot90(world_grid.grid, 3)).flatten().astype(np.int8).tolist()
 
     return costmap
 
