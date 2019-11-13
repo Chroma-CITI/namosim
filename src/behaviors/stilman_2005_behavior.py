@@ -9,20 +9,17 @@ from shapely import affinity
 
 from baseline_behavior import BaselineBehavior
 from src.behaviors.algorithms.a_star import a_star_real_path
-from src.behaviors.plan.plan import Plan
 from src.behaviors.plan.path import Path
+from src.behaviors.plan.plan import Plan
 from src.behaviors.algorithms.multi_goal_a_star import multi_goal_a_star_real_path, multi_goal_astar
 from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, is_move_passing_over_pose
 
-from src.display.ros_publisher import RosPublisher
-
 
 class Stilman2005Behavior(BaselineBehavior):
     """
     TODO (as documented on 2019-09-12):
-      - Finish up manip_search method by completing tasks written in-place (about 1-days work)
       - Add visualization to all methods (about 1-days work) and try to have them all run
       - Debug and integrate the algorithm into the bigger frame of the simulator (1 to 2 days)
     """
@@ -69,38 +66,45 @@ class Stilman2005Behavior(BaselineBehavior):
     def think(self):
         pass
 
-    def _select_connect(self, w_t, prev_list, x_f):
+    def _select_connect(self, w_t, prev_list, r_f):
         """
-
-        :param w_t:
-        :param prev_list:
-        :param x_f:
-        :return:
+        High Level Planner _select_connect (SC).
+        It makes use of _rch and _manip_search in a greedy heuristic search with backtracking.
+        It backtracks locally when the object selected by _rch cannot be moved to merge the selected c_1 \in c_free.
+        It backtracks globally when all the paths identified by _rch from c_1 are unsuccessful.
+        SC calls _find_path to determine a transit path from r_t to a contact point, r_t_plus_1 . The existence of the
+        path is guaranteed by the choice of contacts in Manip-Search.
+        :param w_t: state of the world at time t
+        :param prev_list: list of previously visited free space components c_j
+        :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
+        :return: None to backtrack, current partial plan otherwise.
         """
         r_t = w_t.entities[self._robot.uid].pose
         x_t = utils.real_to_grid(r_t[0], r_t[1], w_t.dd.res, w_t.dd.grid_pose)
 
         avoid_list = set()
 
-        simple_path_to_goal = self._find_path(w_t, x_t, x_f)
+        simple_path_to_goal = self._find_path(w_t, x_t, r_f)
         if simple_path_to_goal:
             # If the goal is in the same free space component as the robot in simulated w_t
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
-            return simple_path_to_goal
+            return Plan(simple_path_to_goal)
 
-        o_1, c_1 = self._rch(avoid_list, prev_list, x_f)
+        o_1, c_1 = self._rch(w_t, avoid_list, prev_list, r_f)
         while (o_1, c_1) != (None, None):
-            w_t_plus_2, tho_n, tho_m, cost = self._manip_search(w_t, o_1, c_1)
+            c_1_cells_set = w_t.get_connected_components_grid((self._robot_uid,)).components[c_1]
+            w_t_plus_2, tho_n, tho_m, cost = self._manip_search(w_t, o_1, c_1_cells_set)
 
             if tho_m is not None:
-                future_plan = self._select_connect(w_t_plus_2, prev_list.append(c_1), x_f)
+                future_plan = self._select_connect(w_t_plus_2, prev_list.append(c_1), r_f)
                 if future_plan is not None:
-                    # tho_n = self._find_path(w_t, x_t, tho_m[0])  # Line comes from original algorithm, but does not make sense ?
-                    return [tho_n, tho_m].append(future_plan)
+                    # Following line comes from original algorithm, but does not make sense ?
+                    # tho_n = self._find_path(w_t, x_t, tho_m[0])
+                    return Plan([tho_n, tho_m]).append(future_plan)
 
             avoid_list.add((o_1, c_1))
 
-            o_1, c_1 = self._rch(avoid_list, prev_list, x_f)
+            o_1, c_1 = self._rch(w_t, avoid_list, prev_list, r_f)
 
         return None
 
@@ -113,7 +117,7 @@ class Stilman2005Behavior(BaselineBehavior):
         :param avoid_list: list of obstacle+free space component (o_i , c_i) pairs to avoid
         :param prev_list: list of previously visited free space components c_j
         :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
-        :return: the pair (o_1 , c_1) of the first obstacle in the path, and the first component of free space.
+        :return: the pair (o_1 , c_1) of the first obstacle in the path, and the first component id of free space.
         Returns (None, None) if no path exists.
 
         TODO: - Add visualization of closed_set, open_queue, x_1 and x_2 as GridCells
@@ -125,9 +129,9 @@ class Stilman2005Behavior(BaselineBehavior):
         x_i_to_data = {x_t: CellData(g=0.0)}
 
         closed_set = set()
-        binary_inflated_grid = w_t.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
-        c_0 = binary_inflated_grid[x_t[0]][x_t[1]]
-        if c_0 >= 0:
+        connected_components_grid = w_t.get_connected_components_grid((self._robot_uid,)).grid
+        c_0 = connected_components_grid[x_t[0]][x_t[1]]
+        if c_0 <= 0:
             raise ValueError("Initial pose cell ({x}, {y}) is not in robot configuration space!".format(
                 x=x_t[0], y=x_t[1]
             ))
@@ -155,7 +159,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     self.__enqueue(open_queue, x_2, f_x_2, o_f, c_f)
                     continue
 
-                x_2_in_c_r_free = binary_inflated_grid[x_2[0]][x_2[1]] == 0
+                x_2_in_c_r_free = connected_components_grid[x_2[0]][x_2[1]] <= 0
                 if o_f != 0 and x_2_in_c_r_free:
                     self.__enqueue(open_queue, x_2, f_x_2, o_f, c_0)
 
@@ -166,7 +170,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 if o_f != 0 and r_exc_contained_in_o_f:
                     self.__enqueue(open_queue, x_2, f_x_2, o_f, c_0)
 
-                c_i = binary_inflated_grid[x_2[0]][x_2[1]]
+                c_i = connected_components_grid[x_2[0]][x_2[1]]
                 c_i_is_valid_component = c_i <= -1
                 if o_f != 0 and c_i_is_valid_component and c_i not in prev_list and (o_f, c_i) not in avoid_list:
                     self.__enqueue(open_queue, x_2, f_x_2, o_f, c_i)
@@ -321,7 +325,8 @@ class Stilman2005Behavior(BaselineBehavior):
                                     {obstacle.uid: obstacle}, {new_obstacle.uid: new_obstacle})
                                 self._rp.publish_robot_sim_costmap(w_t_plus_2, self._robot_uid)
                                 is_there_opening_to_c_1 = self._is_there_opening_to_c_1(
-                                    binary_inflated_occupancy_grid.grid, dd.res, dd.grid_pose, robot_cell, c_1_cells_set)
+                                    binary_inflated_occupancy_grid.grid,
+                                    dd.res, dd.grid_pose, robot_cell, c_1_cells_set)
                                 binary_inflated_occupancy_grid.update_buffered_entities(
                                     {new_obstacle.uid: new_obstacle}, {obstacle.uid: obstacle})
                             else:
@@ -347,7 +352,6 @@ class Stilman2005Behavior(BaselineBehavior):
                                                         else cur_action_leaves_to_explore[0].action_tree_node)
                 best_in_successful_action_tree_nodes = (None if not successful_action_tree_nodes
                                                         else successful_action_tree_nodes[0].action_tree_node)
-
 
             # TODO: Add combination function that applies social cost
             if best_in_successful_action_tree_nodes is not None:
@@ -397,22 +401,15 @@ class Stilman2005Behavior(BaselineBehavior):
         :return: True if a path is found, False otherwise
         """
         if c_1_cells_set:
-            s_t = time.time()
             path_to_cell_in_c_1 = multi_goal_astar(
                 inflated_grid, robot_cell, c_1_cells_set, res, grid_pose, break_at_first_goal_found=True)
-            dur = time.time() - s_t
-            if path_to_cell_in_c_1:
-                return True
-            else:
-                return False
-
+            return path_to_cell_in_c_1
         else:
             raise ValueError("c_1_cells_set should never be empty !")
 
-    def _find_path(self, w_t, x_t, x_f):
-        # TODO Fix this call so that we give proper poses, not cells...
+    def _find_path(self, w_t, r_t, r_f):
         return a_star_real_path(w_t.get_binary_inflated_occupancy_grid.get_grid(self._robot.uid),
-                                x_t, x_f, w_t.dd.res,
+                                r_t, r_f, w_t.dd.res,
                                 w_t.dd.grid_pose, restrict_4_neighbors=False)
 
     @staticmethod
@@ -431,8 +428,8 @@ class Stilman2005Behavior(BaselineBehavior):
     def __e(self, x_i, x_j):
         # TODO Add proper computation of rotation energy and use it in return value
         translation_energy = self.trans_force * np.linalg.norm((x_j[0] - x_i[0], x_j[1] - x_i[1]))
-        rotation_energy = self.rot_force * (x_j[2] - x_i[2])
-        return translation_energy  #+ rotation_energy
+        # rotation_energy = self.rot_force * (x_j[2] - x_i[2])
+        return translation_energy  # + rotation_energy
 
     @staticmethod
     def __remove_first(queue):
@@ -460,14 +457,14 @@ class Stilman2005Behavior(BaselineBehavior):
             current_robot_cells.add((cell[0] + discrete_translation[0], cell[1] + discrete_translation[1]))
         return current_robot_cells
 
-    def __robot_exc_contained_in_obs(self, x_cur):
+    def __robot_exc_contained_in_obs(self, x_cur, grid):
         """
         If x_cur cell is contained only by one obstacle o_i, returns o_i.
         If contained by no obstacle or by more than one, returns None.
         :param x_cur: cell coordinates as integer tuple (x, y)
         :return: obstacle uid or None
         """
-        if self.grid[x_cur[0]][x_cur[1]] == 0:
+        if grid[x_cur[0]][x_cur[1]] == 0:
             return None
         o_i = None
         count = 0
@@ -532,27 +529,6 @@ class HeapQueueElement:
 class CellData:
     def __init__(self, g):
         self.g = g
-
-
-# class Action:
-#     def __init__(self):
-#         pass
-#
-#
-# class Translation(Action):
-#     def __init__(self, translation_vector):
-#         translation_linestring = LineString([(0., 0.), translation_vector])
-#         rotated_linestring = affinity.rotate(translation_linestring, robot.pose[2], origin=(0., 0.))
-#         rotated_translation_vector = rotated_linestring.coords[1]
-#         return (robot.translate(rotated_translation_vector[0], rotated_translation_vector[1], res),
-#                 obstacle.translate(rotated_translation_vector[0], rotated_translation_vector[1], res))
-#
-#     def
-#
-#
-# class Rotation(Action):
-#     def __init__(self):
-#         robot.rotate(angle), obstacle.rotate(angle, rot_center=(robot.pose[0], robot.pose[1]))
 
 
 class ActionTreeNode:
