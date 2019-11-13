@@ -17,6 +17,13 @@ class Plan:
             self.social_cost = float("inf")
             self.total_cost = float("inf")
 
+    def append(self, future_plan):
+        self.path_components += future_plan.path_components
+        self.phys_cost += future_plan.phys_cost
+        self.social_cost += future_plan.social_cost
+        self.total_cost += future_plan.total_cost
+        return self
+
     def has_infinite_cost(self):
         return True if self.total_cost == float("inf") else False
 
