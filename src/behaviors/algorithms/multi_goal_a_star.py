@@ -1,7 +1,8 @@
 from heapq import heappush, heappop
 import copy
 from src.utils import utils
-from a_star import heuristic_cost_estimate, dist_between, CellHeapNode
+from a_star import heuristic_cost_estimate, dist_between
+from cell_heap_node import CellHeapNode
 from src.display.ros_publisher import RosPublisher
 
 
@@ -123,6 +124,8 @@ def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, res
                 break
             else:
                 to_evaluate_set.remove(current)
+                # TODO CHECK IF OPEN HEAP NODES NEED TO HAVE THEIR COST UPDATED SINCE COST IS MIN OF ALL GOAL_CELLS,
+                #  SO IF WE REMOVE ONE, COST OF MANY OTHERS MAY CHANGE !
         rp.publish_multigoal_a_star_close_set(close_set, res, grid_pose)
 
         # For each neighbor of current node in the defined neighborhood

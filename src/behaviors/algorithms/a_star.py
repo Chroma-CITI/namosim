@@ -24,18 +24,7 @@ Benoit Renault (benoit.renault@inria.fr)
 from heapq import *
 from src.utils import utils
 from src.display.ros_publisher import RosPublisher
-
-
-class CellHeapNode:
-    def __init__(self, cost, cell):
-        self.cost = cost
-        self.cell = cell
-
-    def __cmp__(self, other):
-        return cmp(self.cost, other.cost)
-
-    def __lt__(self, other):
-        return self.cost < other.cost
+from cell_heap_node import CellHeapNode
 
 
 def dist_between(a, b):
