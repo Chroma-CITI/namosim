@@ -1,5 +1,7 @@
 from src.utils import utils
+from src.behaviors.algorithms.best_first_search import multi_best_first_search
 import numpy as np
+import copy
 
 
 class ConnectedComponentsGrid:
@@ -9,13 +11,16 @@ class ConnectedComponentsGrid:
         self.neighborhood = neighborhood
         self._components = dict()
 
+        self.freed_cells = set()
+        self.invaded_cells = set()
+
         self.init_grid()
 
     def init_grid(self):
         """
         Initialize connected components grid from occupation grid. Iterates over the occupation grid's cells until a
-        free cell that has already been evaluated is found, then proceed to create the connected component by
-        propagating over neighbors (ignoring those already evaluated).
+        free cell that has not already been evaluated is found, then proceed to create the connected component by
+        propagating over neighbors.
         """
         d_width, d_height = self._occupation_grid.shape
 
@@ -28,7 +33,10 @@ class ConnectedComponentsGrid:
                 current_cell = (i, j)
                 if current_cell not in closed_set and self._occupation_grid[i][j] == 0:
                     self._grid[i][j] = current_component_index
-                    self.components[current_component_index].add(current_cell)
+                    if current_component_index in self.components:
+                        self.components[current_component_index].add(current_cell)
+                    else:
+                        self.components[current_component_index] = {current_cell}
                     open_set = utils.get_neighbors(current_cell, d_width, d_height, self.neighborhood)
                     closed_set.add(current_cell)
                     while open_set:
@@ -36,12 +44,143 @@ class ConnectedComponentsGrid:
                         if (neighbor_cell not in closed_set
                                 and self._occupation_grid[neighbor_cell[0]][neighbor_cell[1]] == 0):
                             self._grid[neighbor_cell[0]][neighbor_cell[1]] = current_component_index
-                            self.components[current_component_index].add(neighbor_cell)
+                            if current_component_index in self.components:
+                                self.components[current_component_index].add(neighbor_cell)
+                            else:
+                                self.components[current_component_index] = {neighbor_cell}
                             open_set = open_set.union(
                                 utils.get_neighbors(neighbor_cell, d_width, d_height, self.neighborhood))
                             closed_set.add(neighbor_cell)
                     current_component_index += 1
-                    self.components[current_component_index] = set()
+
+    def _update_grid(self):
+        # 1. Apply invaded cells to grid and components
+        self.update_invaded_cells()
+
+        # 2. Fill in freed cells from neighbors ids
+        self.temporarily_update_freed_cells()
+
+        # 3. Determine the contour cells around invaded cells for each obstacle
+        contour_of_invaded_cells = self.compute_contour_cells_of_invaded_cells()
+
+        # 4. Try to link them together to deduce then whether connectivity is kept or lost
+        visited_cells_sets = self.try_to_reach_contour_cells_from_one_another(contour_of_invaded_cells)
+
+        # 5. Update the last visited cells set through wave propagation,
+        # since we are not sure that the set is the full connected component
+        last_set = visited_cells_sets.pop()[0]
+        a_cell_in_set = next(iter(last_set))
+        id_to_propagate = self.grid[a_cell_in_set[0]][a_cell_in_set[1]]
+        propagated_ids = {id_to_propagate}  # Keep track of the component ids that have already been used for updates
+        open_set = {a_cell_in_set}
+        closed_set = set()
+        while open_set:
+            current_cell = open_set.pop()
+            self.actually_update_cell_and_component(current_cell, id_to_propagate)
+            closed_set.add(current_cell)
+            for i, j in self.neighborhood:
+                neighbor_cell = current_cell[0] + i, current_cell[1] + j
+                if (utils.is_in_matrix(neighbor_cell, *self.grid.shape)
+                        and self.grid[neighbor_cell[0]][neighbor_cell[1]] != 0
+                        and neighbor_cell not in closed_set):
+                    open_set.add(neighbor_cell)
+
+        # 7. For the other sets of cells, simply update the grid and components
+        for closed_set, encountered_cell_values in visited_cells_sets:
+            unpropagated_encountered_cell_values = encountered_cell_values.difference(propagated_ids)
+            if unpropagated_encountered_cell_values:
+                id_to_propagate = next(iter(unpropagated_encountered_cell_values))
+            else:
+                id_to_propagate = self.get_new_component_id()
+            propagated_ids.add(id_to_propagate)
+
+            self.components[id_to_propagate] = closed_set
+
+            for cell in closed_set:
+                self.grid[cell[0]][cell[1]] = id_to_propagate
+
+    def update_invaded_cells(self):
+        for invaded_cell in self.invaded_cells:
+            self.grid[invaded_cell[0]][invaded_cell[1]] = 0
+            for component_id, component in self.components.items():
+                if invaded_cell in component:
+                    component.remove(invaded_cell)
+                    if not component:
+                        del self.components[component_id]
+
+    def temporarily_update_freed_cells(self):
+        cells_to_recheck = set()
+        last_cells_to_recheck = set()
+        while self.freed_cells:
+            current_cell = next(iter(self.freed_cells))
+            current_cell_is_updated = False
+            min_neighbor_cell_component = float("inf")
+            for i, j in self.neighborhood:
+                neighbor_cell = current_cell[0] + i, current_cell[1] + j
+
+                if utils.is_in_matrix(neighbor_cell, *self.grid.shape):
+                    neighbor_cell_component = self.grid[neighbor_cell[0]][neighbor_cell[1]]
+                    if (neighbor_cell_component != 0
+                            and neighbor_cell not in self.freed_cells
+                            and self.grid[neighbor_cell[0]][neighbor_cell[1]] < min_neighbor_cell_component):
+                        min_neighbor_cell_component = self.grid[neighbor_cell[0]][neighbor_cell[1]]
+
+            if min_neighbor_cell_component != float("inf"):
+                self.actually_update_cell_and_component(current_cell, min_neighbor_cell_component)
+                self.freed_cells.remove(current_cell)
+                current_cell_is_updated = True
+
+            if not current_cell_is_updated:
+                self.freed_cells.remove(current_cell)
+                cells_to_recheck.add(current_cell)
+                if cells_to_recheck and not self.freed_cells:
+                    if cells_to_recheck != last_cells_to_recheck:
+                        self.freed_cells = copy.copy(cells_to_recheck)
+                        last_cells_to_recheck = copy.copy(cells_to_recheck)
+                    else:
+                        new_component_id = self.get_new_component_id()
+                        for cell in last_cells_to_recheck:
+                            self.actually_update_cell_and_component(cell, new_component_id)
+                        break
+
+    def actually_update_cell_and_component(self, cell, new_component_id):
+        cell_component_before_update = self.grid[cell[0]][cell[1]]
+        self.grid[cell[0]][cell[1]] = new_component_id
+        if cell_component_before_update != new_component_id:
+            if cell_component_before_update != 0:
+                if cell == (3,0):
+                    print()
+                self.components[cell_component_before_update].remove(cell)
+                if not self.components[cell_component_before_update]:
+                    del self.components[cell_component_before_update]
+            self.components[new_component_id].add(cell)
+
+    def compute_contour_cells_of_invaded_cells(self):
+        contour_of_invaded_cells = set()
+        for invaded_cell in self.invaded_cells:
+            for i, j in self.neighborhood:
+                neighbor_cell = invaded_cell[0] + i, invaded_cell[1] + j
+                if neighbor_cell not in self.invaded_cells and self.grid[neighbor_cell[0]][neighbor_cell[1]] != 0:
+                    contour_of_invaded_cells.add(neighbor_cell)
+        return contour_of_invaded_cells
+
+    def try_to_reach_contour_cells_from_one_another(self, contour_of_invaded_cells):
+        visited_cells_sets = []
+        while contour_of_invaded_cells:
+            start_cell = next(iter(contour_of_invaded_cells))
+            visited_goal_cells, closed_set, encountered_cell_values = multi_best_first_search(
+                self.grid, start_cell, contour_of_invaded_cells, neighborhood=self.neighborhood)
+            contour_of_invaded_cells.difference_update(visited_goal_cells)
+            visited_cells_sets.append((closed_set, encountered_cell_values))
+        return visited_cells_sets
+
+    def get_new_component_id(self):
+        components_ids = set(self.components.keys())
+        max_id_plus_1 = max(components_ids) + 1
+        for i in range(1, max_id_plus_1):
+            if i not in components_ids:
+                return i
+        return max_id_plus_1
 
     @property
     def grid(self):
