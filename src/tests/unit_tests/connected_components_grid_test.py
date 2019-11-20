@@ -96,15 +96,20 @@ class ConnectedComponentsGridTest(unittest.TestCase):
             counter += 1
 
     def test_update(self):
-        for test_data_1 in self.test_data_for_update:
-            for test_data_2 in self.test_data_for_update:
+        counter_1 = 1
+        for test_data_1 in self.test_data:
+            counter_2 = 1
+            for test_data_2 in self.test_data:
                 if test_data_1 is not test_data_2:
+                    print("Testing case", str(counter_1), "against case", str(counter_2))
                     ccg = ConnectedComponentsGrid(test_data_1["test_array"], neighborhood=utils.TAXI_NEIGHBORHOOD)
                     ccg.invaded_cells, ccg.freed_cells = self.compute_invaded_and_freed_cells(
                         test_data_1["expected_result_array"], test_data_2["expected_result_array"])
                     ccg._update_grid()
                     for line_nb in range(ccg.grid.shape[0]):
                         self.assertEqual(list(test_data_2["expected_result_array"][line_nb]), list(ccg.grid[line_nb]))
+                counter_2 += 1
+            counter_1 += 1
 
     @staticmethod
     def compute_invaded_and_freed_cells(cc_grid_before, cc_grid_after):
@@ -116,6 +121,7 @@ class ConnectedComponentsGridTest(unittest.TestCase):
                 elif cc_grid_before[i][j] == 0 and cc_grid_after[i][j] != 0:
                     freed_cells.add((i, j))
         return invaded_cells, freed_cells
+
 
 if __name__ == '__main__':
     unittest.main()

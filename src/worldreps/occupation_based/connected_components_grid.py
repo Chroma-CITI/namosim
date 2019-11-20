@@ -58,7 +58,11 @@ class ConnectedComponentsGrid:
         self.update_invaded_cells()
 
         # 2. Fill in freed cells from neighbors ids
-        self.temporarily_update_freed_cells()
+        propagated_ids = set()  # Keep track of the component ids that have already been used for updates
+        self.update_from_freed_cells(propagated_ids)
+        if not self.invaded_cells:
+            # Stop here if there are no invaded cells
+            return
 
         # 3. Determine the contour cells around invaded cells for each obstacle
         contour_of_invaded_cells = self.compute_contour_cells_of_invaded_cells()
@@ -71,7 +75,6 @@ class ConnectedComponentsGrid:
         last_set = visited_cells_sets.pop()[0]
         a_cell_in_set = next(iter(last_set))
         id_to_propagate = self.grid[a_cell_in_set[0]][a_cell_in_set[1]]
-        propagated_ids = {id_to_propagate}  # Keep track of the component ids that have already been used for updates
         open_set = {a_cell_in_set}
         closed_set = set()
         while open_set:
@@ -108,15 +111,20 @@ class ConnectedComponentsGrid:
                     if not component:
                         del self.components[component_id]
 
-    def temporarily_update_freed_cells(self):
+    def update_from_freed_cells(self, propagated_ids):
         cells_to_recheck = set()
         last_cells_to_recheck = set()
         while self.freed_cells:
-            current_cell = next(iter(self.freed_cells))
-            current_cell_is_updated = False
+            freed_cell = self.freed_cells.pop()
+
+            if self.grid[freed_cell[0]][freed_cell[1]] != 0:
+                # If a freed cell has already been updated because of expansion, drop it and get to a new loop
+                continue
+
+            # Find minimum cell id among freed cell neighbors
             min_neighbor_cell_component = float("inf")
             for i, j in self.neighborhood:
-                neighbor_cell = current_cell[0] + i, current_cell[1] + j
+                neighbor_cell = freed_cell[0] + i, freed_cell[1] + j
 
                 if utils.is_in_matrix(neighbor_cell, *self.grid.shape):
                     neighbor_cell_component = self.grid[neighbor_cell[0]][neighbor_cell[1]]
@@ -126,30 +134,55 @@ class ConnectedComponentsGrid:
                         min_neighbor_cell_component = self.grid[neighbor_cell[0]][neighbor_cell[1]]
 
             if min_neighbor_cell_component != float("inf"):
-                self.actually_update_cell_and_component(current_cell, min_neighbor_cell_component)
-                self.freed_cells.remove(current_cell)
-                current_cell_is_updated = True
-
-            if not current_cell_is_updated:
-                self.freed_cells.remove(current_cell)
-                cells_to_recheck.add(current_cell)
+                # Update the freed cell value if it is not just surrounded by other
+                # freed cells to update or occupied cells
+                self.update_cell_and_propagate(freed_cell, min_neighbor_cell_component)
+                propagated_ids.add(min_neighbor_cell_component)
+            else:
+                # If the cell is surrounded by occupied cells or freed cells to update, we postpone its update
+                cells_to_recheck.add(freed_cell)
                 if cells_to_recheck and not self.freed_cells:
+                    # Try to update postponed cells
                     if cells_to_recheck != last_cells_to_recheck:
+                        # Loop again after updating the cells of free cells by the one of the freed cells to recheck
                         self.freed_cells = copy.copy(cells_to_recheck)
                         last_cells_to_recheck = copy.copy(cells_to_recheck)
                     else:
+                        # If the cells to recheck are twice the same, it means these cells
+                        # form new free space components
                         new_component_id = self.get_new_component_id()
-                        for cell in last_cells_to_recheck:
-                            self.actually_update_cell_and_component(cell, new_component_id)
+                        while last_cells_to_recheck:
+                            cell = last_cells_to_recheck.pop()
+                            if self.grid[freed_cell[0]][freed_cell[1]] != 0:
+                                # Same as before : if a freed cell has already been updated because of expansion,
+                                # drop it and get to a new loop
+                                continue
+                            self.update_cell_and_propagate(cell, new_component_id)
+                            propagated_ids.add(new_component_id)
                         break
+
+    def update_cell_and_propagate(self, cell, id_to_propagate):
+        self.actually_update_cell_and_component(cell, id_to_propagate)
+        open_set = {cell}
+        closed_set = set()
+        while open_set:
+            current_cell = open_set.pop()
+            closed_set.add(current_cell)
+            for i, j in self.neighborhood:
+                neighbor_cell = current_cell[0] + i, current_cell[1] + j
+                if utils.is_in_matrix(neighbor_cell, *self.grid.shape):
+                    neighbor_cell_component = self.grid[neighbor_cell[0]][neighbor_cell[1]]
+                    if (neighbor_cell_component != 0
+                            and neighbor_cell_component != id_to_propagate
+                            and neighbor_cell not in closed_set):
+                        self.actually_update_cell_and_component(neighbor_cell, id_to_propagate)
+                        open_set.add(neighbor_cell)
 
     def actually_update_cell_and_component(self, cell, new_component_id):
         cell_component_before_update = self.grid[cell[0]][cell[1]]
-        self.grid[cell[0]][cell[1]] = new_component_id
         if cell_component_before_update != new_component_id:
+            self.grid[cell[0]][cell[1]] = new_component_id
             if cell_component_before_update != 0:
-                if cell == (3,0):
-                    print()
                 self.components[cell_component_before_update].remove(cell)
                 if not self.components[cell_component_before_update]:
                     del self.components[cell_component_before_update]
@@ -160,7 +193,9 @@ class ConnectedComponentsGrid:
         for invaded_cell in self.invaded_cells:
             for i, j in self.neighborhood:
                 neighbor_cell = invaded_cell[0] + i, invaded_cell[1] + j
-                if neighbor_cell not in self.invaded_cells and self.grid[neighbor_cell[0]][neighbor_cell[1]] != 0:
+                if (utils.is_in_matrix(neighbor_cell, *self.grid.shape)
+                        and self.grid[neighbor_cell[0]][neighbor_cell[1]] != 0
+                        and neighbor_cell not in self.invaded_cells):
                     contour_of_invaded_cells.add(neighbor_cell)
         return contour_of_invaded_cells
 
