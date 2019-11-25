@@ -69,38 +69,49 @@ class ConnectedComponentsGrid:
 
         # 4. Try to link them together to deduce then whether connectivity is kept or lost
         visited_cells_sets = self.try_to_reach_contour_cells_from_one_another(contour_of_invaded_cells)
+        # In the case we have several components with the same encountered cell values, it means that a new component
+        # must be created
+        # TODO Should be optimised so that components that get new ids are the smallest ones
+        visited_components_ids = []
+        for closed_set, encountered_cell_values in visited_cells_sets:
+            if encountered_cell_values in visited_components_ids:
+                new_component_id = self.get_new_component_id()
+                encountered_cell_values.clear()
+                encountered_cell_values.add(new_component_id)
+                self.components[new_component_id] = set()
+            visited_components_ids.append(encountered_cell_values)
 
         # 5. Update the last visited cells set through wave propagation,
         # since we are not sure that the set is the full connected component
-        last_set = visited_cells_sets.pop()[0]
-        a_cell_in_set = next(iter(last_set))
-        id_to_propagate = self.grid[a_cell_in_set[0]][a_cell_in_set[1]]
-        open_set = {a_cell_in_set}
-        closed_set = set()
-        while open_set:
-            current_cell = open_set.pop()
-            self.actually_update_cell_and_component(current_cell, id_to_propagate)
-            closed_set.add(current_cell)
-            for i, j in self.neighborhood:
-                neighbor_cell = current_cell[0] + i, current_cell[1] + j
-                if (utils.is_in_matrix(neighbor_cell, *self.grid.shape)
-                        and self.grid[neighbor_cell[0]][neighbor_cell[1]] != 0
-                        and neighbor_cell not in closed_set):
-                    open_set.add(neighbor_cell)
+        last_set, last_encountered_cell_values = visited_cells_sets.pop()
+        unpropagated_encountered_cell_values = last_encountered_cell_values.difference(propagated_ids)
+        if unpropagated_encountered_cell_values:
+            id_to_propagate = next(iter(unpropagated_encountered_cell_values))
+            propagated_ids.add(id_to_propagate)
+            open_set = {last_set.pop()}
+            closed_set = set()
+            while open_set:
+                current_cell = open_set.pop()
+                self.actually_update_cell_and_component(current_cell, id_to_propagate)
+                closed_set.add(current_cell)
+                for i, j in self.neighborhood:
+                    neighbor_cell = current_cell[0] + i, current_cell[1] + j
+                    if (utils.is_in_matrix(neighbor_cell, *self.grid.shape)
+                            and self.grid[neighbor_cell[0]][neighbor_cell[1]] != 0
+                            and neighbor_cell not in closed_set):
+                        open_set.add(neighbor_cell)
 
         # 7. For the other sets of cells, simply update the grid and components
         for closed_set, encountered_cell_values in visited_cells_sets:
             unpropagated_encountered_cell_values = encountered_cell_values.difference(propagated_ids)
             if unpropagated_encountered_cell_values:
                 id_to_propagate = next(iter(unpropagated_encountered_cell_values))
-            else:
-                id_to_propagate = self.get_new_component_id()
-            propagated_ids.add(id_to_propagate)
+                propagated_ids.add(id_to_propagate)
 
-            self.components[id_to_propagate] = closed_set
+                self.components[id_to_propagate] = closed_set
 
-            for cell in closed_set:
-                self.grid[cell[0]][cell[1]] = id_to_propagate
+                for cell in closed_set:
+                    self.grid[cell[0]][cell[1]] = id_to_propagate
 
     def update_invaded_cells(self):
         for invaded_cell in self.invaded_cells:
