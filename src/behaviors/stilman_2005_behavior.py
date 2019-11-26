@@ -244,7 +244,8 @@ class Stilman2005Behavior(BaselineBehavior):
             # we explore the action tree (this bounds the exploration).
             while ((best_in_successful_action_tree_nodes is None or
                     best_in_cur_action_leaves_to_explore is None or
-                    (best_in_cur_action_leaves_to_explore.phys_cost <= best_in_successful_action_tree_nodes.total_cost))
+                    (int(best_in_cur_action_leaves_to_explore.phys_cost * self.rounder)
+                     < int(best_in_successful_action_tree_nodes.total_cost * self.rounder)))
                    and cur_action_leaves_to_explore):
                 for action_heap_node in cur_action_leaves_to_explore:
                     leaf = action_heap_node.action_tree_node
@@ -414,10 +415,9 @@ class Stilman2005Behavior(BaselineBehavior):
         return g_x_i + (1 - self.alpha) + self.alpha * self.__e(x_i, x_j)
 
     def __e(self, x_i, x_j):
-        # TODO Add proper computation of rotation energy and use it in return value
         translation_energy = self.trans_force * np.linalg.norm((x_j[0] - x_i[0], x_j[1] - x_i[1]))
-        # rotation_energy = self.rot_force * (x_j[2] - x_i[2])
-        return translation_energy  # + rotation_energy
+        rotation_energy = 0. if self.rot_angles.size == 0 else self.rot_force * self._world.dd.res * (abs(x_j[2] - x_i[2]) / self.rot_angles[0])
+        return translation_energy + rotation_energy
 
     @staticmethod
     def __remove_first(queue):
