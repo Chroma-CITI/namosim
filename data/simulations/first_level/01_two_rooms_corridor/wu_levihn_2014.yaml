@@ -11,7 +11,7 @@ agents_behaviors:
     behavior:
       name: "wu_levihn_2014_behavior"
       parameters:
-        check_new_opening_activated: False
+        check_new_opening_activated: True
         social_placement_choice_activated: False
         social_movability_evaluation_activated: False
         reset_knowledge_activated: False

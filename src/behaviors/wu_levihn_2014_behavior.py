@@ -186,7 +186,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                                        if entity.uid != self._robot_uid and entity.uid != obs.uid]
                             has_new_local_opening, init_blocking_areas = check_new_local_opening(
                                 obs.polygon, target_obs_polygon, other_entities_polygons,
-                                robot.min_inflation_radius * 2., init_blocking_areas)
+                                robot.min_inflation_radius, init_blocking_areas)
                             # Don't prevent full evaluation of plans when obstacle would pass over the goal
                             moved_polygons = [init_robot_polygon, target_robot_polygon, obs.polygon, target_obs_polygon]
                             move_passes_over_goal = is_move_passing_over_pose(moved_polygons, q_goal)
