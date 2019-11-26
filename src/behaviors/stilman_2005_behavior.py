@@ -37,30 +37,30 @@ class Stilman2005Behavior(BaselineBehavior):
         self.forbid_rotations = False
 
         self.robot_type = "diff"  # Possible types: ["omni", "diff"]
-        trans_vectors = []
-        rot_angles = []
+        self.trans_vectors = []
+        self.rot_angles = []
         if self.robot_type == "omni":
             if self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD:
-                trans_vectors = np.array(utils.OMNI_ROBOT_CHESSBOARD_TRANS_VECTORS) * self._world.dd.res
-                rot_angles = np.array(utils.OMNI_ROBOT_CHESSBOARD_ROT_ANGLES)
+                self.trans_vectors = np.array(utils.OMNI_ROBOT_CHESSBOARD_TRANS_VECTORS) * self._world.dd.res
+                self.rot_angles = np.array(utils.OMNI_ROBOT_CHESSBOARD_ROT_ANGLES)
             elif self.neighborhood == utils.TAXI_NEIGHBORHOOD:
-                trans_vectors = np.array(utils.OMNI_ROBOT_TAXI_TRANS_VECTORS) * self._world.dd.res
-                rot_angles = np.array(utils.OMNI_ROBOT_TAXI_ROT_ANGLES)
+                self.trans_vectors = np.array(utils.OMNI_ROBOT_TAXI_TRANS_VECTORS) * self._world.dd.res
+                self.rot_angles = np.array(utils.OMNI_ROBOT_TAXI_ROT_ANGLES)
         elif self.robot_type == "diff":
             if self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD:
-                trans_vectors = np.array(utils.DIFF_ROBOT_CHESSBOARD_TRANS_VECTORS) * self._world.dd.res
-                rot_angles = np.array(utils.DIFF_ROBOT_CHESSBOARD_ROT_ANGLES)
+                self.trans_vectors = np.array(utils.DIFF_ROBOT_CHESSBOARD_TRANS_VECTORS) * self._world.dd.res
+                self.rot_angles = np.array(utils.DIFF_ROBOT_CHESSBOARD_ROT_ANGLES)
             elif self.neighborhood == utils.TAXI_NEIGHBORHOOD:
-                trans_vectors = np.array(utils.DIFF_ROBOT_TAXI_TRANS_VECTORS) * self._world.dd.res
-                rot_angles = np.array(utils.DIFF_ROBOT_TAXI_ROT_ANGLES)
+                self.trans_vectors = np.array(utils.DIFF_ROBOT_TAXI_TRANS_VECTORS) * self._world.dd.res
+                self.rot_angles = np.array(utils.DIFF_ROBOT_TAXI_ROT_ANGLES)
 
         if self.forbid_rotations:
-            rot_angles = np.array([])
+            self.rot_angles = np.array([])
 
         self.actions = []
-        for trans_vector in trans_vectors:
+        for trans_vector in self.trans_vectors:
             self.actions.append(self.__make_translate(trans_vector, self._world.dd.res))
-        for rot_angle in rot_angles:
+        for rot_angle in self.rot_angles:
             self.actions.append(self.__make_rotate(rot_angle))
 
     def think(self):
