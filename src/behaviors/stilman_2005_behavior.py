@@ -355,7 +355,8 @@ class Stilman2005Behavior(BaselineBehavior):
         final_obstacle = best_action_branch[-1].obstacle
         w_t_plus_2.set_entity_polygon(final_robot.uid, final_robot.polygon, final_robot.full_geometry_acquired)
         w_t_plus_2.set_entity_polygon(final_obstacle.uid, final_obstacle.polygon, final_obstacle.full_geometry_acquired)
-
+        self._rp.cleanup_robot_sim()
+        self._rp.publish_sim(final_robot.polygon, final_obstacle.polygon, "/target")
         return w_t_plus_2, tho_n, tho_m, cost
 
     def round_pose(self, pose):

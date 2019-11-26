@@ -7,8 +7,7 @@ from src.display.ros_publisher import RosPublisher
 class Stilman2005BehaviorTest(unittest.TestCase):
 
     def setUp(self):
-        self.sim = Simulator(
-            simulation_file_path="../../../data/simulations/first_level/01_two_rooms_corridor/stilman_2005_behavior.yaml")
+        self.sim = Simulator("../../../data/simulations/first_level/01_two_rooms_corridor/stilman_2005_behavior.yaml")
         self.robot_uid, self.behavior = next(iter(self.sim.agent_uid_to_behavior.items()))
         self._rp = RosPublisher()
 
@@ -30,8 +29,8 @@ class Stilman2005BehaviorTest(unittest.TestCase):
             ref_world, test_obstacle_uid, goal_cell_component_cells)
         self._rp.publish_c_1(tho_n)
         self._rp.publish_c_2(tho_m)
-        self._rp.publish_robot_world(w_t_plus_2, self.robot_uid)
-        print("Total Cost of tho_n and tho_m = ", cost)
+        # self._rp.publish_robot_world(w_t_plus_2, self.robot_uid)
+        print("Total Cost of tho_n and tho_m = " + str(cost))
 
 
 if __name__ == '__main__':

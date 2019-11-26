@@ -269,6 +269,10 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(cfg.robot_costmap_topic):
             self.publish(cfg.robot_costmap_topic, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
 
+    def cleanup_robot_sim(self):
+        if self.is_activated(cfg.robot_sim_topic):
+            self.publish(cfg.robot_sim_topic, make_delete_all_marker(cfg.frame_id))
+
     def cleanup_eval_c1_c2_c3_sim_init_target(self):
         if self.is_activated(cfg.eval_c_1_topic):
             self.publish(cfg.eval_c_1_topic, init_ros_path())
@@ -276,8 +280,7 @@ class RosPublisher(with_metaclass(Singleton)):
             self.publish(cfg.eval_c_2_topic, init_ros_path())
         if self.is_activated(cfg.eval_c_3_topic):
             self.publish(cfg.eval_c_3_topic, init_ros_path())
-        if self.is_activated(cfg.robot_sim_topic):
-            self.publish(cfg.robot_sim_topic, make_delete_all_marker(cfg.frame_id))
+        self.cleanup_robot_sim()
 
     def cleanup_p_opt(self):
         if self.is_activated(cfg.c_1_topic):
