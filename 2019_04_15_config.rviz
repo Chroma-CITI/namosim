@@ -5,13 +5,8 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Simulator Knowledge1/Namespaces1
-        - /Robot Knowledge1/Namespaces1
-        - /Robot Simulated Costmap1
-        - /Robot Simulated Actions1
-        - /Robot Simulated Actions1/Namespaces1
-        - /Eval c_11
-        - /Eval c_21
+        - /Simulator Knowledge1
+        - /Robot Knowledge1
       Splitter Ratio: 0.606060624
     Tree Height: 774
   - Class: rviz/Selection
@@ -56,274 +51,285 @@ Visualization Manager:
       Plane Cell Count: 6
       Reference Frame: map
       Value: false
-    - Class: rviz/MarkerArray
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /sim/knowledge
+          Name: Simulator Knowledge
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+        - Alpha: 0.5
+          Class: rviz/Map
+          Color Scheme: costmap
+          Draw Behind: false
+          Enabled: true
+          Name: Sim Costmap
+          Topic: /sim/costmap
+          Unreliable: false
+          Use Timestamp: false
+          Value: true
       Enabled: false
-      Marker Topic: /sim/knowledge
       Name: Simulator Knowledge
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/MarkerArray
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /robot/knowledge
+          Name: Robot Knowledge
+          Namespaces:
+            /obstacles/polygon: true
+            /robot/g_fov: true
+            /robot/polygon: true
+            /robot/s_fov: true
+          Queue Size: 100
+          Value: true
+        - Alpha: 1
+          Class: rviz/Map
+          Color Scheme: costmap
+          Draw Behind: false
+          Enabled: false
+          Name: Robot Costmap
+          Topic: /robot/costmap
+          Unreliable: false
+          Use Timestamp: false
+          Value: false
+        - Alpha: 0.699999988
+          Class: rviz/Map
+          Color Scheme: costmap
+          Draw Behind: false
+          Enabled: false
+          Name: Robot Simulated Costmap
+          Topic: /robot_sim/costmap
+          Unreliable: false
+          Use Timestamp: false
+          Value: false
+        - Alpha: 1
+          Arrow Length: 0.300000012
+          Axes Length: 0.300000012
+          Axes Radius: 0.00999999978
+          Class: rviz/PoseArray
+          Color: 0; 0; 0
+          Enabled: true
+          Head Length: 0.140000001
+          Head Radius: 0.150000006
+          Name: Eval. Obs. Manip. Poses
+          Shaft Length: 0.230000004
+          Shaft Radius: 0.0700000003
+          Shape: Arrow (3D)
+          Topic: /test/obs_manip_poses
+          Unreliable: false
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /robot/sim
+          Name: Robot Simulated Actions
+          Namespaces:
+            /blocking_areas/init: true
+            /blocking_areas/target: true
+            /diameter_inflated_polygon/init: true
+            /diameter_inflated_polygon/target: true
+            /init/obstacle/polygon: true
+            /init/robot/polygon: true
+            /target/obstacle/polygon: true
+            /target/robot/polygon: true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /test/open_heap_cells
+          Name: Open Heap Cells
+          Namespaces:
+            "": true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /test/close_set_cells
+          Name: Closed Heap Cells
+          Namespaces:
+            "": true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: /test/path_grid_cells
+          Name: Path Grid Cells
+          Namespaces:
+            "": true
+          Queue Size: 100
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 255; 85; 255
+          Enabled: true
+          Head Diameter: 0.100000001
+          Head Length: 0.100000001
+          Length: 0.300000012
+          Line Style: Billboards
+          Line Width: 0.100000001
+          Name: Eval c_1
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: Arrows
+          Radius: 0.0299999993
+          Shaft Diameter: 0.0500000007
+          Shaft Length: 0.0500000007
+          Topic: /robot/eval_c_1
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 255; 0; 127
+          Enabled: true
+          Head Diameter: 0.100000001
+          Head Length: 0.100000001
+          Length: 0.300000012
+          Line Style: Billboards
+          Line Width: 0.100000001
+          Name: Eval c_2
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 0; 127
+          Pose Style: Arrows
+          Radius: 0.0299999993
+          Shaft Diameter: 0.0500000007
+          Shaft Length: 0.0500000007
+          Topic: /robot/eval_c_2
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 170; 0; 127
+          Enabled: true
+          Head Diameter: 0.300000012
+          Head Length: 0.200000003
+          Length: 0.300000012
+          Line Style: Billboards
+          Line Width: 0.100000001
+          Name: Eval c_3
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: None
+          Radius: 0.0299999993
+          Shaft Diameter: 0.100000001
+          Shaft Length: 0.100000001
+          Topic: /robot/eval_c_3
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 109; 158; 235
+          Enabled: true
+          Head Diameter: 0.300000012
+          Head Length: 0.200000003
+          Length: 0.300000012
+          Line Style: Billboards
+          Line Width: 0.100000001
+          Name: p_opt c_1
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: None
+          Radius: 0.0299999993
+          Shaft Diameter: 0.100000001
+          Shaft Length: 0.100000001
+          Topic: /robot/p_opt/c_1
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 224; 102; 102
+          Enabled: true
+          Head Diameter: 0.300000012
+          Head Length: 0.200000003
+          Length: 0.300000012
+          Line Style: Billboards
+          Line Width: 0.100000001
+          Name: p_opt c_2
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: None
+          Radius: 0.0299999993
+          Shaft Diameter: 0.100000001
+          Shaft Length: 0.100000001
+          Topic: /robot/p_opt/c_2
+          Unreliable: false
+          Value: true
+        - Alpha: 1
+          Buffer Length: 1
+          Class: rviz/Path
+          Color: 246; 178; 107
+          Enabled: true
+          Head Diameter: 0.300000012
+          Head Length: 0.200000003
+          Length: 0.300000012
+          Line Style: Billboards
+          Line Width: 0.100000001
+          Name: p_opt c_3
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Pose Color: 255; 85; 255
+          Pose Style: None
+          Radius: 0.0299999993
+          Shaft Diameter: 0.100000001
+          Shaft Length: 0.100000001
+          Topic: /robot/p_opt/c_3
+          Unreliable: false
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /robot/goal
+          Name: Goal
+          Namespaces:
+            /polygon: true
+          Queue Size: 100
+          Value: true
+        - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: elevation
+          Color Transformer: IntensityLayer
+          Enabled: true
+          Height Layer: elevation
+          Height Transformer: Layer
+          History Length: 1
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 10
+          Min Color: 85; 170; 255
+          Min Intensity: 0
+          Name: Social Costmap
+          Show Grid Lines: true
+          Topic: /test/gridmap
+          Unreliable: false
+          Use Rainbow: true
+          Value: true
       Enabled: true
-      Marker Topic: /robot/knowledge
       Name: Robot Knowledge
-      Namespaces:
-        /obstacles/polygon: true
-        /robot/g_fov: true
-        /robot/polygon: true
-        /robot/s_fov: true
-      Queue Size: 100
-      Value: true
-    - Alpha: 0.5
-      Class: rviz/Map
-      Color Scheme: costmap
-      Draw Behind: false
-      Enabled: false
-      Name: Sim Costmap
-      Topic: /sim/costmap
-      Unreliable: false
-      Use Timestamp: false
-      Value: false
-    - Alpha: 1
-      Class: rviz/Map
-      Color Scheme: costmap
-      Draw Behind: false
-      Enabled: false
-      Name: Robot Costmap
-      Topic: /robot/costmap
-      Unreliable: false
-      Use Timestamp: false
-      Value: false
-    - Alpha: 0.699999988
-      Class: rviz/Map
-      Color Scheme: costmap
-      Draw Behind: false
-      Enabled: false
-      Name: Robot Simulated Costmap
-      Topic: /robot_sim/costmap
-      Unreliable: false
-      Use Timestamp: false
-      Value: false
-    - Alpha: 1
-      Class: rviz/GridCells
-      Color: 0; 255; 255
-      Enabled: false
-      Name: A* Open Heap Cells
-      Topic: /test/open_heap_cells
-      Value: false
-    - Alpha: 1
-      Class: rviz/GridCells
-      Color: 85; 255; 0
-      Enabled: false
-      Name: A* Close Set Cells
-      Topic: /test/close_set_cells
-      Value: false
-    - Alpha: 1
-      Class: rviz/GridCells
-      Color: 255; 0; 255
-      Enabled: false
-      Name: A* Path Grid Cells
-      Topic: /test/path_grid_cells
-      Value: false
-    - Alpha: 1
-      Arrow Length: 0.300000012
-      Axes Length: 0.300000012
-      Axes Radius: 0.00999999978
-      Class: rviz/PoseArray
-      Color: 0; 0; 0
-      Enabled: true
-      Head Length: 0.140000001
-      Head Radius: 0.150000006
-      Name: Eval. Obs. Manip. Poses
-      Shaft Length: 0.230000004
-      Shaft Radius: 0.0700000003
-      Shape: Arrow (3D)
-      Topic: /test/obs_manip_poses
-      Unreliable: false
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /robot/sim
-      Name: Robot Simulated Actions
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 255; 85; 255
-      Enabled: true
-      Head Diameter: 0.100000001
-      Head Length: 0.100000001
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.100000001
-      Name: Eval c_1
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: Arrows
-      Radius: 0.0299999993
-      Shaft Diameter: 0.0500000007
-      Shaft Length: 0.0500000007
-      Topic: /robot/eval_c_1
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 255; 0; 127
-      Enabled: true
-      Head Diameter: 0.100000001
-      Head Length: 0.100000001
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.100000001
-      Name: Eval c_2
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 0; 127
-      Pose Style: Arrows
-      Radius: 0.0299999993
-      Shaft Diameter: 0.0500000007
-      Shaft Length: 0.0500000007
-      Topic: /robot/eval_c_2
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 170; 0; 127
-      Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.100000001
-      Name: Eval c_3
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /robot/eval_c_3
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 109; 158; 235
-      Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.100000001
-      Name: p_opt c_1
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /robot/p_opt/c_1
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 224; 102; 102
-      Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.100000001
-      Name: p_opt c_2
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /robot/p_opt/c_2
-      Unreliable: false
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz/Path
-      Color: 246; 178; 107
-      Enabled: true
-      Head Diameter: 0.300000012
-      Head Length: 0.200000003
-      Length: 0.300000012
-      Line Style: Billboards
-      Line Width: 0.100000001
-      Name: p_opt c_3
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.0299999993
-      Shaft Diameter: 0.100000001
-      Shaft Length: 0.100000001
-      Topic: /robot/p_opt/c_3
-      Unreliable: false
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /robot/goal
-      Name: Goal
-      Namespaces:
-        /polygon: true
-      Queue Size: 100
-      Value: true
-    - Alpha: 1
-      Class: rviz/GridCells
-      Color: 25; 255; 0
-      Enabled: false
-      Name: Compute Social Costmap Gridcells
-      Topic: /test/social_cells
-      Value: false
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Class: grid_map_rviz_plugin/GridMap
-      Color: 200; 200; 200
-      Color Layer: elevation
-      Color Transformer: IntensityLayer
-      Enabled: true
-      Height Layer: elevation
-      Height Transformer: Layer
-      History Length: 1
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 10
-      Min Color: 85; 170; 255
-      Min Intensity: 0
-      Name: Social Costmap
-      Show Grid Lines: true
-      Topic: /test/gridmap
-      Unreliable: false
-      Use Rainbow: true
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -358,11 +364,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Scale: 183.636093
+      Scale: 135.523483
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 0.059949901
-      Y: -1.52794564
+      X: 0.277004629
+      Y: 0.0615545362
     Saved: ~
 Window Geometry:
   Displays:
