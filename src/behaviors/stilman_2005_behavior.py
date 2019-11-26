@@ -237,18 +237,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
             self._rp.publish_sim(action_root.robot.polygon, action_root.obstacle.polygon, "/init")
 
-            evaluated_configurations = {(
-                            (
-                                int(action_root.robot.pose[0] * self.rounder),
-                                int(action_root.robot.pose[1] * self.rounder),
-                                int(action_root.robot.pose[2] * self.rounder)
-                            ),
-                            (
-                                int(action_root.obstacle.pose[0] * self.rounder),
-                                int(action_root.obstacle.pose[1] * self.rounder),
-                                int(action_root.obstacle.pose[2] * self.rounder)
-                            )
-                        )}
+            evaluated_configurations = {(self.round_pose(action_root.robot.pose),
+                                         self.round_pose(action_root.obstacle.pose))}
 
             # As long as the ascending physical cost of the currently explored action leaf is lower than the best
             # successful action leaf, and there are leaves to be explored,
@@ -269,18 +259,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         new_obstacle = old_obstacle.light_copy()
                         new_robot, new_obstacle = action(new_robot, new_obstacle)
 
-                        evaluated_configuration = (
-                            (
-                                int(new_robot.pose[0] * self.rounder),
-                                int(new_robot.pose[1] * self.rounder),
-                                int(new_robot.pose[2] * self.rounder)
-                            ),
-                            (
-                                int(new_obstacle.pose[0] * self.rounder),
-                                int(new_obstacle.pose[1] * self.rounder),
-                                int(new_obstacle.pose[2] * self.rounder)
-                            )
-                        )
+                        evaluated_configuration = (self.round_pose(new_robot.pose), self.round_pose(new_obstacle.pose))
                         if evaluated_configuration in evaluated_configurations:
                             continue
                         else:
@@ -379,12 +358,15 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return w_t_plus_2, tho_n, tho_m, cost
 
+    def round_pose(self, pose):
+        return int(pose[0] * self.rounder), int(pose[1] * self.rounder), int(pose[2] * self.rounder)
+
+
     @staticmethod
     def _is_there_opening_to_c_1(inflated_grid, res, grid_pose, robot_cell, c_1_cells_set):
         """
         Checks if there is a path between robot_cell and a random cell in c_1_cells_set that is not covered by an
         obstacle (especially the one considered for manipulation).
-        TODO: Extra - apply new local opening detection algorithm to gain performance ?
         :param inflated_grid: 2D matrix of occupation data where free is 0 and > 0 is occupied
         :type inflated_grid: numpy.array([[int16]])
         :param res: grid resolution in [m] / cell
