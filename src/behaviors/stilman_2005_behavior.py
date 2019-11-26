@@ -1,17 +1,16 @@
 import copy
 import heapq
 import math
-import time
 
 import numpy as np
 from shapely.geometry import LineString
 from shapely import affinity
 
 from baseline_behavior import BaselineBehavior
-from src.behaviors.algorithms.a_star import a_star_real_path
+from src.behaviors.algorithms.a_star import a_star_real_path, astar
 from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
-from src.behaviors.algorithms.multi_goal_a_star import multi_goal_a_star_real_path, multi_goal_astar
+from src.behaviors.algorithms.multi_goal_a_star import multi_goal_a_star_real_path
 from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, is_move_passing_over_pose
@@ -384,9 +383,15 @@ class Stilman2005Behavior(BaselineBehavior):
         :return: True if a path is found, False otherwise
         """
         if c_1_cells_set:
-            path_to_cell_in_c_1 = multi_goal_astar(
-                inflated_grid, robot_cell, c_1_cells_set, res, grid_pose, break_at_first_goal_found=True)
-            return path_to_cell_in_c_1
+            c_1_cells_set_iterator = iter(c_1_cells_set)
+            cell_in_c_1 = next(c_1_cells_set_iterator)
+            while inflated_grid[cell_in_c_1[0]][cell_in_c_1[1]] != 0:
+                try:
+                    cell_in_c_1 = next(c_1_cells_set_iterator)
+                except StopIteration:
+                    raise ValueError("_has_created_new_opening_to_c_1 could not find a new opening because"
+                                     " c_1_cells_set is entirely inaccessible to the robot")
+            return bool(astar(inflated_grid, robot_cell, cell_in_c_1, res, grid_pose))
         else:
             raise ValueError("c_1_cells_set should never be empty !")
 
