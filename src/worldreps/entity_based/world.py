@@ -236,10 +236,10 @@ class World:
         self._invalidate_and_inform_grids(prev_entities={entity_uid: prev_entity},
                                           next_entities={entity_uid: entity})
 
-    def rotate_entity(self, entity_uid, rotation):
+    def rotate_entity(self, entity_uid, rotation, rot_center='centroid'):
         entity = self.entities[entity_uid]
         prev_entity = copy.deepcopy(entity)
-        entity.rotate(rotation)
+        entity.rotate(rotation, rot_center)
         self._invalidate_and_inform_grids(prev_entities={entity_uid: prev_entity},
                                           next_entities={entity_uid: entity})
 
@@ -260,7 +260,7 @@ class World:
         unioned_polygons = cascaded_union(all_entity_polygons_in_map)
         return unioned_polygons.bounds
 
-    def _update_dd(self):
+    def update_dd(self):
         if self.dd is None:
             raise ValueError("Discretization data (dd) is None, this should not be happening !")
 
