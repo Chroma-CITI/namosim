@@ -32,8 +32,9 @@ class Stilman2005Behavior(BaselineBehavior):
         self.alpha = 0.5
         self.neighborhood = utils.TAXI_NEIGHBORHOOD
         self.cost_for_obstacle_occupied_cells = 2.
-        self.trans_force = 2.
-        self.rot_force = 2.
+        self.basic_trans_force = 2.
+        self.basic_rot_force = 2.
+        self.heur_w = 2.
         self._check_new_local_opening_activated = True
         self.forbid_rotations = False
 
@@ -141,79 +142,156 @@ class Stilman2005Behavior(BaselineBehavior):
     def _rch(self, w_t, avoid_list, prev_list, r_f):
         """
         Relaxed Constraint Heuristic (RCH)
-        It is a navigation planner derived from A* that allows collisions with movable obstacles.
-        It selects obstacles for _select_connect to displace.
+        It is a navigation planner derived from A* that allows collisions with movable obstacles, with the following
+        restrictions :
+        - Rule #1: The robot can not enter cells occupied by obstacles it cannot move
+        - Rule #2: The robot cannot transition from a cell occupied by one obstacle to a cell occupied by another
+        - Rule #3: For any pair (Oi, Cj) in avoid_list, the robot cannot transition consecutively from acc_r_com
+          to cells occupied by Oi and then cells occupied by Cj
+        Ultimately, it returns a pair of obstacle + disconnected configuration space component that are the most likely
+        to provide a good plan for select_connect.
         :param w_t: state of the world at time t
-        :param avoid_list: list of obstacle+free space component (o_i , c_i) pairs to avoid
-        :param prev_list: list of previously visited free space components c_j
+        :type w_t: World
+        :param avoid_list: set of obstacle+free space component (o_i , c_i) pairs to avoid
+        :type avoid_list: set(tuple(int, int))
+        :param prev_list: set of previously visited free space components c_j
+        :type prev_list: set(int)
         :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
+        :type r_f: tuple(float, float, float)
         :return: the pair (o_1 , c_1) of the first obstacle in the path, and the first component id of free space.
         Returns (None, None) if no path exists.
-
-        TODO: - Add visualization of closed_set, open_queue, x_1 and x_2 as GridCells
-              and self.connected_grid as OccupancyGrid.
+        :rtype: tuple(int, int) or tuple(None, None)
         """
-        r_t = w_t.entities[self._robot_uid].pose
-        x_t = utils.real_to_grid(r_t[0], r_t[1], w_t.dd.res, w_t.dd.grid_pose)
-        x_f = utils.real_to_grid(r_f[0], r_f[1], w_t.dd.res, w_t.dd.grid_pose)
-        x_i_to_data = {x_t: CellData(g=0.0)}
+        connected_components_obj = w_t.get_connected_components_grid((self._robot_uid,))
+        connected_components_grid = connected_components_obj.get_grid()
+        self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd)
 
-        closed_set = set()
-        connected_components_grid = w_t.get_connected_components_grid((self._robot_uid,)).grid
-        c_0 = connected_components_grid[x_t[0]][x_t[1]]
-        if c_0 <= 0:
-            raise ValueError("Initial pose cell ({x}, {y}) is not in robot configuration space!".format(
-                x=x_t[0], y=x_t[1]
-            ))
-        open_queue = self.__make_priority_queue(x_i=x_t, f=self.__h(x_t, x_f), o_f=0, c_f=c_0)
+        movable_entities_uids = [
+            uid for uid, entity in w_t.entities.items()
+            if isinstance(entity, Robot) or isinstance(entity, Obstacle) and self._robot.deduce_movability(entity.type) != "unmovable"]
+        static_obs_grid = w_t.get_binary_inflated_occupancy_grid(tuple(movable_entities_uids)).get_grid()
 
+        robot_pose = w_t.entities[self._robot_uid].pose
+        start_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], w_t.dd.res, w_t.dd.grid_pose)
+        goal_cell = utils.real_to_grid(r_f[0], r_f[1], w_t.dd.res, w_t.dd.grid_pose)
+
+        # The set of nodes already evaluated
+        close_set = set()
+
+        # The dictionary that remembers for each node, the cost of getting from the start node to that node.
+        # The cost of going from start to start is zero.
+        gscore = {start_cell: 0}
+
+        # The set of currently discovered nodes that are not evaluated yet.
+        open_queue = []
+        # Initially, only the start node is known.
+        heapq.heappush(
+            open_queue, HeapQueueElement(
+                f=self.__h(start_cell, goal_cell), cell=start_cell, obs_id=0, comp_id=0))
+
+        self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
+
+        # While open_heap is not empty == While there are discovered nodes that have not been evaluated
         while open_queue:
-            popped = self.__remove_first(open_queue)
-            x_1, o_f, c_f = popped.x_i, popped.o_f, popped.c_f
 
-            if x_1 in closed_set:
-                continue
+            # The node in open_heap having the lowest fScore[] value
+            current = heapq.heappop(open_queue)
+            self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
+            self._rp.publish_current_cell(current.cell, w_t.dd.res, w_t.dd.grid_pose)
 
-            if x_1 == x_f and o_f != 0 and c_f != c_0:
-                return o_f, c_f
+            # Exit early if goal is reached
+            if current.cell == goal_cell:
+                return current.obs_id, current.comp_id
 
-            closed_set.add(x_1)
+            close_set.add(current.cell)
+            self._rp.publish_rch_closed_set(close_set, w_t.dd.res, w_t.dd.grid_pose)
 
-            for x_2 in self.__adjacent(x_1):
-                g_x_1 = x_i_to_data[x_1].g
-                g_x_2 = self.__g(x_1, x_2, g_x_1)
-                x_i_to_data[x_2] = CellData(g_x_2)
-                f_x_2 = self.__f(x_2, g_x_2, x_f)
+            # For each neighbor of current node in the defined neighborhood
+            for i, j in self.neighborhood:
+                neighbor_cell = current.cell[0] + i, current.cell[1] + j
+                self._rp.publish_current_neighbor(neighbor_cell, w_t.dd.res, w_t.dd.grid_pose)
 
-                if c_f != c_0:
-                    self.__enqueue(open_queue, x_2, f_x_2, o_f, c_f)
-                    continue
+                # If neighbor's g score has not been computed yet, assign +inf
+                if neighbor_cell not in gscore:
+                    gscore[neighbor_cell] = float("inf")
 
-                x_2_in_c_r_free = connected_components_grid[x_2[0]][x_2[1]] <= 0
-                if o_f != 0 and x_2_in_c_r_free:
-                    self.__enqueue(open_queue, x_2, f_x_2, o_f, c_0)
+                # Check that neighbor exists within the map, has not already been evaluated, and verify Rule #1
+                # (don't consider passing through unmovable obstacles)
+                if (utils.is_in_matrix(neighbor_cell, w_t.dd.d_width, w_t.dd.d_height)
+                        and neighbor_cell not in close_set
+                        and static_obs_grid[neighbor_cell[0]][neighbor_cell[1]] == 0):
 
-                # Note: second condition of this if statement is exclusive with the second condition of the previous
-                # if statement: these two could be merged together with a or
-                o_i = self.__robot_exc_contained_in_obs(x_2)
-                r_exc_contained_in_o_f = o_i == o_f
-                if o_f != 0 and r_exc_contained_in_o_f:
-                    self.__enqueue(open_queue, x_2, f_x_2, o_f, c_0)
+                    # The cost from start to a neighbor.
+                    tentative_g_score = self.__g(
+                        current.cell, neighbor_cell, gscore[current.cell], connected_components_grid)
+                    # WAS BEFORE : tentative_g_score =  gscore[current.cell] + dist_between(current.cell, neighbor_cell)
 
-                c_i = connected_components_grid[x_2[0]][x_2[1]]
-                c_i_is_valid_component = c_i <= -1
-                if o_f != 0 and c_i_is_valid_component and c_i not in prev_list and (o_f, c_i) not in avoid_list:
-                    self.__enqueue(open_queue, x_2, f_x_2, o_f, c_i)
+                    # Discover a new node or update info about known one :
+                    if tentative_g_score < gscore[neighbor_cell] or neighbor_cell not in [i.cell for i in open_queue]:
+                        # This path is the best until now. Record it!
+                        gscore[neighbor_cell] = tentative_g_score
+                        fscore_neighbor_cell = tentative_g_score + self.__h(neighbor_cell, goal_cell)
 
-                if o_f == 0 and x_2_in_c_r_free:
-                    self.__enqueue(open_queue, x_2, f_x_2, 0, c_0)
+                        path_has_traversed_first_disconnected_comp = current.comp_id != 0
 
-                r_exc_contained_in_o_i = not r_exc_contained_in_o_f and o_i > 0
-                if o_f == 0 and r_exc_contained_in_o_i:
-                    self.__enqueue(open_queue, x_2, f_x_2, o_i, c_0)
-        return None, None
+                        if path_has_traversed_first_disconnected_comp:
+                            # After the path has traversed its first disconnected component, keep remembering it and the
+                            # traversed obstacle to get to it as the firsts !
+                            self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell, current.obs_id, current.comp_id)
+                        else:
+                            # If no other disconnected component has been traversed yet, take a look at whether we have
+                            # traversed an obstacle or not
+                            path_has_traversed_first_obstacle = current.obs_id != 0
 
-    def _manip_search(self, w_t, o_1, c_1_cells_set):
+                            neighbor_component = connected_components_grid[neighbor_cell[0]][neighbor_cell[1]]
+                            is_neighbor_in_c_r_free = neighbor_component > 0
+
+                            if path_has_traversed_first_obstacle:
+                                # If the path has already traversed its first obstacle...
+
+                                if is_neighbor_in_c_r_free:
+                                    # ...and the neighbor cell is in the free space...
+                                    if (neighbor_component not in prev_list
+                                            and (current.obs_id, neighbor_component) not in avoid_list):
+                                        # ...and the component associated with this cell is not in any blacklist, then
+                                        # associate the neighbor cell with the same obstacle and the new component
+                                        # --> Application of Rule #3
+                                        self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell,
+                                                       current.obs_id, neighbor_component)
+                                    else:
+                                        print("Path has not traversed its first disconnected component but has"
+                                              "traversed its first obstacle, and neighbor is in c_r_free, but "
+                                              "its component is in prev_list or avoid_list.")
+                                else:
+                                    # ...and the neighbor cell is in an obstacle...
+                                    o_uid = self.__robot_exc_contained_in_obs(neighbor_cell, w_t)
+                                    is_obs_traversed_by_neighbor_cell_same_as_current = o_uid == current.obs_id
+                                    if is_obs_traversed_by_neighbor_cell_same_as_current:
+                                        # ...and this obstacle is the same as the current one so we associate the
+                                        # neighbor cell with it too. Application of Rule #2
+                                        self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell,
+                                                       current.obs_id, 0)
+                            else:
+                                # If the path has not traversed its first obstacle yet...
+
+                                if is_neighbor_in_c_r_free:
+                                    # ...and the neighbor cell is in the free space (in the initial component),
+                                    # associate the cell with no obstacle and with the initial component
+                                    self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell, 0, 0)
+                                    continue
+
+                                o_uid = self.__robot_exc_contained_in_obs(neighbor_cell, w_t)
+                                is_valid_obstacle_uid = o_uid > 0
+                                if is_valid_obstacle_uid:
+                                    # If the neighbor cell is not in the free space but in an obstacle, and if it is
+                                    # exclusively in this obstacle, then associate the cell with this obstacle and the
+                                    # initial component. Application of Rule #2
+                                    self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell, o_uid, 0)
+
+                        self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
+        return None
+
+    def _manip_search(self, w_t, o_1, c_1_cells_set, r_f):
         # 1 - Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
         obstacle = w_t_plus_2.entities[o_1]
