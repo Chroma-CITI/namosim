@@ -96,15 +96,33 @@ def world_to_marker_array(world, robot_uid):
     return marker_array
 
 
-def costmap_to_grid_map(costmap, dd):
+def init_grid_map():
+    grid_map = GridMap()
+    grid_map.info.header = Header(stamp=rospy.Time.now(), frame_id="gridmap")
+    grid_map.layers = []
+    inflated_costmap_data = Float32MultiArray(
+        layout=MultiArrayLayout(
+            dim=[MultiArrayDimension(label="column_index",
+                                     size=0,
+                                     stride=0),
+                 MultiArrayDimension(label="row_index",
+                                     size=0,
+                                     stride=0)],
+            data_offset=0),
+        data=[]
+    )
+    grid_map.data = [inflated_costmap_data]
+
+    return grid_map
+
+
+def costmap_to_grid_map(costmap, dd, z_index=-10.):
     grid_map = GridMap()
     grid_map.info.header = Header(stamp=rospy.Time.now(), frame_id="gridmap")
     grid_map.info.resolution = dd.res
     grid_map.info.length_x = costmap.shape[0] * dd.res
     grid_map.info.length_y = costmap.shape[1] * dd.res
-    grid_map.info.pose.position.x = 0.0
-    grid_map.info.pose.position.y = 0.0
-    grid_map.info.pose.position.z = -10.0
+    grid_map.info.pose.position.z = z_index
     grid_map.layers = ["elevation"]
     inflated_costmap_data = Float32MultiArray(
         layout=MultiArrayLayout(
@@ -115,7 +133,8 @@ def costmap_to_grid_map(costmap, dd):
                                      size=costmap.shape[0],
                                      stride=costmap.shape[0])],
             data_offset=0),
-        data=(costmap.flatten('F') / float(dd.cost_lethal)).astype(np.float32).tolist()
+        # data=(costmap.flatten('F') / float(dd.cost_lethal)).astype(np.float32).tolist()
+        data=(costmap.flatten('F')).astype(np.float32).tolist()
     )
     grid_map.data = [inflated_costmap_data]
 
