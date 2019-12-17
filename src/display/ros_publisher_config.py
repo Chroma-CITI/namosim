@@ -9,7 +9,7 @@ def hex_to_rgba(hex_string):
 
 
 # Target display rate (in Hz)
-rate = 1000000
+rate = 50000000000
 
 # Actual topic names
 min_max_inflated_polygons_topic = "/robot/compute_c_0_c1/min_max_inflated_polygons"
@@ -36,6 +36,7 @@ sim_costmap_topic = "/sim/costmap"
 robot_sim_costmap_topic = "/robot_sim/costmap"
 test_gridmap_topic = "/test/gridmap"
 social_cells_topic = "/test/social_cells"
+test_connected_components_topic = "/test/connected_components"
 
 default_queue_size = 10
 
@@ -74,6 +75,7 @@ target_diameter_inflated_polygon_color = ColorRGBA(*hex_to_rgba("#aa24641a"))
 flashy_green = ColorRGBA(*hex_to_rgba("#ff25ff00"))
 flashy_cyan = ColorRGBA(*hex_to_rgba("#ff85ffff"))
 flashy_purple = ColorRGBA(*hex_to_rgba("#ffff00ff"))
+flashy_red = ColorRGBA(*hex_to_rgba("#ffff0000"))
 
 fov_z_index = -0.04
 entities_z_index = -0.05
