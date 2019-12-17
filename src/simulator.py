@@ -51,10 +51,6 @@ class Simulator:
                     entity_name=agent_name
                 ))
             else:
-                agent_world = self._create_robot_world_from_sim_world()
-                self.rp.cleanup_robot_world()
-                self.rp.publish_robot_world(agent_world, self.temp_agent_uid)
-
                 behavior_config = agent_to_behavior_config["behavior"]
                 agent_behavior_name = behavior_config["name"]
 
@@ -64,12 +60,21 @@ class Simulator:
                         agent_navigation_goals.append(goals[config_goal["name"]])
 
                 if agent_behavior_name == "navigation_only_behavior":
+                    agent_world = self._create_robot_world_from_sim_world()
+                    self.rp.cleanup_robot_world()
+                    self.rp.publish_robot_world(agent_world, self.temp_agent_uid)
                     self.agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
                         self.ref_world, agent_world, agent_uid, agent_navigation_goals, behavior_config)
                 elif agent_behavior_name == "wu_levihn_2014_behavior":
+                    agent_world = self._create_robot_world_from_sim_world()
+                    self.rp.cleanup_robot_world()
+                    self.rp.publish_robot_world(agent_world, self.temp_agent_uid)
                     self.agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
                         self.ref_world, agent_world, agent_uid, agent_navigation_goals, behavior_config)
                 elif agent_behavior_name == "stilman_2005_behavior":
+                    agent_world = copy.deepcopy(self.ref_world)
+                    self.rp.cleanup_robot_world()
+                    self.rp.publish_robot_world(agent_world, self.temp_agent_uid)
                     self.agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
                         self.ref_world, agent_world, agent_uid, agent_navigation_goals, behavior_config)
                 else:
