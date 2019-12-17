@@ -17,6 +17,8 @@ from src.utils import utils
 import ros_publisher_config as cfg
 from src.worldreps.entity_based.robot import Robot
 from src.worldreps.entity_based.obstacle import Obstacle
+from src.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
+from src.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
 
 
 def init_header():
@@ -58,12 +60,16 @@ def world_to_marker_array(world, robot_uid):
                 cfg.text_color_on_filling, cfg.text_color_on_empty, cfg.entities_z_index,
                 cfg.border_width, cfg.text_height, add_border=False, add_text=False)
 
-            markers.append(polygon_to_line_strip(entity.sensors[0].fov_polygon, "/robot/s_fov", 0,
-                                                 cfg.frame_id, cfg.s_fov_border_color, cfg.fov_z_index,
-                                                 cfg.fov_line_width))
-            markers.append(polygon_to_line_strip(entity.sensors[1].fov_polygon, "/robot/g_fov", 0,
-                                                 cfg.frame_id, cfg.g_fov_border_color, cfg.fov_z_index,
-                                                 cfg.fov_line_width))
+            for sensor in entity.sensors:
+                if isinstance(sensor, SFOVSensor):
+                    markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/s_fov", 0,
+                                                         cfg.frame_id, cfg.s_fov_border_color, cfg.fov_z_index,
+                                                         cfg.fov_line_width))
+                elif isinstance(sensor, GFOVSensor):
+                    markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/g_fov", 0,
+                                                         cfg.frame_id, cfg.g_fov_border_color, cfg.fov_z_index,
+                                                         cfg.fov_line_width))
+
         if isinstance(entity, Obstacle):
             entity_movability = robot.deduce_movability(entity.type)
             if entity_movability == "movable":
