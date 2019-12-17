@@ -137,7 +137,7 @@ class Simulator:
             obstacle = self.ref_world.entities[next_step.obstacle_uid]
             if robot.deduce_movability(obstacle.type) == "unmovable":
                 return UnmanipulableFailure(next_step, next_step.obstacle_uid)
-            target_obs_polygon_rot = affinity.rotate(obstacle.polygon, target_rot, 'centroid')
+            target_obs_polygon_rot = affinity.rotate(obstacle.polygon, target_rot, (current_pose[0], current_pose[1]))
             target_obs_polygon_rot_trans = affinity.translate(target_obs_polygon_rot, target_trans[0],
                                                               target_trans[1])
             obs_rot_convex_hull = cascaded_union([obstacle.polygon, target_obs_polygon_rot]).convex_hull
@@ -159,7 +159,7 @@ class Simulator:
         self.ref_world.rotate_entity(robot.uid, target_rot)
         if next_step.is_transfer:
             self.ref_world.translate_entity(obstacle.uid, target_trans)
-            # No rotation for now
+            self.ref_world.rotate_entity(obstacle.uid, target_rot, (current_pose[0], current_pose[1]))
 
         if not self.display_sim_knowledge_only_once:
             self.rp.publish_sim_world(self.ref_world, self.temp_agent_uid)
