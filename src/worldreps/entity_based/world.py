@@ -22,6 +22,7 @@ from robot import Robot
 from taboo import Taboo
 from sensors.g_fov_sensor import GFOVSensor
 from sensors.s_fov_sensor import SFOVSensor
+from sensors.omniscient_sensor import OmniscientSensor
 
 
 class World:
@@ -132,10 +133,20 @@ class World:
             if entity_data["type"] == "robot":
                 sensors_data = entity_data["sensors"]
 
-                g_fov_sensor = GFOVSensor(sensors_data["perfect_g_fov"]["max_radius"], sensors_data["perfect_g_fov"]["min_radius"], sensors_data["perfect_g_fov"]["opening_angle"], pose)
-                s_fov_sensor = SFOVSensor(sensors_data["perfect_s_fov"]["max_radius"], sensors_data["perfect_s_fov"]["min_radius"], sensors_data["perfect_s_fov"]["opening_angle"], pose)
-
-                sensors = [g_fov_sensor, s_fov_sensor]
+                sensors = []
+                for sensor_data in sensors_data:
+                    if sensor_data["type"] == "perfect_g_fov":
+                        sensors.append(GFOVSensor(
+                            sensor_data["max_radius"],
+                            sensor_data["min_radius"],
+                            sensor_data["opening_angle"], pose))
+                    elif sensor_data["type"] == "perfect_s_fov":
+                        sensors.append(SFOVSensor(
+                            sensor_data["max_radius"],
+                            sensor_data["min_radius"],
+                            sensor_data["opening_angle"], pose))
+                    elif sensor_data["type"] == "omniscient":
+                        sensors.append(OmniscientSensor())
 
                 new_robot = Robot(name=entity_data["name"],
                                   full_geometry_acquired=True,
