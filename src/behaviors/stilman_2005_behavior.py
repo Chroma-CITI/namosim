@@ -524,13 +524,14 @@ class Stilman2005Behavior(BaselineBehavior):
             raise ValueError("c_1_cells_set should never be empty !")
 
     def _find_path(self, w_t, r_t, r_f):
-        return a_star_real_path(w_t.get_binary_inflated_occupancy_grid.get_grid(self._robot.uid),
-                                r_t, r_f, w_t.dd.res,
-                                w_t.dd.grid_pose, restrict_4_neighbors=False)
+        grid = w_t.get_binary_inflated_occupancy_grid((self._robot.uid,)).get_grid()
+        return a_star_real_path(grid, r_t, r_f, w_t.dd.res, w_t.dd.grid_pose, restrict_4_neighbors=False)
 
     @staticmethod
-    def __make_priority_queue(x_i, f, o_f, c_f):
-        return heapq.heappush([], HeapQueueElement(x_i, f, o_f, c_f))
+    def __make_priority_queue(cell, f, obs_id, comp_id):
+        priority_queue = []
+        heapq.heappush(priority_queue, HeapQueueElement(cell, f, obs_id, comp_id))
+        return priority_queue
 
     def __h(self, x_i, x_j):
         return math.sqrt((x_j[0] - x_i[0]) ** 2 + (x_j[1] - x_i[1]) ** 2)
@@ -538,24 +539,28 @@ class Stilman2005Behavior(BaselineBehavior):
     def __f(self, x_j, g_x_j, x_f):
         return g_x_j + self.__h(x_j, x_f)
 
-    def __g(self, x_i, x_j, g_x_i):
-        return g_x_i + (1 - self.alpha) + self.alpha * self.__e(x_i, x_j)
+    def __g(self, x_i, x_j, g_x_i, cc_grid):
+        return g_x_i + (1 - self.alpha) + self.alpha * self.__w_heur(x_i, x_j, cc_grid)
 
-    def __e(self, x_i, x_j):
-        translation_energy = self.trans_force * np.linalg.norm((x_j[0] - x_i[0], x_j[1] - x_i[1]))
-        rotation_energy = 0. if self.rot_angles.size == 0 else self.rot_force * self._world.dd.res * (abs(x_j[2] - x_i[2]) / self.rot_angles[0])
+    def __w_heur(self, x_i, x_j, cc_grid):
+        if cc_grid[x_j[0]][x_j[1]] > 0:
+            return 0.
+        else:
+            return self.heur_w
+
+    def __manip_e(self, r_i, r_j):
+        translation_energy = self.basic_trans_force * np.linalg.norm((r_j[0] - r_i[0], r_j[1] - r_i[1]))
+        rotation_energy = 0. if self.rot_angles.size == 0 else self.basic_rot_force * self._world.dd.res * (
+                    abs(r_j[2] - r_i[2]) / self.rot_angles[0])
         return translation_energy + rotation_energy
 
     @staticmethod
     def __remove_first(queue):
         return heapq.heappop(queue)
 
-    def __adjacent(self, x_1):
-        return utils.get_neighbors(x_1, self._world.dd.d_width, self._world.dd.d_height, self.neighborhood)
-
     @staticmethod
-    def __enqueue(queue, x_i, f, o_f, c_f):
-        heapq.heappush(queue, HeapQueueElement(x_i, f, o_f, c_f))
+    def __enqueue(queue, cell, f, obs_id, comp_id):
+        heapq.heappush(queue, HeapQueueElement(cell, f, obs_id, comp_id))
 
     @staticmethod
     def __compute_current_robot_cells(x_init, x_cur, init_robot_cells):
@@ -572,27 +577,25 @@ class Stilman2005Behavior(BaselineBehavior):
             current_robot_cells.add((cell[0] + discrete_translation[0], cell[1] + discrete_translation[1]))
         return current_robot_cells
 
-    def __robot_exc_contained_in_obs(self, x_cur, grid):
+    def __robot_exc_contained_in_obs(self, cell, w_t):
         """
-        If x_cur cell is contained only by one obstacle o_i, returns o_i.
-        If contained by no obstacle or by more than one, returns None.
-        :param x_cur: cell coordinates as integer tuple (x, y)
-        :return: obstacle uid or None
+        If cell is contained only by one obstacle o_i, returns o_i.
+        If contained by no obstacle, returns 0. If contained by more than one, returns -1.
+        :param cell: cell coordinates as integer tuple (x, y)
+        :return: obstacle uid or 0 or -1
         """
-        if grid[x_cur[0]][x_cur[1]] == 0:
-            return None
-        o_i = None
-        count = 0
-        # current_robot_cells = self.__compute_current_robot_cells(x_init, x_cur, init_robot_cells)
-        for obs, entity in self._world.entities.items():
-            if isinstance(entity, Obstacle):
-                if x_cur in self._world.get_discrete_inflated_cells_set_for_entity_uid(obs):
-                    count += 1
-                    if count == 1:
-                        o_i = obs
-                    else:
-                        return None
-        return o_i
+        grid = w_t.get_binary_inflated_occupancy_grid((self._robot.uid,)).get_grid()
+        if grid[cell[0]][cell[1]] == 0:
+            return 0
+        elif grid[cell[0]][cell[1]] > 1:
+            return -1
+
+        for uid, entity in w_t.entities.items():
+            if uid != self._robot.uid:
+                if cell in w_t.entities[uid].get_discrete_inflated_cells_set(w_t.dd):
+                    return uid
+
+        raise RuntimeError("__robot_exc_contained_in_obs should never reach this point.")
 
     @staticmethod
     def __make_translate(translation_vector, res):
@@ -628,10 +631,10 @@ class Stilman2005Behavior(BaselineBehavior):
 
 
 class HeapQueueElement:
-    def __init__(self, x_i, f, o_f, c_f):
-        self.x_i = x_i
-        self.o_f = o_f
-        self.c_f = c_f
+    def __init__(self, cell, f, obs_id, comp_id):
+        self.cell = cell
+        self.obs_id = obs_id
+        self.comp_id = comp_id
         self.f = f
 
     def __cmp__(self, other):
@@ -639,11 +642,6 @@ class HeapQueueElement:
 
     def __lt__(self, other):
         return self.f < other.f
-
-
-class CellData:
-    def __init__(self, g):
-        self.g = g
 
 
 class ActionTreeNode:
