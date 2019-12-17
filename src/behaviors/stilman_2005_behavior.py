@@ -111,26 +111,27 @@ class Stilman2005Behavior(BaselineBehavior):
         :return: None to backtrack, current partial plan otherwise.
         """
         r_t = w_t.entities[self._robot.uid].pose
-        x_t = utils.real_to_grid(r_t[0], r_t[1], w_t.dd.res, w_t.dd.grid_pose)
 
         avoid_list = set()
 
-        simple_path_to_goal = self._find_path(w_t, x_t, r_f)
+        simple_path_to_goal = self._find_path(w_t, r_t, r_f)
         if simple_path_to_goal:
             # If the goal is in the same free space component as the robot in simulated w_t
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
-            return Plan(simple_path_to_goal)
+            return Plan([Path(simple_path_to_goal)])
 
         o_1, c_1 = self._rch(w_t, avoid_list, prev_list, r_f)
         while (o_1, c_1) != (None, None):
-            c_1_cells_set = w_t.get_connected_components_grid((self._robot_uid,)).components[c_1]
-            w_t_plus_2, tho_n, tho_m, cost = self._manip_search(w_t, o_1, c_1_cells_set)
+            c_1_cells_set = w_t.get_connected_components_grid((self._robot_uid,)).get_components()[c_1]
+            w_t_plus_2, tho_n, tho_m, cost = self._manip_search(w_t, o_1, c_1_cells_set, r_f)
 
             if tho_m is not None:
-                future_plan = self._select_connect(w_t_plus_2, prev_list.append(c_1), r_f)
+                prev_list.add(c_1)
+                future_plan = self._select_connect(w_t_plus_2, prev_list, r_f)
                 if future_plan is not None:
                     # Following line comes from original algorithm, but does not make sense ?
                     # tho_n = self._find_path(w_t, x_t, tho_m[0])
+                    future_plan.path_components[0].obstacle_uid = o_1  #
                     return Plan([tho_n, tho_m]).append(future_plan)
 
             avoid_list.add((o_1, c_1))
