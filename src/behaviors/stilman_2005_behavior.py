@@ -13,7 +13,9 @@ from src.behaviors.plan.plan import Plan
 from src.behaviors.algorithms.multi_goal_a_star import multi_goal_a_star_real_path
 from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
+from src.worldreps.entity_based.robot import Robot
 from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, is_move_passing_over_pose
+from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
 
 
 class Stilman2005Behavior(BaselineBehavior):
@@ -63,7 +65,36 @@ class Stilman2005Behavior(BaselineBehavior):
             self.actions.append(self.__make_rotate(rot_angle))
 
     def think(self):
-        pass
+        if self._navigation_goals or self._q_goal is not None:
+            if self._q_goal is None:
+                self._q_goal = self._navigation_goals.pop(0)
+                self._p_opt = Plan([Path([])])
+
+            q_r = self._robot.pose
+
+            # TODO Extract abs_tol constant and make it a parameter for each goal
+            is_close_enough_to_goal = all(np.isclose(q_r, self._q_goal, rtol=1e-5))
+            if is_close_enough_to_goal:
+                print("SUCCESS: Agent '{name}' has successfully reached pose {nav_goal}.".format(
+                    name=self._robot.name, nav_goal=str(self._q_goal)))
+                self._q_goal = None
+                return ActionGoalSuccess()
+
+            if not self._p_opt.is_valid(self._world, self._robot_uid):
+                self._p_opt = self._select_connect(self._world, set(), self._q_goal)
+
+            if not self._p_opt.is_empty():
+                next_step = self._p_opt.pop_next_step()
+                return next_step
+            elif self._p_opt.has_infinite_cost():
+                print("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
+                    name=self._robot.name, nav_goal=str(self._q_goal)))
+                self._q_goal = None
+                return ActionGoalFailure()
+
+        else:
+            print("FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
+            return ActionGoalsFinished()
 
     def _select_connect(self, w_t, prev_list, r_f):
         """
