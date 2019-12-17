@@ -302,6 +302,9 @@ class Stilman2005Behavior(BaselineBehavior):
         other_entities = [entity for entity in w_t_plus_2.entities.values()
                           if entity.uid != robot.uid and entity.uid != obstacle.uid]
 
+        cc_grid = w_t.get_connected_components_grid((self._robot_uid,))
+        self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
+
         # 2 - Get sampled navigation points around obstacle
         # TODO Implement generic method that can have three possibilities:
         #  - points from middle of sides (DONE)
@@ -312,7 +315,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # 3 - Find paths to all accessible navigation cells and only keep these
         nav_pose_to_cost_and_real_path = multi_goal_a_star_real_path(
-            binary_inflated_occupancy_grid.grid, robot.pose, navigation_poses, dd.res, dd.grid_pose)
+            binary_inflated_occupancy_grid.get_grid(), robot.pose, navigation_poses, dd.res, dd.grid_pose)
 
         # 4 - Only keep accessible cells in nav_cells
         for pose, (cost, _) in nav_pose_to_cost_and_real_path.items():
@@ -401,7 +404,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 # Don't prevent full evaluation of plans when obstacle would pass over the goal
                                 moved_polygons = [old_robot.polygon, new_robot.polygon, old_obstacle.polygon,
                                                   new_obstacle.polygon]
-                                move_passes_over_goal = is_move_passing_over_pose(moved_polygons, self._q_goal)
+                                move_passes_over_goal = is_move_passing_over_pose(moved_polygons, r_f)
                             else:
                                 has_new_local_opening = True
                                 move_passes_over_goal = True
@@ -412,16 +415,27 @@ class Stilman2005Behavior(BaselineBehavior):
                                     new_robot.pose[0], new_robot.pose[1], dd.res, dd.grid_pose)
                                 binary_inflated_occupancy_grid.update_buffered_entities(
                                     {obstacle.uid: obstacle}, {new_obstacle.uid: new_obstacle})
-                                self._rp.publish_robot_sim_costmap(w_t_plus_2, self._robot_uid)
+                                # self._rp.publish_robot_sim_costmap(w_t_plus_2, self._robot_uid)
+                                # cc_grid.update_freed_and_invaded_cells(
+                                #     {obstacle.uid: obstacle}, {new_obstacle.uid: new_obstacle},
+                                #     dd, binary_inflated_occupancy_grid.grid
+                                # )
+                                cc_grid.re_init_grid(binary_inflated_occupancy_grid.get_grid())
+                                # freed_cells, invaded_cells = binary_inflated_occupancy_grid.update_grid_and_return_freed_and_invaded_cells()
+                                # cc_grid.update_freed_and_invaded_cells_alternative(freed_cells, invaded_cells)
+                                cc_grid.force_update_grid()
+
+                                self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
+
                                 is_there_opening_to_c_1 = self._is_there_opening_to_c_1(
-                                    binary_inflated_occupancy_grid.grid,
+                                    binary_inflated_occupancy_grid.get_grid(),
                                     dd.res, dd.grid_pose, robot_cell, c_1_cells_set)
                                 binary_inflated_occupancy_grid.update_buffered_entities(
                                     {new_obstacle.uid: new_obstacle}, {obstacle.uid: obstacle})
                             else:
                                 is_there_opening_to_c_1 = False
 
-                            phys_cost = leaf.phys_cost + self.__e(old_robot.pose, new_robot.pose)
+                            phys_cost = leaf.phys_cost + self.__manip_e(old_robot.pose, new_robot.pose)
                             # TODO: Get relative social cost as is done in behavior report
                             social_cost = 0.  # compute_social_cost()
                             new_leaf = ActionTreeNode(phys_cost=phys_cost, social_cost=social_cost,
@@ -465,13 +479,16 @@ class Stilman2005Behavior(BaselineBehavior):
         final_obstacle = best_action_branch[-1].obstacle
         w_t_plus_2.set_entity_polygon(final_robot.uid, final_robot.polygon, final_robot.full_geometry_acquired)
         w_t_plus_2.set_entity_polygon(final_obstacle.uid, final_obstacle.polygon, final_obstacle.full_geometry_acquired)
+
+        # Update displays
         self._rp.cleanup_robot_sim()
         self._rp.publish_sim(final_robot.polygon, final_obstacle.polygon, "/target")
+        cc_grid.re_init_grid(binary_inflated_occupancy_grid.get_grid())
+        self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
         return w_t_plus_2, tho_n, tho_m, cost
 
     def round_pose(self, pose):
         return int(pose[0] * self.rounder), int(pose[1] * self.rounder), int(pose[2] * self.rounder)
-
 
     @staticmethod
     def _is_there_opening_to_c_1(inflated_grid, res, grid_pose, robot_cell, c_1_cells_set):
