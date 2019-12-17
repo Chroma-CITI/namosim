@@ -48,7 +48,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
 
                 self._e_l, self._m_l = [], []
                 self._last_action_result = None
-                grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
+                grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
                 self._p_opt = Plan(
                     [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))])
                 self._rp.publish_p_opt(self._p_opt)
@@ -77,7 +77,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                         self._initial_world.add_entity(blocked_obstacle)
 
                 if not self._p_opt.is_valid(self._world, self._robot_uid) or not self._last_action_result:
-                    grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
+                    grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
 
                     self._rp.cleanup_p_opt()
                     self._p_opt = Plan(
@@ -153,7 +153,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
         self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
 
         for unit_translation, q_manip in obs.get_actions(self._world.dd, obs_is_push_only).items():
-            grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
+            grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
             c_1 = Path(a_star_real_path(grid, q_r, q_manip, self._world.dd.res, self._world.dd.grid_pose), o_uid=o_uid)
             self._rp.publish_c_1(c_1)
             if not c_1.has_infinite_cost():
@@ -207,7 +207,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                 c_2 = Path.line_path(q_manip, q_sim, weigth=self._manip_weight,
                                                      unit_translation=unit_translation, is_transfer=True, o_uid=o_uid)
                             self._rp.publish_c_2(c_2)
-                            world_copy_grid = world_copy.get_binary_inflated_occupancy_grid((self._robot_uid,)).grid
+                            world_copy_grid = world_copy.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
                             c_3 = Path(a_star_real_path(world_copy_grid, q_sim, q_goal,
                                                         world_copy.dd.res, world_copy.dd.grid_pose),
                                        o_uid=o_uid)

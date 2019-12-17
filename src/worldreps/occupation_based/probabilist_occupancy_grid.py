@@ -38,6 +38,5 @@ class ProbabilistOccupancyGrid:
         # plt.imshow(grid); plt.show()
         self._grid = grid
 
-    @property
-    def grid(self):
+    def get_grid(self):
         return self._grid

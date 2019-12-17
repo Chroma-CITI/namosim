@@ -304,34 +304,35 @@ class World:
             grid.update_buffered_entities(prev_entities, next_entities)
 
     def get_probabilist_occupancy_grid(self, entities_to_ignore):
-        self._update_dd()
+        self.update_dd()
         if entities_to_ignore not in self._probabilist_occupancy_grids:
             self._probabilist_occupancy_grids[entities_to_ignore] = ProbabilistOccupancyGrid(self.dd, self.entities, entities_to_ignore)
         return self._probabilist_occupancy_grids[entities_to_ignore]
 
     def get_binary_occupancy_grid(self, entities_to_ignore):
-        self._update_dd()
+        self.update_dd()
         if entities_to_ignore not in self._binary_occupancy_grids:
             self._binary_occupancy_grids[entities_to_ignore] = BinaryOccupancyGrid(self.dd, self.entities, entities_to_ignore)
         return self._binary_occupancy_grids[entities_to_ignore]
 
     def get_binary_inflated_occupancy_grid(self, entities_to_ignore):
-        self._update_dd()
+        self.update_dd()
         if entities_to_ignore not in self._binary_inflated_occupancy_grids:
             self._binary_inflated_occupancy_grids[entities_to_ignore] = BinaryInflatedOccupancyGrid(self.dd, self.entities, entities_to_ignore)
         return self._binary_inflated_occupancy_grids[entities_to_ignore]
 
     def get_social_topological_occupation_cost_grid(self, entities_to_ignore):
-        self._update_dd()
+        self.update_dd()
         if entities_to_ignore not in self._social_topological_occupation_cost_grids:
             self._social_topological_occupation_cost_grids[entities_to_ignore] = SocialTopologicalOccupationCostGrid()
         return self._social_topological_occupation_cost_grids[entities_to_ignore]
 
     def get_connected_components_grid(self, entities_to_ignore):
-        self._update_dd()
+        self.update_dd()
         if entities_to_ignore not in self._connected_components_grids:
-            self._connected_components_grids[entities_to_ignore] = ConnectedComponentsGrid(
-                self.get_binary_inflated_occupancy_grid(entities_to_ignore).grid)
+            grid = ConnectedComponentsGrid(
+                self.get_binary_inflated_occupancy_grid(entities_to_ignore).get_grid())
+            self._connected_components_grids[entities_to_ignore] = grid
         return self._connected_components_grids[entities_to_ignore]
 
     def get_entity_uid_from_name(self, name):
