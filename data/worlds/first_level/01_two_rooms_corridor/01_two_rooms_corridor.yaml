@@ -10,7 +10,7 @@ geometry_scale: 0.1 # SVG measurements will be multiplied by this value
 
 ## World discretization properties
 discretization_data:
-  res: 0.05
+  res: 0.07
   inflation_radius: 0.0
   cost_lethal: 100
   cost_inscribed: 50
@@ -42,14 +42,16 @@ things:
             - "box"
         force_pushes_only: True
         sensors:
-            perfect_g_fov:
-                min_radius: 0.0 # [m]
-                max_radius: 2.4 # [m]
-                opening_angle: 180.0 # [degrees]
-            perfect_s_fov:
-                min_radius: 0.0 # 0.7 # [m]
-                max_radius: 2.4 # 2.0 # [m]
-                opening_angle: 180.0 # 100.0 # [degrees]
+          -
+            type: "perfect_g_fov"
+            min_radius: 0.0 # [m]
+            max_radius: 2.4 # [m]
+            opening_angle: 180.0 # [degrees]
+          -
+            type: "perfect_s_fov"
+            min_radius: 0.0 # 0.7 # [m]
+            max_radius: 2.4 # 2.0 # [m]
+            opening_angle: 180.0 # 100.0 # [degrees]
     -
         name: "wall_ext_top"
         type: "wall"
