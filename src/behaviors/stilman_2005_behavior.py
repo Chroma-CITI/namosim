@@ -587,22 +587,6 @@ class Stilman2005Behavior(BaselineBehavior):
         raise RuntimeError("__robot_exc_contained_in_obs should never reach this point.")
 
     @staticmethod
-    def __make_translate(translation_vector, res):
-        def translate(robot, obstacle):
-            translation_linestring = LineString([(0., 0.), translation_vector])
-            rotated_linestring = affinity.rotate(translation_linestring, robot.pose[2], origin=(0., 0.))
-            rotated_translation_vector = rotated_linestring.coords[1]
-            return (robot.translate(rotated_translation_vector[0], rotated_translation_vector[1], res),
-                    obstacle.translate(rotated_translation_vector[0], rotated_translation_vector[1], res))
-        return translate
-
-    @staticmethod
-    def __make_rotate(angle):
-        def rotate(robot, obstacle):
-            return robot.rotate(angle), obstacle.rotate(angle, rot_center=(robot.pose[0], robot.pose[1]))
-        return rotate
-
-    @staticmethod
     def __get_actions_branch(action_node):
         branch = [action_node]
         while branch[-1].parent is not None:
