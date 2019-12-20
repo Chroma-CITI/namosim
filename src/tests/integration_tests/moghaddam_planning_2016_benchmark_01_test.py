@@ -4,9 +4,38 @@ from src.simulator import Simulator
 
 class MoghaddamPlanning2016Benchmark01(unittest.TestCase):
 
-    def moghaddam_planning_2016_benchmark_01_test_01(self):
-        sim = Simulator(world_file_path="../../../data/worlds/moghaddam_planning_2016_benchmark/01/01.yaml")
+    def setUp(self):
+        self.path_to_folder = "../../../data/simulations/moghaddam_planning_2016_benchmark/01/"
+
+    def test_navigation_only_behavior(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior.yaml")
         sim.run()
+        # Test should end up with a failure
+
+    def test_navigation_only_behavior_no_movables(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior_no_movables.yaml")
+        sim.run()
+        # Test should end up with a success
+
+    def test_wu_levihn_2014_behavior(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder+"wu_levihn_2014.yaml")
+        sim.run()
+        # Test should end up with a success
+
+    def test_wu_levihn_2014_behavior_no_movables(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder+"wu_levihn_2014_no_movables.yaml")
+        sim.run()
+        # Test should end up with a success
+
+    def test_stilman_2005_behavior(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior.yaml")
+        sim.run()
+        # Test should end up with a success
+
+    def test_stilman_2005_behavior_no_movables(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior_no_movables.yaml")
+        sim.run()
+        # Test should end up with a success
 
 
 if __name__ == '__main__':
