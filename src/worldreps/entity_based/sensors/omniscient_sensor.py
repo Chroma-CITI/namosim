@@ -21,7 +21,7 @@ class OmniscientSensor:
                         target_world.translate_entity(entity_uid, translation)
                     # Only apply rotation if there is one
                     if rotation != 0:
-                        target_world.rotate_entity(entity_uid, rotation, (robot_pose[0], robot_pose[1]))
+                        target_world.rotate_entity(entity_uid, rotation)
 
     def translate(self, xoff, yoff):
         pass
