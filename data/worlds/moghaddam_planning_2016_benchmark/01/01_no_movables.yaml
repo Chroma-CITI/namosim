@@ -68,18 +68,6 @@ things:
         geometry:
             from: "file"
             id: "wall_03"
-    -
-        name: "Top table"
-        type: "table"
-        geometry:
-            from: "file"
-            id: "table_01"
-    -
-        name: "Bottom table"
-        type: "table"
-        geometry:
-            from: "file"
-            id: "table_02"
 
   zones:
     goals:

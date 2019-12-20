@@ -42,14 +42,7 @@ things:
             - "table"
         force_pushes_only: True
         sensors:
-          - type: "perfect_g_fov"
-            min_radius: 0.0 # [m]
-            max_radius: 2.4 # [m]
-            opening_angle: 180.0 # [degrees]
-          - type: "perfect_s_fov"
-            min_radius: 0.0 # 0.7 # [m]
-            max_radius: 2.4 # 2.0 # [m]
-            opening_angle: 180.0 # 100.0 # [degrees]
+          - type: "omniscient"
     -
         name: "Border wall"
         type: "wall"
@@ -68,18 +61,6 @@ things:
         geometry:
             from: "file"
             id: "wall_03"
-    -
-        name: "Top table"
-        type: "table"
-        geometry:
-            from: "file"
-            id: "table_01"
-    -
-        name: "Bottom table"
-        type: "table"
-        geometry:
-            from: "file"
-            id: "table_02"
 
   zones:
     goals:
