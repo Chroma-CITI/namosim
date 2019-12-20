@@ -5,6 +5,7 @@ import numpy as np
 from src.display import triangulate
 
 import rospy
+from shapely.geometry import Polygon
 
 from src.display import tf_replacement
 from visualization_msgs.msg import Marker, MarkerArray
@@ -199,10 +200,11 @@ def polygon_to_triangle_list(polygon, namespace, p_id, frame_id, color, z_index)
                     color=color,
                     scale=Vector3(1.0, 1.0, 1.0),
                     points=[])
-    triangles = triangulate.triangulate(list(polygon.exterior.coords))
-    for triangle in triangles:
-        for point in triangle:
-            marker.points.append(Point(point[0], point[1], z_index))
+    if isinstance(polygon, Polygon):
+        triangles = triangulate.triangulate(list(polygon.exterior.coords))
+        for triangle in triangles:
+            for point in triangle:
+                marker.points.append(Point(point[0], point[1], z_index))
     return marker
 
 
