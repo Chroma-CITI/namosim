@@ -1,9 +1,8 @@
 import copy
 import heapq
 import math
-
 import numpy as np
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
 from shapely import affinity
 
 from baseline_behavior import BaselineBehavior
@@ -56,9 +55,9 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self.actions = []
         for trans_vector in self.trans_vectors:
-            self.actions.append(self.__make_translate(trans_vector, self._world.dd.res))
+            self.actions.append(Translation(trans_vector, self._world.dd.res))
         for rot_angle in self.rot_angles:
-            self.actions.append(self.__make_rotate(rot_angle))
+            self.actions.append(Rotation(rot_angle))
 
     def think(self):
         if self._navigation_goals or self._q_goal is not None:
@@ -358,91 +357,84 @@ class Stilman2005Behavior(BaselineBehavior):
                 for action_heap_node in cur_action_leaves_to_explore:
                     leaf = action_heap_node.action_tree_node
                     for action in self.actions:
-                        # TODO : Compute poses only from action and check whether it's worth evaluating for collisions
-                        #  (it is not if the two poses are in evaluated_configurations)
                         old_robot = leaf.robot
                         old_obstacle = leaf.obstacle
 
-                        new_robot = old_robot.light_copy()
-                        new_obstacle = old_obstacle.light_copy()
-                        new_robot, new_obstacle = action(new_robot, new_obstacle)
+                        predicted_pose = action.predicted_pose(old_robot, old_obstacle)
+                        predicted_configuration = (
+                            self.round_pose(predicted_pose[0]),
+                            self.round_pose(predicted_pose[1])
+                        )
 
-                        evaluated_configuration = (self.round_pose(new_robot.pose), self.round_pose(new_obstacle.pose))
-                        if evaluated_configuration in evaluated_configurations:
+                        if predicted_configuration in evaluated_configurations:
                             continue
                         else:
-                            evaluated_configurations.add(evaluated_configuration)
+                            evaluated_configurations.add(predicted_configuration)
+
+                        new_robot = old_robot.light_copy()
+                        new_obstacle = old_obstacle.light_copy()
+                        try:
+                            new_robot, new_obstacle = action.apply(new_robot, new_obstacle, other_entities)
+                        except IntersectionError:
+                            continue
 
                         self._rp.publish_sim(new_robot.polygon, new_obstacle.polygon, "/target")
 
-                        # Is the robot intersecting with ANOTHER obstacle ?
-                        # is_robot_colliding = utils.is_cells_set_colliding_in_grid(
-                        #     new_robot.get_discrete_cells_set(dd), binary_occupancy_grid)
-                        is_robot_colliding = new_robot.intersects(other_entities)
+                        if self._check_new_local_opening_activated:
+                            other_entities_polygons = [entity.polygon for entity in self._world.entities.values()
+                                                       if entity.uid != self._robot_uid
+                                                       and entity.uid != obstacle.uid]
+                            has_new_local_opening, _ = check_new_local_opening(
+                                old_obstacle.polygon, new_obstacle.polygon, other_entities_polygons,
+                                robot.min_inflation_radius)
+                            has_new_local_opening = True if leaf.has_new_local_opening else has_new_local_opening
+                            # Don't prevent full evaluation of plans when obstacle would pass over the goal
+                            moved_polygons = [old_robot.polygon, new_robot.polygon, old_obstacle.polygon,
+                                              new_obstacle.polygon]
+                            move_passes_over_goal = is_move_passing_over_pose(moved_polygons, r_f)
+                        else:
+                            has_new_local_opening = True
+                            move_passes_over_goal = True
+                        is_it_worth_fully_evaluating = has_new_local_opening or move_passes_over_goal
 
-                        # Is the obstacle intersecting with ANOTHER obstacle ?
-                        # is_obstacle_colliding = utils.is_cells_set_colliding_in_grid(
-                        #     new_obstacle.get_discrete_cells_set(dd), binary_occupancy_grid)
-                        is_obstacle_colliding = new_obstacle.intersects(other_entities)
+                        if is_it_worth_fully_evaluating:
+                            robot_cell = utils.real_to_grid(
+                                new_robot.pose[0], new_robot.pose[1], dd.res, dd.grid_pose)
+                            binary_inflated_occupancy_grid.update_buffered_entities(
+                                {obstacle.uid: obstacle}, {new_obstacle.uid: new_obstacle})
+                            # self._rp.publish_robot_sim_costmap(w_t_plus_2, self._robot_uid)
+                            # cc_grid.update_freed_and_invaded_cells(
+                            #     {obstacle.uid: obstacle}, {new_obstacle.uid: new_obstacle},
+                            #     dd, binary_inflated_occupancy_grid.grid
+                            # )
+                            # cc_grid.re_init_grid(binary_inflated_occupancy_grid.get_grid())
+                            # freed_cells, invaded_cells = binary_inflated_occupancy_grid.update_grid_and_return_freed_and_invaded_cells()
+                            # cc_grid.update_freed_and_invaded_cells_alternative(freed_cells, invaded_cells)
+                            # cc_grid.force_update_grid()
 
-                        is_manip_success = not (is_robot_colliding or is_obstacle_colliding)
+                            # self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
 
-                        if is_manip_success:
-                            if self._check_new_local_opening_activated:
-                                other_entities_polygons = [entity.polygon for entity in self._world.entities.values()
-                                                           if entity.uid != self._robot_uid
-                                                           and entity.uid != obstacle.uid]
-                                has_new_local_opening, _ = check_new_local_opening(
-                                    old_obstacle.polygon, new_obstacle.polygon, other_entities_polygons,
-                                    robot.min_inflation_radius)
-                                has_new_local_opening = True if leaf.has_new_local_opening else has_new_local_opening
-                                # Don't prevent full evaluation of plans when obstacle would pass over the goal
-                                moved_polygons = [old_robot.polygon, new_robot.polygon, old_obstacle.polygon,
-                                                  new_obstacle.polygon]
-                                move_passes_over_goal = is_move_passing_over_pose(moved_polygons, r_f)
-                            else:
-                                has_new_local_opening = True
-                                move_passes_over_goal = True
-                            is_it_worth_fully_evaluating = has_new_local_opening or move_passes_over_goal
+                            is_there_opening_to_c_1 = self._is_there_opening_to_c_1(
+                                binary_inflated_occupancy_grid.get_grid(),
+                                dd.res, dd.grid_pose, robot_cell, c_1_cells_set)
+                            binary_inflated_occupancy_grid.update_buffered_entities(
+                                {new_obstacle.uid: new_obstacle}, {obstacle.uid: obstacle})
+                        else:
+                            is_there_opening_to_c_1 = False
 
-                            if is_it_worth_fully_evaluating:
-                                robot_cell = utils.real_to_grid(
-                                    new_robot.pose[0], new_robot.pose[1], dd.res, dd.grid_pose)
-                                binary_inflated_occupancy_grid.update_buffered_entities(
-                                    {obstacle.uid: obstacle}, {new_obstacle.uid: new_obstacle})
-                                # self._rp.publish_robot_sim_costmap(w_t_plus_2, self._robot_uid)
-                                # cc_grid.update_freed_and_invaded_cells(
-                                #     {obstacle.uid: obstacle}, {new_obstacle.uid: new_obstacle},
-                                #     dd, binary_inflated_occupancy_grid.grid
-                                # )
-                                cc_grid.re_init_grid(binary_inflated_occupancy_grid.get_grid())
-                                # freed_cells, invaded_cells = binary_inflated_occupancy_grid.update_grid_and_return_freed_and_invaded_cells()
-                                # cc_grid.update_freed_and_invaded_cells_alternative(freed_cells, invaded_cells)
-                                cc_grid.force_update_grid()
+                        phys_cost = leaf.phys_cost + self.__manip_e(old_robot.pose, new_robot.pose)
+                        # TODO: Get relative social cost as is done in behavior report
+                        social_cost = 0.  # compute_social_cost()
+                        new_leaf = ActionTreeNode(phys_cost=phys_cost, social_cost=social_cost,
+                                                  parent=leaf, action=action,
+                                                  robot=new_robot, obstacle=new_obstacle,
+                                                  has_new_local_opening=has_new_local_opening)
+                        heapq.heappush(
+                            next_action_leaves_to_explore, ActionHeapNode(new_leaf.phys_cost, new_leaf))
 
-                                self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
-
-                                is_there_opening_to_c_1 = self._is_there_opening_to_c_1(
-                                    binary_inflated_occupancy_grid.get_grid(),
-                                    dd.res, dd.grid_pose, robot_cell, c_1_cells_set)
-                                binary_inflated_occupancy_grid.update_buffered_entities(
-                                    {new_obstacle.uid: new_obstacle}, {obstacle.uid: obstacle})
-                            else:
-                                is_there_opening_to_c_1 = False
-
-                            phys_cost = leaf.phys_cost + self.__manip_e(old_robot.pose, new_robot.pose)
-                            # TODO: Get relative social cost as is done in behavior report
-                            social_cost = 0.  # compute_social_cost()
-                            new_leaf = ActionTreeNode(phys_cost=phys_cost, social_cost=social_cost,
-                                                      parent=leaf, action=action,
-                                                      robot=new_robot, obstacle=new_obstacle,
-                                                      has_new_local_opening=has_new_local_opening)
+                        if is_there_opening_to_c_1:
                             heapq.heappush(
-                                next_action_leaves_to_explore, ActionHeapNode(new_leaf.phys_cost, new_leaf))
-
-                            if is_there_opening_to_c_1:
-                                heapq.heappush(
-                                    successful_action_tree_nodes, ActionHeapNode(new_leaf.total_cost, new_leaf))
+                                successful_action_tree_nodes, ActionHeapNode(new_leaf.total_cost, new_leaf))
 
                 cur_action_leaves_to_explore = next_action_leaves_to_explore
                 next_action_leaves_to_explore = []
@@ -623,6 +615,71 @@ class Stilman2005Behavior(BaselineBehavior):
         social_cost = actions_branch[-1].social_cost
         o_uid = actions_branch[-1].obstacle.uid
         return Path(real_path, is_transfer=True, o_uid=o_uid, phys_cost=phys_cost, social_cost=social_cost)
+
+
+class Action:
+
+    def __init__(self):
+        pass
+
+    def apply(self, robot, obstacle, other_entities):
+        raise NotImplementedError
+
+    def predicted_pose(self, robot, obstacle):
+        raise NotImplementedError
+
+
+class Rotation(Action):
+
+    def __init__(self, angle):
+        self.angle = angle
+
+    def apply(self, robot, obstacle, other_entities):
+        return (robot.rotate(self.angle, other_entities=other_entities),
+                obstacle.rotate(self.angle, rot_center=(robot.pose[0], robot.pose[1]), other_entities=other_entities))
+
+    def predicted_pose(self, robot, obstacle):
+        position = list(affinity.rotate(
+            Point(obstacle.pose[0], obstacle.pose[1]), self.angle, origin=(robot.pose[0], robot.pose[1])).coords)[0]
+        return (
+            (robot.pose[0], robot.pose[1], (robot.pose[2] + self.angle) % 360.0),
+            (position[0], position[1], (obstacle.pose[2] + self.angle) % 360.0)
+        )
+        # rot_radius = utils.euclidean_distance(robot.pose, obstacle.pose)
+        # return (
+        #     (robot.pose[0], robot.pose[1], (robot.pose[2] + self.angle) % 360.0),
+        #     (obstacle.pose[0] + math.cos(obstacle.pose[2] - self.angle) * rot_radius,
+        #      obstacle.pose[1] + math.sin(obstacle.pose[2] - self.angle) * rot_radius,
+        #      (obstacle.pose[2] + self.angle) % 360.0)
+        # )
+
+
+class Translation(Action):
+    def __init__(self, translation_vector, res):
+        self.translation_vector = translation_vector
+        self.res = res
+
+    def apply(self, robot, obstacle, other_entities):
+        translation_linestring = LineString([(0., 0.), self.translation_vector])
+        rotated_linestring = affinity.rotate(translation_linestring, robot.pose[2], origin=(0., 0.))
+        rotated_translation_vector = rotated_linestring.coords[1]
+        return (robot.translate(
+            rotated_translation_vector[0], rotated_translation_vector[1], self.res, other_entities=other_entities),
+                obstacle.translate(
+            rotated_translation_vector[0], rotated_translation_vector[1], self.res, other_entities=other_entities))
+
+    def predicted_pose(self, robot, obstacle):
+        translation_linestring = LineString([(0., 0.), self.translation_vector])
+        rotated_linestring = affinity.rotate(translation_linestring, robot.pose[2], origin=(0., 0.))
+        rotated_translation_vector = rotated_linestring.coords[1]
+        return (
+            (robot.pose[0] + rotated_translation_vector[0],
+             robot.pose[1] + rotated_translation_vector[1],
+             robot.pose[2]),
+            (obstacle.pose[0] + rotated_translation_vector[0],
+             obstacle.pose[1] + rotated_translation_vector[1],
+             obstacle.pose[2])
+        )
 
 
 class HeapQueueElement:
