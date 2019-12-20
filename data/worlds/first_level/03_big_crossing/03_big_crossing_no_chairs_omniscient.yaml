@@ -2,16 +2,16 @@
 
 ## Files to load
 files:
-  geometry_file: "02_hotel_basic_open_doors.svg"
+  geometry_file: "03_big_crossing.svg"
   # TODO ontology_file: ../../../ontologies/main.owl
 
 ## World geometry interpretation properties
-geometry_scale: 0.2 # SVG measurements will be multiplied by this value
+geometry_scale: 0.1 # SVG measurements will be multiplied by this value
 
 ## World discretization properties
 discretization_data:
-  res: 0.1
-  inflation_radius: 0.35
+  res: 0.07
+  inflation_radius: 0.0
   cost_lethal: 100
   cost_inscribed: 50
   cost_circumscribed: 20
@@ -21,12 +21,12 @@ discretization_data:
 things:
   entities:
     -
-        name: "pepper"
+        name: "robot_01"
         type: "robot"
         geometry:
             from: "file"
             id: "robot_01"
-        # orientation_id: # Points to a 2-points path object in SVG that gives the entity's direction
+            orientation_id: "robot_01_dir" # Points to a 2-points path object in SVG that gives the entity's direction
         # pose:
         #   position:
         #     x: 0.0
@@ -42,14 +42,7 @@ things:
             - "chair"
         force_pushes_only: True
         sensors:
-            perfect_g_fov:
-                min_radius: 0.0 # [m]
-                max_radius: 2.4 # [m]
-                opening_angle: 180.0 # [degrees]
-            perfect_s_fov:
-                min_radius: 0.0 # 0.7 # [m]
-                max_radius: 2.4 # 2.0 # [m]
-                opening_angle: 180.0 # 100.0 # [degrees]
+          - type: "omniscient"
     -
         name: "Top Left wall"
         type: "wall"
@@ -74,44 +67,39 @@ things:
         geometry:
             from: "file"
             id: "wall_04"
-    
-    -
-        name: "Room 1 chair1"
-        type: "chair"
-        geometry:
-            from: "file"
-            id: "chair_01"     
-    -
-        name: "Room 1 chair2"
-        type: "chair"
-        geometry:
-            from: "file"
-            id: "chair_02"   
-    -
-        name: "Room 1 chair3"
-        type: "chair"
-        geometry:
-            from: "file"
-            id: "chair_03"     
-    -
-        name: "Room 1 chair4"
-        type: "chair"
-        geometry:
-            from: "file"
-            id: "chair_04"            
-            
-    # -
-    #     name: "Bottom table"
-    #     type: "table"
-    #     geometry:
-    #         from: "file"
-    #         id: "table_02"
+
+#    -
+#        name: "Room 1 chair1"
+#        type: "chair"
+#        geometry:
+#            from: "file"
+#            id: "chair_01"
+#    -
+#        name: "Room 1 chair2"
+#        type: "chair"
+#        geometry:
+#            from: "file"
+#            id: "chair_02"
+#    -
+#        name: "Room 1 chair3"
+#        type: "chair"
+#        geometry:
+#            from: "file"
+#            id: "chair_03"
+#    -
+#        name: "Room 1 chair4"
+#        type: "chair"
+#        geometry:
+#            from: "file"
+#            id: "chair_04"
+
 
   zones:
     goals:
     -
+        name: "first_goal"
         geometry:
           from: "file"
           id: "goal_01"
-          # orientation_id:
+          orientation_id: "goal_01_dir"
     # taboos:

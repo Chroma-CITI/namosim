@@ -7,7 +7,7 @@ files:
 # Autonomous agents - Behaviors associations
 agents_behaviors:
   -
-    agent_name: "pepper" # Must correspond to one of the world entities's actual name
+    agent_name: "robot_01" # Must correspond to one of the world entities's actual name
     behavior:
       name: "wu_levihn_2014_behavior"
       parameters:

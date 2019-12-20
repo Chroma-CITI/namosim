@@ -10,7 +10,7 @@ geometry_scale: 0.1 # SVG measurements will be multiplied by this value
 
 ## World discretization properties
 discretization_data:
-  res: 0.1
+  res: 0.07
   inflation_radius: 0.0
   cost_lethal: 100
   cost_inscribed: 50
@@ -21,12 +21,12 @@ discretization_data:
 things:
   entities:
     -
-        name: "pepper"
+        name: "robot_01"
         type: "robot"
         geometry:
             from: "file"
             id: "robot_01"
-        # orientation_id: # Points to a 2-points path object in SVG that gives the entity's direction
+            orientation_id: "robot_01_dir" # Points to a 2-points path object in SVG that gives the entity's direction
         # pose:
         #   position:
         #     x: 0.0
@@ -42,14 +42,14 @@ things:
             - "chair"
         force_pushes_only: True
         sensors:
-            perfect_g_fov:
-                min_radius: 0.0 # [m]
-                max_radius: 2.4 # [m]
-                opening_angle: 180.0 # [degrees]
-            perfect_s_fov:
-                min_radius: 0.0 # 0.7 # [m]
-                max_radius: 2.4 # 2.0 # [m]
-                opening_angle: 180.0 # 100.0 # [degrees]
+          - type: "perfect_g_fov"
+            min_radius: 0.0 # [m]
+            max_radius: 2.4 # [m]
+            opening_angle: 180.0 # [degrees]
+          - type: "perfect_s_fov"
+            min_radius: 0.0 # 0.7 # [m]
+            max_radius: 2.4 # 2.0 # [m]
+            opening_angle: 180.0 # 100.0 # [degrees]
     -
         name: "Top Left wall"
         type: "wall"
@@ -93,25 +93,20 @@ things:
         geometry:
             from: "file"
             id: "chair_03"
-    # -
-    #     name: "Room 1 chair4"
-    #     type: "chair"
-    #     geometry:
-    #         from: "file"
-    #         id: "chair_04"
+    -
+        name: "Room 1 chair4"
+        type: "chair"
+        geometry:
+            from: "file"
+            id: "chair_04"
 
-    # -
-    #     name: "Bottom table"
-    #     type: "table"
-    #     geometry:
-    #         from: "file"
-    #         id: "table_02"
 
   zones:
     goals:
     -
+        name: "first_goal"
         geometry:
           from: "file"
           id: "goal_01"
-          # orientation_id:
+          orientation_id: "goal_01_dir"
     # taboos:

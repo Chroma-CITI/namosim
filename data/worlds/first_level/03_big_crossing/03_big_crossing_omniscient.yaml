@@ -2,7 +2,7 @@
 
 ## Files to load
 files:
-  geometry_file: "./01_two_rooms_corridor.svg"
+  geometry_file: "03_big_crossing.svg"
   # TODO ontology_file: ../../../ontologies/main.owl
 
 ## World geometry interpretation properties
@@ -37,73 +37,62 @@ things:
         # polygon:
         #   - [...]
         movable_whitelist:
-            - "box"
+            - "chair"
         push_only_list:
-            - "box"
+            - "chair"
         force_pushes_only: True
         sensors:
-          -
-              type: "omniscient"
+          - type: "omniscient"
     -
-        name: "wall_ext_top"
+        name: "Top Left wall"
         type: "wall"
         geometry:
-          from: "file"
-          id: "wall_ext_top"
+            from: "file"
+            id: "wall_01"
     -
-        name: "wall_ext_bottom"
+        name: "Top right wall"
         type: "wall"
         geometry:
-          from: "file"
-          id: "wall_ext_bottom"
+            from: "file"
+            id: "wall_02"
     -
-        name: "wall_ext_left"
+        name: "Bottom right wall"
         type: "wall"
         geometry:
-          from: "file"
-          id: "wall_ext_left"
+            from: "file"
+            id: "wall_03"
     -
-        name: "wall_ext_right"
+        name: "Bottom left wall"
         type: "wall"
         geometry:
-          from: "file"
-          id: "wall_ext_right"
+            from: "file"
+            id: "wall_04"
+
     -
-        name: "wall_mid_top_left"
-        type: "wall"
+        name: "Room 1 chair1"
+        type: "chair"
         geometry:
-          from: "file"
-          id: "wall_mid_top_left"
+            from: "file"
+            id: "chair_01"
     -
-        name: "wall_mid_top_right"
-        type: "wall"
+        name: "Room 1 chair2"
+        type: "chair"
         geometry:
-          from: "file"
-          id: "wall_mid_top_right"
+            from: "file"
+            id: "chair_02"
     -
-        name: "wall_mid_bottom_left"
-        type: "wall"
+        name: "Room 1 chair3"
+        type: "chair"
         geometry:
-          from: "file"
-          id: "wall_mid_bottom_left"
+            from: "file"
+            id: "chair_03"
     -
-        name: "wall_mid_bottom_right"
-        type: "wall"
+        name: "Room 1 chair4"
+        type: "chair"
         geometry:
-          from: "file"
-          id: "wall_mid_bottom_right"
-    -
-        name: "movable_box"
-        type: "box"
-        geometry:
-          from: "file"
-          id: "movable_box"
-    -
-        name: "second_movable_box"
-        type: "box"
-        geometry:
-          from: "file"
-          id: "second_movable_box"
+            from: "file"
+            id: "chair_04"
+
 
   zones:
     goals:

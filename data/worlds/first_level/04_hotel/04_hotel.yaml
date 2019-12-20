@@ -2,7 +2,7 @@
 
 ## Files to load
 files:
-  geometry_file: "02_hotel_basic_open_doors.svg"
+  geometry_file: "./04_hotel.svg"
   # TODO ontology_file: ../../../ontologies/main.owl
 
 ## World geometry interpretation properties
@@ -21,7 +21,7 @@ discretization_data:
 things:
   entities:
     -
-        name: "pepper"
+        name: "robot_01"
         type: "robot"
         geometry:
             from: "file"
@@ -74,27 +74,27 @@ things:
         geometry:
             from: "file"
             id: "table_01"
-            
-    -            
+
+    -
         name: "Room 2 table2"
         type: "table"
         geometry:
             from: "file"
             id: "table_02"
-    -            
+    -
         name: "Room 3 table3"
         type: "table"
         geometry:
             from: "file"
-            id: "table_03"            
-            
+            id: "table_03"
+
     -
         name: "Room 1 cabinet1"
         type: "cabinet"
         geometry:
             from: "file"
             id: "cabinet_01"
-            
+
     -
         name: "Room 2 cabinet2"
         type: "cabinet"
@@ -130,26 +130,26 @@ things:
         type: "chair"
         geometry:
             from: "file"
-            id: "chair_01"     
+            id: "chair_01"
     -
         name: "Room 2 chair21"
         type: "chair"
         geometry:
             from: "file"
-            id: "chair_21"   
+            id: "chair_21"
     -
         name: "Room 2 chair22"
         type: "chair"
         geometry:
             from: "file"
-            id: "chair_22"     
+            id: "chair_22"
     -
         name: "Room 3 chair03"
         type: "chair"
         geometry:
             from: "file"
-            id: "chair_03"            
-            
+            id: "chair_03"
+
     # -
     #     name: "Bottom table"
     #     type: "table"

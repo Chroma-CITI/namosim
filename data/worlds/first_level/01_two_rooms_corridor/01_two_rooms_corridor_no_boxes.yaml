@@ -21,7 +21,7 @@ discretization_data:
 things:
   entities:
     -
-        name: "pepper"
+        name: "robot_01"
         type: "robot"
         geometry:
             from: "file"

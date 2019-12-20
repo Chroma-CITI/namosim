@@ -24,7 +24,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -51,9 +51,9 @@
      inkscape:window-height="801"
      id="namedview4138"
      showgrid="true"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="332.04433"
-     inkscape:cy="276.01972"
+     inkscape:zoom="2.0000001"
+     inkscape:cx="345.57488"
+     inkscape:cy="215.92143"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
@@ -135,4 +135,18 @@
      d="m 512.37198,1141.8977 16.7127,0 0,-16.0063 -16.7127,0 z"
      style="fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:none"
      inkscape:label="#path4145" />
+  <path
+     style="fill:none;stroke:#0000ff;stroke-width:1.09148252px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 52.720846,1132.9082 9.7976,0"
+     id="robot_01_dir"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="cc"
+     inkscape:label="#path4217" />
+  <path
+     style="fill:none;stroke:#0000ff;stroke-width:1.09148252px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 522.72084,1134.4082 9.7976,0"
+     id="goal_01_dir"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="cc"
+     inkscape:label="#path4217" />
 </svg>

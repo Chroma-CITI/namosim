@@ -2,7 +2,7 @@
 
 ## Files to load
 files:
-  geometry_file: "./01_two_rooms_corridor.svg"
+  geometry_file: "03_big_crossing.svg"
   # TODO ontology_file: ../../../ontologies/main.owl
 
 ## World geometry interpretation properties
@@ -37,73 +37,69 @@ things:
         # polygon:
         #   - [...]
         movable_whitelist:
-            - "box"
+            - "chair"
         push_only_list:
-            - "box"
+            - "chair"
         force_pushes_only: True
         sensors:
-          -
-              type: "omniscient"
+          - type: "perfect_g_fov"
+            min_radius: 0.0 # [m]
+            max_radius: 2.4 # [m]
+            opening_angle: 180.0 # [degrees]
+          - type: "perfect_s_fov"
+            min_radius: 0.0 # 0.7 # [m]
+            max_radius: 2.4 # 2.0 # [m]
+            opening_angle: 180.0 # 100.0 # [degrees]
     -
-        name: "wall_ext_top"
+        name: "Top Left wall"
         type: "wall"
         geometry:
-          from: "file"
-          id: "wall_ext_top"
+            from: "file"
+            id: "wall_01"
     -
-        name: "wall_ext_bottom"
+        name: "Top right wall"
         type: "wall"
         geometry:
-          from: "file"
-          id: "wall_ext_bottom"
+            from: "file"
+            id: "wall_02"
     -
-        name: "wall_ext_left"
+        name: "Bottom right wall"
         type: "wall"
         geometry:
-          from: "file"
-          id: "wall_ext_left"
+            from: "file"
+            id: "wall_03"
     -
-        name: "wall_ext_right"
+        name: "Bottom left wall"
         type: "wall"
         geometry:
-          from: "file"
-          id: "wall_ext_right"
-    -
-        name: "wall_mid_top_left"
-        type: "wall"
-        geometry:
-          from: "file"
-          id: "wall_mid_top_left"
-    -
-        name: "wall_mid_top_right"
-        type: "wall"
-        geometry:
-          from: "file"
-          id: "wall_mid_top_right"
-    -
-        name: "wall_mid_bottom_left"
-        type: "wall"
-        geometry:
-          from: "file"
-          id: "wall_mid_bottom_left"
-    -
-        name: "wall_mid_bottom_right"
-        type: "wall"
-        geometry:
-          from: "file"
-          id: "wall_mid_bottom_right"
-    -
-        name: "movable_box"
-        type: "box"
-        geometry:
-          from: "file"
-          id: "movable_box"
-    -
-        name: "second_movable_box"
-        type: "box"
-        geometry:
-          from: "file"
-          id: "second_movable_box"
+            from: "file"
+            id: "wall_04"
+
+#    -
+#        name: "Room 1 chair1"
+#        type: "chair"
+#        geometry:
+#            from: "file"
+#            id: "chair_01"
+#    -
+#        name: "Room 1 chair2"
+#        type: "chair"
+#        geometry:
+#            from: "file"
+#            id: "chair_02"
+#    -
+#        name: "Room 1 chair3"
+#        type: "chair"
+#        geometry:
+#            from: "file"
+#            id: "chair_03"
+#    -
+#        name: "Room 1 chair4"
+#        type: "chair"
+#        geometry:
+#            from: "file"
+#            id: "chair_04"
+
 
   zones:
     goals:
