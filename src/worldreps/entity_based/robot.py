@@ -25,15 +25,15 @@ class Robot(Entity):
         self.min_inflation_radius = self.compute_inflation_radius()
         self.dist_between_robot_front_and_center = self.compute_dist_between_robot_front_and_center()
 
-    def rotate(self, angle, rot_center='centroid'):
-        Entity.rotate(self, angle, rot_center)
+    def rotate(self, angle, rot_center='centroid', other_entities=None):
+        Entity.rotate(self, angle, rot_center, other_entities)
         for sensor in self.sensors:
             pass
             sensor.rotate(angle, rot_center=(self.pose[0], self.pose[1]))
         return self
 
-    def translate(self, xoff, yoff, res):
-        Entity.translate(self, xoff, yoff, res)
+    def translate(self, xoff, yoff, res, other_entities=None):
+        Entity.translate(self, xoff, yoff, res, other_entities)
         for sensor in self.sensors:
             sensor.translate(xoff, yoff)
         return self

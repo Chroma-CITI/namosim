@@ -1,10 +1,11 @@
-from math import ceil
+import math
 import numpy as np
 import copy
 import shapely.affinity as affinity
 from shapely.geometry import Polygon
 
 from src.utils import utils
+from custom_exceptions import IntersectionError
 
 
 class Entity:
@@ -78,10 +79,37 @@ class Entity:
         self._is_discrete_inflated_cell_set_valid = False
         return self
 
-    def rotate(self, angle, rot_center='centroid'):
+    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5.):
         # May be improved for cases with modulo 90-degrees rotations with specific update of discrete_polygon.
-        self.polygon = affinity.rotate(self.polygon, angle, origin=rot_center)
-        self.pose = (self.pose[0], self.pose[1], (self.pose[2] + angle) % 360)
+        new_polygon = affinity.rotate(self.polygon, angle, origin=rot_center)
+        polygon_center = list(new_polygon.centroid.coords)[0]
+        new_pose = (polygon_center[0], polygon_center[1], (self.pose[2] + angle) % 360)
+
+        if other_entities is None:
+            # If collision detection with other entities is not required
+            self.polygon = new_polygon
+            self.pose = new_pose
+        else:
+            rotation_steps_to_check = int(angle / angular_res)
+            collision_polygons = [affinity.rotate(self.polygon, float(i) * angular_res, origin=rot_center)
+                                  for i in range(rotation_steps_to_check)]
+            for entity in other_entities:
+                for collision_polygon in collision_polygons:
+                    if collision_polygon.intersects(entity.polygon):
+                        raise IntersectionError(
+                            ("Entity {self_name} would intersect with entity {other_name} " +
+                             "if rotation of angle ({angle}) at rotation center {rot_center} were to occur").format(
+                                self_name=self.name, other_name=entity.name, angle=angle, rot_center=str(rot_center)
+                            ))
+                if new_polygon.intersects(entity.polygon):
+                    raise IntersectionError(
+                        ("Entity {self_name} would intersect with entity {other_name} " +
+                         "if rotation of angle ({angle}) at rotation center {rot_center} were to occur").format(
+                            self_name=self.name, other_name=entity.name, angle=angle, rot_center=str(rot_center)
+                        ))
+
+            self.polygon = new_polygon
+            self.pose = new_pose
 
         self._is_inflated_polygon_valid = False
         self._is_discrete_polygon_valid = False
@@ -90,10 +118,39 @@ class Entity:
         self._is_discrete_inflated_cell_set_valid = False
         return self
 
-    def translate(self, xoff, yoff, res):
+    def translate(self, xoff, yoff, res, other_entities=None):
         # May be improved for cases where the translation is equal to a multiple of the resolution
-        self.polygon = affinity.translate(self.polygon, xoff, yoff)
-        self.pose = (list(self.polygon.centroid.coords)[0][0], list(self.polygon.centroid.coords)[0][1], self.pose[2])
+        new_polygon = affinity.translate(self.polygon, xoff, yoff)
+        polygon_center = list(new_polygon.centroid.coords)[0]
+        new_pose = (polygon_center[0], polygon_center[1], self.pose[2])
+
+        if other_entities is None:
+            # If collision detection with other entities is not required
+            self.polygon = new_polygon
+            self.pose = new_pose
+        else:
+            translation_length = math.sqrt(xoff ** 2 + yoff ** 2)
+            translation_steps_to_check = int(translation_length / res)
+            xoff_normed, yoff_normed = xoff / translation_length, yoff / translation_length
+            collision_polygons = [affinity.translate(self.polygon, xoff_normed * float(i), yoff_normed * float(i))
+                                  for i in range(translation_steps_to_check)]
+            for entity in other_entities:
+                for collision_polygon in collision_polygons:
+                    if collision_polygon.intersects(entity.polygon):
+                        raise IntersectionError(
+                            ("Entity {self_name} would intersect with entity {other_name} " +
+                             "if translation of vector ({xoff}, {yoff}) were to occur").format(
+                                self_name=self.name, other_name=entity.name, xoff=xoff, yoff=yoff
+                            ))
+                if new_polygon.intersects(entity.polygon):
+                    raise IntersectionError(
+                        ("Entity {self_name} would intersect with entity {other_name} " +
+                         "if translation of vector ({xoff}, {yoff}) were to occur").format(
+                            self_name=self.name, other_name=entity.name, xoff=xoff, yoff=yoff
+                        ))
+
+            self.polygon = new_polygon
+            self.pose = new_pose
 
         self._is_inflated_polygon_valid = False
         if (xoff / res != 0.0) or (yoff / res != 0.0):
@@ -116,7 +173,7 @@ class Entity:
 
         width, height = max_x - min_x, max_y - min_y
 
-        d_width, d_height = int(ceil(width / dd.res)), int(ceil(height / dd.res))
+        d_width, d_height = int(math.ceil(width / dd.res)), int(math.ceil(height / dd.res))
 
         discrete_polygon_grid = np.zeros((d_width, d_height))
         discrete_inflated_polygon_grid = np.zeros((d_width, d_height))
@@ -144,7 +201,7 @@ class Entity:
 
         width, height = max_x - min_x, max_y - min_y
 
-        d_width, d_height = int(ceil(width / dd.res)), int(ceil(height / dd.res))
+        d_width, d_height = int(math.ceil(width / dd.res)), int(math.ceil(height / dd.res))
 
         discrete_cells_set = set()
         discrete_inflated_cells_set = set()
