@@ -284,7 +284,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                     self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell, o_uid, 0)
 
                         self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
-        return None
+        return None, None
 
     def _manip_search(self, w_t, o_1, c_1_cells_set, r_f):
         # 1 - Initialize manip search simulation world and some shortcut variables
