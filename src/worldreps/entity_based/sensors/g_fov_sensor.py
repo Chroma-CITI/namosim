@@ -33,7 +33,7 @@ class GFOVSensor(CircularSectorSensor):
                                                            polygon=entity_visible_polygon,
                                                            pose=[entity_visible_polygon.centroid.coords[0][0],
                                                                  entity_visible_polygon.centroid.coords[0][1],
-                                                                 0.],
+                                                                 entity.pose[2]],
                                                            full_geometry_acquired=full_geometry_acquired,
                                                            type_in="unknown",
                                                            uid=entity_uid)
