@@ -16,15 +16,10 @@ from src.worldreps.entity_based.obstacle import Obstacle
 from src.worldreps.entity_based.robot import Robot
 from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, is_move_passing_over_pose
 from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
+from src.worldreps.entity_based.custom_exceptions import IntersectionError
 
 
 class Stilman2005Behavior(BaselineBehavior):
-    """
-    TODO (as documented on 2019-09-12):
-      - Add visualization to all methods (about 1-days work) and try to have them all run
-      - Debug and integrate the algorithm into the bigger frame of the simulator (1 to 2 days)
-    """
-
     def __init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config):
         BaselineBehavior.__init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config)
 
