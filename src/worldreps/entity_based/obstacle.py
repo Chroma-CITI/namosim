@@ -42,8 +42,8 @@ class Obstacle(Entity):
         self._is_actions_valid = False
         return self
 
-    def rotate(self, angle, rot_center='centroid', other_entities=None):
-        Entity.rotate(self, angle, rot_center, other_entities)
+    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5.):
+        Entity.rotate(self, angle, rot_center, other_entities, angular_res)
         self._is_actions_valid = False
         return self
 
