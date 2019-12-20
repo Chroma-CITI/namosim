@@ -27,7 +27,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.neighborhood = utils.TAXI_NEIGHBORHOOD
         self.cost_for_obstacle_occupied_cells = 2.
         self.basic_trans_force = 2.
-        self.basic_rot_force = 2.
+        self.basic_rot_moment = 2.
         self.heur_w = 2.
         self._check_new_local_opening_activated = True
         self.forbid_rotations = False
@@ -296,8 +296,8 @@ class Stilman2005Behavior(BaselineBehavior):
         other_entities = [entity for entity in w_t_plus_2.entities.values()
                           if entity.uid != robot.uid and entity.uid != obstacle.uid]
 
-        cc_grid = w_t.get_connected_components_grid((self._robot_uid,))
-        self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
+        # cc_grid = w_t.get_connected_components_grid((self._robot_uid,))
+        # self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
 
         # 2 - Get sampled navigation points around obstacle
         # TODO Implement generic method that can have three possibilities:
@@ -470,12 +470,14 @@ class Stilman2005Behavior(BaselineBehavior):
         # Update displays
         self._rp.cleanup_robot_sim()
         self._rp.publish_sim(final_robot.polygon, final_obstacle.polygon, "/target")
-        cc_grid.re_init_grid(binary_inflated_occupancy_grid.get_grid())
-        self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
+        # cc_grid.re_init_grid(binary_inflated_occupancy_grid.get_grid())
+        # self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
         return w_t_plus_2, tho_n, tho_m, cost
 
     def round_pose(self, pose):
-        return int(pose[0] * self.rounder), int(pose[1] * self.rounder), int(pose[2] * self.rounder)
+        return (int(round(pose[0] * self.rounder)),
+                int(round(pose[1] * self.rounder)),
+                int(round(pose[2] * self.rounder)))
 
     @staticmethod
     def _is_there_opening_to_c_1(inflated_grid, res, grid_pose, robot_cell, c_1_cells_set):
@@ -537,7 +539,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def __manip_e(self, r_i, r_j):
         translation_energy = self.basic_trans_force * np.linalg.norm((r_j[0] - r_i[0], r_j[1] - r_i[1]))
-        rotation_energy = 0. if self.rot_angles.size == 0 else self.basic_rot_force * self._world.dd.res * (
+        rotation_energy = 0. if self.rot_angles.size == 0 else self.basic_rot_moment * self._world.dd.res * (
                     abs(r_j[2] - r_i[2]) / self.rot_angles[0])
         return translation_energy + rotation_energy
 
