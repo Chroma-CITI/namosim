@@ -3,7 +3,6 @@ import copy
 import time
 from shapely import affinity
 from shapely.ops import cascaded_union
-from shapely.geometry import Point
 
 from src.behaviors.algorithms.a_star import a_star_real_path
 from src.behaviors.plan.path import Path
@@ -65,25 +64,25 @@ class WuLevihn2014Behavior(BaselineBehavior):
 
             # If execution of a manipulation step failed, then obstacle is set as unmovable and remembered
             if self._last_action_result is not None:
-                is_last_action_success = isinstance(self._last_action_result, ActionSuccess)
                 last_action = self._last_action_result.action
                 # If an object is moved, free space is created, thus we invalidate m_l
                 if last_action.is_transfer:
                     self._m_l = []
                     # If the manipulation action failed, then the obstacle is marked as blocked
+                    is_last_action_success = isinstance(self._last_action_result, ActionSuccess)
                     if not is_last_action_success:
                         blocked_obstacle = self._world.entities[last_action.obstacle_uid]
                         self._blocked_obstacles.add(blocked_obstacle.uid)
                         self._initial_world.add_entity(blocked_obstacle)
 
-                if not self._p_opt.is_valid(self._world, self._robot_uid) or not self._last_action_result:
-                    grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
+            if not self._p_opt.is_valid(self._world, self._robot_uid) or self._last_action_result is None:
+                grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
 
-                    self._rp.cleanup_p_opt()
-                    self._p_opt = Plan(
-                        [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))])
-                    self._rp.publish_p_opt(self._p_opt)
-                    self.make_plan(q_r, self._q_goal)
+                self._rp.cleanup_p_opt()
+                self._p_opt = Plan(
+                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))])
+                self._rp.publish_p_opt(self._p_opt)
+                self.make_plan(q_r, self._q_goal)
 
             if not self._p_opt.is_empty():
                 next_step = self._p_opt.pop_next_step()
