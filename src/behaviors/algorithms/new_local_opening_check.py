@@ -1,4 +1,4 @@
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Polygon, Point, MultiPolygon
 from shapely.ops import cascaded_union
 from src.display.ros_publisher import RosPublisher
 
@@ -26,12 +26,20 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon, other_en
         for other_entity_polygon in other_entities_polygons:
             intersection_geometry = init_entity_inflated_polygon.intersection(other_entity_polygon)
             if not intersection_geometry.is_empty:
-                init_blocking_areas.append(intersection_geometry)
+                if isinstance(intersection_geometry, Polygon):
+                    init_blocking_areas.append(intersection_geometry)
+                elif isinstance(intersection_geometry, MultiPolygon):
+                    for sub_intersection_geometry in intersection_geometry:
+                        init_blocking_areas.append(sub_intersection_geometry)
     target_blocking_areas = []
     for other_entity_polygon in other_entities_polygons:
         intersection_geometry = target_entity_inflated_polygon.intersection(other_entity_polygon)
         if not intersection_geometry.is_empty:
-            target_blocking_areas.append(intersection_geometry)
+            if isinstance(intersection_geometry, Polygon):
+                target_blocking_areas.append(intersection_geometry)
+            elif isinstance(intersection_geometry, MultiPolygon):
+                for sub_intersection_geometry in intersection_geometry:
+                    target_blocking_areas.append(sub_intersection_geometry)
 
     RosPublisher().publish_blocking_areas(init_blocking_areas, target_blocking_areas)
 
