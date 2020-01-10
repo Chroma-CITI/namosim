@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Simulator Knowledge1
+        - /Simulator Knowledge1/Simulator Knowledge1/Namespaces1
         - /Robot Knowledge1
         - /Robot Knowledge1/Robot Knowledge1
         - /Robot Knowledge1/Robot Simulated Actions1
@@ -85,21 +86,21 @@ Visualization Manager:
           Name: Robot Knowledge
           Namespaces:
             /obstacles/polygon: true
-            /robot/g_fov: false
+            /robot/g_fov: true
             /robot/polygon: true
-            /robot/s_fov: false
+            /robot/s_fov: true
           Queue Size: 100
           Value: true
         - Alpha: 1
           Class: rviz/Map
           Color Scheme: costmap
           Draw Behind: false
-          Enabled: false
+          Enabled: true
           Name: Robot Costmap
           Topic: /robot/costmap
           Unreliable: false
           Use Timestamp: false
-          Value: false
+          Value: true
         - Alpha: 0.699999988
           Class: rviz/Map
           Color Scheme: costmap
@@ -116,7 +117,7 @@ Visualization Manager:
           Axes Radius: 0.00999999978
           Class: rviz/PoseArray
           Color: 0; 0; 0
-          Enabled: false
+          Enabled: true
           Head Length: 0.140000001
           Head Radius: 0.150000006
           Name: Eval. Obs. Manip. Poses
@@ -125,14 +126,12 @@ Visualization Manager:
           Shape: Arrow (3D)
           Topic: /test/obs_manip_poses
           Unreliable: false
-          Value: false
+          Value: true
         - Class: rviz/MarkerArray
           Enabled: true
           Marker Topic: /robot/sim
           Name: Robot Simulated Actions
           Namespaces:
-            /alg/current_cell: false
-            /alg/current_neighbor: false
             /blocking_areas/init: true
             /blocking_areas/target: true
             /diameter_inflated_polygon/init: true
@@ -388,7 +387,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
+      Angle: 0.00499999989
       Class: rviz/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.0599999987
@@ -398,11 +397,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Scale: 60.9726944
+      Scale: 152.960144
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 0.226538688
-      Y: -0.160738468
+      X: 0.0307687875
+      Y: -0.121379204
     Saved: ~
 Window Geometry:
   Displays:
