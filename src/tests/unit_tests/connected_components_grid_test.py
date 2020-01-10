@@ -90,10 +90,10 @@ class ConnectedComponentsGridTest(unittest.TestCase):
         for test in self.test_data:
             print("Testing case", str(counter))
             ccg = ConnectedComponentsGrid(test["test_array"], neighborhood=utils.TAXI_NEIGHBORHOOD)
-            for line_nb in range(ccg.grid.shape[0]):
-                self.assertEqual(list(test["expected_result_array"][line_nb]), list(ccg.grid[line_nb]))
+            for line_nb in range(ccg.get_grid().shape[0]):
+                self.assertEqual(list(test["expected_result_array"][line_nb]), list(ccg.get_grid()[line_nb]))
             for component_id in test["expected_result_components"].keys():
-                self.assertEqual(test["expected_result_components"][component_id], ccg.components[component_id])
+                self.assertEqual(test["expected_result_components"][component_id], ccg.get_components()[component_id])
             counter += 1
 
     def test_update(self):
@@ -109,9 +109,9 @@ class ConnectedComponentsGridTest(unittest.TestCase):
                     ccg.invaded_cells, ccg.freed_cells = self.compute_invaded_and_freed_cells(
                         test_data_1["expected_result_array"], test_data_2["expected_result_array"])
                     ccg._update_grid()
-                    self.assertEqual(len(test_data_2["expected_result_components"]), len(ccg.components))
+                    self.assertEqual(len(test_data_2["expected_result_components"]), len(ccg.get_components()))
                     for expected_result_component in test_data_2["expected_result_components"].values():
-                        self.assertTrue(expected_result_component in ccg.components.values())
+                        self.assertTrue(expected_result_component in ccg.get_components().values())
 
                     # for line_nb in range(ccg.grid.shape[0]):
                     #     self.assertEqual(list(test_data_2["expected_result_array"][line_nb]), list(ccg.grid[line_nb]))

@@ -3,6 +3,46 @@ import numpy as np
 from src.utils import utils
 
 
+class NetworkXGridGraph:
+    def __init__(self, occupation_grid, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
+        self._graph = occupancy_grid_to_graph(occupation_grid, neighborhood)
+        self._components = get_graph_connected_components(self._graph)
+        self._grid = connected_components_to_grid(self._components, occupation_grid)
+
+        self.freed_cells = set()
+        self.invaded_cells = set()
+        self.neighborhood = neighborhood
+
+        self.are_components_valid = True
+        self.is_grid_valid = True
+
+    def update_freed_and_invaded_cells(self, freed_cells, invaded_cells):
+        self.freed_cells.update(freed_cells)
+        self.freed_cells.difference_update(invaded_cells)
+        self.invaded_cells.update(invaded_cells)
+        self.invaded_cells.difference_update(freed_cells)
+
+        self.are_components_valid = False
+        self.is_grid_valid = False
+
+    def get_graph(self, occupancy_grid):
+        if self.freed_cells or self.invaded_cells:
+            update_graph(self._graph, occupancy_grid, self.freed_cells, self.invaded_cells, self.neighborhood)
+        return self._graph
+
+    def get_components(self, occupancy_grid):
+        if not self.are_components_valid:
+            self._components = get_graph_connected_components(self.get_graph(occupancy_grid))
+            self.are_components_valid = True
+        return self._components
+
+    def get_grid(self, occupancy_grid):
+        if not self.is_grid_valid:
+            self._grid = connected_components_to_grid(self.get_components(occupancy_grid), occupancy_grid)
+            self.is_grid_valid = True
+        return self._grid
+
+
 def occupancy_grid_to_graph(occupancy_grid, neighborhood=utils.TAXI_NEIGHBORHOOD, threshold_value=1):
     graph = networkx.Graph()
     width, height = len(occupancy_grid), len(occupancy_grid[0])
