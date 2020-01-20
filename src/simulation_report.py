@@ -3,3 +3,4 @@ class SimulationReport:
         pass
 
     def social_placement_cost(self):
+        pass

@@ -3,6 +3,15 @@ import numpy as np
 
 
 class GoalReport:
+    """
+    Object meant to retain the following information about the goal execution:
+        - Total planning duration [ ]
+        - Number of replans [ ]
+        -
+        - Number of moved obstacles
+        -
+    """
+
     def __init__(self):
         self.plans = []
         self.actions_results = []
@@ -28,11 +37,10 @@ class GoalReport:
                     transferred_obstacles.append(action.obstacle_uid)
         return transferred_obstacles
 
-    @property
-    def nb_transferred_obstacles(self):
+    def get_nb_transferred_obstacles(self):
         return len(self.get_transferred_obstacles_set())
 
-    def compute_total_path_lengths(self):
+    def get_total_path_lengths(self):
         transit_path_length = 0.
         transfer_path_length = 0.
 
@@ -51,17 +59,14 @@ class GoalReport:
 
         return transit_path_length, transfer_path_length
 
-    @property
-    def total_transit_path_length(self):
-        return self.compute_total_path_lengths()[0]
+    def get_total_transit_path_length(self):
+        return self.get_total_path_lengths()[0]
 
-    @property
-    def total_transfer_path_length(self):
-        return self.compute_total_path_lengths()[1]
+    def get_total_transfer_path_length(self):
+        return self.get_total_path_lengths()[1]
 
-    @property
-    def transit_transfer_ratio(self):
-        transit_path_length, transfer_path_length = self.compute_total_path_lengths()
+    def get_transit_transfer_ratio(self):
+        transit_path_length, transfer_path_length = self.get_total_path_lengths()
         try:
             return transit_path_length / transfer_path_length
         except ZeroDivisionError:

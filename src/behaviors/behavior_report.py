@@ -5,15 +5,13 @@ class BehaviorReport:
         self._robot_uid = robot_uid
         self.goal_reports = dict()
 
-    @property
-    def total_planning_duration(self):
+    def get_total_planning_duration(self):
         return sum(goal_report.planning_duration for goal_report in self.goal_reports.values())
 
     def get_all_transferred_obstacles_set(self):
         all_transferred_obstacles = set()
         for goal in self.goal_reports.values():
-            all_transferred_obstacles = all_transferred_obstacles.union(
-                self.goal_reports[goal].get_transferred_obstacles_set())
+            all_transferred_obstacles.update(self.goal_reports[goal].get_transferred_obstacles_set())
         return all_transferred_obstacles
 
     def get_all_transferred_obstacles_sequence(self):
@@ -22,27 +20,22 @@ class BehaviorReport:
             all_transferred_obstacles += self.goal_reports[goal].get_transferred_obstacles_sequence()
         return all_transferred_obstacles
 
-    @property
-    def nb_all_transferred_obstacles(self):
+    def get_nb_all_transferred_obstacles(self):
         return len(self.get_all_transferred_obstacles_set())
 
-    @property
-    def total_transit_path_length(self):
-        return sum(goal_report.total_transit_path_length for goal_report in self.goal_reports.values())
+    def get_total_transit_path_length(self):
+        return sum(goal_report.get_total_transit_path_length() for goal_report in self.goal_reports.values())
 
-    @property
-    def total_transfer_path_length(self):
-        return sum(goal_report.total_transfer_path_length for goal_report in self.goal_reports.values())
+    def get_total_transfer_path_length(self):
+        return sum(goal_report.get_total_transfer_path_length() for goal_report in self.goal_reports.values())
 
-    @property
-    def total_transit_transfer_ratio(self):
+    def get_total_transit_transfer_ratio(self):
         try:
-            return self.total_transit_path_length / self.total_transfer_path_length
+            return self.get_total_transit_path_length() / self.get_total_transfer_path_length()
         except ZeroDivisionError:
             return float("inf")
 
-    @property
-    def absolute_social_placement_cost(self):
+    def get_absolute_social_placement_cost(self):
         """
         Computes the aggregation of the costs of all cells occupied by transferred obstacles during behavior execution,
         ignoring the order in which they were moved.
@@ -52,8 +45,7 @@ class BehaviorReport:
         social_grid = self._ref_world.get_social_topological_occupation_cost_grid((self._robot_uid,) + transferred_obstacles)
         return self._ref_world.agg_grid_cost_for_entities(transferred_obstacles, social_grid)
 
-    @property
-    def relative_social_placement_cost(self):
+    def get_relative_social_placement_cost(self):
         """
         Computes the aggregation of the costs of all cells occupied by transferred obstacles during behavior execution,
         taking into account the order in which it was decided they were to be moved (from last to first).
@@ -67,3 +59,4 @@ class BehaviorReport:
             evaluated_obstacles.append(obstacle)
             social_cost += self._ref_world.agg_grid_cost_for_entities(obstacle, social_grid)
         return social_cost
+
