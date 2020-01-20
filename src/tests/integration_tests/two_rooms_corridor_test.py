@@ -13,7 +13,7 @@ class TwoRoomsCorridorTest(unittest.TestCase):
         # Test should end up with a failure
 
     def test_navigation_only_behavior_no_boxes(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior_no_boxes.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior_no_movables.yaml")
         sim.run()
         # Test should end up with a success
 
@@ -23,7 +23,7 @@ class TwoRoomsCorridorTest(unittest.TestCase):
         # Test should end up with a success
 
     def test_wu_levihn_2014_behavior_no_boxes(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder+"wu_levihn_2014_no_boxes.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder+"wu_levihn_2014_no_movables.yaml")
         sim.run()
         # Test should end up with a success
 
@@ -33,7 +33,7 @@ class TwoRoomsCorridorTest(unittest.TestCase):
         # Test should end up with a success
 
     def test_stilman_2005_behavior_no_boxes(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior_no_boxes.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior_no_movables.yaml")
         sim.run()
         # Test should end up with a success
 
