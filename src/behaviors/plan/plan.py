@@ -83,3 +83,36 @@ class Plan:
                                     obstacle_uid=self.path_components[0].obstacle_uid)
             else:
                 return None
+
+    def get_all_transferred_obstacles_set(self):
+        """
+        Computes and returns the set of to-be transferred obstacles uids in the plan.
+        :return: set of to-be transferred obstacles uids in the plan.
+        :rtype: set(int)
+        """
+        all_transferred_obstacles = set()
+        for path_component in self.path_components:
+            if path_component.is_transfer:
+                all_transferred_obstacles.update(path_component.obstacle_uid)
+        return all_transferred_obstacles
+
+    def get_all_transferred_obstacles_sequence(self):
+        """
+        Computes and returns the sequence (list) of to-be transferred obstacles uids in the plan, keeping the order
+        in which they are moved.
+        :return: list of to-be transferred obstacles uids in the plan.
+        :rtype: list(int)
+        """
+        all_transferred_obstacles = []
+        for path_component in self.path_components:
+            if path_component.is_transfer:
+                all_transferred_obstacles += path_component.obstacle_uid
+        return all_transferred_obstacles
+
+    def get_nb_all_transferred_obstacles(self):
+        """
+        Computes and returns the number of transferred obstacles.
+        :return: number of transferred obstacles.
+        :rtype: int
+        """
+        return len(self.get_all_transferred_obstacles_set())
