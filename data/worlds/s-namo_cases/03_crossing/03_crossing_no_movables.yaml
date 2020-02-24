@@ -1,0 +1,130 @@
+# World
+
+## Files to load
+files:
+  geometry_file: "./03_crossing.svg"
+  # TODO ontology_file: ../../../ontologies/main.owl
+
+## World geometry interpretation properties
+geometry_scale: 0.1 # SVG measurements will be multiplied by this value
+
+## World discretization properties
+discretization_data:
+  res: 0.1
+  inflation_radius: 0.0
+  cost_lethal: 100
+  cost_inscribed: 50
+  cost_circumscribed: 20
+  cost_possibly_nonfree: 10
+
+## World physical entities/zones
+things:
+  entities:
+    -
+        name: "robot_01"
+        type: "robot"
+        geometry:
+            from: "file"
+            id: "robot_01"
+            orientation_id: "robot_01_dir" # Points to a 2-points path object in SVG that gives the entity's direction
+        # pose:
+        #   position:
+        #     x: 0.0
+        #     y: 0.0
+        #   orientation:
+        #     z: 0.0
+        # radius: 0.25 # [m] # Creates a circular robot with radius
+        # polygon:
+        #   - [...]
+        movable_whitelist:
+            - "box"
+        push_only_list:
+            - "box"
+        force_pushes_only: True
+        sensors:
+          -
+            type: "perfect_g_fov"
+            min_radius: 0.0 # [m]
+            max_radius: 2.4 # [m]
+            opening_angle: 180.0 # [degrees]
+          -
+            type: "perfect_s_fov"
+            min_radius: 0.0 # 0.7 # [m]
+            max_radius: 2.4 # 2.0 # [m]
+            opening_angle: 180.0 # 100.0 # [degrees]
+    -
+        name: "wall_top_left"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "wall_top_left"
+    -
+        name: "wall_bottom_left"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "wall_bottom_left"
+    -
+        name: "wall_top_right"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "wall_top_right"
+    -
+        name: "wall_bottom_right"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "wall_bottom_right"
+    -
+        name: "wall_top"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "wall_top"
+    -
+        name: "wall_bottom"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "wall_bottom"
+    -
+        name: "wall_right"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "wall_right"
+    -
+        name: "wall_left"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "wall_left"
+
+  zones:
+    goals:
+    -
+        name: "first_goal"
+        geometry:
+          from: "file"
+          id: "goal_01"
+          orientation_id: "goal_01_dir"
+    -
+        name: "second_goal"
+        geometry:
+          from: "file"
+          id: "goal_02"
+          orientation_id: "goal_02_dir"
+    -
+        name: "third_goal"
+        geometry:
+          from: "file"
+          id: "goal_03"
+          orientation_id: "goal_03_dir"
+    -
+        name: "fourth_goal"
+        geometry:
+          from: "file"
+          id: "goal_04"
+          orientation_id: "goal_04_dir"
+    # taboos:

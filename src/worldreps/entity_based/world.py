@@ -116,15 +116,18 @@ class World:
 
             # Polygonal geometry object definition
             polygon = Polygon()
-            if entity_data["geometry"]["from"] == "file":
-                # If geometry is defined in SVG file, prioritize using it
-                polygon = shapely_geoms[entity_data["geometry"]["id"]]
-            elif entity_data["geometry"]["from"] == "polygon":
-                # If geometry manually defined in yaml file, use it before radius-defined but after SVG if exists
-                polygon = Polygon(entity_data["geometry"]["polygon"])
-            elif entity_data["geometry"]["from"] == "radius":
-                # Last case:
-                polygon = Point(pose[0], pose[1]).buffer(entity_data["geometry"]["polygon"]["radius"])
+            try:
+                if entity_data["geometry"]["from"] == "file":
+                    # If geometry is defined in SVG file, prioritize using it
+                    polygon = shapely_geoms[entity_data["geometry"]["id"]]
+                elif entity_data["geometry"]["from"] == "polygon":
+                    # If geometry manually defined in yaml file, use it before radius-defined but after SVG if exists
+                    polygon = Polygon(entity_data["geometry"]["polygon"])
+                elif entity_data["geometry"]["from"] == "radius":
+                    # Last case:
+                    polygon = Point(pose[0], pose[1]).buffer(entity_data["geometry"]["polygon"]["radius"])
+            except Exception:
+                continue
 
             # Adjust initial position in pose if not given only by SVG file
             if pose[0] is None or pose[1] is None:
@@ -178,30 +181,35 @@ class World:
             if ("goals" in config["things"]["zones"]
                     and isinstance(config["things"]["zones"]["goals"], list)):
                 for goal_data in config["things"]["zones"]["goals"]:
-                    goal_polygon = shapely_geoms[goal_data["geometry"]["id"]]
-                    pose = [goal_polygon.centroid.coords[0][0], goal_polygon.centroid.coords[0][1], 0.0]
+                    try:
+                        goal_polygon = shapely_geoms[goal_data["geometry"]["id"]]
+                        pose = [goal_polygon.centroid.coords[0][0], goal_polygon.centroid.coords[0][1], 0.0]
 
-                    if "orientation_id" in goal_data["geometry"]:
-                        # If a drawn vector in the SVG is defined as orientation, use it
-                        orientation_geom = list(shapely_geoms[goal_data["geometry"]["orientation_id"]].coords)
-                        orientation_vector = [orientation_geom[1][0] - orientation_geom[0][0],
-                                              orientation_geom[1][1] - orientation_geom[0][1]]
-                        pose[2] = utils.yaw_from_direction(orientation_vector)
-                    if "pose" in goal_data["geometry"]:
-                        # If a pose is manually described in the YAML file, override the possibly SVG-computed orientation
-                        yaml_pose = goal_data["geometry"]["pose"]
-                        if "position" in yaml_pose:
-                            pose[0], pose[1] = yaml_pose["position"]["x"], yaml_pose["position"]["y"]
-                        if "orientation" in yaml_pose:
-                            pose[2] = yaml_pose["orientation"]["z"]
+                        if "orientation_id" in goal_data["geometry"]:
+                            # If a drawn vector in the SVG is defined as orientation, use it
+                            orientation_geom = list(shapely_geoms[goal_data["geometry"]["orientation_id"]].coords)
+                            orientation_vector = [orientation_geom[1][0] - orientation_geom[0][0],
+                                                  orientation_geom[1][1] - orientation_geom[0][1]]
+                            pose[2] = utils.yaw_from_direction(orientation_vector)
+                        if "pose" in goal_data["geometry"]:
+                            # If a pose is manually described in the YAML file, override the possibly SVG-computed orientation
+                            yaml_pose = goal_data["geometry"]["pose"]
+                            if "position" in yaml_pose:
+                                pose[0], pose[1] = yaml_pose["position"]["x"], yaml_pose["position"]["y"]
+                            if "orientation" in yaml_pose:
+                                pose[2] = yaml_pose["orientation"]["z"]
 
-                    goals[goal_data["name"]] = tuple(pose)
+                        goals[goal_data["name"]] = tuple(pose)
+                    except Exception:
+                        print("No goal named... {}".format(goal_data['geometry']['id']))
             if ("taboos" in config["things"]["zones"]
                     and isinstance(config["things"]["zones"]["taboos"], list)):
                 for thing_data in config["things"]["zones"]["taboos"]:
                     new_taboo = Taboo(name=thing_data["name"],
                                       polygon=Polygon(thing_data["polygon"]))
                     self.taboo_zones[new_taboo.uid] = new_taboo
+
+        self.update_dd()
 
         return goals
 
@@ -246,7 +254,7 @@ class World:
     def set_entity_polygon(self, entity_uid, polygon, full_geometry_acquired=False):
         entity = self.entities[entity_uid]
         prev_entity = copy.deepcopy(entity)
-        entity.set_polygon(polygon, self.dd)
+        entity.set_polygon(polygon)
         entity.full_geometry_acquired = full_geometry_acquired
         self._invalidate_and_inform_grids(prev_entities={entity_uid: prev_entity},
                                           next_entities={entity_uid: entity})
@@ -254,11 +262,13 @@ class World:
     def get_map_bounds(self):
         if len(self.entities) == 0:
             raise ValueError("There are no entities to populate the grid, it can't be created !")
-        all_entity_polygons_in_map = []
-        for entity_uid, entity in self.entities.items():
-            all_entity_polygons_in_map.append(entity.polygon)
-        unioned_polygons = cascaded_union(all_entity_polygons_in_map)
-        return unioned_polygons.bounds
+        polygons = [entity.polygon for entity in self.entities.values()]
+        map_min_x, map_min_y, map_max_x, map_max_y = float("inf"), float("inf"), -float("inf"), -float("inf")
+        for polygon in polygons:
+            min_x, min_y, max_x, max_y = polygon.bounds
+            map_min_x, map_min_y = min(map_min_x, min_x), min(map_min_y, min_y)
+            map_max_x, map_max_y = max(map_max_x, max_x), max(map_max_y, max_y)
+        return map_min_x, map_min_y, map_max_x, map_max_y
 
     def update_dd(self):
         if self.dd is None:
@@ -323,13 +333,17 @@ class World:
     def get_binary_occupancy_grid(self, entities_to_ignore):
         self.update_dd()
         if entities_to_ignore not in self._binary_occupancy_grids:
-            self._binary_occupancy_grids[entities_to_ignore] = BinaryOccupancyGrid(self.dd, self.entities, entities_to_ignore)
+            self._binary_occupancy_grids[entities_to_ignore] = BinaryOccupancyGrid(
+                self.dd.d_width, self.dd.d_height, self.dd.res, self.dd.grid_pose, self.dd.inflation_radius,
+                self.entities, entities_to_ignore)
         return self._binary_occupancy_grids[entities_to_ignore]
 
     def get_binary_inflated_occupancy_grid(self, entities_to_ignore):
         self.update_dd()
         if entities_to_ignore not in self._binary_inflated_occupancy_grids:
-            self._binary_inflated_occupancy_grids[entities_to_ignore] = BinaryInflatedOccupancyGrid(self.dd, self.entities, entities_to_ignore)
+            self._binary_inflated_occupancy_grids[entities_to_ignore] = BinaryInflatedOccupancyGrid(
+                self.dd.d_width, self.dd.d_height, self.dd.res, self.dd.grid_pose, self.dd.inflation_radius,
+                self.entities, entities_to_ignore)
         return self._binary_inflated_occupancy_grids[entities_to_ignore]
 
     def get_social_topological_occupation_cost_grid(self, entities_to_ignore):
@@ -355,7 +369,8 @@ class World:
     def agg_grid_cost_for_entities(self, entities_uids, grid, aggregation_function=sum):
         entities_cells = set()
         for entity_uid in entities_uids:
-            entities_cells = entities_cells.union(self.entities[entity_uid].get_discrete_cells_set(self.dd))
+            entities_cells = entities_cells.union(self.entities[entity_uid].get_discrete_cells_set(
+                self.dd.inflation_radius, self.dd.res, self.dd.grid_pose, self.dd.d_width, self.dd.d_height))
         RosPublisher().publish_social_cells(entities_cells, self.dd.res, self.dd.grid_pose)
         cells_values = [grid[cell[0]][cell[1]] for cell in entities_cells]
         return aggregation_function(cells_values)

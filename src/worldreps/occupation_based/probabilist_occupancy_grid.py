@@ -14,11 +14,13 @@ class ProbabilistOccupancyGrid:
 
         for entity_uid, entity in self._entities.items():
             if entity_uid not in self._entities_to_ignore:
-                e_min_x, e_min_y, e_max_x, e_max_y = entity.get_inflated_polygon(self._dd).bounds
+                e_min_x, e_min_y, e_max_x, e_max_y = entity.get_inflated_polygon(
+                    self._dd.inflated_radius, self._dd.res).bounds
 
                 min_cell_x = int(round((e_min_x - self._dd.grid_pose[0]) / self._dd.res))
                 min_cell_y = int(round((e_min_y - self._dd.grid_pose[1]) / self._dd.res))
-                discrete_inflated_polygon = entity.get_discrete_inflated_polygon(self._dd)
+                discrete_inflated_polygon = entity.get_discrete_inflated_polygon(
+                    self._dd.inflation_radius, self._dd.res, self._dd.cost_lethal, self._dd.cost_inscribed)
                 max_cell_x = min_cell_x + discrete_inflated_polygon.shape[0]
                 max_cell_y = min_cell_y + discrete_inflated_polygon.shape[1]
 

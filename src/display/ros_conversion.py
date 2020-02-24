@@ -2,7 +2,7 @@ import time
 import math
 import numpy as np
 
-from src.display import triangulate
+import mapbox_earcut as earcut
 
 import rospy
 from shapely.geometry import Polygon
@@ -50,44 +50,45 @@ def world_to_costmap(world, robot_uid):
     return costmap
 
 
-def world_to_marker_array(world, robot_uid):
+def world_to_marker_array(world, robot_uid, entities_to_ignore=tuple()):
     marker_array = MarkerArray()
     markers = []
     robot = world.entities[robot_uid]
     for entity in world.entities.values():
-        if isinstance(entity, Robot):
-            markers = markers + entity_to_markers(
-                entity, "/robot", entity.uid, cfg.frame_id, cfg.robot_color, cfg.robot_border_color,
-                cfg.text_color_on_filling, cfg.text_color_on_empty, cfg.entities_z_index,
-                cfg.border_width, cfg.text_height, add_border=False, add_text=False)
+        if entity.uid not in entities_to_ignore:
+            if isinstance(entity, Robot):
+                markers = markers + entity_to_markers(
+                    entity, "/robot", entity.uid, cfg.frame_id, cfg.robot_color, cfg.robot_border_color,
+                    cfg.text_color_on_filling, cfg.text_color_on_empty, cfg.entities_z_index,
+                    cfg.border_width, cfg.text_height, add_border=False, add_text=False)
 
-            for sensor in entity.sensors:
-                if isinstance(sensor, SFOVSensor):
-                    markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/s_fov", 0,
-                                                         cfg.frame_id, cfg.s_fov_border_color, cfg.fov_z_index,
-                                                         cfg.fov_line_width))
-                elif isinstance(sensor, GFOVSensor):
-                    markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/g_fov", 0,
-                                                         cfg.frame_id, cfg.g_fov_border_color, cfg.fov_z_index,
-                                                         cfg.fov_line_width))
+                for sensor in entity.sensors:
+                    if isinstance(sensor, SFOVSensor):
+                        markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/s_fov", 0,
+                                                             cfg.frame_id, cfg.s_fov_border_color, cfg.fov_z_index,
+                                                             cfg.fov_line_width))
+                    elif isinstance(sensor, GFOVSensor):
+                        markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/g_fov", 0,
+                                                             cfg.frame_id, cfg.g_fov_border_color, cfg.fov_z_index,
+                                                             cfg.fov_line_width))
 
-        if isinstance(entity, Obstacle):
-            entity_movability = robot.deduce_movability(entity.type)
-            if entity_movability == "movable":
-                markers = markers + entity_to_markers(
-                    entity, "/obstacles", entity.uid, cfg.frame_id, cfg.movable_obstacle_color,
-                    cfg.movable_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
-                    cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
-            if entity_movability == "unmovable":
-                markers = markers + entity_to_markers(
-                    entity, "/obstacles", entity.uid, cfg.frame_id, cfg.unmovable_obstacle_color,
-                    cfg.unmovable_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
-                    cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
-            if entity_movability == "unknown":
-                markers = markers + entity_to_markers(
-                    entity, "/obstacles", entity.uid, cfg.frame_id, cfg.unknown_obstacle_color,
-                    cfg.unknown_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
-                    cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
+            if isinstance(entity, Obstacle):
+                entity_movability = robot.deduce_movability(entity.type)
+                if entity_movability == "movable":
+                    markers = markers + entity_to_markers(
+                        entity, "/obstacles", entity.uid, cfg.frame_id, cfg.movable_obstacle_color,
+                        cfg.movable_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
+                        cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
+                if entity_movability == "unmovable":
+                    markers = markers + entity_to_markers(
+                        entity, "/obstacles", entity.uid, cfg.frame_id, cfg.unmovable_obstacle_color,
+                        cfg.unmovable_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
+                        cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
+                if entity_movability == "unknown":
+                    markers = markers + entity_to_markers(
+                        entity, "/obstacles", entity.uid, cfg.frame_id, cfg.unknown_obstacle_color,
+                        cfg.unknown_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
+                        cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
     for taboo in world.taboo_zones.values():
         markers = markers + entity_to_markers(
             taboo, "/taboos", taboo.uid, cfg.frame_id, cfg.taboo_color, cfg.taboo_border_color,
@@ -201,10 +202,11 @@ def polygon_to_triangle_list(polygon, namespace, p_id, frame_id, color, z_index)
                     scale=Vector3(1.0, 1.0, 1.0),
                     points=[])
     if isinstance(polygon, Polygon):
-        triangles = triangulate.triangulate(list(polygon.exterior.coords))
-        for triangle in triangles:
-            for point in triangle:
-                marker.points.append(Point(point[0], point[1], z_index))
+        verts = np.array(list(polygon.exterior.coords)).reshape(-1, 2)
+        rings = np.array([verts.shape[0]])
+        triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
+        triangles = [triangles_vertices[n:n + 3] for n in range(0, len(triangles_vertices), 3)]
+        marker.points = [Point(point[0], point[1], z_index) for triangle in triangles for point in triangle]
     return marker
 
 
@@ -224,6 +226,19 @@ def polygon_to_line_strip(polygon, namespace, p_id, frame_id, color, z_index, li
     marker.points.append(Point(polygon.exterior.coords[0][0], polygon.exterior.coords[0][1], z_index))
     marker.points.append(Point(polygon.exterior.coords[1][0], polygon.exterior.coords[1][1], z_index))
     return marker
+
+
+def polygons_to_line_strips_marker_array(polygons, namespace, frame_id, color, z_index, line_width):
+    marker_array = MarkerArray()
+    markers = []
+    p_id = 0
+    for polygon in polygons:
+        markers.append(
+            polygon_to_line_strip(
+                polygon, namespace, p_id, frame_id, color, z_index, line_width))
+        p_id += 1
+    marker_array.markers = markers
+    return marker_array
 
 
 def pose_to_arrow(pose, namespace, p_id, frame_id, color, z_index, shaft_diameter, head_diameter, head_length):

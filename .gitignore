@@ -105,3 +105,9 @@ venv.bak/
 
 # Pycharm files
 .idea
+
+# Logs
+logs/
+
+# Temporary folder
+tmp/

@@ -3,21 +3,18 @@ import copy
 from decimal import Decimal
 
 from src.display.ros_publisher import RosPublisher
-from src.behaviors.behavior_report import BehaviorReport
-from src.behaviors.goal_report import GoalReport
 
 
 class BaselineBehavior(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config):
-        self.__ref_world = ref_world
+    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config):
         self._initial_world = initial_world
         self._robot_uid = robot_uid
         self._navigation_goals = navigation_goals
         self._behavior_config = behavior_config
 
-        decimal_res = Decimal(ref_world.dd.res).as_tuple()
+        decimal_res = Decimal(initial_world.dd.res).as_tuple()
         precision_exponent = -len(decimal_res.digits) - decimal_res.exponent + 2
 
         self.rounder = 1. * (10 ** precision_exponent)
@@ -30,7 +27,6 @@ class BaselineBehavior(object):
         self.__p_opt = None
 
         self._rp = RosPublisher()
-        self._report = BehaviorReport(self._ref_world, self._world, self._robot_uid)
 
     def sense(self, ref_world, last_action_result):
         self._last_action_result = last_action_result
@@ -41,10 +37,6 @@ class BaselineBehavior(object):
     def think(self):
         raise NotImplementedError
 
-    def add_planning_duration_to_report(self, duration):
-        if self._q_goal is not None:
-            self._report.goal_reports[self._q_goal].planning_duration += duration
-
     @property
     def _q_goal(self):
         return self.__q_goal
@@ -54,7 +46,6 @@ class BaselineBehavior(object):
         self.__q_goal = _q_goal
         if _q_goal is not None:
             self._rp.publish_goal(self._robot.pose, self.__q_goal, self._robot.polygon)
-            self._report.goal_reports[_q_goal] = GoalReport()
 
     @property
     def _p_opt(self):
@@ -64,8 +55,6 @@ class BaselineBehavior(object):
     def _p_opt(self, p_opt):
         self.__p_opt = p_opt
         self._rp.publish_p_opt(self.__p_opt)
-        if not (p_opt.is_valid(self._world, self._robot_uid) and p_opt.is_empty()):
-            self._report.goal_reports[self._q_goal].plans.append(p_opt)
 
     @property
     def _last_action_result(self):
@@ -74,8 +63,6 @@ class BaselineBehavior(object):
     @_last_action_result.setter
     def _last_action_result(self, last_action_result):
         self.__last_action_result = last_action_result
-        if self._q_goal is not None and last_action_result is not None:
-            self._report.goal_reports[self._q_goal].actions_results.append(last_action_result)
 
     @property
     def _world(self):
@@ -85,13 +72,7 @@ class BaselineBehavior(object):
     def _world(self, world):
         self.__world = world
         self._robot = self.__world.entities[self._robot_uid]
-        self._report._world = world
 
     @property
-    def _ref_world(self):
-        return self.__ref_world
-
-    @_ref_world.setter
-    def _ref_world(self, ref_world):
-        self.__ref_world = ref_world
-        self._report._ref_world = ref_world
+    def name(self):
+        return self._behavior_config["name"]

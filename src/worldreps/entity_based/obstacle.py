@@ -20,14 +20,14 @@ class Obstacle(Entity):
         self.q_l = []
         self._is_q_l_valid = False
 
-    def set_polygon(self, polygon, dd):
-        Entity.set_polygon(self, polygon, dd)
+    def set_polygon(self, polygon):
+        Entity.set_polygon(self, polygon)
         self._is_actions_valid = False
         return self
 
-    def get_actions(self, dd, pushes_only):
+    def get_actions(self, inflation_radius, res, pushes_only):
         if not self._is_actions_valid:
-            self.actions = self._compute_possible_actions(dd.inflation_radius, dd.res, pushes_only)
+            self.actions = self._compute_possible_actions(inflation_radius, res, pushes_only)
             self._is_actions_valid = True
         return self.actions
 
@@ -259,6 +259,7 @@ class Obstacle(Entity):
         else:
             return None
 
-    def light_copy(self):
-        return Obstacle(self.name, copy.deepcopy(self.polygon), self.pose, self.full_geometry_acquired,
+    def light_copy(self, copy_polygon=True):
+        return Obstacle(self.name, None if not copy_polygon else copy.deepcopy(self.polygon),
+                        self.pose, self.full_geometry_acquired,
                         type_in=self.type, uid=self.uid)

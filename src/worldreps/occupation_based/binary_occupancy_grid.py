@@ -3,24 +3,29 @@ import copy
 
 
 class BinaryOccupancyGrid:
-    def __init__(self, dd, entities, entities_to_ignore=None):
-        self._dd = dd
+    def __init__(self, d_width, d_height, res, grid_pose, inflation_radius, entities, entities_to_ignore=None):
         self._entities_to_ignore = entities_to_ignore if entities_to_ignore is not None else dict()
         self._prev_entities = dict()
         self._next_entities = copy.copy(entities)
-        self._grid = np.zeros((dd.d_width, dd.d_height), dtype=np.int16)
+        self.d_width, self.d_height = d_width, d_height
+        self.res = res
+        self.grid_pose = grid_pose
+        self.inflation_radius = inflation_radius
+        self._grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
         self._update_grid()
 
     def _update_grid(self):
         # plt.imshow(self.get_inflated_grid()); plt.show()
         for new_entity in self._next_entities.values():
             if new_entity.uid not in self._entities_to_ignore:
-                new_cells = new_entity.get_discrete_cells_set(self._dd)
+                new_cells = new_entity.get_discrete_cells_set(
+                    self.inflation_radius, self.res, self.grid_pose, self.d_width, self.d_height)
                 for cell in new_cells:
                     self._grid[cell[0]][cell[1]] += 1
         for prev_entity in self._prev_entities.values():
             if prev_entity.uid not in self._entities_to_ignore:
-                prev_cells = prev_entity.get_discrete_cells(self._dd)
+                prev_cells = prev_entity.get_discrete_cells_set(
+                    self.inflation_radius, self.res, self.grid_pose, self.d_width, self.d_height)
                 for cell in prev_cells:
                     self._grid[cell[0]][cell[1]] -= 1
 
@@ -56,14 +61,16 @@ class BinaryOccupancyGrid:
 
         for new_entity in self._next_entities.values():
             if new_entity.uid not in self._entities_to_ignore:
-                new_cells = new_entity.get_discrete_cells_set(self._dd)
+                new_cells = new_entity.get_discrete_cells_set(
+                    self.inflation_radius, self.res, self.grid_pose, self.d_width, self.d_height)
                 for cell in new_cells:
                     if self._grid[cell[0]][cell[1]] == 0:
                         invaded_cells.add(cell)
                     self._grid[cell[0]][cell[1]] += 1
         for prev_entity in self._prev_entities.values():
             if prev_entity.uid not in self._entities_to_ignore:
-                prev_cells = prev_entity.get_discrete_cells(self._dd)
+                prev_cells = prev_entity.get_discrete_cells_set(
+                    self.inflation_radius, self.res, self.grid_pose, self.d_width, self.d_height)
                 for cell in prev_cells:
                     self._grid[cell[0]][cell[1]] -= 1
                     if self._grid[cell[0]][cell[1]] == 0:

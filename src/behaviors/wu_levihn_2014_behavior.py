@@ -21,8 +21,8 @@ class WuLevihn2014Behavior(BaselineBehavior):
     Implementation of Wu and Levihn's NAMO algorithm in unknown environments
     """
 
-    def __init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config):
-        BaselineBehavior.__init__(self, ref_world, initial_world, robot_uid, navigation_goals, behavior_config)
+    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config):
+        BaselineBehavior.__init__(self, initial_world, robot_uid, navigation_goals, behavior_config)
 
         self._check_new_opening_activated = behavior_config["parameters"]["check_new_opening_activated"]
         self._social_placement_choice_activated = behavior_config["parameters"]["social_placement_choice_activated"]
@@ -35,8 +35,6 @@ class WuLevihn2014Behavior(BaselineBehavior):
         self._e_l, self._m_l = [], []
 
     def think(self):
-        self._report.total_planning_start_time = time.time()
-
         if self._navigation_goals or self._q_goal is not None:
             # If we need to get to the next goal, reset plan, heuristic obstacle lists e_l and m_l (+ world if needed)
             if self._q_goal is None:
@@ -49,7 +47,8 @@ class WuLevihn2014Behavior(BaselineBehavior):
                 self._last_action_result = None
                 grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
                 self._p_opt = Plan(
-                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))])
+                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))],
+                    self._q_goal)
                 self._rp.publish_p_opt(self._p_opt)
 
             q_r = self._robot.pose
@@ -59,8 +58,9 @@ class WuLevihn2014Behavior(BaselineBehavior):
             if is_close_enough_to_goal:
                 print("SUCCESS: Agent '{name}' has successfully reached pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
+                action = ActionGoalSuccess(self._q_goal)
                 self._q_goal = None
-                return ActionGoalSuccess()
+                return action
 
             # If execution of a manipulation step failed, then obstacle is set as unmovable and remembered
             if self._last_action_result is not None:
@@ -80,7 +80,9 @@ class WuLevihn2014Behavior(BaselineBehavior):
 
                 self._rp.cleanup_p_opt()
                 self._p_opt = Plan(
-                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))])
+                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))],
+                    self._q_goal
+                )
                 self._rp.publish_p_opt(self._p_opt)
                 self.make_plan(q_r, self._q_goal)
 
@@ -90,11 +92,11 @@ class WuLevihn2014Behavior(BaselineBehavior):
             elif self._p_opt.has_infinite_cost():
                 print("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
+                action = ActionGoalFailure(self._q_goal)
                 self._q_goal = None
-                return ActionGoalFailure()
+                return action
 
         else:
-            self._report.total_planning_end_time = time.time()
             print("FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
             return ActionGoalsFinished()
 
@@ -106,7 +108,8 @@ class WuLevihn2014Behavior(BaselineBehavior):
                 if (entity.uid not in self._blocked_obstacles
                         and entity_movability == "movable" or entity_movability == "unknown"):
                     c3_est = float("inf")
-                    for q_manip in entity.get_actions(self._world.dd, self._robot.deduce_push_only(entity.type)).values():
+                    for q_manip in entity.get_actions(self._world.dd.inflation_radius, self._world.dd.res,
+                                                      self._robot.deduce_push_only(entity.type)).values():
                         c3_est = min(c3_est, np.linalg.norm([q_goal[0] - q_manip[0], q_goal[1] - q_manip[1]]))
                         self.update_list(self._e_l, entity.uid, c3_est)
                 elif entity_movability == "unmovable" or entity.uid in self._blocked_obstacles:
@@ -141,17 +144,19 @@ class WuLevihn2014Behavior(BaselineBehavior):
                 index_e_l = index_e_l + 1
 
     def make_plan_for_obs(self, q_r, q_goal, o_uid):
-        p_best = Plan([Path([])])
+        p_best = Plan([], self._q_goal)
         obs = self._world.entities[o_uid]
         robot = self._world.entities[self._robot_uid]
 
         obs_is_push_only = self._robot.deduce_push_only(obs.type)
-        self._rp.publish_q_manips_for_obs(obs.get_actions(self._world.dd, obs_is_push_only).values())
+        self._rp.publish_q_manips_for_obs(obs.get_actions(self._world.dd.inflation_radius, self._world.dd.res,
+                                                          obs_is_push_only).values())
 
         world_copy = copy.deepcopy(self._world)
         self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
 
-        for unit_translation, q_manip in obs.get_actions(self._world.dd, obs_is_push_only).items():
+        for unit_translation, q_manip in obs.get_actions(self._world.dd.inflation_radius, self._world.dd.res,
+                                                         obs_is_push_only).items():
             grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
             c_1 = Path(a_star_real_path(grid, q_r, q_manip, self._world.dd.res, self._world.dd.grid_pose), o_uid=o_uid)
             self._rp.publish_c_1(c_1)
@@ -212,7 +217,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                        o_uid=o_uid)
                             self._rp.publish_c_3(c_3)
                             if not c_3.has_infinite_cost():
-                                p = Plan([c_1, c_2, c_3])
+                                p = Plan([c_1, c_2, c_3], q_goal)
                                 if p.total_cost < p_best.total_cost:
                                     p_best = p
                                     if p.total_cost < self._p_opt.total_cost:

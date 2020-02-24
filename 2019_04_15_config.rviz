@@ -8,10 +8,8 @@ Panels:
         - /Simulator Knowledge1
         - /Simulator Knowledge1/Simulator Knowledge1/Namespaces1
         - /Robot Knowledge1
-        - /Robot Knowledge1/Robot Knowledge1
-        - /Robot Knowledge1/Robot Simulated Actions1
         - /Robot Knowledge1/Robot Simulated Actions1/Namespaces1
-        - /VideoCapture1
+        - /Robot Knowledge1/Combined Costmap1
       Splitter Ratio: 0.606060624
     Tree Height: 774
   - Class: rviz/Selection
@@ -59,13 +57,13 @@ Visualization Manager:
     - Class: rviz/Group
       Displays:
         - Class: rviz/MarkerArray
-          Enabled: false
+          Enabled: true
           Marker Topic: /sim/knowledge
           Name: Simulator Knowledge
           Namespaces:
             {}
           Queue Size: 100
-          Value: false
+          Value: true
         - Alpha: 0.5
           Class: rviz/Map
           Color Scheme: costmap
@@ -76,7 +74,7 @@ Visualization Manager:
           Unreliable: false
           Use Timestamp: false
           Value: false
-      Enabled: true
+      Enabled: false
       Name: Simulator Knowledge
     - Class: rviz/Group
       Displays:
@@ -86,21 +84,43 @@ Visualization Manager:
           Name: Robot Knowledge
           Namespaces:
             /obstacles/polygon: true
-            /robot/g_fov: true
             /robot/polygon: true
-            /robot/s_fov: true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: /robot/goal
+          Name: Goal
+          Namespaces:
+            {}
           Queue Size: 100
           Value: true
         - Alpha: 1
           Class: rviz/Map
           Color Scheme: costmap
           Draw Behind: false
-          Enabled: true
+          Enabled: false
           Name: Robot Costmap
           Topic: /robot/costmap
           Unreliable: false
           Use Timestamp: false
-          Value: true
+          Value: false
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /robot/sim
+          Name: Robot Simulated Actions
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: false
+        - Class: rviz/MarkerArray
+          Enabled: false
+          Marker Topic: /robot/sim/world
+          Name: Robot Sim World
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: false
         - Alpha: 0.699999988
           Class: rviz/Map
           Color Scheme: costmap
@@ -126,21 +146,6 @@ Visualization Manager:
           Shape: Arrow (3D)
           Topic: /test/obs_manip_poses
           Unreliable: false
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /robot/sim
-          Name: Robot Simulated Actions
-          Namespaces:
-            /blocking_areas/init: true
-            /blocking_areas/target: true
-            /diameter_inflated_polygon/init: true
-            /diameter_inflated_polygon/target: true
-            /init/obstacle/polygon: true
-            /init/robot/polygon: true
-            /target/obstacle/polygon: true
-            /target/robot/polygon: true
-          Queue Size: 100
           Value: true
         - Class: rviz/Marker
           Enabled: false
@@ -239,7 +244,7 @@ Visualization Manager:
           Buffer Length: 1
           Class: rviz/Path
           Color: 109; 158; 235
-          Enabled: false
+          Enabled: true
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -257,12 +262,12 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /robot/p_opt/c_1
           Unreliable: false
-          Value: false
+          Value: true
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
           Color: 224; 102; 102
-          Enabled: false
+          Enabled: true
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -280,12 +285,12 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /robot/p_opt/c_2
           Unreliable: false
-          Value: false
+          Value: true
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
           Color: 246; 178; 107
-          Enabled: false
+          Enabled: true
           Head Diameter: 0.300000012
           Head Length: 0.200000003
           Length: 0.300000012
@@ -303,14 +308,6 @@ Visualization Manager:
           Shaft Length: 0.100000001
           Topic: /robot/p_opt/c_3
           Unreliable: false
-          Value: false
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /robot/goal
-          Name: Goal
-          Namespaces:
-            /polygon: true
-          Queue Size: 100
           Value: true
         - Alpha: 1
           Autocompute Intensity Bounds: true
@@ -323,17 +320,38 @@ Visualization Manager:
           Height Transformer: Layer
           History Length: 1
           Invert Rainbow: false
-          Max Color: 255; 255; 255
+          Max Color: 255; 85; 127
           Max Intensity: 10
-          Min Color: 85; 170; 255
+          Min Color: 255; 255; 255
           Min Intensity: 0
           Name: Social Costmap
-          Show Grid Lines: true
+          Show Grid Lines: false
           Topic: /test/gridmap
           Unreliable: false
           Use Rainbow: true
           Value: false
         - Alpha: 1
+          Autocompute Intensity Bounds: true
+          Class: grid_map_rviz_plugin/GridMap
+          Color: 200; 200; 200
+          Color Layer: elevation
+          Color Transformer: IntensityLayer
+          Enabled: true
+          Height Layer: elevation
+          Height Transformer: Layer
+          History Length: 1
+          Invert Rainbow: false
+          Max Color: 255; 255; 255
+          Max Intensity: 10
+          Min Color: 0; 0; 0
+          Min Intensity: 0
+          Name: Combined Costmap
+          Show Grid Lines: false
+          Topic: /robot/combined_costmap
+          Unreliable: false
+          Use Rainbow: true
+          Value: true
+        - Alpha: 0.400000006
           Autocompute Intensity Bounds: true
           Class: grid_map_rviz_plugin/GridMap
           Color: 200; 200; 200
@@ -356,13 +374,6 @@ Visualization Manager:
           Value: false
       Enabled: true
       Name: Robot Knowledge
-    - Class: jsk_rviz_plugin/VideoCapture
-      Enabled: true
-      Name: VideoCapture
-      Value: true
-      filename: output.avi
-      fps: 30
-      start capture: false
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -397,11 +408,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.00999999978
-      Scale: 74.3351364
+      Scale: 138.978638
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 0
-      Y: 0
+      X: 0.0981194973
+      Y: -0.0748848319
     Saved: ~
 Window Geometry:
   Displays:
@@ -409,7 +420,7 @@ Window Geometry:
   Height: 1056
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000019700000395fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000002800000395000000d700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c0000026100000001000001b300000395fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000002800000395000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073f0000003ffc0100000002fb0000000800540069006d006501000000000000073f0000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000003e90000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001a000000395fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006100fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000002800000395000000d700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c0000026100000001000001b300000395fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000002800000395000000ad00fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000073f0000003ffc0100000002fb0000000800540069006d006501000000000000073f0000030000fffffffb0000000800540069006d00650100000000000004500000000000000000000003e00000039500000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:

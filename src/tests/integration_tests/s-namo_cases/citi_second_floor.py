@@ -2,10 +2,10 @@ import unittest
 from src.simulator import Simulator
 
 
-class MoghaddamPlanning2016Benchmark01(unittest.TestCase):
+class CitiSecondFloorTest(unittest.TestCase):
 
     def setUp(self):
-        self.path_to_folder = "../../../data/simulations/moghaddam_planning_2016_benchmark/01/"
+        self.path_to_folder = "../../../../data/simulations/s-namo_cases/05_citi_second_floor/"
 
     def test_navigation_only_behavior(self):
         sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior.yaml")

@@ -1,0 +1,23 @@
+# Simulation
+
+# Files to load
+files:
+  world_file: "../../../worlds/s-namo_cases/02_basic_with_opening/02_basic_with_opening_no_movables_omniscient.yaml"
+
+# Autonomous agents - Behaviors associations
+agents_behaviors:
+  -
+    agent_name: "robot_01" # Must correspond to one of the world entities's actual name
+    behavior:
+      name: "stilman_2005_behavior"
+      parameters:
+        social_placement_choice_activated: False
+        social_movability_evaluation_activated: False
+        use_social_layer: False
+      navigation_goals:
+        -
+          name: "first_goal" #  Must correspond to one of the world goal zones's actual name
+
+# General simulation parameters
+provide_walls: True
+display_sim_knowledge_only_once: False

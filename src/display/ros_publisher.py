@@ -1,5 +1,6 @@
 from future.utils import with_metaclass
 import time
+import numpy as np
 from shapely import affinity
 
 import rospy
@@ -11,6 +12,7 @@ from nav_msgs.msg import Path, OccupancyGrid, MapMetaData
 from grid_map_msgs.msg import GridMap
 
 from src.utils.singleton import Singleton
+from src.worldreps.entity_based.robot import Robot
 import ros_conversion as conv
 import ros_publisher_config as cfg
 
@@ -74,7 +76,11 @@ class RosPublisher(with_metaclass(Singleton)):
             cfg.social_cells_topic: rospy.Publisher(
                 cfg.social_cells_topic, Marker, queue_size=cfg.default_queue_size),
             cfg.test_connected_components_topic: rospy.Publisher(
-                cfg.test_connected_components_topic, GridMap, queue_size=cfg.default_queue_size)
+                cfg.test_connected_components_topic, GridMap, queue_size=cfg.default_queue_size),
+            cfg.robot_sim_world_topic: rospy.Publisher(
+                cfg.robot_sim_world_topic, MarkerArray, queue_size=cfg.default_queue_size),
+            cfg.combined_costmap_topic: rospy.Publisher(
+                cfg.combined_costmap_topic, GridMap, queue_size=cfg.default_queue_size)
             }
         # HACK: Necessary because ROS1 pub/sub system is not really reliable : wait a second for subscribers to listen
         time.sleep(cfg.hack_duration_wait)
@@ -93,6 +99,8 @@ class RosPublisher(with_metaclass(Singleton)):
         world_to_gridmap_transform.transform.rotation.w = 0.0
 
         broadcaster.sendTransform(world_to_gridmap_transform)
+
+        self.prev_sim_world_draw_data, self.prev_robot_world_draw_data = {}, {}
     
     def publish(self, topic, msg):
         self.rate.sleep()
@@ -102,12 +110,27 @@ class RosPublisher(with_metaclass(Singleton)):
             publisher.publish(msg)
 
     def is_activated(self, topic):
+        if cfg.deactivate_gui:
+            return False
         return self.publishers[topic].get_num_connections() > 0
 
     # region SIM WORLD
     def publish_sim_world(self, world, robot_uid):
         if self.is_activated(cfg.sim_knowledge_topic):
-            self.publish(cfg.sim_knowledge_topic, conv.world_to_marker_array(world, robot_uid))
+            current_world_draw_data = {
+                entity.uid: {
+                    "polygon_id": id(entity.polygon),
+                    "type": "robot" if isinstance(entity, Robot) else entity.type,
+                    "pose": entity.pose
+                } for entity in world.entities.values()}
+            entities_to_ignore = {
+                entity_uid for entity_uid, drawable_data in current_world_draw_data.items()
+                if (entity_uid in self.prev_sim_world_draw_data
+                    and drawable_data["polygon_id"] == self.prev_sim_world_draw_data[entity_uid]["polygon_id"]
+                    and drawable_data["type"] == self.prev_sim_world_draw_data[entity_uid]["type"]
+                    and drawable_data["pose"] == self.prev_sim_world_draw_data[entity_uid]["pose"])}
+            self.publish(cfg.sim_knowledge_topic, conv.world_to_marker_array(world, robot_uid, entities_to_ignore))
+            self.prev_sim_world_draw_data = current_world_draw_data
         if self.is_activated(cfg.sim_costmap_topic):
             self.publish(cfg.sim_costmap_topic, conv.world_to_costmap(world, robot_uid))
 
@@ -122,7 +145,20 @@ class RosPublisher(with_metaclass(Singleton)):
     # region ROBOT WORLD
     def publish_robot_world(self, world, robot_uid):
         if self.is_activated(cfg.robot_knowledge_topic):
-            self.publish(cfg.robot_knowledge_topic, conv.world_to_marker_array(world, robot_uid))
+            current_world_draw_data = {
+                entity.uid: {
+                    "polygon_id": id(entity.polygon),
+                    "type": "robot" if isinstance(entity, Robot) else entity.type,
+                    "pose": entity.pose
+                } for entity in world.entities.values()}
+            entities_to_ignore = {
+                entity_uid for entity_uid, drawable_data in current_world_draw_data.items()
+                if (entity_uid in self.prev_robot_world_draw_data
+                    and drawable_data["polygon_id"] == self.prev_robot_world_draw_data[entity_uid]["polygon_id"]
+                    and drawable_data["type"] == self.prev_robot_world_draw_data[entity_uid]["type"]
+                    and drawable_data["pose"] == self.prev_robot_world_draw_data[entity_uid]["pose"])}
+            self.publish(cfg.robot_knowledge_topic, conv.world_to_marker_array(world, robot_uid, entities_to_ignore))
+            self.prev_robot_world_draw_data = current_world_draw_data
         if self.is_activated(cfg.robot_costmap_topic):
             self.publish(cfg.robot_costmap_topic,  conv.world_to_costmap(world, robot_uid))
 
@@ -147,6 +183,13 @@ class RosPublisher(with_metaclass(Singleton)):
             grid_map = conv.costmap_to_grid_map(costmap, dd)
             self.publish(cfg.test_gridmap_topic, grid_map)
 
+    def publish_combined_costmap(self, cell_to_combined_cost, dd):
+        combined_costmap = np.zeros((dd.d_width, dd.d_height))
+        for cell, combined_cost in cell_to_combined_cost:
+            combined_costmap[cell[0]][cell[1]] = combined_cost
+        if self.is_activated(cfg.combined_costmap_topic):
+            grid_map = conv.costmap_to_grid_map(combined_costmap, dd)
+            self.publish(cfg.combined_costmap_topic, grid_map)
     # endregion
 
     # region CONNECTED COMPONENTS GRID
@@ -324,14 +367,14 @@ class RosPublisher(with_metaclass(Singleton)):
 
     # region P_OPT
     def publish_p_opt(self, plan):
-        if plan.path_components:
+        if plan and plan.path_components:
             if self.is_activated(cfg.c_1_topic):
                 self.publish(cfg.c_1_topic, conv.real_path_to_ros_path(plan.path_components[0].path))
-        if len(plan.path_components) == 3:
-            if self.is_activated(cfg.c_2_topic):
-                self.publish(cfg.c_2_topic, conv.real_path_to_ros_path(plan.path_components[1].path))
-            if self.is_activated(cfg.c_3_topic):
-                self.publish(cfg.c_3_topic, conv.real_path_to_ros_path(plan.path_components[2].path))
+            if len(plan.path_components) == 3:
+                if self.is_activated(cfg.c_2_topic):
+                    self.publish(cfg.c_2_topic, conv.real_path_to_ros_path(plan.path_components[1].path))
+                if self.is_activated(cfg.c_3_topic):
+                    self.publish(cfg.c_3_topic, conv.real_path_to_ros_path(plan.path_components[2].path))
 
     def cleanup_p_opt(self):
         if self.is_activated(cfg.c_1_topic):
@@ -346,6 +389,26 @@ class RosPublisher(with_metaclass(Singleton)):
     # endregion
 
     # region ROBOT SIM
+    def publish_robot_sim_world(self, world, robot_uid):
+        if self.is_activated(cfg.robot_sim_world_topic):
+            current_world_draw_data = {
+                entity.uid: {
+                    "polygon_id": id(entity.polygon),
+                    "type": "robot" if isinstance(entity, Robot) else entity.type
+                } for entity in world.entities.values()}
+            entities_to_ignore = {
+                entity_uid for entity_uid, drawable_data in current_world_draw_data.items()
+                if (entity_uid in self.prev_robot_world_draw_data
+                    and drawable_data["polygon_id"] == self.prev_robot_world_draw_data[entity_uid]["polygon_id"]
+                    and drawable_data["type"] == self.prev_robot_world_draw_data[entity_uid]["type"])}
+            markers = conv.world_to_marker_array(world, robot_uid, entities_to_ignore)
+            self.publish(cfg.robot_sim_world_topic, markers)
+            self.prev_robot_world_draw_data = current_world_draw_data
+
+    def cleanup_robot_sim_world(self):
+        if self.is_activated(cfg.robot_sim_world_topic):
+            self.publish(cfg.robot_sim_world_topic, conv.make_delete_all_marker(cfg.frame_id))
+
     def publish_sim(self, robot_polygon, obs_polygon, namespace="/init"):
         if self.is_activated(cfg.robot_sim_topic):
             robot_color = cfg.robot_border_color if namespace == "/target" else cfg.robot_color
@@ -395,6 +458,12 @@ class RosPublisher(with_metaclass(Singleton)):
                                            cfg.max_inflated_polygon_border_color,
                                            cfg.entities_z_index, cfg.border_width)])
             self.publish(cfg.min_max_inflated_polygons_topic, marker_array)
+
+    def publish_debug_polygons(self, polygons):
+        if self.is_activated(cfg.robot_sim_topic):
+            marker_array = conv.polygons_to_line_strips_marker_array(
+                polygons, "/debug/polygons", cfg.frame_id, cfg.robot_color, cfg.entities_z_index, cfg.border_width / 5.)
+            self.publish(cfg.robot_sim_topic, marker_array)
 
     def cleanup_min_max_inflated(self):
         if self.is_activated(cfg.min_max_inflated_polygons_topic):
@@ -449,6 +518,7 @@ class RosPublisher(with_metaclass(Singleton)):
     def cleanup_all(self):
         self.cleanup_sim_world()
         self.cleanup_robot_world()
+        self.cleanup_robot_sim_world()
         self.cleanup_eval_c1_c2_c3_sim_init_target()
         self.cleanup_p_opt()
         self.cleanup_q_manips_for_obs()

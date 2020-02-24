@@ -10,7 +10,7 @@ geometry_scale: 0.1 # SVG measurements will be multiplied by this value
 
 ## World discretization properties
 discretization_data:
-  res: 0.07
+  res: 0.05
   inflation_radius: 0.0
   cost_lethal: 100
   cost_inscribed: 50

@@ -1,16 +1,22 @@
 class ActionGoalResult:
-    def __init__(self):
-        pass
+    def __init__(self, goal):
+        self.goal = goal
 
 
 class ActionGoalSuccess(ActionGoalResult):
-    def __init__(self):
-        ActionGoalResult.__init__(self)
+    def __init__(self, goal):
+        ActionGoalResult.__init__(self, goal)
+
+    def __str__(self):
+        return "success"
 
 
 class ActionGoalFailure(ActionGoalResult):
-    def __init__(self):
-        ActionGoalResult.__init__(self)
+    def __init__(self, goal):
+        ActionGoalResult.__init__(self, goal)
+
+    def __str__(self):
+        return "failure"
 
 
 class ActionGoalsFinished:

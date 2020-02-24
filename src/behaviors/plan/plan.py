@@ -2,8 +2,9 @@ from plan_step import PlanStep
 
 
 class Plan:
-    def __init__(self, path_components):
+    def __init__(self, path_components, goal):
         self.path_components = path_components
+        self.goal = goal
         self.phys_cost = 0.0
         self.social_cost = 0.0
         self.total_cost = 0.0
@@ -57,7 +58,8 @@ class Plan:
                             obstacle = world.entities[next_path.obstacle_uid]
                             robot = world.entities[robot_uid]
                             if tuple(next_path.path[0]) != obstacle.get_actions(
-                                    world.dd, robot.deduce_push_only(obstacle.type))[next_path.translation]:
+                                    world.dd.inflation_radius, world.dd.res,
+                                    robot.deduce_push_only(obstacle.type))[next_path.translation]:
                                 return False
                     except (IndexError, KeyError):
                         continue
@@ -67,6 +69,7 @@ class Plan:
         # If the currently executed path component still has steps to execute, pop the first
         if self.path_components[0].path:
             return PlanStep(target_pose=self.path_components[0].pop_next_step(),
+                            goal=self.goal,
                             is_transfer=self.path_components[0].is_transfer,
                             obstacle_uid=self.path_components[0].obstacle_uid)
         else:
@@ -79,6 +82,7 @@ class Plan:
                 if self.path_components:
                     self.path_components[0].pop_next_step()
                     return PlanStep(target_pose=self.path_components[0].pop_next_step(),
+                                    goal=self.goal,
                                     is_transfer=self.path_components[0].is_transfer,
                                     obstacle_uid=self.path_components[0].obstacle_uid)
             else:

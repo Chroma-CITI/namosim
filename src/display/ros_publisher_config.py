@@ -9,7 +9,10 @@ def hex_to_rgba(hex_string):
 
 
 # Target display rate (in Hz)
-rate = 50000000000
+rate = 1000000000000
+
+# Deactivate GUI
+deactivate_gui = False
 
 # Actual topic names
 min_max_inflated_polygons_topic = "/robot/compute_c_0_c1/min_max_inflated_polygons"
@@ -37,6 +40,8 @@ robot_sim_costmap_topic = "/robot_sim/costmap"
 test_gridmap_topic = "/test/gridmap"
 social_cells_topic = "/test/social_cells"
 test_connected_components_topic = "/test/connected_components"
+robot_sim_world_topic = "/robot/sim/world"
+combined_costmap_topic = "/robot/combined_costmap"
 
 default_queue_size = 10
 

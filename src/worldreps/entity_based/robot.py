@@ -65,14 +65,7 @@ class Robot(Entity):
             return False
 
     def compute_inflation_radius(self):
-        robot_rect_envelope_pts = list(self.polygon.minimum_rotated_rectangle.exterior.coords)
-        robot_polygon_radius = 0.
-        for i in range(len(robot_rect_envelope_pts) - 1):
-            point_a, point_b = robot_rect_envelope_pts[i], robot_rect_envelope_pts[i + 1]
-            side_length = sqrt((point_b[0] - point_a[0]) ** 2 + (point_b[1] - point_a[1]) ** 2)
-            if side_length > robot_polygon_radius:
-                robot_polygon_radius = side_length
-        return robot_polygon_radius
+        return utils.get_circumscribed_radius(self.polygon)
 
     def compute_dist_between_robot_front_and_center(self):
         """

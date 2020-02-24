@@ -7,16 +7,17 @@ from shapely.ops import cascaded_union
 
 class Path:
     def __init__(self, path, weight=1.0, is_transfer=False, is_observation=False,
-                 o_uid=None, translation=None, phys_cost=None, social_cost=0.0):
+                 o_uid=None, translation=None, phys_cost=None, social_cost=0.0, collision_geometry=None):
         self.path = path
         self.weight = weight
         self.is_transfer = is_transfer
         self.is_observation = is_observation
         self.obstacle_uid = o_uid
+        self.collision_geometry = collision_geometry
         self.translation = translation
         self.phys_cost = phys_cost if phys_cost is not None else self.__sum_of_euclidean_distances() * weight
         self.social_cost = social_cost
-        self.total_cost = self.phys_cost * (1 + self.social_cost)
+        self.total_cost = self.phys_cost + self.social_cost
 
     @classmethod
     def line_path(cls, start_pose, goal_pose, weigth, unit_translation,
@@ -48,6 +49,25 @@ class Path:
     def is_valid(self, world, robot_uid, blocked_obstacles):
         if self.has_infinite_cost():
             return False
+
+        # TODO: Should be the only method in the future to check for validity
+        # TODO: Change it so that as the path is executed, the list of polygons to check shortens
+        if self.collision_geometry is not None:
+            # First, check if the obstacle is still movable,
+            robot = world.entities[robot_uid]
+            obstacle = world.entities[self.obstacle_uid]
+            if robot.deduce_movability(obstacle.type) == "unmovable" or obstacle.uid in blocked_obstacles:
+                return False
+
+            # Then check for collisions
+            other_entities_polygons = [entity.polygon for entity_uid, entity in world.entities.items()
+                                       if entity_uid != robot_uid and entity_uid != self.obstacle_uid]
+            for polygon in other_entities_polygons:
+                if polygon.intersects(self.collision_geometry):
+                    return False
+            else:
+                return True
+        # ENDTODO
 
         # Compute bounding polygon for path.
         positions_array = []

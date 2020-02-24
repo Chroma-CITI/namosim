@@ -45,7 +45,12 @@ class NetworkXGridGraph:
 
 def occupancy_grid_to_graph(occupancy_grid, neighborhood=utils.TAXI_NEIGHBORHOOD, threshold_value=1):
     graph = networkx.Graph()
-    width, height = len(occupancy_grid), len(occupancy_grid[0])
+    if isinstance(occupancy_grid, list):
+        width, height = len(occupancy_grid), len(occupancy_grid[0])
+    elif isinstance(occupancy_grid, np.ndarray):
+        width, height = occupancy_grid.shape
+    else:
+        raise TypeError("occupancy_grid_to_graph method expects occupancy_grid of type list or numpy.ndarray")
 
     free_cells = zip(*np.where(occupancy_grid < threshold_value))
     graph.add_nodes_from(free_cells)

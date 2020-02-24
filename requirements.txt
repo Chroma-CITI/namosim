@@ -1,7 +1,9 @@
-shapely>=1.6
-numpy>=1.0
-ptpython<2.0
-pyyaml>=3.0
-future>=0.17
-rospkg>=1.1
+shapely >= 1.7
+numpy >= 1.0
+pyyaml >= 3.0
+future >= 0.17
+rospkg >= 1.1
 svgpath2mpl
+scipy >= 1.2.3
+mapbox-earcut >= 0.12.7
+scikit-image

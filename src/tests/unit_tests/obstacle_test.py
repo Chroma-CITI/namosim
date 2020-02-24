@@ -14,7 +14,7 @@ class ObstacleTest(unittest.TestCase):
                                       type_in="box")
 
     def test_polygon_by_visualization(self):
-        plt.plot(*self.simple_square.polygon.exterior.xy).show()
+        plt.plot(*self.simple_square.polygon.exterior.xy); plt.show()
 
 
 if __name__ == '__main__':

@@ -33,7 +33,7 @@ def two_way_multi_goal_a_star(grid, start_pose, intermediate_cells_and_poses, go
 
 
 def multi_goal_a_star_real_path(grid, start_pose, goal_poses_set, res, grid_pose, reverse=True,
-                                restrict_4_neighbors=True, threshold_obstacle_value=1):
+                                restrict_4_neighbors=False, threshold_obstacle_value=1):
     start_cell = utils.real_to_grid(start_pose[0], start_pose[1], res, grid_pose)
     goal_cell_to_goal_pose = dict()
     for goal_pose in goal_poses_set:
@@ -71,7 +71,7 @@ def _shortest_path(start, end, came_from, reverse):
     return path
 
 
-def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, restrict_4_neighbors=True,
+def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, restrict_4_neighbors=False,
                      threshold_obstacle_value=1, break_at_first_goal_found=False):
     rp = RosPublisher()
 

@@ -1,0 +1,26 @@
+# Simulation
+
+# Files to load
+files:
+  world_file: "../../../worlds/s-namo_cases/04_after_the_feast/04_after_the_feast.yaml"
+
+# Autonomous agents - Behaviors associations
+agents_behaviors:
+  -
+    agent_name: "robot_01" # Must correspond to one of the world entities's actual name
+    behavior:
+      name: "wu_levihn_2014_behavior"
+      parameters:
+        check_new_opening_activated: True
+        social_placement_choice_activated: False
+        social_movability_evaluation_activated: False
+        reset_knowledge_activated: False
+        use_social_layer: False
+        manip_weight: 2.0
+      navigation_goals:
+        -
+          name: "first_goal" #  Must correspond to one of the world goal zones's actual name
+
+# General simulation parameters
+provide_walls: True
+display_sim_knowledge_only_once: False

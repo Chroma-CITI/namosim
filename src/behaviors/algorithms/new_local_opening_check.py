@@ -31,6 +31,11 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon, other_en
                 elif isinstance(intersection_geometry, MultiPolygon):
                     for sub_intersection_geometry in intersection_geometry:
                         init_blocking_areas.append(sub_intersection_geometry)
+
+    # If there are no blocking areas to begin with, return True
+    if not init_blocking_areas:
+        return True, init_blocking_areas
+
     target_blocking_areas = []
     for other_entity_polygon in other_entities_polygons:
         intersection_geometry = target_entity_inflated_polygon.intersection(other_entity_polygon)
@@ -51,12 +56,21 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon, other_en
 
 
 def check_still_blocked(init_blocking_area, target_blocking_areas):
-    for target_blocking_area in target_blocking_areas:
-        if init_blocking_area.intersects(target_blocking_area):
-            return True  # If area is still blocked, there is no local opening here
+    try:
+        for target_blocking_area in target_blocking_areas:
+            if init_blocking_area.intersects(target_blocking_area):
+                return True  # If area is still blocked, there is no local opening here
+    except Exception as e:
+        print()
     # If initial blocking area does not intersect with any of the target ones, then it is no longer blocked
     return False
 
 
 def is_move_passing_over_pose(moved_polygons, pose):
-    return Point((pose[0], pose[1])).intersects(cascaded_union(moved_polygons).convex_hull)
+    try:
+        union = cascaded_union(moved_polygons)
+        convex_hull = union.convex_hull
+        value = Point((pose[0], pose[1])).intersects(convex_hull)
+    except ValueError as e:
+        return False
+    return value
