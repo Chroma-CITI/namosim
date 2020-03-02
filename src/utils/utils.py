@@ -98,6 +98,27 @@ def get_neighbors_no_coll(cell, grid, width, height, neighborhood=TAXI_NEIGHBORH
     return neighbors
 
 
+def get_set_neighbors(cell_set, width, height, neighborhood=TAXI_NEIGHBORHOOD, previous_cell_set=None):
+    neighbor_set = set()
+    for cell in cell_set:
+        neighbor_set.update(get_neighbors(cell, width, height, neighborhood))
+    neighbor_set.difference_update(cell_set)
+    if previous_cell_set is not None:
+        neighbor_set.difference_update(previous_cell_set)
+    return neighbor_set
+
+
+def get_set_neighbors_no_coll(cell_set, grid, neighborhood=TAXI_NEIGHBORHOOD, previous_cell_set=None):
+    neighbor_set = set()
+    width, height = grid.shape
+    for cell in cell_set:
+        neighbor_set.update(get_neighbors_no_coll(cell, grid, width, height, neighborhood))
+    neighbor_set.difference_update(cell_set)
+    if previous_cell_set is not None:
+        neighbor_set.difference_update(previous_cell_set)
+    return neighbor_set
+
+
 def is_in_matrix(cell, width, height):
     return 0 <= cell[0] < width and 0 <= cell[1] < height
 

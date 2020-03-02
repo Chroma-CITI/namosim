@@ -3,4 +3,8 @@ class EntityPlacementException(Exception):
 
 
 class IntersectionError(Exception):
-    pass
+    def __init__(self, colliding_entities_uids, *args):
+        self.colliding_entities_uids = colliding_entities_uids
+        Exception(args)
+
+

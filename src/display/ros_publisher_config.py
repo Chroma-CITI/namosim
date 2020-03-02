@@ -12,7 +12,7 @@ def hex_to_rgba(hex_string):
 rate = 1000000000000
 
 # Deactivate GUI
-deactivate_gui = False
+deactivate_gui = True
 
 # Actual topic names
 min_max_inflated_polygons_topic = "/robot/compute_c_0_c1/min_max_inflated_polygons"
@@ -42,6 +42,7 @@ social_cells_topic = "/test/social_cells"
 test_connected_components_topic = "/test/connected_components"
 robot_sim_world_topic = "/robot/sim/world"
 combined_costmap_topic = "/robot/combined_costmap"
+plan_topic = "/robot/plan"
 
 default_queue_size = 10
 
@@ -87,5 +88,5 @@ entities_z_index = -0.05
 taboos_z_index = -0.06
 
 fov_line_width = 0.05
-border_width = 0.075
+border_width = 0.110
 text_height = 0.2

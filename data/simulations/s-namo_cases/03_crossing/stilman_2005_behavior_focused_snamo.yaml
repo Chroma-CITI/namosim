@@ -2,7 +2,7 @@
 
 # Files to load
 files:
-  world_file: "../../../worlds/s-namo_cases/02_basic_with_opening/02_basic_with_opening_no_movables_omniscient.yaml"
+  world_file: "../../../worlds/s-namo_cases/03_crossing/03_crossing_omniscient.yaml"
 
 # Autonomous agents - Behaviors associations
 agents_behaviors:
@@ -23,9 +23,9 @@ agents_behaviors:
         robot_translation_unit_length: 0.1
         forbid_rotations: False
         # S-NAMO parameters
-        use_social_cost: False
+        use_social_cost: True
         solution_interval_bound_percentage: 0.01
-        manipulation_search_procedure: "BFS" # or "BFS"
+        manipulation_search_procedure: "DFS" # or "BFS"
         # Extra performance parameters
         check_new_local_opening_before_global: True # Generally faster if True
         deactivate_grids_logging: True # Generally faster if False

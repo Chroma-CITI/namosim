@@ -63,11 +63,21 @@ things:
           from: "file"
           id: "pillar"
     -
-        name: "movable_box"
+        name: "movable_box_01"
         type: "box"
         geometry:
           from: "file"
-          id: "movable_box"
+          id: "movable_box_01"
+    - name: "movable_box_02"
+      type: "box"
+      geometry:
+        from: "file"
+        id: "movable_box_02"
+    - name: "movable_box_03"
+      type: "box"
+      geometry:
+        from: "file"
+        id: "movable_box_03"
 
   zones:
     goals:
@@ -77,4 +87,10 @@ things:
           from: "file"
           id: "goal_01"
           orientation_id: "goal_01_dir"
+    -
+        name: "second_goal"
+        geometry:
+          from: "file"
+          id: "goal_02"
+          orientation_id: "goal_02_dir"
     # taboos:

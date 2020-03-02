@@ -21,8 +21,8 @@ class WuLevihn2014Behavior(BaselineBehavior):
     Implementation of Wu and Levihn's NAMO algorithm in unknown environments
     """
 
-    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config):
-        BaselineBehavior.__init__(self, initial_world, robot_uid, navigation_goals, behavior_config)
+    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir):
+        BaselineBehavior.__init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir)
 
         self._check_new_opening_activated = behavior_config["parameters"]["check_new_opening_activated"]
         self._social_placement_choice_activated = behavior_config["parameters"]["social_placement_choice_activated"]

@@ -118,12 +118,12 @@ def init_grid_map():
     return grid_map
 
 
-def costmap_to_grid_map(costmap, dd, z_index=-10.):
+def costmap_to_grid_map(costmap, res, z_index=-10.):
     grid_map = GridMap()
     grid_map.info.header = Header(stamp=rospy.Time.now(), frame_id="gridmap")
-    grid_map.info.resolution = dd.res
-    grid_map.info.length_x = costmap.shape[0] * dd.res
-    grid_map.info.length_y = costmap.shape[1] * dd.res
+    grid_map.info.resolution = res
+    grid_map.info.length_x = costmap.shape[0] * res
+    grid_map.info.length_y = costmap.shape[1] * res
     grid_map.info.pose.position.z = z_index
     grid_map.layers = ["elevation"]
     inflated_costmap_data = Float32MultiArray(
@@ -176,6 +176,34 @@ def real_path_to_ros_path(real_path):
     for pose in real_path:
         ros_path.poses.append(PoseStamped(header=ros_path.header, pose=pose_to_ros_pose(pose)))
     return ros_path
+
+# def plan_to_markerarray(plan):
+#     for component in plan.path_components:
+#         if component.is_transfer:
+#
+#         else:
+#
+#
+# def real_path_to_pose_markers
+
+
+def real_path_to_linestrip(real_path, namespace, p_id, frame_id, color, line_width, z_index, link_point=None):
+    marker = Marker(type=Marker.LINE_STRIP,
+                    ns=namespace,
+                    id=p_id,
+                    header=Header(frame_id=frame_id, stamp=rospy.Time.now()),
+                    color=color,
+                    scale=Vector3(line_width, 0.0, 0.0),
+                    points=[])
+    for i in range(len(real_path)):
+        point = real_path[i]
+        next_point = real_path[i + 1]
+        marker.points.append(Point(point[0], point[1], z_index))
+        marker.points.append(Point(next_point[0], next_point[1], z_index))
+    if link_point:
+        marker.points.append(Point(real_path[-1][0], real_path[-1][1], z_index))
+        marker.points.append(Point(link_point[0], link_point[1], z_index))
+    return marker
 
 
 def poses_to_poses_array(poses):

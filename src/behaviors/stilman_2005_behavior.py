@@ -20,44 +20,63 @@ from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoa
 from src.worldreps.entity_based.custom_exceptions import IntersectionError
 from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid
 from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
-from src.worldreps.occupation_based.social_topological_occupation_cost_grid import compute_social_costmap
+import src.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
 
 
 class Stilman2005Behavior(BaselineBehavior):
-    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config):
-        BaselineBehavior.__init__(self, initial_world, robot_uid, navigation_goals, behavior_config)
+    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir):
+        BaselineBehavior.__init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir)
 
         # Configuration parameters
-        self.use_social_cost = True
-        self.alpha = 0.5
-        self.neighborhood = utils.TAXI_NEIGHBORHOOD
-        self.cost_for_obstacle_occupied_cells = 2.
-        self.basic_trans_force = 2.
-        self.basic_rot_moment = 2.
-        self.heur_w = 2.
-        self._check_new_local_opening_activated = True
-        self.forbid_rotations = False
-        self.robot_type = "diff"  # Possible types: ["omni", "diff"]
-        self.rotation_unit_angle = 30.
-        self.translation_unit_length = 0.1
-        self.position_tolerance = self.translation_unit_length * 3.
-        self.rotation_tolerance = self.rotation_unit_angle
-        self.angular_res = 5.
-        self.atol = self.position_tolerance
-        self.trans_vectors = np.array([(self.translation_unit_length, 0.), (-self.translation_unit_length, 0.)])
-        self.manip_search_procedure = self._focused_manip_search
-
-        if self.forbid_rotations:
-            self.rot_angles = np.array([])
+        parameters = behavior_config["parameters"]
+        # - Original Stilman method configuration parameters
+        self.alpha = parameters["alpha_for_obstacle_choice_heur"]
+        if parameters["neighborhood_for_obstacle_choice_heur"] == "TAXI":
+            self.neighborhood = utils.TAXI_NEIGHBORHOOD
+        elif parameters["neighborhood_for_obstacle_choice_heur"] == "CHESSBOARD":
+            self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
         else:
-            self.rot_angles = np.array([self.rotation_unit_angle, -self.rotation_unit_angle])
-        self. all_rot_angles = self.rotation_unit_angle * np.array(range(1, 360 // int(self.rotation_unit_angle)))
+            self.neighborhood = utils.TAXI_NEIGHBORHOOD # default if bad parameter
+        self.heur_w = parameters["heuristic_cost_for_traversing_obstacle_in_choice_heur"]
+        self.basic_trans_force = parameters["basic_translation_force"]
+        self.basic_rot_moment = parameters["basic_rotation_moment"]
+        # - Robot action space parameters
+        self.angular_res = parameters["collision_check_angular_res"]
+        self.rotation_unit_angle = parameters["robot_rotation_unit_angle"]
+        self.translation_unit_length = parameters["robot_translation_unit_length"]
+        self.forbid_rotations = parameters["forbid_rotations"]
 
-        self.actions = []
-        for trans_vector in self.trans_vectors:
-            self.actions.append(Translation(trans_vector, self.translation_unit_length))
-        for rot_angle in self.rot_angles:
-            self.actions.append(Rotation(rot_angle))
+        # - S-NAMO parameters
+        self.use_social_cost = parameters["use_social_cost"]
+        self.bound_percentage = parameters["solution_interval_bound_percentage"]
+        if parameters["manipulation_search_procedure"] == "DFS":
+            if self.use_social_cost:
+                self.manip_search_procedure = self._focused_manip_search
+            else:
+                raise ValueError("Focused manipulation search requires the use_social_cost variable to be True !")
+        elif parameters["manipulation_search_procedure"] == "BFS":
+            self.manip_search_procedure = self._manip_search
+        self.w_social, self.w_obs, self.w_goal = 15., 10., 2.
+        self.w_sum = self.w_social + self.w_obs + self.w_goal
+        self.distance_to_obs_cost_is_realistic = True
+
+        # - Extra performance parameters
+        self.check_new_local_opening_before_global = parameters["check_new_local_opening_before_global"]
+        self.activate_grids_logging = not parameters["deactivate_grids_logging"]
+
+        self._trans_vectors = np.array([(self.translation_unit_length, 0.), (-self.translation_unit_length, 0.)])
+        if self.forbid_rotations:
+            self._rot_angles = np.array([])
+        else:
+            self._rot_angles = np.array([self.rotation_unit_angle, -self.rotation_unit_angle])
+        self._all_rot_angles = self.rotation_unit_angle * np.array(range(1, 360 // int(self.rotation_unit_angle)))
+        self._nb_possible_angles = len(self._all_rot_angles)
+
+        self._actions = []
+        for trans_vector in self._trans_vectors:
+            self._actions.append(Translation(trans_vector, self.translation_unit_length))
+        for rot_angle in self._rot_angles:
+            self._actions.append(Rotation(rot_angle))
 
         if self.use_social_cost:
             movable_entities_uids = [uid for uid, entity in self._world.entities.items()
@@ -67,8 +86,10 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._world.dd.d_width, self._world.dd.d_height, self._world.dd.res, self._world.dd.grid_pose,
                 self._world.dd.inflation_radius, self._world.entities,
                 entities_to_ignore=movable_entities_uids + [self._robot_uid]).get_grid()
-            self._social_costmap = compute_social_costmap(static_occ_grid, self._world.dd.res)
-            self._rp.publish_grid_map(self._social_costmap, self._world.dd)
+            self._social_costmap = stocg.compute_social_costmap(
+                static_occ_grid, self._world.dd.res, log_costmaps=self.activate_grids_logging,
+                abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+            self._rp.publish_grid_map(self._social_costmap, self._world.dd.res)
 
     def think(self):
         if self._navigation_goals or self._q_goal is not None:
@@ -176,7 +197,7 @@ class Stilman2005Behavior(BaselineBehavior):
         """
         connected_components_obj = w_t.get_connected_components_grid((self._robot_uid,))
         connected_components_grid = connected_components_obj.get_grid()
-        self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd)
+        # self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd)
 
         movable_entities_uids = [
             uid for uid, entity in w_t.entities.items()
@@ -359,7 +380,7 @@ class Stilman2005Behavior(BaselineBehavior):
                    and cur_action_leaves_to_explore):
                 for action_heap_node in cur_action_leaves_to_explore:
                     leaf = action_heap_node.action_tree_node
-                    for action in self.actions:
+                    for action in self._actions:
                         nb_states_explored += 1
 
                         old_robot, old_obstacle = leaf.robot, leaf.obstacle
@@ -391,7 +412,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             c_1_cells_set, robot, obstacle, old_obstacle, new_obstacle, leaf.has_new_local_opening,
                             goal_cell
                         )
-                        nb_states_evaluated_for_local_opening += 1 if self._check_new_local_opening_activated else 0
+                        nb_states_evaluated_for_local_opening += 1 if self.check_new_local_opening_before_global else 0
                         nb_states_evaluated_for_global_opening += 0 if skipped_global_op_check else 1
                         nb_states_with_global_opening += 1 if has_new_global_op else 0
 
@@ -484,7 +505,6 @@ class Stilman2005Behavior(BaselineBehavior):
         obstacle_d_cell = (obstacle_d_pose[0], obstacle_d_pose[1])
 
         robot_d_pose = utils.real_pose_to_grid_pose(robot.pose, dd.res, dd.grid_pose, self.rotation_unit_angle)
-        robot_d_cell = (robot_d_pose[0], robot_d_pose[1])
 
         robot_poly_at_r_f = affinity.translate(
             affinity.rotate(robot.polygon.buffer(inflation_radius), r_f[2] - robot.pose[2]),
@@ -506,8 +526,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 for cell in acc_cells_for_obs
                 if self._social_costmap[cell[0]][cell[1]] != -1.])
 
-        distance_cost_is_realistic = True
-        if not distance_cost_is_realistic:
+        if not self.distance_to_obs_cost_is_realistic:
             distance_cost = np.array([
                 utils.euclidean_distance(utils.grid_to_real(cell[0], cell[1], dd.res, dd.grid_pose), obstacle.pose)
                 for cell in acc_cells_for_obs])
@@ -525,15 +544,47 @@ class Stilman2005Behavior(BaselineBehavior):
         normalized_distance_cost = (distance_cost - np.min(distance_cost)) / np.ptp(distance_cost)
         normalized_distance_to_goal = (distance_to_goal - np.min(distance_to_goal)) / np.ptp(distance_to_goal)
 
-        combined_cost = (
-            13.0 * normalized_social_cost
-            + 10.0 * normalized_distance_cost
-            + normalized_distance_to_goal
-            ) / 24.0
+        combined_cost = (self.w_social * normalized_social_cost
+                         + self.w_obs * normalized_distance_cost
+                         + self.w_goal * normalized_distance_to_goal) / self.w_sum
         sorted_cell_to_combined_cost = sorted(
             zip(acc_cells_for_obs, combined_cost), key=lambda tup: tup[1], reverse=True)
+        sorted_cells, _ = zip(*sorted_cell_to_combined_cost)
+        sorted_cells = list(sorted_cells)
 
         self._rp.publish_combined_costmap(sorted_cell_to_combined_cost, dd)
+
+        if self.activate_grids_logging:
+            stocg.display_or_log(
+                np.invert(obs_inflated_grid.astype(np.bool)), "-obs_inf_grid", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+                debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+
+            normalized_social_cost_costmap = np.zeros((dd.d_width, dd.d_height))
+            normalized_distance_from_obs_costmap = np.zeros((dd.d_width, dd.d_height))
+            normalized_distance_from_goal_costmap = np.zeros((dd.d_width, dd.d_height))
+
+            for i in range(len(acc_cells_for_obs)):
+                cell = acc_cells_for_obs[i]
+                normalized_social_cost_costmap[cell[0]][cell[1]] = normalized_social_cost[i]
+                normalized_distance_from_obs_costmap[cell[0]][cell[1]] = normalized_distance_cost[i]
+                normalized_distance_from_goal_costmap[cell[0]][cell[1]] = normalized_distance_to_goal[i]
+
+            stocg.display_or_log(
+                normalized_social_cost_costmap, "-n_social_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+                debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+            stocg.display_or_log(
+                normalized_distance_from_obs_costmap, "-n_d_to_obs_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+                debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+            stocg.display_or_log(
+                normalized_distance_from_goal_costmap, "-n_d_to_goal_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+                debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+
+            combined_costmap = np.zeros((dd.d_width, dd.d_height))
+            for cell, combined_cost in sorted_cell_to_combined_cost:
+                combined_costmap[cell[0]][cell[1]] = combined_cost
+            stocg.display_or_log(
+                combined_costmap, "-combined_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+                debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
 
         # self.display_graphics(acc_cells_for_obs, normalized_social_cost, normalized_distance_cost)
         #
@@ -563,11 +614,18 @@ class Stilman2005Behavior(BaselineBehavior):
         last_goal_obs_poses = []
         best_leaf = None
 
+        robot_collision_cache = {}
+        obstacle_collision_cache = {}
+
         while best_leaf is None:
             obs_goal_pose, goal_obs_poly = self.find_best_goal(
-                sorted_cell_to_combined_cost, last_goal_obs_poses, dd.res, dd.grid_pose, obstacle, other_entities,
+                sorted_cells, last_goal_obs_poses, dd.res, dd.grid_pose, obstacle, other_entities,
                 binary_inflated_occupancy_grid, robot_d_pose, c_1_cells_set, robot, goal_cell)
             obs_goal_position = (obs_goal_pose[0], obs_goal_pose[1])
+            goal_obs_cell = utils.real_to_grid(obs_goal_position[0], obs_goal_position[1], dd.res, dd.grid_pose)
+
+            nb_best_cells = int(math.ceil(self.bound_percentage * float(len(sorted_cells))))
+            best_cells = sorted_cells[-nb_best_cells:]
 
             for action_root in action_roots:
                 if best_leaf is not None:
@@ -601,12 +659,29 @@ class Stilman2005Behavior(BaselineBehavior):
                     leaf = heapq.heappop(open_heap).action_tree_node
 
                     obs_position = (leaf.obstacle.pose[0], leaf.obstacle.pose[1])
+                    obs_cell = utils.real_to_grid(obs_position[0], obs_position[1], dd.res, dd.grid_pose)
 
-                    if all(np.isclose(obs_position, obs_goal_position, atol=self.atol)):
-                        best_leaf = leaf if (best_leaf is None or leaf.phys_cost < best_leaf.phys_cost) else best_leaf
-                        break
+                    if obs_cell == goal_obs_cell or obs_cell in best_cells:
+                        if obs_cell != goal_obs_cell:
+                            new_obstacle = obstacle.light_copy(copy_polygon=False)
+                            goal_obs_poly = affinity.rotate(
+                                affinity.translate(
+                                    obstacle.polygon, leaf.obstacle.pose[0] - obstacle.pose[0],
+                                    leaf.obstacle.pose[1] - obstacle.pose[1]),
+                                leaf.obstacle.pose[2] - obstacle.pose[2]
+                            )
+                            new_obstacle.polygon = goal_obs_poly
+                            has_new_global_op, _, _ = self._is_there_opening_to_c_1(
+                                binary_inflated_occupancy_grid, dd.res, dd.grid_pose, manip_robot_d_pose,
+                                c_1_cells_set, robot, obstacle, obstacle, new_obstacle, False, goal_cell)
+                        else:
+                            has_new_global_op = True
 
-                    for action in self.actions:
+                        if has_new_global_op:
+                            best_leaf = leaf if (best_leaf is None or leaf.phys_cost < best_leaf.phys_cost) else best_leaf
+                            break
+
+                    for action in self._actions:
                         nb_states_explored += 1
 
                         old_robot, old_obstacle = leaf.robot, leaf.obstacle
@@ -631,9 +706,26 @@ class Stilman2005Behavior(BaselineBehavior):
 
                         try:
                             new_robot, new_obstacle = action.apply(new_robot, new_obstacle, other_entities)
-                            if not (new_robot.polygon.intersects(map_box) and new_obstacle.polygon.intersects(map_box)):
-                                raise IntersectionError("Out of map bounds !")
+                            if not new_robot.polygon.intersects(map_box):
+                                raise IntersectionError({robot.uid}, "Out of map bounds !")
+                            elif not new_obstacle.polygon.intersects(map_box):
+                                raise IntersectionError({obstacle.uid}, "Out of map bounds !")
+                            self.update_collision_cache(pred_robot_d_pose, robot_collision_cache, False)
+                            self.update_collision_cache(pred_obstacle_d_pose, obstacle_collision_cache, False)
                         except IntersectionError as e:
+                            if robot.uid in e.colliding_entities_uids:
+                                self.update_collision_cache(pred_robot_d_pose, robot_collision_cache, True)
+                            if obstacle.uid in e.colliding_entities_uids:
+                                self.update_collision_cache(pred_obstacle_d_pose, obstacle_collision_cache, True)
+                                cell = (pred_obstacle_d_pose[0], pred_obstacle_d_pose[1])
+                                collisions = obstacle_collision_cache[cell].values()
+                                if len(collisions) == self._nb_possible_angles and all(collisions):
+                                    try:
+                                        sorted_cells.remove(cell)
+                                        nb_best_cells = int(math.ceil(self.bound_percentage * float(len(sorted_cells))))
+                                        best_cells = sorted_cells[-nb_best_cells:]
+                                    except ValueError:
+                                        pass
                             continue
                         self._rp.publish_sim(new_robot.polygon, new_obstacle.polygon, "/intermediate")
 
@@ -644,9 +736,9 @@ class Stilman2005Behavior(BaselineBehavior):
                                                   robot=new_robot, obstacle=new_obstacle,
                                                   has_new_local_opening=False)
 
-                        heuristic_cost = self.__h(new_leaf.obstacle.pose, obs_goal_pose)
+                        heuristic_cost = self.__manip_e(new_leaf.obstacle.pose, obs_goal_pose)
                         heapq.heappush(
-                            open_heap, ActionHeapNode(heuristic_cost, new_leaf))
+                            open_heap, ActionHeapNode(phys_cost + heuristic_cost, new_leaf))
 
         print("nb_states_explored = {}".format(nb_states_explored))
         print("nb_states_evaluated_for_collisions = {}".format(nb_states_evaluated_for_collisions))
@@ -734,7 +826,7 @@ class Stilman2005Behavior(BaselineBehavior):
             obstacle, or that not updating c_1 with freed cells was actually a bad idea.
         :return: True if a path is found, False otherwise
         """
-        if self._check_new_local_opening_activated:
+        if self.check_new_local_opening_before_global:
             other_entities_polygons = [entity.polygon for entity in self._world.entities.values()
                                        if entity.uid != self._robot_uid
                                        and entity.uid != obstacle.uid]
@@ -780,7 +872,11 @@ class Stilman2005Behavior(BaselineBehavior):
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
     def _find_path(self, w_t, r_t, r_f):
-        grid = w_t.get_binary_inflated_occupancy_grid((self._robot.uid,)).get_grid()
+        circum_radius = utils.get_circumscribed_radius(w_t.entities[self._robot.uid].polygon) # + w_t.dd.res / 2.
+        grid = BinaryInflatedOccupancyGrid(
+            w_t.dd.d_width, w_t.dd.d_height, w_t.dd.res, w_t.dd.grid_pose,
+            circum_radius,
+            w_t.entities, (self._robot.uid,)).get_grid()
         return a_star_real_path(grid, r_t, r_f, w_t.dd.res, w_t.dd.grid_pose, restrict_4_neighbors=False)
 
     def find_best_goal(self, cell_to_cost, goal_obs_poses, res, grid_pose, obstacle, other_entities,
@@ -802,11 +898,19 @@ class Stilman2005Behavior(BaselineBehavior):
                     if has_new_global_op:
                         return goal_obs_pose, goal_obs_poly
             elif cell_to_cost:
-                    goal_obs_cell = cell_to_cost.pop()[0]
+                    goal_obs_cell = cell_to_cost.pop()
                     goal_obs_poses = [
                         utils.grid_pose_to_real_pose(list(goal_obs_cell) + [rot], res, grid_pose)
-                        for rot in self.all_rot_angles]
+                        for rot in self._all_rot_angles]
         return None
+
+    @staticmethod
+    def update_collision_cache(entity_d_pose, collision_cache, collides):
+            robot_d_position = (entity_d_pose[0], entity_d_pose[1])
+            if robot_d_position in collision_cache:
+                collision_cache[robot_d_position][entity_d_pose[2]] = collides
+            else:
+                collision_cache[robot_d_position] = {entity_d_pose[2]: collides}
 
     @staticmethod
     def deduce_robot_goal_pose(robot_manip_pose, obs_init_pose, obs_goal_pose):
@@ -849,7 +953,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def __manip_e(self, r_i, r_j):
         translation_energy = self.basic_trans_force * np.linalg.norm((r_j[0] - r_i[0], r_j[1] - r_i[1]))
-        rotation_energy = 0. if self.rot_angles.size == 0 else self.basic_rot_moment * self._world.dd.res * (
+        rotation_energy = 0. if self._rot_angles.size == 0 else self.basic_rot_moment * self._world.dd.res * (
                     abs(r_j[2] - r_i[2]) / abs(self.rotation_unit_angle))
         return translation_energy + rotation_energy
 

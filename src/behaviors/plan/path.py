@@ -65,8 +65,8 @@ class Path:
             for polygon in other_entities_polygons:
                 if polygon.intersects(self.collision_geometry):
                     return False
-            else:
-                return True
+
+            return True
         # ENDTODO
 
         # Compute bounding polygon for path.

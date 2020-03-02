@@ -6,4 +6,4 @@ rospkg >= 1.1
 svgpath2mpl
 scipy >= 1.2.3
 mapbox-earcut >= 0.12.7
-scikit-image
+scikit-image >= 0.14.5

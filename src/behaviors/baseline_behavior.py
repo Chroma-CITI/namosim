@@ -8,11 +8,12 @@ from src.display.ros_publisher import RosPublisher
 class BaselineBehavior(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config):
+    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir):
         self._initial_world = initial_world
         self._robot_uid = robot_uid
         self._navigation_goals = navigation_goals
         self._behavior_config = behavior_config
+        self.abs_path_to_logs_dir = abs_path_to_logs_dir
 
         decimal_res = Decimal(initial_world.dd.res).as_tuple()
         precision_exponent = -len(decimal_res.digits) - decimal_res.exponent + 2

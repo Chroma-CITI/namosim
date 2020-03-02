@@ -102,7 +102,7 @@ class Entity:
                     if collision_polygon.intersects(entity.polygon):
                         # from src.display.ros_publisher import RosPublisher
                         # RosPublisher().publish_sim(collision_polygon, entity.polygon, "/collision")
-                        raise IntersectionError(
+                        raise IntersectionError({self.uid, entity.uid},
                             ("Entity {self_name} would intersect with entity {other_name} " +
                              "if rotation of angle ({angle}) at rotation center {rot_center} were to occur").format(
                                 self_name=self.name, other_name=entity.name, angle=angle, rot_center=str(rot_center)
@@ -110,7 +110,7 @@ class Entity:
                 if new_polygon.intersects(entity.polygon):
                     # from src.display.ros_publisher import RosPublisher
                     # RosPublisher().publish_sim(new_polygon, entity.polygon, "/collision")
-                    raise IntersectionError(
+                    raise IntersectionError({self.uid, entity.uid},
                         ("Entity {self_name} would intersect with entity {other_name} " +
                          "if rotation of angle ({angle}) at rotation center {rot_center} were to occur").format(
                             self_name=self.name, other_name=entity.name, angle=angle, rot_center=str(rot_center)
@@ -151,7 +151,7 @@ class Entity:
                     if collision_polygon.intersects(entity.polygon):
                         # from src.display.ros_publisher import RosPublisher
                         # RosPublisher().publish_sim(collision_polygon, entity.polygon, "/collision")
-                        raise IntersectionError(
+                        raise IntersectionError({self.uid, entity.uid},
                             ("Entity {self_name} would intersect with entity {other_name} " +
                              "if translation of vector ({xoff}, {yoff}) were to occur").format(
                                 self_name=self.name, other_name=entity.name, xoff=xoff, yoff=yoff
@@ -159,7 +159,7 @@ class Entity:
                 if new_polygon.intersects(entity.polygon):
                     # from src.display.ros_publisher import RosPublisher
                     # RosPublisher().publish_sim(new_polygon, entity.polygon, "/collision")
-                    raise IntersectionError(
+                    raise IntersectionError({self.uid, entity.uid},
                         ("Entity {self_name} would intersect with entity {other_name} " +
                          "if translation of vector ({xoff}, {yoff}) were to occur").format(
                             self_name=self.name, other_name=entity.name, xoff=xoff, yoff=yoff

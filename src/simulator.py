@@ -4,6 +4,7 @@ import yaml
 import json
 import os
 import random
+from datetime import datetime
 
 from src.behaviors.navigation_only_behavior import NavigationOnlyBehavior
 from src.behaviors.wu_levihn_2014_behavior import WuLevihn2014Behavior
@@ -25,15 +26,23 @@ from src.utils import stats_utils
 class Simulator:
     def __init__(self, simulation_file_path):
         # Import YAML world configuration file
+        self.sim_start_timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
+
         behavior_yaml_abs_path = os.path.abspath(simulation_file_path)
         config = yaml.load(open(behavior_yaml_abs_path))
 
         # Save general simulation parameters
         self.provide_walls = config["provide_walls"]
         self.display_sim_knowledge_only_once = config["display_sim_knowledge_only_once"]
-        self.human_inflation_radius = 0.2  # [m]
-        self.rel_path_to_logs_dir = '../logs/'
-        self.abs_path_to_logs_dir = os.path.join(os.path.dirname(__file__), self.rel_path_to_logs_dir)
+        self.human_inflation_radius = 0.55/2.  # [m]
+        simulation_file_parent_dirname = os.path.basename(
+            os.path.normpath(os.path.abspath(os.path.join(behavior_yaml_abs_path, '..'))))
+        simulation_filename = os.path.splitext(os.path.basename(behavior_yaml_abs_path))[0]
+
+        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', simulation_file_parent_dirname, simulation_filename)
+        abs_path_to_main_sim_logs_dir = os.path.join(os.path.dirname(__file__), rel_path_to_main_sim_logs_dir)
+        self.abs_path_to_logs_dir = os.path.join(abs_path_to_main_sim_logs_dir, self.sim_start_timestring + "/")
+        os.makedirs(self.abs_path_to_logs_dir)
 
         # Reinitialize rviz display
         self.rp = RosPublisher()
@@ -75,17 +84,17 @@ class Simulator:
                     agent_world = self._create_robot_world_from_sim_world()
                     self.rp.cleanup_robot_world()
                     self.agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
-                        agent_world, agent_uid, agent_navigation_goals, behavior_config)
+                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
                 elif agent_behavior_name == "wu_levihn_2014_behavior":
                     agent_world = self._create_robot_world_from_sim_world()
                     self.rp.cleanup_robot_world()
                     self.agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
-                        agent_world, agent_uid, agent_navigation_goals, behavior_config)
+                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
                 elif agent_behavior_name == "stilman_2005_behavior":
                     agent_world = copy.deepcopy(self.ref_world)
                     self.rp.cleanup_robot_world()
                     self.agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
-                        agent_world, agent_uid, agent_navigation_goals, behavior_config)
+                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
                 else:
                     raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
                                               "'{b_name}' that is not implemented yet."
@@ -150,15 +159,15 @@ class Simulator:
         # Print simulation results
         self.run_duration = time.time() - run_start_time
 
-        simulation_report = self.create_simulation_report()
+        simulation_report = self.create_simulation_light_report()
         simulation_report_json = json.dumps(simulation_report, indent=4, sort_keys=True)
 
         print(simulation_report_json)
 
-        log_filename = os.path.join(
-                os.path.dirname(self.abs_path_to_logs_dir), "sim_" + time.strftime("%Y-%m-%d-%Hh%Mm%Ss") + ".json")
-        with open(log_filename, 'w') as file:
-            file.write(simulation_report_json)
+        log_filepath = os.path.join(
+                os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
+        with open(log_filepath, 'w') as f:
+            f.write(simulation_report_json)
 
         return simulation_report
 
@@ -276,7 +285,7 @@ class Simulator:
                     "free_space_size_relative_change": stats_utils.relative_change(
                         init_all_cc_sum_size, end_all_cc_sum_size),
                     "space_fragmentation_percentage_relative_change": stats_utils.relative_change(
-                        init_frag_percentage, end_frag_percentage, False),
+                        init_frag_percentage, end_frag_percentage, False) * 100.,
                     "absolute_social_cost_relative_change": stats_utils.relative_change(
                         init_abs_social_cost, end_abs_social_cost)
                 }
@@ -290,6 +299,23 @@ class Simulator:
                 "goals_reports": goals_reports
             }
 
+            report["agents"].append(agent_report)
+
+        return report
+
+    def create_simulation_light_report(self):
+        report = {
+            "total_run_time": self.run_duration,
+            "agents": []
+        }
+
+        for agent_uid, behavior in self.agent_uid_to_behavior.items():
+            agent_report = {
+                "agent_uid": agent_uid,
+                "agent_name": self.ref_world.entities[agent_uid].name,
+                "agent_behavior_name": behavior.name,
+                "total_planning_time": self.agent_uid_to_think_time[agent_uid]
+            }
             report["agents"].append(agent_report)
 
         return report

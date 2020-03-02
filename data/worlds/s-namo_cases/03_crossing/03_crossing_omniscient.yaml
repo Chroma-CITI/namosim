@@ -93,6 +93,54 @@ things:
           from: "file"
           id: "wall_left"
     -
+        name: "filler_01"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "filler_01"
+    -
+        name: "filler_02"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "filler_02"
+    -
+        name: "filler_03"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "filler_03"
+    -
+        name: "filler_04"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "filler_04"
+    -
+        name: "filler_05"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "filler_05"
+    -
+        name: "filler_06"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "filler_06"
+    -
+        name: "filler_07"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "filler_07"
+    -
+        name: "filler_08"
+        type: "wall"
+        geometry:
+          from: "file"
+          id: "filler_08"
+    -
         name: "movable_box"
         type: "box"
         geometry:

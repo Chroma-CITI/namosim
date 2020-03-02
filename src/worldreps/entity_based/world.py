@@ -126,7 +126,7 @@ class World:
                 elif entity_data["geometry"]["from"] == "radius":
                     # Last case:
                     polygon = Point(pose[0], pose[1]).buffer(entity_data["geometry"]["polygon"]["radius"])
-            except Exception:
+            except Exception as e:
                 continue
 
             # Adjust initial position in pose if not given only by SVG file

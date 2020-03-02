@@ -109,9 +109,11 @@ class RosPublisher(with_metaclass(Singleton)):
         if connections > 0:
             publisher.publish(msg)
 
-    def is_activated(self, topic):
-        if cfg.deactivate_gui:
+    def is_activated(self, topic=''):
+        if cfg.deactivate_gui or (topic and topic not in self.publishers):
             return False
+        elif not cfg.deactivate_gui and not topic:
+            return True
         return self.publishers[topic].get_num_connections() > 0
 
     # region SIM WORLD
@@ -178,24 +180,26 @@ class RosPublisher(with_metaclass(Singleton)):
     # endregion
 
     # region GRID MAP
-    def publish_grid_map(self, costmap, dd):
+    def publish_grid_map(self, costmap, res):
+        fixed_costmap = np.copy(costmap)
+        fixed_costmap[fixed_costmap == -1.] = 0.
         if self.is_activated(cfg.test_gridmap_topic):
-            grid_map = conv.costmap_to_grid_map(costmap, dd)
+            grid_map = conv.costmap_to_grid_map(fixed_costmap, res)
             self.publish(cfg.test_gridmap_topic, grid_map)
 
-    def publish_combined_costmap(self, cell_to_combined_cost, dd):
-        combined_costmap = np.zeros((dd.d_width, dd.d_height))
-        for cell, combined_cost in cell_to_combined_cost:
-            combined_costmap[cell[0]][cell[1]] = combined_cost
+    def publish_combined_costmap(self, sorted_cell_to_combined_cost, dd):
         if self.is_activated(cfg.combined_costmap_topic):
-            grid_map = conv.costmap_to_grid_map(combined_costmap, dd)
+            combined_costmap = np.zeros((dd.d_width, dd.d_height))
+            for cell, combined_cost in sorted_cell_to_combined_cost:
+                combined_costmap[cell[0]][cell[1]] = combined_cost
+            grid_map = conv.costmap_to_grid_map(combined_costmap, dd.res)
             self.publish(cfg.combined_costmap_topic, grid_map)
     # endregion
 
     # region CONNECTED COMPONENTS GRID
     def publish_connected_components_grid(self, costmap, dd):
         if self.is_activated(cfg.test_connected_components_topic):
-            grid_map = conv.costmap_to_grid_map(costmap, dd)
+            grid_map = conv.costmap_to_grid_map(costmap, dd.res)
             self.publish(cfg.test_connected_components_topic, grid_map)
 
     def cleanup_connected_components_grid(self):
@@ -368,6 +372,8 @@ class RosPublisher(with_metaclass(Singleton)):
     # region P_OPT
     def publish_p_opt(self, plan):
         if plan and plan.path_components:
+        #     if self.is_activated(cfg.plan_topic):
+        #         self.publish(cfg.plan_topic, conv.plan_to_markerarray(plan))
             if self.is_activated(cfg.c_1_topic):
                 self.publish(cfg.c_1_topic, conv.real_path_to_ros_path(plan.path_components[0].path))
             if len(plan.path_components) == 3:

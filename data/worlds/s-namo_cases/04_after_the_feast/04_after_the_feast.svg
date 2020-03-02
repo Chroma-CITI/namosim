@@ -15,7 +15,10 @@
    sodipodi:docname="04_after_the_feast.svg"
    width="336.48285"
    height="334.25473"
-   style="fill:none;stroke:none;stroke-linecap:square;stroke-miterlimit:10">
+   style="fill:none;stroke:none;stroke-linecap:square;stroke-miterlimit:10"
+   inkscape:export-filename="/home/xia0ben/INRIA/Code/s-namo-sim/data/worlds/s-namo_cases/04_after_the_feast/04_after_the_feast.svg.png"
+   inkscape:export-xdpi="600"
+   inkscape:export-ydpi="600">
   <metadata
      id="metadata99">
     <rdf:RDF>
@@ -43,9 +46,9 @@
      inkscape:window-height="480"
      id="namedview95"
      showgrid="false"
-     inkscape:zoom="22.627418"
-     inkscape:cx="26.184257"
-     inkscape:cy="225.05868"
+     inkscape:zoom="2.0000001"
+     inkscape:cx="170.1129"
+     inkscape:cy="151.58131"
      inkscape:current-layer="svg2"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -206,7 +209,7 @@
      style="fill:#f1c232;fill-rule:evenodd"
      inkscape:connector-curvature="0"
      id="stool_17"
-     d="m 271.13263,289.80763 20.37489,0 0,20.35402 -20.37489,0 z" />
+     d="m 303.65954,303.24266 20.37489,0 0,20.35402 -20.37489,0 z" />
   <path
      inkscape:label="#path87"
      style="fill:#000000;fill-rule:evenodd"
@@ -234,16 +237,16 @@
   <path
      inkscape:label="#path19-3"
      id="goal_01"
-     d="m 300.79332,285.48263 0,0 c 0,-4.6704 3.78611,-8.4565 8.45651,-8.4565 l 0,0 c 2.24282,0 4.39375,0.89094 5.97966,2.47684 1.58591,1.58591 2.47686,3.73686 2.47686,5.97966 l 0,0 c 0,4.6704 -3.78612,8.4565 -8.45652,8.4565 l 0,0 c -4.6704,0 -8.45651,-3.7861 -8.45651,-8.4565 z"
-     style="fill:#ff0000;fill-rule:evenodd"
+     d="m 256.10705,299.62476 0,0 c 0,-5.13744 4.16472,-9.30215 9.30216,-9.30215 l 0,0 c 2.4671,0 4.83312,0.98003 6.57763,2.72452 1.7445,1.7445 2.72454,4.11055 2.72454,6.57763 l 0,0 c 0,5.13744 -4.16473,9.30215 -9.30217,9.30215 l 0,0 c -5.13744,0 -9.30216,-4.16471 -9.30216,-9.30215 z"
+     style="fill:none;fill-rule:evenodd;stroke:#1155cc;stroke-opacity:1;stroke-width:3.6;stroke-miterlimit:10;stroke-dasharray:none"
      inkscape:connector-curvature="0" />
   <path
      inkscape:label="#path4217"
      sodipodi:nodetypes="cc"
      inkscape:connector-curvature="0"
      id="goal_01_dir"
-     d="m 309.89912,285.66385 9.7976,0"
-     style="fill:none;stroke:#0000ff;stroke-width:1.09148252px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+     d="m 266.0585,299.80598 9.0242,0"
+     style="fill:none;stroke:#1155cc;stroke-width:3.6;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:10;stroke-dasharray:none" />
   <path
      inkscape:label="#path3336"
      sodipodi:nodetypes="ccccc"
@@ -274,25 +277,47 @@
      style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-opacity:1" />
   <path
      sodipodi:type="star"
-     style="fill:#00ff00;fill-opacity:1;stroke:none;stroke-opacity:1"
+     style="fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-opacity:1"
      id="robot_01"
      sodipodi:sides="16"
      sodipodi:cx="27.400385"
-     sodipodi:cy="98.655599"
-     sodipodi:r1="8.6191101"
-     sodipodi:r2="8.453496"
+     sodipodi:cy="98.655602"
+     sodipodi:r1="9.4810211"
+     sodipodi:r2="9.2988456"
      sodipodi:arg1="-0.10272987"
      sodipodi:arg2="0.093619673"
      inkscape:flatsided="true"
      inkscape:rounded="0"
      inkscape:randomized="0"
-     d="M 35.974054,97.771718 35.65967,101.12 l -1.571785,2.9731 -2.589897,2.14529 -3.21372,0.99088 -3.348283,-0.31438 -2.9731,-1.57179 -2.14529,-2.5899 -0.99088,-3.213715 0.314385,-3.348283 1.571785,-2.9731 2.589897,-2.145291 3.213719,-0.990879 3.348283,0.314384 2.973101,1.571786 2.14529,2.589896 z"
+     d="m 36.831421,97.68333 -0.345822,3.68311 -1.728964,3.27041 -2.848887,2.35982 -3.535091,1.08997 -3.683111,-0.34582 -3.270411,-1.72897 -2.359819,-2.84889 -1.089967,-3.535087 0.345822,-3.683111 1.728964,-3.27041 2.848887,-2.35982 3.535091,-1.089967 3.683111,0.345823 3.270411,1.728964 2.359819,2.848886 z"
      inkscape:label="#path4172" />
   <path
      inkscape:label="#path4217"
      sodipodi:nodetypes="cc"
      inkscape:connector-curvature="0"
      id="robot_01_dir"
-     d="m 27.356192,99.060098 0,9.797602"
-     style="fill:none;stroke:#0000ff;stroke-width:1.09148252px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-opacity:1" />
+     d="m 27.356192,99.060098 0,8.813232"
+     style="fill:none;stroke:#1155cc;stroke-width:3.6;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-opacity:1;stroke-dasharray:none" />
+  <path
+     style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-linecap:square;stroke-miterlimit:10"
+     inkscape:connector-curvature="0"
+     id="stool_08"
+     d="m 157.75041,270.69118 20.37489,0 0,20.354 -20.37489,0 z"
+     inkscape:label="#stool_12-3" />
+  <path
+     style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-linecap:square;stroke-miterlimit:10"
+     inkscape:connector-curvature="0"
+     id="stool_10"
+     d="m 217.50092,186.19191 20.37489,0 0,20.354 -20.37489,0 z"
+     inkscape:label="#stool_10"
+     inkscape:transform-center-x="120.5617"
+     inkscape:transform-center-y="96.166518" />
+  <path
+     style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-linecap:square;stroke-miterlimit:10"
+     inkscape:connector-curvature="0"
+     id="stool_13"
+     d="m 245.07809,215.18329 20.37489,0 0,20.354 -20.37489,0 z"
+     inkscape:label="#stool_13"
+     inkscape:transform-center-x="120.5617"
+     inkscape:transform-center-y="96.166518" />
 </svg>

@@ -7,8 +7,8 @@ from baseline_behavior import BaselineBehavior
 
 
 class NavigationOnlyBehavior(BaselineBehavior):
-    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config):
-        BaselineBehavior.__init__(self, initial_world, robot_uid, navigation_goals, behavior_config)
+    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir):
+        BaselineBehavior.__init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir)
 
     def think(self):
         if self._navigation_goals or self._q_goal is not None:
