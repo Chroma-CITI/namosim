@@ -78,18 +78,7 @@ class Stilman2005Behavior(BaselineBehavior):
         for rot_angle in self._rot_angles:
             self._actions.append(Rotation(rot_angle))
 
-        if self.use_social_cost:
-            movable_entities_uids = [uid for uid, entity in self._world.entities.items()
-                                     if isinstance(entity, Obstacle)
-                                     and self._robot.deduce_movability(entity.type) != "unmovable"]
-            static_occ_grid = BinaryOccupancyGrid(
-                self._world.dd.d_width, self._world.dd.d_height, self._world.dd.res, self._world.dd.grid_pose,
-                self._world.dd.inflation_radius, self._world.entities,
-                entities_to_ignore=movable_entities_uids + [self._robot_uid]).get_grid()
-            self._social_costmap = stocg.compute_social_costmap(
-                static_occ_grid, self._world.dd.res, log_costmaps=self.activate_grids_logging,
-                abs_path_to_logs_dir=self.abs_path_to_logs_dir)
-            self._rp.publish_grid_map(self._social_costmap, self._world.dd.res)
+        self._social_costmap = None
 
     def think(self):
         if self._navigation_goals or self._q_goal is not None:
@@ -109,6 +98,20 @@ class Stilman2005Behavior(BaselineBehavior):
                 return action
 
             if not self._p_opt.is_valid(self._world, self._robot_uid):
+                if self.use_social_cost and self._social_costmap is None:
+                    movable_entities_uids = [uid for uid, entity in self._world.entities.items()
+                                             if isinstance(entity, Obstacle)
+                                             and self._robot.deduce_movability(entity.type) != "unmovable"]
+                    static_occ_grid = BinaryOccupancyGrid(
+                        self._world.dd.d_width, self._world.dd.d_height, self._world.dd.res, self._world.dd.grid_pose,
+                        self._world.dd.inflation_radius, self._world.entities,
+                        entities_to_ignore=movable_entities_uids + [self._robot_uid]).get_grid()
+                    self._social_costmap = stocg.compute_social_costmap(
+                        static_occ_grid, self._world.dd.res, log_costmaps=self.activate_grids_logging,
+                        abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+                    self._rp.publish_grid_map(self._social_costmap, self._world.dd.res)
+                    # time.sleep(3.)
+
                 # top_1 = time.time()
                 self._p_opt = self._select_connect(self._world, set(), self._q_goal)
                 # top_2 = time.time()
@@ -222,18 +225,21 @@ class Stilman2005Behavior(BaselineBehavior):
             open_queue, HeapQueueElement(
                 f=self.__h(start_cell, goal_cell), cell=start_cell, obs_id=0, comp_id=0))
 
-        self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
+        self._rp.cleanup_a_star_close_set()
+        # self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
 
         # While open_heap is not empty == While there are discovered nodes that have not been evaluated
         while open_queue:
 
             # The node in open_heap having the lowest fScore[] value
             current = heapq.heappop(open_queue)
-            self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
+            # self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
             self._rp.publish_current_cell(current.cell, w_t.dd.res, w_t.dd.grid_pose)
 
             # Exit early if goal is reached
             if current.cell == goal_cell:
+                self._rp.publish_rch_closed_set(close_set, w_t.dd.res, w_t.dd.grid_pose)
+                # self._rp.cleanup_rch_closed_set()
                 return current.obs_id, current.comp_id
 
             close_set.add(current.cell)
@@ -242,7 +248,7 @@ class Stilman2005Behavior(BaselineBehavior):
             # For each neighbor of current node in the defined neighborhood
             for i, j in self.neighborhood:
                 neighbor_cell = current.cell[0] + i, current.cell[1] + j
-                self._rp.publish_current_neighbor(neighbor_cell, w_t.dd.res, w_t.dd.grid_pose)
+                # self._rp.publish_current_neighbor(neighbor_cell, w_t.dd.res, w_t.dd.grid_pose)
 
                 # If neighbor's g score has not been computed yet, assign +inf
                 if neighbor_cell not in gscore:
@@ -321,7 +327,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                     # initial component. Application of Rule #2
                                     self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell, o_uid, 0)
 
-                        self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
+                        # self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose)
         return None, None
 
     def _manip_search(self, w_t, o_1, c_1_cells_set, r_f):
@@ -552,7 +558,10 @@ class Stilman2005Behavior(BaselineBehavior):
         sorted_cells, _ = zip(*sorted_cell_to_combined_cost)
         sorted_cells = list(sorted_cells)
 
+        self._rp.cleanup_multigoal_a_star_close_set()
+        self._rp.cleanup_grid_map()
         self._rp.publish_combined_costmap(sorted_cell_to_combined_cost, dd)
+        # time.sleep(3.)
 
         if self.activate_grids_logging:
             stocg.display_or_log(
@@ -780,8 +789,11 @@ class Stilman2005Behavior(BaselineBehavior):
         #  - points sampled along buffered polygon (to create from scratch)
         #  - points sampled along lines parallel to sides, s.t. we have at least a robot width from endpoints (scratch)
         navigation_poses = obstacle.get_middle_of_sides_manipulation_poses(self._robot.min_inflation_radius)
+        self._rp.publish_q_manips_for_obs(navigation_poses)
 
         # Find paths to all accessible navigation cells and only keep these
+        self._rp.cleanup_a_star_close_set()
+        self._rp.cleanup_rch_closed_set()
         nav_pose_to_cost_and_real_path = multi_goal_a_star_real_path(
             binary_inflated_occupancy_grid.get_grid(), robot.pose, navigation_poses, res, grid_pose)
 
@@ -789,6 +801,8 @@ class Stilman2005Behavior(BaselineBehavior):
         for pose, (cost, _) in nav_pose_to_cost_and_real_path.items():
             if cost == float("inf"):
                 del nav_pose_to_cost_and_real_path[pose]
+
+        self._rp.cleanup_q_manips_for_obs()
 
         return nav_pose_to_cost_and_real_path
 
@@ -862,6 +876,8 @@ class Stilman2005Behavior(BaselineBehavior):
                                              " c_1_cells_set is entirely inaccessible to the robot")
 
                 inflated_grid.update_buffered_entities({new_obstacle.uid: new_obstacle}, {obstacle.uid: obstacle})
+                self._rp.cleanup_multigoal_a_star_close_set()
+                self._rp.cleanup_a_star_close_set()
                 has_new_global_opening = bool(astar(grid, robot_d_pose, cell_in_c_1, res, grid_pose))
                 skipped_global_opening_check = False
                 return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
@@ -892,6 +908,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 )
                 new_obstacle.polygon = goal_obs_poly
                 if not self.polygon_collides(goal_obs_poly, other_entities):
+                    self._rp.publish_sim(None, goal_obs_poly, "/target")
                     has_new_global_op, has_new_local_op, skipped_global_op_check = self._is_there_opening_to_c_1(
                         grid, res, grid_pose, manip_robot_d_pose,
                         c_1_cells_set, robot, obstacle, obstacle, new_obstacle, False, goal_cell)

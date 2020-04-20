@@ -105,14 +105,14 @@ def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, res
     # Initially, only the start node is known.
     heappush(open_heap, CellHeapNode(fscore[start_cell], start_cell))
 
-    rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose)
+    # rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose)
 
     # While open_heap is not empty == While there are discovered nodes that have not been evaluated
     while open_heap:
 
         # The node in open_heap having the lowest fScore[] value
         current = heappop(open_heap).cell
-        rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose)
+        # rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose)
 
         # Exit early if goal set has been reached
         if not to_evaluate_set:
@@ -154,13 +154,15 @@ def multi_goal_astar(grid, start_cell, goal_s, res, grid_pose, reverse=True, res
                     gscore[neighbor] = tentative_g_score
                     fscore[neighbor] = tentative_g_score + _multi_heuristic_cost_estimate(neighbor, to_evaluate_set)
                     heappush(open_heap, CellHeapNode(fscore[neighbor], neighbor))
-                    rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose)
+                    # rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose)
 
     paths = dict()
     for goal_cell in goal_s:
         try:
             paths[goal_cell] = (gscore[goal_cell], _shortest_path(start_cell, goal_cell, came_from, reverse))
-            rp.publish_grid_path(paths[goal_cell][1], res, grid_pose)
+            # rp.publish_grid_path(paths[goal_cell][1], res, grid_pose)
         except KeyError:
             pass
+
+    rp.publish_multigoal_a_star_close_set(close_set, res, grid_pose)
     return paths

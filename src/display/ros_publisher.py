@@ -2,11 +2,12 @@ from future.utils import with_metaclass
 import time
 import numpy as np
 from shapely import affinity
+import copy
 
 import rospy
 from tf2_ros import StaticTransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import PoseArray, TransformStamped
+from geometry_msgs.msg import PoseArray, TransformStamped, Transform, Vector3, Quaternion
 from std_msgs.msg import Header
 from nav_msgs.msg import Path, OccupancyGrid, MapMetaData
 from grid_map_msgs.msg import GridMap
@@ -34,11 +35,13 @@ class RosPublisher(with_metaclass(Singleton)):
             cfg.a_star_open_heap_topic: rospy.Publisher(
                 cfg.a_star_open_heap_topic, Marker, queue_size=cfg.default_queue_size),
             cfg.a_star_close_set_topic: rospy.Publisher(
-                cfg.a_star_close_set_topic, Marker, queue_size=cfg.default_queue_size),
+                cfg.a_star_close_set_topic, MarkerArray, queue_size=cfg.default_queue_size),
             cfg.multi_a_star_open_heap_topic: rospy.Publisher(
                 cfg.multi_a_star_open_heap_topic, Marker, queue_size=cfg.default_queue_size),
             cfg.multi_a_star_close_set_topic: rospy.Publisher(
-                cfg.multi_a_star_close_set_topic, Marker, queue_size=cfg.default_queue_size),
+                cfg.multi_a_star_close_set_topic, MarkerArray, queue_size=cfg.default_queue_size),
+            cfg.stilman_rch_close_set_topic: rospy.Publisher(
+                cfg.stilman_rch_close_set_topic, MarkerArray, queue_size=cfg.default_queue_size),
             cfg.q_l_cells_topic: rospy.Publisher(
                 cfg.q_l_cells_topic, Marker, queue_size=cfg.default_queue_size),
             cfg.q_l_poses_topic: rospy.Publisher(
@@ -88,19 +91,20 @@ class RosPublisher(with_metaclass(Singleton)):
         # Setup Static Transform for grid map (Hack so that it is properly placed in view)
         broadcaster = StaticTransformBroadcaster()
 
-        world_to_gridmap_transform = TransformStamped()
-        world_to_gridmap_transform.header.stamp = rospy.Time.now()
-        world_to_gridmap_transform.header.frame_id = cfg.frame_id
-        world_to_gridmap_transform.child_frame_id = cfg.gridmap_frame_id
-        world_to_gridmap_transform.transform.translation.z = -1.5
-        world_to_gridmap_transform.transform.rotation.x = 0.0
-        world_to_gridmap_transform.transform.rotation.y = 0.0
-        world_to_gridmap_transform.transform.rotation.z = 1.0
-        world_to_gridmap_transform.transform.rotation.w = 0.0
-
-        broadcaster.sendTransform(world_to_gridmap_transform)
+        for frame_id, z_index in cfg.gridmap_frame_ids_to_z_indexes.items():
+            transform = TransformStamped(
+                header=Header(stamp=rospy.Time.now(), frame_id=cfg.main_frame_id), child_frame_id=frame_id,
+                transform=Transform(translation=Vector3(z=z_index), rotation=Quaternion(x=0., y=0., z=1., w=0.))
+            )
+            broadcaster.sendTransform(transform)
+            time.sleep(0.5)  # Hack so that transform is properly sent...
 
         self.prev_sim_world_draw_data, self.prev_robot_world_draw_data = {}, {}
+
+        self.prev_a_star_close_set, self.prev_multigoal_a_star_close_set = set(), set()
+        self.prev_rch_close_set = set()
+        self.a_star_close_set_start_id, self.multigoal_a_star_close_set_start_id = 1, 1
+        self.rch_close_set_start_id = 1
     
     def publish(self, topic, msg):
         self.rate.sleep()
@@ -138,7 +142,7 @@ class RosPublisher(with_metaclass(Singleton)):
 
     def cleanup_sim_world(self):
         if self.is_activated(cfg.sim_knowledge_topic):
-            self.publish(cfg.sim_knowledge_topic, conv.make_delete_all_marker(cfg.frame_id))
+            self.publish(cfg.sim_knowledge_topic, conv.make_delete_all_marker(cfg.main_frame_id))
         if self.is_activated(cfg.sim_costmap_topic):
             self.publish(cfg.sim_costmap_topic, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
 
@@ -166,7 +170,7 @@ class RosPublisher(with_metaclass(Singleton)):
 
     def cleanup_robot_world(self):
         if self.is_activated(cfg.robot_knowledge_topic):
-            self.publish(cfg.robot_knowledge_topic, conv.make_delete_all_marker(cfg.frame_id))
+            self.publish(cfg.robot_knowledge_topic, conv.make_delete_all_marker(cfg.main_frame_id))
         if self.is_activated(cfg.robot_costmap_topic):
             self.publish(cfg.robot_costmap_topic, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
 
@@ -187,12 +191,22 @@ class RosPublisher(with_metaclass(Singleton)):
             grid_map = conv.costmap_to_grid_map(fixed_costmap, res)
             self.publish(cfg.test_gridmap_topic, grid_map)
 
+    def cleanup_grid_map(self):
+        if self.is_activated(cfg.test_gridmap_topic):
+            grid_map = conv.costmap_to_grid_map(np.full((1000, 1000), np.nan), 1.)
+            self.publish(cfg.test_gridmap_topic, grid_map)
+
     def publish_combined_costmap(self, sorted_cell_to_combined_cost, dd):
         if self.is_activated(cfg.combined_costmap_topic):
             combined_costmap = np.zeros((dd.d_width, dd.d_height))
             for cell, combined_cost in sorted_cell_to_combined_cost:
                 combined_costmap[cell[0]][cell[1]] = combined_cost
-            grid_map = conv.costmap_to_grid_map(combined_costmap, dd.res)
+            grid_map = conv.costmap_to_grid_map(combined_costmap, dd.res, frame_id=cfg.combined_gridmap_frame_id)
+            self.publish(cfg.combined_costmap_topic, grid_map)
+
+    def cleanup_combined_costmap(self):
+        if self.is_activated(cfg.combined_costmap_topic):
+            grid_map = conv.costmap_to_grid_map(np.full((1000, 1000), np.nan), 1.)
             self.publish(cfg.combined_costmap_topic, grid_map)
     # endregion
 
@@ -220,20 +234,28 @@ class RosPublisher(with_metaclass(Singleton)):
 
     def cleanup_a_star_open_heap(self):
         if self.is_activated(cfg.a_star_open_heap_topic):
-            self.publish(cfg.a_star_open_heap_topic, conv.make_delete_marker("", 0, cfg.frame_id))
+            self.publish(cfg.a_star_open_heap_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
 
     # endregion
 
     # region A STAR CLOSE SET
     def publish_a_star_close_set(self, close_set, res, grid_pose):
         if self.is_activated(cfg.a_star_close_set_topic):
-            close_set_cells = conv.grid_cells_to_cube_list_markers(
-                list(close_set), res, grid_pose, color=cfg.flashy_green)
-            self.publish(cfg.a_star_close_set_topic, close_set_cells)
+            new_cells = close_set.difference(self.prev_a_star_close_set)
+            # self.a_star_close_set_cube_list = conv.grid_cells_to_cube_list_markers(
+            #     new_cells, res, grid_pose, cfg.unknown_obstacle_color, self.a_star_close_set_cube_list)
+            marker_array, self.a_star_close_set_start_id = conv.grid_cells_to_cube_markerarray(
+                new_cells, res, grid_pose, cfg.dark_purple, self.a_star_close_set_start_id)
+            self.prev_a_star_close_set = copy.copy(close_set)
+            # self.publish(cfg.a_star_close_set_topic, self.a_star_close_set_cube_list)
+            self.publish(cfg.a_star_close_set_topic, marker_array)
 
     def cleanup_a_star_close_set(self):
         if self.is_activated(cfg.a_star_close_set_topic):
-            self.publish(cfg.a_star_close_set_topic, conv.make_delete_marker("", 0, cfg.frame_id))
+            self.prev_a_star_close_set = set()
+            self.a_star_close_set_cube_list = None
+            self.a_star_close_set_start_id = 1
+            self.publish(cfg.a_star_close_set_topic, conv.make_delete_all_marker(cfg.main_frame_id))  #conv.make_delete_marker("", 0, cfg.main_frame_id))
 
     def publish_social_cells(self, social_cells_set, res, grid_pose):
         if self.is_activated(cfg.social_cells_topic):
@@ -245,59 +267,68 @@ class RosPublisher(with_metaclass(Singleton)):
 
     # region MULTIGOAL A STAR OPEN HEAP
     def publish_multigoal_a_star_open_heap(self, open_heap, res, grid_pose):
-        if self.is_activated(cfg.a_star_open_heap_topic):
+        if self.is_activated(cfg.multi_a_star_open_heap_topic):
             open_heap_data = []
             for element in open_heap:
                 open_heap_data.append(element.cell)
             open_heap_cells = conv.grid_cells_to_cube_list_markers(
                 open_heap_data, res, grid_pose, color=cfg.flashy_cyan)
-            self.publish(cfg.a_star_open_heap_topic, open_heap_cells)
+            self.publish(cfg.multi_a_star_open_heap_topic, open_heap_cells)
 
     def cleanup_multigoal_a_star_open_heap(self):
-        if self.is_activated(cfg.a_star_open_heap_topic):
-            self.publish(cfg.a_star_open_heap_topic, conv.make_delete_marker("", 0, cfg.frame_id))
+        if self.is_activated(cfg.multi_a_star_open_heap_topic):
+            self.publish(cfg.multi_a_star_open_heap_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
 
     # endregion
 
     # region MULTIGOAL A STAR CLOSE SET
     def publish_multigoal_a_star_close_set(self, close_set, res, grid_pose):
-        if self.is_activated(cfg.a_star_close_set_topic):
-            close_set_cells = conv.grid_cells_to_cube_list_markers(
-                list(close_set), res, grid_pose, color=cfg.flashy_green)
-            self.publish(cfg.a_star_close_set_topic, close_set_cells)
+        if self.is_activated(cfg.multi_a_star_close_set_topic):
+            new_cells = close_set.difference(self.prev_multigoal_a_star_close_set)
+            marker_array, self.multigoal_a_star_close_set_start_id = conv.grid_cells_to_cube_markerarray(
+                new_cells, res, grid_pose, cfg.dark_blue, self.multigoal_a_star_close_set_start_id)
+            self.prev_multigoal_a_star_close_set = copy.copy(close_set)
+            self.publish(cfg.multi_a_star_close_set_topic, marker_array)
 
     def cleanup_multigoal_a_star_close_set(self):
-        if self.is_activated(cfg.a_star_close_set_topic):
-            self.publish(cfg.a_star_close_set_topic, conv.make_delete_marker("", 0, cfg.frame_id))
+        if self.is_activated(cfg.multi_a_star_close_set_topic):
+            self.prev_multigoal_a_star_close_set = set()
+            self.multigoal_a_star_close_set_cube_list = None
+            self.multigoal_a_star_close_set_start_id = 1
+            self.publish(cfg.multi_a_star_close_set_topic, conv.make_delete_all_marker(cfg.main_frame_id))  #conv.make_delete_marker("", 0, cfg.main_frame_id))
 
     # endregion
 
     # region STILMAN 2005 RCH OPEN QUEUE
     def publish_rch_open_queue(self, open_queue, res, grid_pose):
-        if self.is_activated(cfg.a_star_open_heap_topic):
+        if self.is_activated(cfg.stilman_rch_open_heap_topic):
             open_queue_data = []
             for element in open_queue:
                 open_queue_data.append(element.cell)
             open_heap_cells = conv.grid_cells_to_cube_list_markers(
                 open_queue_data, res, grid_pose, color=cfg.flashy_cyan)
-            self.publish(cfg.a_star_open_heap_topic, open_heap_cells)
+            self.publish(cfg.stilman_rch_open_heap_topic, open_heap_cells)
 
     def cleanup_rch_open_queue(self):
-        if self.is_activated(cfg.a_star_open_heap_topic):
-            self.publish(cfg.a_star_open_heap_topic, conv.make_delete_marker("", 0, cfg.frame_id))
+        if self.is_activated(cfg.stilman_rch_open_heap_topic):
+            self.publish(cfg.stilman_rch_open_heap_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
 
     # endregion
 
     # region STILMAN 2005 RCH CLOSED SET
-    def publish_rch_closed_set(self, closed_set, res, grid_pose):
-        if self.is_activated(cfg.a_star_close_set_topic):
-            close_set_cells = conv.grid_cells_to_cube_list_markers(
-                list(closed_set), res, grid_pose, color=cfg.flashy_green)
-            self.publish(cfg.a_star_close_set_topic, close_set_cells)
+    def publish_rch_closed_set(self, close_set, res, grid_pose):
+        if self.is_activated(cfg.stilman_rch_close_set_topic):
+            new_cells = close_set.difference(self.prev_rch_close_set)
+            marker_array, self.rch_close_set_start_id = conv.grid_cells_to_cube_markerarray(
+                new_cells, res, grid_pose, cfg.dark_brown, self.rch_close_set_start_id)
+            self.prev_rch_close_set = copy.copy(close_set)
+            self.publish(cfg.stilman_rch_close_set_topic, marker_array)
 
     def cleanup_rch_closed_set(self):
-        if self.is_activated(cfg.a_star_close_set_topic):
-            self.publish(cfg.a_star_close_set_topic, conv.make_delete_marker("", 0, cfg.frame_id))
+        if self.is_activated(cfg.stilman_rch_close_set_topic):
+            self.prev_rch_close_set = set()
+            self.rch_close_set_start_id = 1
+            self.publish(cfg.stilman_rch_close_set_topic, conv.make_delete_all_marker(cfg.main_frame_id))
 
     # endregion
 
@@ -328,7 +359,7 @@ class RosPublisher(with_metaclass(Singleton)):
 
     def cleanup_grid_path(self):
         if self.is_activated(cfg.path_grid_cells_topic):
-            self.publish(cfg.path_grid_cells_topic, conv.make_delete_marker("", 0, cfg.frame_id))
+            self.publish(cfg.path_grid_cells_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
 
     # endregion
 
@@ -340,7 +371,7 @@ class RosPublisher(with_metaclass(Singleton)):
 
     def cleanup_q_manips_for_obs(self):
         if self.is_activated(cfg.obs_manip_poses_topic):
-            pose_array = PoseArray(header=Header(frame_id=cfg.frame_id, stamp=rospy.Time.now()), poses=[])
+            pose_array = PoseArray(header=Header(frame_id=cfg.main_frame_id, stamp=rospy.Time.now()), poses=[])
             self.publish(cfg.obs_manip_poses_topic, pose_array)
 
     # endregion
@@ -413,16 +444,16 @@ class RosPublisher(with_metaclass(Singleton)):
 
     def cleanup_robot_sim_world(self):
         if self.is_activated(cfg.robot_sim_world_topic):
-            self.publish(cfg.robot_sim_world_topic, conv.make_delete_all_marker(cfg.frame_id))
+            self.publish(cfg.robot_sim_world_topic, conv.make_delete_all_marker(cfg.main_frame_id))
 
     def publish_sim(self, robot_polygon, obs_polygon, namespace="/init"):
         if self.is_activated(cfg.robot_sim_topic):
             robot_color = cfg.robot_border_color if namespace == "/target" else cfg.robot_color
             obs_color = cfg.movable_obstacle_border_color if namespace == "/target" else cfg.movable_obstacle_color
             marker_array = MarkerArray(markers=[
-                conv.polygon_to_line_strip(robot_polygon, namespace + "/robot/polygon", 0, cfg.frame_id, robot_color,
+                conv.polygon_to_line_strip(robot_polygon, namespace + "/robot/polygon", 0, cfg.main_frame_id, robot_color,
                                            cfg.entities_z_index, cfg.border_width),
-                conv.polygon_to_line_strip(obs_polygon, namespace + "/obstacle/polygon", 0, cfg.frame_id, obs_color,
+                conv.polygon_to_line_strip(obs_polygon, namespace + "/obstacle/polygon", 0, cfg.main_frame_id, obs_color,
                                            cfg.entities_z_index, cfg.border_width)])
             self.publish(cfg.robot_sim_topic, marker_array)
 
@@ -431,13 +462,13 @@ class RosPublisher(with_metaclass(Singleton)):
             init_blocking_areas_markers = []
             for i in range(len(init_blocking_areas)):
                 init_blocking_areas_markers.append(conv.polygon_to_triangle_list(
-                    init_blocking_areas[i], "/blocking_areas/init", i, cfg.frame_id,
+                    init_blocking_areas[i], "/blocking_areas/init", i, cfg.main_frame_id,
                     cfg.init_blocking_areas_color, cfg.entities_z_index))
 
             target_blocking_areas_markers = []
             for i in range(len(target_blocking_areas)):
                 target_blocking_areas_markers.append(conv.polygon_to_triangle_list(
-                    target_blocking_areas[i], "/blocking_areas/target", i, cfg.frame_id,
+                    target_blocking_areas[i], "/blocking_areas/target", i, cfg.main_frame_id,
                     cfg.target_blocking_areas_color, cfg.entities_z_index))
 
             marker_array = MarkerArray(markers=init_blocking_areas_markers + target_blocking_areas_markers)
@@ -447,20 +478,20 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(cfg.robot_sim_topic):
             marker_array = MarkerArray(markers=[
                 conv.polygon_to_line_strip(init_entity_inflated_polygon, "/diameter_inflated_polygon/init", 0,
-                                           cfg.frame_id, cfg.init_diameter_inflated_polygon_color,
+                                           cfg.main_frame_id, cfg.init_diameter_inflated_polygon_color,
                                            cfg.entities_z_index, cfg.border_width / 2.),
                 conv.polygon_to_line_strip(target_entity_inflated_polygon, "/diameter_inflated_polygon/target", 0,
-                                           cfg.frame_id, cfg.target_diameter_inflated_polygon_color,
+                                           cfg.main_frame_id, cfg.target_diameter_inflated_polygon_color,
                                            cfg.entities_z_index, cfg.border_width / 2.)])
             self.publish(cfg.robot_sim_topic, marker_array)
 
     def publish_min_max_inflated(self, min_inflated_polygon, max_inflated_polygon):
         if self.is_activated(cfg.min_max_inflated_polygons_topic):
             marker_array = MarkerArray(markers=[
-                conv.polygon_to_line_strip(min_inflated_polygon, "/min_inflated_polygon", 0, cfg.frame_id,
+                conv.polygon_to_line_strip(min_inflated_polygon, "/min_inflated_polygon", 0, cfg.main_frame_id,
                                            cfg.min_inflated_polygon_border_color,
                                            cfg.entities_z_index, cfg.border_width),
-                conv.polygon_to_line_strip(max_inflated_polygon, "/max_inflated_polygon", 0, cfg.frame_id,
+                conv.polygon_to_line_strip(max_inflated_polygon, "/max_inflated_polygon", 0, cfg.main_frame_id,
                                            cfg.max_inflated_polygon_border_color,
                                            cfg.entities_z_index, cfg.border_width)])
             self.publish(cfg.min_max_inflated_polygons_topic, marker_array)
@@ -468,16 +499,16 @@ class RosPublisher(with_metaclass(Singleton)):
     def publish_debug_polygons(self, polygons):
         if self.is_activated(cfg.robot_sim_topic):
             marker_array = conv.polygons_to_line_strips_marker_array(
-                polygons, "/debug/polygons", cfg.frame_id, cfg.robot_color, cfg.entities_z_index, cfg.border_width / 5.)
+                polygons, "/debug/polygons", cfg.main_frame_id, cfg.robot_color, cfg.entities_z_index, cfg.border_width / 5.)
             self.publish(cfg.robot_sim_topic, marker_array)
 
     def cleanup_min_max_inflated(self):
         if self.is_activated(cfg.min_max_inflated_polygons_topic):
-            self.publish(cfg.min_max_inflated_polygons_topic, conv.make_delete_marker("", 0, cfg.frame_id))
+            self.publish(cfg.min_max_inflated_polygons_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
 
     def cleanup_robot_sim(self):
         if self.is_activated(cfg.robot_sim_topic):
-            self.publish(cfg.robot_sim_topic, conv.make_delete_all_marker(cfg.frame_id))
+            self.publish(cfg.robot_sim_topic, conv.make_delete_all_marker(cfg.main_frame_id))
 
     # endregion
 
@@ -507,7 +538,7 @@ class RosPublisher(with_metaclass(Singleton)):
                 polygon_at_goal_pose = affinity.translate(polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
                 # ros_pose = pose_to_ros_pose_stamped(q_goal)
                 marker_array = MarkerArray(markers=[
-                    conv.polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, cfg.frame_id,
+                    conv.polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, cfg.main_frame_id,
                                                cfg.robot_border_color, cfg.fov_z_index, cfg.border_width)])
                 # pose_to_arrow(q_goal, "/pose", 0, self.frame_id, self.robot_border_color,
                 #               self.entities_z_index, 0.5, 0.2, 0.0)])
@@ -515,7 +546,7 @@ class RosPublisher(with_metaclass(Singleton)):
 
     def cleanup_goal(self):
         if self.is_activated(cfg.robot_goal_topic):
-            self.publish(cfg.robot_goal_topic, conv.make_delete_all_marker(cfg.frame_id))
+            self.publish(cfg.robot_goal_topic, conv.make_delete_all_marker(cfg.main_frame_id))
 
     # endregion
 
@@ -536,6 +567,7 @@ class RosPublisher(with_metaclass(Singleton)):
         self.cleanup_multigoal_a_star_open_heap()
         self.cleanup_multigoal_a_star_close_set()
         self.cleanup_grid_path()
-        # self.cleanup_connected_components_grid() GOTTA DEBUG IT FIRST
+        self.cleanup_grid_map()
+        self.cleanup_combined_costmap()
 
     # endregion

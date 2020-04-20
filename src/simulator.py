@@ -113,6 +113,11 @@ class Simulator:
         self.run_duration = 0.
         self.agent_uid_and_goal_to_world_snapshot = {agent_uid: [] for agent_uid in self.agent_uid_to_behavior.keys()}
 
+
+        self.init_nb_cc, self.init_biggest_cc_size, self.init_all_cc_sum_size, self.init_frag_percentage = stats_utils.get_connectivity_stats(
+            self.init_ref_world, self.human_inflation_radius, tuple()
+        )
+
     def run(self):
         print("Run started")
         run_start_time = time.time()
@@ -159,7 +164,7 @@ class Simulator:
         # Print simulation results
         self.run_duration = time.time() - run_start_time
 
-        simulation_report = self.create_simulation_light_report()
+        simulation_report = self.create_simulation_report()
         simulation_report_json = json.dumps(simulation_report, indent=4, sort_keys=True)
 
         print(simulation_report_json)
@@ -214,10 +219,6 @@ class Simulator:
                      dd=copy.deepcopy(self.ref_world.dd))
 
     def create_simulation_report(self):
-        init_nb_cc, init_biggest_cc_size, init_all_cc_sum_size, init_frag_percentage = stats_utils.get_connectivity_stats(
-            self.init_ref_world, self.human_inflation_radius, tuple()
-        )
-
         all_movable_types = set()
         for entity in self.init_ref_world.entities.values():
             if isinstance(entity, Robot):
@@ -231,10 +232,10 @@ class Simulator:
 
         report = {
             "total_run_time": self.run_duration,
-            "number_of_connected_components_initial": init_nb_cc,
-            "biggest_free_component_size_initial": init_biggest_cc_size,
-            "free_space_size_initial": init_all_cc_sum_size,
-            "space_fragmentation_percentage_initial": init_frag_percentage,
+            "number_of_connected_components_initial": self.init_nb_cc,
+            "biggest_free_component_size_initial": self.init_biggest_cc_size,
+            "free_space_size_initial": self.init_all_cc_sum_size,
+            "space_fragmentation_percentage_initial": self.init_frag_percentage,
             "absolute_social_cost_initial": init_abs_social_cost,
             "agents": []
         }
@@ -279,13 +280,13 @@ class Simulator:
                     "space_fragmentation_percentage_after_goal": end_frag_percentage,
                     "absolute_social_cost_after_goal": end_abs_social_cost,
                     "number_of_connected_components_relative_change": stats_utils.relative_change(
-                        init_nb_cc, end_nb_cc),
+                        self.init_nb_cc, end_nb_cc),
                     "biggest_free_component_size_relative_change": stats_utils.relative_change(
-                        init_biggest_cc_size, end_biggest_cc_size),
+                        self.init_biggest_cc_size, end_biggest_cc_size),
                     "free_space_size_relative_change": stats_utils.relative_change(
-                        init_all_cc_sum_size, end_all_cc_sum_size),
+                        self.init_all_cc_sum_size, end_all_cc_sum_size),
                     "space_fragmentation_percentage_relative_change": stats_utils.relative_change(
-                        init_frag_percentage, end_frag_percentage, False) * 100.,
+                        self.init_frag_percentage, end_frag_percentage, False) * 100.,
                     "absolute_social_cost_relative_change": stats_utils.relative_change(
                         init_abs_social_cost, end_abs_social_cost)
                 }

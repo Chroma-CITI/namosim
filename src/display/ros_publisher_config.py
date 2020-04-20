@@ -9,18 +9,20 @@ def hex_to_rgba(hex_string):
 
 
 # Target display rate (in Hz)
-rate = 1000000000000
+rate = 100000000000
 
 # Deactivate GUI
-deactivate_gui = True
+deactivate_gui = False
 
 # Actual topic names
 min_max_inflated_polygons_topic = "/robot/compute_c_0_c1/min_max_inflated_polygons"
-path_grid_cells_topic = "/test/path_grid_cells"
-a_star_open_heap_topic = "/test/open_heap_cells"
-a_star_close_set_topic = "/test/close_set_cells"
-multi_a_star_open_heap_topic = "/test/multigoal_a_star_open_heap"
-multi_a_star_close_set_topic = "/test/multigoal_a_star_close_set"
+path_grid_cells_topic = "/a_star/path_grid_cells"
+a_star_open_heap_topic = "/a_star/open_heap_cells"
+a_star_close_set_topic = "/a_star/close_set_cells"
+multi_a_star_open_heap_topic = "/multi_a_star/open_heap"
+multi_a_star_close_set_topic = "/multi_a_star/close_set"
+stilman_rch_open_heap_topic = "/stilman_rch/open_heap"
+stilman_rch_close_set_topic = "/stilman_rch/close_set"
 q_l_cells_topic = "/robot/compute_c_0_c1/q_l_cells"
 q_l_poses_topic = "/robot/compute_c_0_c1/q_l_poses"
 robot_goal_topic = "/robot/goal"
@@ -49,8 +51,13 @@ default_queue_size = 10
 # HACK: Necessary because ROS1 pub/sub system is not reliable : wait (time in seconds) for subscribers to listen
 hack_duration_wait = 1.0
 
-frame_id = "/map"
-gridmap_frame_id = "/gridmap"
+main_frame_id = "/map"
+social_gridmap_frame_id = "/social_gridmap"
+combined_gridmap_frame_id = "/combined_gridmap"
+gridmap_frame_ids_to_z_indexes = {
+    social_gridmap_frame_id: -1.5,
+    combined_gridmap_frame_id: -1.4
+}
 
 # Elements colors
 robot_color = ColorRGBA(*hex_to_rgba("#ff6d9eeb"))
@@ -83,10 +90,14 @@ flashy_cyan = ColorRGBA(*hex_to_rgba("#ff85ffff"))
 flashy_purple = ColorRGBA(*hex_to_rgba("#ffff00ff"))
 flashy_red = ColorRGBA(*hex_to_rgba("#ffff0000"))
 
+dark_purple = ColorRGBA(*hex_to_rgba("#ff8e7cc3"))
+dark_brown = ColorRGBA(*hex_to_rgba("#ffc3a87c"))
+dark_blue = ColorRGBA(*hex_to_rgba("ff7ca5c3"))
+
 fov_z_index = -0.04
 entities_z_index = -0.05
 taboos_z_index = -0.06
 
 fov_line_width = 0.05
-border_width = 0.110
+border_width = 0.08
 text_height = 0.2

@@ -58,40 +58,40 @@ def world_to_marker_array(world, robot_uid, entities_to_ignore=tuple()):
         if entity.uid not in entities_to_ignore:
             if isinstance(entity, Robot):
                 markers = markers + entity_to_markers(
-                    entity, "/robot", entity.uid, cfg.frame_id, cfg.robot_color, cfg.robot_border_color,
+                    entity, "/robot", entity.uid, cfg.main_frame_id, cfg.robot_color, cfg.robot_border_color,
                     cfg.text_color_on_filling, cfg.text_color_on_empty, cfg.entities_z_index,
                     cfg.border_width, cfg.text_height, add_border=False, add_text=False)
 
                 for sensor in entity.sensors:
                     if isinstance(sensor, SFOVSensor):
                         markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/s_fov", 0,
-                                                             cfg.frame_id, cfg.s_fov_border_color, cfg.fov_z_index,
+                                                             cfg.main_frame_id, cfg.s_fov_border_color, cfg.fov_z_index,
                                                              cfg.fov_line_width))
                     elif isinstance(sensor, GFOVSensor):
                         markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/g_fov", 0,
-                                                             cfg.frame_id, cfg.g_fov_border_color, cfg.fov_z_index,
+                                                             cfg.main_frame_id, cfg.g_fov_border_color, cfg.fov_z_index,
                                                              cfg.fov_line_width))
 
             if isinstance(entity, Obstacle):
                 entity_movability = robot.deduce_movability(entity.type)
                 if entity_movability == "movable":
                     markers = markers + entity_to_markers(
-                        entity, "/obstacles", entity.uid, cfg.frame_id, cfg.movable_obstacle_color,
+                        entity, "/obstacles", entity.uid, cfg.main_frame_id, cfg.movable_obstacle_color,
                         cfg.movable_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
                 if entity_movability == "unmovable":
                     markers = markers + entity_to_markers(
-                        entity, "/obstacles", entity.uid, cfg.frame_id, cfg.unmovable_obstacle_color,
+                        entity, "/obstacles", entity.uid, cfg.main_frame_id, cfg.unmovable_obstacle_color,
                         cfg.unmovable_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
                 if entity_movability == "unknown":
                     markers = markers + entity_to_markers(
-                        entity, "/obstacles", entity.uid, cfg.frame_id, cfg.unknown_obstacle_color,
+                        entity, "/obstacles", entity.uid, cfg.main_frame_id, cfg.unknown_obstacle_color,
                         cfg.unknown_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
     for taboo in world.taboo_zones.values():
         markers = markers + entity_to_markers(
-            taboo, "/taboos", taboo.uid, cfg.frame_id, cfg.taboo_color, cfg.taboo_border_color,
+            taboo, "/taboos", taboo.uid, cfg.main_frame_id, cfg.taboo_color, cfg.taboo_border_color,
             cfg.text_color_on_filling, cfg.text_color_on_empty, cfg.taboos_z_index,
             cfg.border_width, cfg.text_height, add_border=False, add_text=False)
     marker_array.markers = markers
@@ -118,13 +118,13 @@ def init_grid_map():
     return grid_map
 
 
-def costmap_to_grid_map(costmap, res, z_index=-10.):
+def costmap_to_grid_map(costmap, res, frame_id=cfg.social_gridmap_frame_id):
     grid_map = GridMap()
-    grid_map.info.header = Header(stamp=rospy.Time.now(), frame_id="gridmap")
+    grid_map.info.header = Header(stamp=rospy.Time.now(), frame_id=frame_id)
     grid_map.info.resolution = res
     grid_map.info.length_x = costmap.shape[0] * res
     grid_map.info.length_y = costmap.shape[1] * res
-    grid_map.info.pose.position.z = z_index
+    # grid_map.info.pose.position.z = 0. # The lib does not take this parameter into account...
     grid_map.layers = ["elevation"]
     inflated_costmap_data = Float32MultiArray(
         layout=MultiArrayLayout(
@@ -143,27 +143,38 @@ def costmap_to_grid_map(costmap, res, z_index=-10.):
     return grid_map
 
 
-def grid_cells_to_cube_list_markers(grid_cells, res, grid_pose, color):
-    cube_list = Marker(
-        type=Marker.CUBE_LIST,
-        ns="",
-        id=0,
-        header=Header(frame_id=cfg.frame_id, stamp=rospy.Time.now()),
-        color=color,
-        scale=Vector3(res, res, res),
-        points=[])
+def grid_cells_to_cube_list_markers(grid_cells, res, grid_pose, color, cube_list=None):
+    if cube_list is None:
+        cube_list = Marker(
+            type=Marker.CUBE_LIST,
+            ns="",
+            id=0,
+            header=Header(frame_id=cfg.main_frame_id, stamp=rospy.Time.now()),
+            color=color,
+            scale=Vector3(res, res, res),
+            points=[])
     for cell in grid_cells:
         point = Point()
         point.x, point.y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
+        point.z = -0.5
         cube_list.points.append(point)
     return cube_list
 
-    # ros_cells = init_grid_cells(res)
-    # for cell in grid_cells:
-    #     point = Point()
-    #     point.x, point.y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
-    #     ros_cells.cells.append(point)
-    # return ros_cells
+
+def grid_cells_to_cube_markerarray(grid_cells, res, grid_pose, color, start_id=0):
+    marker_array = MarkerArray()
+    markers = []
+    cur_id = start_id
+    for cell in grid_cells:
+        cur_id += 1
+        x, y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
+        z = -0.5
+        cube = Marker(type=Marker.CUBE, ns="", id=cur_id,
+            header=Header(frame_id=cfg.main_frame_id, stamp=rospy.Time.now()),
+            color=color, scale=Vector3(res, res, res), pose=Pose(position=Vector3(x, y, z)))
+        markers.append(cube)
+    marker_array.markers = markers
+    return marker_array, cur_id
 
 
 def geom_quat_from_yaw(yaw):
@@ -246,13 +257,14 @@ def polygon_to_line_strip(polygon, namespace, p_id, frame_id, color, z_index, li
                     color=color,
                     scale=Vector3(line_width, 0.0, 0.0),
                     points=[])
-    for i in range(len(polygon.exterior.coords) - 1):
-        point = polygon.exterior.coords[i]
-        next_point = polygon.exterior.coords[i+1]
-        marker.points.append(Point(point[0], point[1], z_index))
-        marker.points.append(Point(next_point[0], next_point[1], z_index))
-    marker.points.append(Point(polygon.exterior.coords[0][0], polygon.exterior.coords[0][1], z_index))
-    marker.points.append(Point(polygon.exterior.coords[1][0], polygon.exterior.coords[1][1], z_index))
+    if polygon is not None:
+        for i in range(len(polygon.exterior.coords) - 1):
+            point = polygon.exterior.coords[i]
+            next_point = polygon.exterior.coords[i+1]
+            marker.points.append(Point(point[0], point[1], z_index))
+            marker.points.append(Point(next_point[0], next_point[1], z_index))
+        marker.points.append(Point(polygon.exterior.coords[0][0], polygon.exterior.coords[0][1], z_index))
+        marker.points.append(Point(polygon.exterior.coords[1][0], polygon.exterior.coords[1][1], z_index))
     return marker
 
 

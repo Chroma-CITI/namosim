@@ -256,6 +256,9 @@ def compute_social_costmap(
         decay_factor = adaptive_lambda(
             min(skeleton_values), max(skeleton_values), distance_transformed_grid.max() * res)
 
+    RosPublisher().publish_grid_map(final_array, res)
+    # time.sleep(3.0)
+
     cur_set = skeleton_cell_set
     prev_set = cur_set
     while cur_set:
@@ -274,8 +277,6 @@ def compute_social_costmap(
         # surf = ax.plot_surface(X.T, Y.T, Z, cmap=cm.get_cmap("gist_rainbow_r"), linewidth=0, antialiased=False)
         # fig.colorbar(surf, shrink=0.5, aspect=5)
         # plt.show()
-
-        # RosPublisher().publish_grid_map(final_array, res)
 
         next_set = set()
         for current in cur_set:
@@ -298,6 +299,8 @@ def compute_social_costmap(
         prev_set = cur_set
         cur_set = next_set
 
+        RosPublisher().publish_grid_map(final_array, res)
+
     # prev_set = skeleton_cell_set
     # cur_set = utils.get_set_neighbors_no_coll(skeleton_cell_set, binary_occ_grid, neighborhood)
     # while cur_set:
@@ -313,6 +316,8 @@ def compute_social_costmap(
     #     cur_set = next_set
 
     display_or_log(final_array, "-social_costmap", start_time_str, debug_display, log_costmaps, abs_path_to_logs_dir)
+
+    # time.sleep(10.0)
 
     return final_array
 

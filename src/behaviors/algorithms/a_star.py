@@ -75,17 +75,19 @@ def astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors=Fals
     # Initially, only the start node is known.
     heapq.heappush(open_heap, CellHeapNode(fscore[start_cell], start_cell))
 
-    rp.publish_a_star_open_heap(open_heap, res, grid_pose)
+    # rp.publish_a_star_open_heap(open_heap, res, grid_pose)
 
     # While open_heap is not empty == While there are discovered nodes that have not been evaluated
     while open_heap:
 
         # The node in open_heap having the lowest fScore[] value
         current = heapq.heappop(open_heap).cell
-        rp.publish_a_star_open_heap(open_heap, res, grid_pose)
+        # rp.publish_a_star_open_heap(open_heap, res, grid_pose)
 
         # Exit early if goal is reached
         if current == goal_cell:
+            # rp.cleanup_a_star_open_heap()
+            rp.cleanup_a_star_close_set()
             return reconstruct_path(came_from, goal_cell)
 
         close_set.add(current)
@@ -117,7 +119,11 @@ def astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors=Fals
                     gscore[neighbor] = tentative_g_score
                     fscore[neighbor] = tentative_g_score + heuristic_cost_estimate(neighbor, goal_cell)
                     heapq.heappush(open_heap, CellHeapNode(fscore[neighbor], neighbor))
-                    rp.publish_a_star_open_heap(open_heap, res, grid_pose)
+                    # rp.publish_a_star_open_heap(open_heap, res, grid_pose)
+
+    # rp.cleanup_a_star_open_heap()
+    rp.publish_a_star_close_set(close_set, res, grid_pose)
+    # rp.cleanup_a_star_close_set()
     return []
 
 
@@ -162,8 +168,8 @@ def a_star_real_path(grid, start_pose, goal_pose, res, grid_pose,
 
     # Execute A*
     astar_path = astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors)
-    rp = RosPublisher()
-    rp.publish_grid_path(astar_path, res, grid_pose)
+    # rp = RosPublisher()
+    # rp.publish_grid_path(astar_path, res, grid_pose)
 
     # Convert A* output to standard ROS path
     real_path = utils.grid_path_to_real_path(astar_path, start_pose, goal_pose, res, grid_pose)
