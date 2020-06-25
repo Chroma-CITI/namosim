@@ -41,15 +41,15 @@ class WuLevihn2014Behavior(BaselineBehavior):
                 self._q_goal = self._navigation_goals.pop(0)
                 self._world = copy.deepcopy(self._initial_world) if self._reset_knowledge_activated else self._world
                 q_r = self._robot.pose
-                self._rp.publish_goal(q_r, self._q_goal, self._robot.polygon)
+                self._rp.publish_goal(q_r, self._q_goal, self._robot.polygon, ns=self._robot_name)
 
                 self._e_l, self._m_l = [], []
                 self._last_action_result = None
                 grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
                 self._p_opt = Plan(
-                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))],
+                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose, ns=self._robot_name))],
                     self._q_goal)
-                self._rp.publish_p_opt(self._p_opt)
+                self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
 
             q_r = self._robot.pose
 
@@ -78,12 +78,12 @@ class WuLevihn2014Behavior(BaselineBehavior):
             if not self._p_opt.is_valid(self._world, self._robot_uid) or self._last_action_result is None:
                 grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
 
-                self._rp.cleanup_p_opt()
+                self._rp.cleanup_p_opt(ns=self._robot_name)
                 self._p_opt = Plan(
-                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose))],
+                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose, ns=self._robot_name))],
                     self._q_goal
                 )
-                self._rp.publish_p_opt(self._p_opt)
+                self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
                 self.make_plan(q_r, self._q_goal)
 
             if not self._p_opt.is_empty():
@@ -150,16 +150,16 @@ class WuLevihn2014Behavior(BaselineBehavior):
 
         obs_is_push_only = self._robot.deduce_push_only(obs.type)
         self._rp.publish_q_manips_for_obs(obs.get_actions(self._world.dd.inflation_radius, self._world.dd.res,
-                                                          obs_is_push_only).values())
+                                                          obs_is_push_only).values(), ns=self._robot_name)
 
         world_copy = copy.deepcopy(self._world)
-        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
+        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid, ns=self._robot_name)
 
         for unit_translation, q_manip in obs.get_actions(self._world.dd.inflation_radius, self._world.dd.res,
                                                          obs_is_push_only).items():
             grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
-            c_1 = Path(a_star_real_path(grid, q_r, q_manip, self._world.dd.res, self._world.dd.grid_pose), o_uid=o_uid)
-            self._rp.publish_c_1(c_1)
+            c_1 = Path(a_star_real_path(grid, q_r, q_manip, self._world.dd.res, self._world.dd.grid_pose, ns=self._robot_name), o_uid=o_uid)
+            self._rp.publish_c_1(c_1, ns=self._robot_name)
             if not c_1.has_infinite_cost():
                 c_0_is_valid, c_1_is_valid = True, True
 
@@ -176,7 +176,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                     init_robot_polygon = affinity.translate(robot.polygon, q_manip[0] - q_r[0], q_manip[1] - q_r[1])
                     init_robot_polygon = affinity.rotate(init_robot_polygon, q_manip[2] - q_r[2] % 360.0)
 
-                    self._rp.publish_sim(init_robot_polygon, obs.polygon, "/init")
+                    self._rp.publish_sim(init_robot_polygon, obs.polygon, "/init", ns=self._robot_name)
 
                     total_translation, is_step_success, q_sim, c_est, target_robot_polygon, target_obs_polygon =\
                         self._sim_one_step(
@@ -190,7 +190,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                                        if entity.uid != self._robot_uid and entity.uid != obs.uid]
                             has_new_local_opening, init_blocking_areas = check_new_local_opening(
                                 obs.polygon, target_obs_polygon, other_entities_polygons,
-                                robot.min_inflation_radius, init_blocking_areas)
+                                robot.min_inflation_radius, init_blocking_areas, ns=self._robot_name)
                             # Don't prevent full evaluation of plans when obstacle would pass over the goal
                             moved_polygons = [init_robot_polygon, target_robot_polygon, obs.polygon, target_obs_polygon]
                             move_passes_over_goal = is_move_passing_over_pose(moved_polygons, q_goal)
@@ -210,20 +210,20 @@ class WuLevihn2014Behavior(BaselineBehavior):
                             else:
                                 c_2 = Path.line_path(q_manip, q_sim, weigth=self._manip_weight,
                                                      unit_translation=unit_translation, is_transfer=True, o_uid=o_uid)
-                            self._rp.publish_c_2(c_2)
+                            self._rp.publish_c_2(c_2, ns=self._robot_name)
                             world_copy_grid = world_copy.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
                             c_3 = Path(a_star_real_path(world_copy_grid, q_sim, q_goal,
-                                                        world_copy.dd.res, world_copy.dd.grid_pose),
+                                                        world_copy.dd.res, world_copy.dd.grid_pose, ns=self._robot_name),
                                        o_uid=o_uid)
-                            self._rp.publish_c_3(c_3)
+                            self._rp.publish_c_3(c_3, ns=self._robot_name)
                             if not c_3.has_infinite_cost():
                                 p = Plan([c_1, c_2, c_3], q_goal)
                                 if p.total_cost < p_best.total_cost:
                                     p_best = p
                                     if p.total_cost < self._p_opt.total_cost:
                                         self._p_opt = p
-                                        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
-                                        self._rp.publish_p_opt(self._p_opt)
+                                        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid, ns=self._robot_name)
+                                        self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
 
                             world_copy.translate_entity(o_uid, -total_translation)
                             # self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
@@ -234,8 +234,8 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                 self._world, obs, total_translation, unit_translation, q_manip, q_goal,
                                 c_1, init_robot_polygon)
 
-            self._rp.cleanup_eval_c1_c2_c3_sim_init_target()
-        self._rp.cleanup_q_manips_for_obs()
+            self._rp.cleanup_eval_c1_c2_c3_sim_init_target(ns=self._robot_name)
+        self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
         return p_best
 
     # --- From original algorithm: simulate the move of the object for one step
@@ -246,7 +246,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
         target_robot_polygon = affinity.translate(
             init_robot_polygon, total_translation[0], total_translation[1])
         target_obs_polygon = affinity.translate(obs.polygon, total_translation[0], total_translation[1])
-        self._rp.publish_sim(target_robot_polygon, target_obs_polygon, "/target")
+        self._rp.publish_sim(target_robot_polygon, target_obs_polygon, "/target", ns=self._robot_name)
 
         is_step_success = self._is_step_success(world, obs.uid, init_robot_polygon, target_robot_polygon,
                                                 obs.polygon, target_obs_polygon)
@@ -301,9 +301,9 @@ class WuLevihn2014Behavior(BaselineBehavior):
 
     def compute_c_0_c_1(self, world, robot, obs, q_r, q_manip):
         if self._social_movability_evaluation_activated:
-            q_l = obs.get_q_l(world)
+            q_l = obs.get_q_l(world, ns=self._robot_name)
             grid = world.get_binary_inflated_occupancy_grid(robot.uid)
-            c_0_path, c_1_path = two_way_multi_goal_a_star(grid, q_r, q_l, q_manip, world.dd.res, world.dd.grid_pose)
+            c_0_path, c_1_path = two_way_multi_goal_a_star(grid, q_r, q_l, q_manip, world.dd.res, world.dd.grid_pose, ns=self._robot_name)
             q_look_index = self._get_last_look_q(robot, obs, c_1_path)
             if q_look_index is not None:
                 return self._split_at_pose(c_1_path, q_look_index, obs.uid, c_0_path)

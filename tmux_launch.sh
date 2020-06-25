@@ -2,7 +2,7 @@
 tmux new-session -d 'roscore'
 tmux split-window -h 'ptpython'
 tmux select-pane -t !
-tmux split-window -v 'rviz -d 2019_04_15_config.rviz'
+tmux split-window -v 'rviz -d rviz/two_robots_config.rviz'
 tmux select-pane -t !
 tmux split-window -v 'charm .'
 tmux select-pane -t bottom

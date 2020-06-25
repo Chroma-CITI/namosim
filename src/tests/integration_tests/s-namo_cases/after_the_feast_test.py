@@ -17,6 +17,11 @@ class AfterTheFeastTest(unittest.TestCase):
         sim.run()
         # Test should end up with a success
 
+    def test_navigation_only_behavior_no_movables_multi_robots(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior_no_movables_multi_robots.yaml")
+        sim.run()
+        # Test should end up with a success
+
     def test_wu_levihn_2014_behavior(self):
         sim = Simulator(simulation_file_path=self.path_to_folder+"wu_levihn_2014.yaml")
         sim.run()
@@ -36,6 +41,30 @@ class AfterTheFeastTest(unittest.TestCase):
         sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior_no_movables.yaml")
         sim.run()
         # Test should end up with a success
+
+    def test_stilman_2005_behavior_complexified(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_multi_robots(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_multi_robots_complexified(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_complexified_snamo(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_snamo.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_multi_robots_snamo(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_snamo.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_multi_robots_complexified_snamo(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_snamo.yaml")
+        sim.run()
 
 
 if __name__ == '__main__':

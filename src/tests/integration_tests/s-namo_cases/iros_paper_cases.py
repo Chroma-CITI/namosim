@@ -84,16 +84,10 @@ class BasicWithOpeningTest(unittest.TestCase):
         sim.run()
         # Test should end up with a success
 
-    def test_after_the_feast_complexified(self):
-        filename = "04_after_the_feast/stilman_2005_behavior_complexified.yaml"
-        sim = Simulator(simulation_file_path=self.path_to_folder + filename)
-        sim.run()
-        # Test should end up with a success
-
     # endregion
 
-    def test_multiple_times(self):
-        for i in range(78):
+    def test_multiple_times(self, nb_times=1):
+        for i in range(nb_times):
             filename = "02_basic_with_opening/stilman_2005_behavior.yaml"
             sim = Simulator(simulation_file_path=self.path_to_folder + filename)
             sim.run()

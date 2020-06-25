@@ -213,7 +213,8 @@ def compute_social_costmap(
         distance_transform_function=euclidean_distance_function,
         skeleton_transform_function=skimage_morph.thin, #skimage_skeletonize,
         debug_display=False, log_costmaps=True, abs_path_to_logs_dir=abs_path_to_costmap_logs_dir,
-        skeleton_filepath=None): #rel_path_to_costmap_logs_dir + "citi_saved_skeleton.png"):
+        skeleton_filepath=None,
+        ns=''): #rel_path_to_costmap_logs_dir + "citi_saved_skeleton.png"):
     start_time_str = time.strftime("%Y-%m-%d-%Hh%Mm%Ss")
 
     # Transform binary occupation grid made of integers into booleans for scipy functions to work properly
@@ -256,7 +257,7 @@ def compute_social_costmap(
         decay_factor = adaptive_lambda(
             min(skeleton_values), max(skeleton_values), distance_transformed_grid.max() * res)
 
-    RosPublisher().publish_grid_map(final_array, res)
+    RosPublisher().publish_grid_map(final_array, res, ns=ns)
     # time.sleep(3.0)
 
     cur_set = skeleton_cell_set
@@ -299,7 +300,7 @@ def compute_social_costmap(
         prev_set = cur_set
         cur_set = next_set
 
-        RosPublisher().publish_grid_map(final_array, res)
+        RosPublisher().publish_grid_map(final_array, res, ns=ns)
 
     # prev_set = skeleton_cell_set
     # cur_set = utils.get_set_neighbors_no_coll(skeleton_cell_set, binary_occ_grid, neighborhood)
@@ -331,7 +332,7 @@ class SocialTopologicalOccupationCostGrid:
     """
     def __init__(self, occupation_grid, d_width, d_height, res, grid_pose, inflation_radius,
                  skeleton_function=skeleteton_social_cost_function, decay_function=exp_decay_function,
-                 neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
+                 neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, ns=''):
         self.occupation_grid = occupation_grid
         self.d_width, self.d_height = d_width, d_height
         self.res = res
@@ -340,17 +341,18 @@ class SocialTopologicalOccupationCostGrid:
         self.skeleton_function = skeleton_function
         self.decay_function = decay_function
         self.neighborhood = neighborhood
+        self.ns = ns
         self._grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
         self._update_grid()
 
     @classmethod
     def from_binary_occ_grid(cls, binary_occ_grid, skeleton_function=skeleteton_social_cost_function,
-                             decay_function=exp_decay_function, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
+                             decay_function=exp_decay_function, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, ns=''):
         return cls(
             binary_occ_grid.get_grid(), binary_occ_grid.d_width, binary_occ_grid.d_height, binary_occ_grid.res,
             binary_occ_grid.grid_pose, binary_occ_grid.inflation_radius,
             skeleton_function=skeleton_function, decay_function=decay_function,
-            neighborhood=neighborhood)
+            neighborhood=neighborhood, ns='')
 
     # @classmethod
     # def from_world(cls, world, entities_to_ignore, skeleton_function=skeleteton_social_cost_function,
@@ -361,7 +363,7 @@ class SocialTopologicalOccupationCostGrid:
     #
 
     def _update_grid(self):
-        self._grid = compute_social_costmap(self.occupation_grid, self.res)
+        self._grid = compute_social_costmap(self.occupation_grid, self.res, ns=self.ns)
 
     def get_grid(self):
         return self._grid

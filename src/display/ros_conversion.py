@@ -188,14 +188,23 @@ def real_path_to_ros_path(real_path):
         ros_path.poses.append(PoseStamped(header=ros_path.header, pose=pose_to_ros_pose(pose)))
     return ros_path
 
-# def plan_to_markerarray(plan):
-#     for component in plan.path_components:
-#         if component.is_transfer:
-#
-#         else:
-#
-#
-# def real_path_to_pose_markers
+
+def plan_to_markerarray(plan, frame_id):
+    markerarray = MarkerArray()
+    markers = []
+    p_id = 0
+    for component in plan.path_components:
+        current_color = cfg.transit_path_color
+        if component.is_transfer:
+            current_color = cfg.transfer_path_color
+        marker = real_path_to_linestrip(
+            component.path, '/plan', p_id, frame_id, current_color, cfg.path_line_width, cfg.path_line_z_index)
+        markers.append(marker)
+        p_id += 1
+    markerarray.markers = markers
+    return markerarray
+
+# def real_path_to_pose_markers(real_path, )
 
 
 def real_path_to_linestrip(real_path, namespace, p_id, frame_id, color, line_width, z_index, link_point=None):
@@ -206,7 +215,7 @@ def real_path_to_linestrip(real_path, namespace, p_id, frame_id, color, line_wid
                     color=color,
                     scale=Vector3(line_width, 0.0, 0.0),
                     points=[])
-    for i in range(len(real_path)):
+    for i in range(len(real_path) - 1):
         point = real_path[i]
         next_point = real_path[i + 1]
         marker.points.append(Point(point[0], point[1], z_index))
@@ -308,9 +317,9 @@ def make_delete_marker(namespace, p_id, frame_id):
     return Marker(ns=namespace, id=p_id, header=Header(frame_id=frame_id, stamp=rospy.Time.now()), action=Marker.DELETE)
 
 
-def make_delete_all_marker(frame_id):
+def make_delete_all_marker(frame_id, ns=''):
     return MarkerArray(
-        markers=[Marker(header=Header(frame_id=frame_id, stamp=rospy.Time.now()), action=Marker.DELETEALL)])
+        markers=[Marker(ns=ns, header=Header(frame_id=frame_id, stamp=rospy.Time.now()), action=Marker.DELETEALL)])
 
 
 def entity_to_markers(entity, namespace, p_id, frame_id, color, border_color, text_color_filling, text_color_empty,

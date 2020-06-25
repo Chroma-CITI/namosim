@@ -17,7 +17,7 @@ from src.worldreps.occupation_based.probabilist_occupancy_grid import Probabilis
 from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid
 from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
 from src.worldreps.occupation_based.social_topological_occupation_cost_grid import SocialTopologicalOccupationCostGrid
-from src.worldreps.occupation_based.connected_components_grid import ConnectedComponentsGrid
+from src.worldreps.occupation_based.connected_components_grid import ConnectedComponentsMeta
 from robot import Robot
 from taboo import Taboo
 from sensors.g_fov_sensor import GFOVSensor
@@ -270,6 +270,7 @@ class World:
             map_max_x, map_max_y = max(map_max_x, max_x), max(map_max_y, max_y)
         return map_min_x, map_min_y, map_max_x, map_max_y
 
+    # TO DEPRECATE
     def update_dd(self):
         if self.dd is None:
             raise ValueError("Discretization data (dd) is None, this should not be happening !")
@@ -286,6 +287,7 @@ class World:
             self.delete_all_grids()
             self.dd.saved_hash = new_hash
 
+    # TO DEPRECATE
     def delete_all_grids(self):
         self._probabilist_occupancy_grids = dict()
         self._binary_occupancy_grids = dict()
@@ -302,6 +304,7 @@ class World:
                 return True
         return False
 
+    # TO DEPRECATE
     def _invalidate_and_inform_grids(self, prev_entities, next_entities):
         # If any entity that is required to build these grids has changed, invalidate them
         for entities_to_ignore, grid in self._probabilist_occupancy_grids.items():
@@ -324,12 +327,14 @@ class World:
         for grid in self._binary_inflated_occupancy_grids.values():
             grid.update_buffered_entities(prev_entities, next_entities)
 
+    # TO DEPRECATE
     def get_probabilist_occupancy_grid(self, entities_to_ignore):
         self.update_dd()
         if entities_to_ignore not in self._probabilist_occupancy_grids:
             self._probabilist_occupancy_grids[entities_to_ignore] = ProbabilistOccupancyGrid(self.dd, self.entities, entities_to_ignore)
         return self._probabilist_occupancy_grids[entities_to_ignore]
 
+    # TO DEPRECATE
     def get_binary_occupancy_grid(self, entities_to_ignore):
         self.update_dd()
         if entities_to_ignore not in self._binary_occupancy_grids:
@@ -338,6 +343,7 @@ class World:
                 self.entities, entities_to_ignore)
         return self._binary_occupancy_grids[entities_to_ignore]
 
+    # TO DEPRECATE
     def get_binary_inflated_occupancy_grid(self, entities_to_ignore):
         self.update_dd()
         if entities_to_ignore not in self._binary_inflated_occupancy_grids:
@@ -346,26 +352,30 @@ class World:
                 self.entities, entities_to_ignore)
         return self._binary_inflated_occupancy_grids[entities_to_ignore]
 
+    # TO DEPRECATE
     def get_social_topological_occupation_cost_grid(self, entities_to_ignore):
         self.update_dd()
         if entities_to_ignore not in self._social_topological_occupation_cost_grids:
             self._social_topological_occupation_cost_grids[entities_to_ignore] = SocialTopologicalOccupationCostGrid()
         return self._social_topological_occupation_cost_grids[entities_to_ignore]
 
+    # TO DEPRECATE
     def get_connected_components_grid(self, entities_to_ignore):
         self.update_dd()
         if entities_to_ignore not in self._connected_components_grids:
-            grid = ConnectedComponentsGrid(
+            grid = ConnectedComponentsMeta(
                 self.get_binary_inflated_occupancy_grid(entities_to_ignore).get_grid())
             self._connected_components_grids[entities_to_ignore] = grid
         return self._connected_components_grids[entities_to_ignore]
 
+    # TO DEPRECATE
     def get_entity_uid_from_name(self, name):
         for entity_uid, entity in self.entities.items():
             if entity.name == name:
                 return entity_uid
         raise LookupError("Could not find an entity in this world with name : {name}.".format(name=name))
 
+    # TO DEPRECATE
     def agg_grid_cost_for_entities(self, entities_uids, grid, aggregation_function=sum):
         entities_cells = set()
         for entity_uid in entities_uids:

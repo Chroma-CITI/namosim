@@ -2,7 +2,7 @@ from src.behaviors.plan.action_result import ActionSuccess
 from src.utils.utils import euclidean_distance
 from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid
 from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
-from src.worldreps.graph_based.networkx_occupation_grid_graph import \
+from src.worldreps.occupation_based.connected_components_grid import \
     occupancy_grid_to_graph, get_graph_connected_components, connected_components_to_grid
 from src.worldreps.occupation_based.social_topological_occupation_cost_grid import compute_social_costmap
 from src.display.ros_publisher import RosPublisher
@@ -89,13 +89,13 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
 
     connected_components = get_graph_connected_components(occupancy_grid_to_graph(occ_grid))
     connected_components_grid = connected_components_to_grid(connected_components, occ_grid)
-    RosPublisher().publish_connected_components_grid(connected_components_grid, world.dd)
+    RosPublisher().publish_connected_components_grid(connected_components_grid, world.dd, ns='simulation')
 
     # cc is abbreviation of connected component
     nb_cc = len(connected_components)
 
     biggest_cc_size, all_cc_sum_size = 0, 0
-    for cc in connected_components:
+    for cc in connected_components.values():
         all_cc_sum_size += len(cc)
         if len(cc) > biggest_cc_size:
             biggest_cc_size = len(cc)
@@ -109,7 +109,7 @@ def get_social_costs_stats(world, entities_to_ignore):
     occ_grid = BinaryOccupancyGrid(
         world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
         world.dd.inflation_radius, world.entities, entities_to_ignore).get_grid()
-    abs_social_costmap = compute_social_costmap(occ_grid, world.dd.res, log_costmaps=False)
+    abs_social_costmap = compute_social_costmap(occ_grid, world.dd.res, log_costmaps=False, ns='simulation')
 
     absolute_social_cost = 0.
     for entity_uid in entities_to_ignore:

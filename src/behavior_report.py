@@ -1,3 +1,6 @@
+# DEPRECATED CODE !
+
+
 class BehaviorReport:
     def __init__(self, ref_world, behavior_world, robot_uid):
         self._ref_world = ref_world

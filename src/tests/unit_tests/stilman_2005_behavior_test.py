@@ -10,11 +10,12 @@ class Stilman2005BehaviorTest(unittest.TestCase):
     def setUp(self):
         self.sim = Simulator("../../../data/simulations/first_level/01_two_rooms_corridor/stilman_2005_behavior.yaml")
         self.robot_uid, self.behavior = next(iter(self.sim.agent_uid_to_behavior.items()))
+        self._robot_name = self.behavior._robot_name
         self._rp = RosPublisher()
 
     def test_manip_search(self):
         ref_world = self.sim.ref_world
-        self._rp.publish_robot_world(ref_world, self.robot_uid)
+        self._rp.publish_robot_world(ref_world, self.robot_uid, ns=self.behavior.robot_name)
         test_obstacle_uid = ref_world.get_entity_uid_from_name("movable_box")
         connected_components_grid = ref_world.get_connected_components_grid((self.robot_uid,))
         connected_components_grid_costmap = connected_components_grid.get_grid()
@@ -30,14 +31,14 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         w_t_plus_2, tho_n, tho_m, cost = self.behavior._manip_search(
             ref_world, test_obstacle_uid, goal_cell_component_cells, r_f)
 
-        self._rp.publish_c_1(tho_n)
-        self._rp.publish_c_2(tho_m)
-        self._rp.publish_robot_world(w_t_plus_2, self.robot_uid)
+        self._rp.publish_c_1(tho_n, ns=self._robot_name)
+        self._rp.publish_c_2(tho_m, ns=self._robot_name)
+        self._rp.publish_robot_world(w_t_plus_2, self.robot_uid, ns=self.behavior.robot_name)
         print("Total Cost of tho_n and tho_m = " + str(cost))
 
     def test_rch(self):
         ref_world = self.sim.ref_world
-        self._rp.publish_robot_world(ref_world, self.robot_uid)
+        self._rp.publish_robot_world(ref_world, self.robot_uid, ns=self.behavior.robot_name)
         r_f = self.behavior._navigation_goals[0]
         o_1, c_1 = self.behavior._rch(ref_world, set(), set(), r_f)
         print(
@@ -48,7 +49,7 @@ class Stilman2005BehaviorTest(unittest.TestCase):
 
     def test_select_connect(self):
         ref_world = self.sim.ref_world
-        self._rp.publish_robot_world(ref_world, self.robot_uid)
+        self._rp.publish_robot_world(ref_world, self.robot_uid, ns=self.behavior.robot_name)
         r_f = self.behavior._navigation_goals[0]
         plan = self.behavior._select_connect(ref_world, set(), r_f)
         print("")

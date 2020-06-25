@@ -24,6 +24,7 @@ class Entity:
         self.polygon = polygon
         self.pose = pose
         self.full_geometry_acquired = full_geometry_acquired
+        self.is_being_manipulated = False
 
         self.inflation_radius = 0.
         self.inflated_polygon = None
@@ -82,7 +83,7 @@ class Entity:
         self._is_discrete_inflated_cell_set_valid = False
         return self
 
-    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5.):
+    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5., ignore_collisions=False):
         # May be improved for cases with modulo 90-degrees rotations with specific update of discrete_polygon.
         new_polygon = affinity.rotate(self.polygon, angle, origin=rot_center)
         polygon_center = list(new_polygon.centroid.coords)[0]
@@ -102,19 +103,21 @@ class Entity:
                     if collision_polygon.intersects(entity.polygon):
                         # from src.display.ros_publisher import RosPublisher
                         # RosPublisher().publish_sim(collision_polygon, entity.polygon, "/collision")
+                        if not ignore_collisions:
+                            raise IntersectionError({self.uid, entity.uid},
+                                ("Entity {self_name} would intersect with entity {other_name} " +
+                                 "if rotation of angle ({angle}) at rotation center {rot_center} were to occur").format(
+                                    self_name=self.name, other_name=entity.name, angle=angle, rot_center=str(rot_center)
+                                ))
+                if new_polygon.intersects(entity.polygon):
+                    # from src.display.ros_publisher import RosPublisher
+                    # RosPublisher().publish_sim(new_polygon, entity.polygon, "/collision")
+                    if not ignore_collisions:
                         raise IntersectionError({self.uid, entity.uid},
                             ("Entity {self_name} would intersect with entity {other_name} " +
                              "if rotation of angle ({angle}) at rotation center {rot_center} were to occur").format(
                                 self_name=self.name, other_name=entity.name, angle=angle, rot_center=str(rot_center)
                             ))
-                if new_polygon.intersects(entity.polygon):
-                    # from src.display.ros_publisher import RosPublisher
-                    # RosPublisher().publish_sim(new_polygon, entity.polygon, "/collision")
-                    raise IntersectionError({self.uid, entity.uid},
-                        ("Entity {self_name} would intersect with entity {other_name} " +
-                         "if rotation of angle ({angle}) at rotation center {rot_center} were to occur").format(
-                            self_name=self.name, other_name=entity.name, angle=angle, rot_center=str(rot_center)
-                        ))
 
             self.polygon = new_polygon
             self.pose = new_pose
@@ -126,7 +129,7 @@ class Entity:
         self._is_discrete_inflated_cell_set_valid = False
         return self
 
-    def translate(self, xoff, yoff, res, other_entities=None):
+    def translate(self, xoff, yoff, res=0.05, other_entities=None, ignore_collisions=False):
         if all(np.isclose([xoff, yoff], [0., 0.], atol=1e-8)):
             return self
 
@@ -151,19 +154,21 @@ class Entity:
                     if collision_polygon.intersects(entity.polygon):
                         # from src.display.ros_publisher import RosPublisher
                         # RosPublisher().publish_sim(collision_polygon, entity.polygon, "/collision")
+                        if not ignore_collisions:
+                            raise IntersectionError({self.uid, entity.uid},
+                                ("Entity {self_name} would intersect with entity {other_name} " +
+                                 "if translation of vector ({xoff}, {yoff}) were to occur").format(
+                                    self_name=self.name, other_name=entity.name, xoff=xoff, yoff=yoff
+                                ))
+                if new_polygon.intersects(entity.polygon):
+                    # from src.display.ros_publisher import RosPublisher
+                    # RosPublisher().publish_sim(new_polygon, entity.polygon, "/collision")
+                    if not ignore_collisions:
                         raise IntersectionError({self.uid, entity.uid},
                             ("Entity {self_name} would intersect with entity {other_name} " +
                              "if translation of vector ({xoff}, {yoff}) were to occur").format(
                                 self_name=self.name, other_name=entity.name, xoff=xoff, yoff=yoff
                             ))
-                if new_polygon.intersects(entity.polygon):
-                    # from src.display.ros_publisher import RosPublisher
-                    # RosPublisher().publish_sim(new_polygon, entity.polygon, "/collision")
-                    raise IntersectionError({self.uid, entity.uid},
-                        ("Entity {self_name} would intersect with entity {other_name} " +
-                         "if translation of vector ({xoff}, {yoff}) were to occur").format(
-                            self_name=self.name, other_name=entity.name, xoff=xoff, yoff=yoff
-                        ))
 
             self.polygon = new_polygon
             self.pose = new_pose
@@ -225,8 +230,9 @@ class Entity:
             self._is_discrete_inflated_cell_set_valid = False
 
         inflated_polygon = self.get_inflated_polygon(inflation_radius, res)
+        extra_inflated_polygon = self.polygon.buffer(inflation_radius * 2.)
 
-        min_x, min_y, max_x, max_y = inflated_polygon.bounds
+        min_x, min_y, max_x, max_y = extra_inflated_polygon.bounds
 
         width, height = max_x - min_x, max_y - min_y
 

@@ -4,7 +4,7 @@ from src.display.ros_publisher import RosPublisher
 
 
 def check_new_local_opening(init_entity_polygon, target_entity_polygon, other_entities_polygons,
-                            inflation_radius, init_blocking_areas=None):
+                            inflation_radius, init_blocking_areas=None, ns=''):
     # Check that all polygonal parameters are actually what they are expected to be
     if not (isinstance(init_entity_polygon, Polygon) and isinstance(target_entity_polygon, Polygon)
             and all([isinstance(other_polygon, Polygon) for other_polygon in other_entities_polygons])
@@ -17,7 +17,7 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon, other_en
     init_entity_inflated_polygon = init_entity_polygon.buffer(2. * inflation_radius)
     target_entity_inflated_polygon = target_entity_polygon.buffer(2. * inflation_radius)
 
-    RosPublisher().publish_diameter_inflated_polygons(init_entity_inflated_polygon, target_entity_inflated_polygon)
+    RosPublisher().publish_diameter_inflated_polygons(init_entity_inflated_polygon, target_entity_inflated_polygon, ns=ns)
 
     # Build blocking areas
     # Note: Intersection geometry can be either Point, LineString or Polygon
@@ -46,7 +46,7 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon, other_en
                 for sub_intersection_geometry in intersection_geometry:
                     target_blocking_areas.append(sub_intersection_geometry)
 
-    RosPublisher().publish_blocking_areas(init_blocking_areas, target_blocking_areas)
+    RosPublisher().publish_blocking_areas(init_blocking_areas, target_blocking_areas, ns=ns)
 
     # Check if any blocking area has been freed thus a local opening has been created
     for init_blocking_area in init_blocking_areas:

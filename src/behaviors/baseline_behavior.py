@@ -11,6 +11,7 @@ class BaselineBehavior(object):
     def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir):
         self._initial_world = initial_world
         self._robot_uid = robot_uid
+        self._robot_name = initial_world.entities[robot_uid].name
         self._navigation_goals = navigation_goals
         self._behavior_config = behavior_config
         self.abs_path_to_logs_dir = abs_path_to_logs_dir
@@ -32,7 +33,7 @@ class BaselineBehavior(object):
     def sense(self, ref_world, last_action_result):
         self._last_action_result = last_action_result
         self._robot.update_world_from_sensors(ref_world, self._world)
-        self._rp.publish_robot_world(self._world, self._robot_uid)
+        self._rp.publish_robot_world(self._world, self._robot_uid, ns=self._robot_name)
 
     @abc.abstractmethod
     def think(self):
@@ -46,7 +47,7 @@ class BaselineBehavior(object):
     def _q_goal(self, _q_goal):
         self.__q_goal = _q_goal
         if _q_goal is not None:
-            self._rp.publish_goal(self._robot.pose, self.__q_goal, self._robot.polygon)
+            self._rp.publish_goal(self._robot.pose, self.__q_goal, self._robot.polygon, ns=self._robot_name)
 
     @property
     def _p_opt(self):
@@ -55,7 +56,8 @@ class BaselineBehavior(object):
     @_p_opt.setter
     def _p_opt(self, p_opt):
         self.__p_opt = p_opt
-        self._rp.publish_p_opt(self.__p_opt)
+        self._rp.cleanup_p_opt(ns=self._robot_name)
+        self._rp.publish_p_opt(self.__p_opt, ns=self._robot_name)
 
     @property
     def _last_action_result(self):

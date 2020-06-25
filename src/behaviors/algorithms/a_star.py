@@ -45,7 +45,7 @@ def reconstruct_path(came_from, end):
     return total_path
 
 
-def astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors=False, threshold_obstacle_value=1):
+def astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors=False, threshold_obstacle_value=1, ns=''):
     rp = RosPublisher()
 
     # Acceptable transitions from current grid element to neighbors
@@ -75,23 +75,23 @@ def astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors=Fals
     # Initially, only the start node is known.
     heapq.heappush(open_heap, CellHeapNode(fscore[start_cell], start_cell))
 
-    # rp.publish_a_star_open_heap(open_heap, res, grid_pose)
+    # rp.publish_a_star_open_heap(open_heap, res, grid_pose, ns=ns)
 
     # While open_heap is not empty == While there are discovered nodes that have not been evaluated
     while open_heap:
 
         # The node in open_heap having the lowest fScore[] value
         current = heapq.heappop(open_heap).cell
-        # rp.publish_a_star_open_heap(open_heap, res, grid_pose)
+        # rp.publish_a_star_open_heap(open_heap, res, grid_pose, ns=ns)
 
         # Exit early if goal is reached
         if current == goal_cell:
-            # rp.cleanup_a_star_open_heap()
-            rp.cleanup_a_star_close_set()
+            # rp.cleanup_a_star_open_heap(ns=ns)
+            rp.cleanup_a_star_close_set(ns=ns)
             return reconstruct_path(came_from, goal_cell)
 
         close_set.add(current)
-        rp.publish_a_star_close_set(close_set, res, grid_pose)
+        rp.publish_a_star_close_set(close_set, res, grid_pose, ns=ns)
 
         # For each neighbor of current node in the defined neighborhood
         for i, j in neighborhood:
@@ -119,19 +119,21 @@ def astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors=Fals
                     gscore[neighbor] = tentative_g_score
                     fscore[neighbor] = tentative_g_score + heuristic_cost_estimate(neighbor, goal_cell)
                     heapq.heappush(open_heap, CellHeapNode(fscore[neighbor], neighbor))
-                    # rp.publish_a_star_open_heap(open_heap, res, grid_pose)
+                    # rp.publish_a_star_open_heap(open_heap, res, grid_pose, ns=ns)
 
-    # rp.cleanup_a_star_open_heap()
-    rp.publish_a_star_close_set(close_set, res, grid_pose)
-    # rp.cleanup_a_star_close_set()
+    # rp.cleanup_a_star_open_heap(ns=ns)
+    rp.publish_a_star_close_set(close_set, res, grid_pose, ns=ns)
+    # rp.cleanup_a_star_close_set(ns=ns)
     return []
 
 
 def a_star_real_path(grid, start_pose, goal_pose, res, grid_pose,
-                     restrict_4_neighbors=False, authorize_goal_in_occupied_zone = False):
+                     restrict_4_neighbors=False, authorize_goal_in_occupied_zone = False, ns=''):
     start_cell = utils.real_to_grid(start_pose[0], start_pose[1], res, grid_pose)
+    # first_start_cell_considered = start_cell
     goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], res, grid_pose)
 
+    #
     if grid[start_cell[0]][start_cell[1]] != 0:
         straight_dist = res
         diag_dist = res * utils.SQRT_OF_2
@@ -147,29 +149,18 @@ def a_star_real_path(grid, start_pose, goal_pose, res, grid_pose,
             if grid[current[0]][current[1]] == 0:
                 start_cell = current
                 break
-
-            for next in utils.get_neighbors_no_coll(current, grid, width, height, utils.CHESSBOARD_NEIGHBORHOOD):
+            neighbors = utils.get_neighbors(current, width, height, utils.CHESSBOARD_NEIGHBORHOOD)
+            for next in neighbors:
                 extra_cost = straight_dist if current[0] == next[0] or current[1] == next[1] else diag_dist
                 new_cost = cost_so_far[current] + extra_cost
                 if next not in cost_so_far or new_cost < cost_so_far[next]:
                     cost_so_far[next] = new_cost
                     heapq.heappush(frontier, (new_cost, next))
 
-        to_evaluate = [start_cell]
-        evaluated = set()
-        while to_evaluate:
-            current = to_evaluate.pop()
-            if grid[current[0]][current[1]] == 0:
-                start_cell = current
-                break
-            evaluated.add(current)
-            to_evaluate += list(utils.get_neighbors(
-                current, grid.shape[0], grid.shape[1], utils.TAXI_NEIGHBORHOOD).difference(evaluated))
-
     # Execute A*
-    astar_path = astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors)
+    astar_path = astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors, ns=ns)
     # rp = RosPublisher()
-    # rp.publish_grid_path(astar_path, res, grid_pose)
+    # rp.publish_grid_path(astar_path, res, grid_pose, ns=ns)
 
     # Convert A* output to standard ROS path
     real_path = utils.grid_path_to_real_path(astar_path, start_pose, goal_pose, res, grid_pose)

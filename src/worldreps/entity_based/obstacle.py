@@ -31,19 +31,19 @@ class Obstacle(Entity):
             self._is_actions_valid = True
         return self.actions
 
-    def get_q_l(self, world):
+    def get_q_l(self, world, ns):
         if not self._is_q_l_valid:
-            self.q_l = self._compute_q_l(world)
+            self.q_l = self._compute_q_l(world, ns=ns)
             self._is_q_l_valid = True
         return self.q_l
 
-    def translate(self, xoff, yoff, res, other_entities=None):
-        Entity.translate(self, xoff, yoff, res, other_entities)
+    def translate(self, xoff, yoff, res=0.05, other_entities=None, ignore_collisions=False):
+        Entity.translate(self, xoff, yoff, res, other_entities, ignore_collisions)
         self._is_actions_valid = False
         return self
 
-    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5.):
-        Entity.rotate(self, angle, rot_center, other_entities, angular_res)
+    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5., ignore_collisions=False):
+        Entity.rotate(self, angle, rot_center, other_entities, angular_res, ignore_collisions)
         self._is_actions_valid = False
         return self
 
@@ -155,7 +155,7 @@ class Obstacle(Entity):
                 actions[tuple(-1.0 * unit_translation)] = manip_pose
         return actions
 
-    def _compute_q_l(self, world):
+    def _compute_q_l(self, world, ns):
         robot = world.entities[world.robot_uid]
         fov_min_r, fov_max_r, fov_angle = robot.s_fov_min_radius, robot.s_fov_max_radius, robot.s_fov_opening_angle
 
@@ -163,7 +163,7 @@ class Obstacle(Entity):
         max_inflated_polygon = self.polygon.buffer(fov_max_r)
 
         from src.display.ros_publisher import RosPublisher
-        RosPublisher().publish_min_max_inflated(min_inflated_polygon, max_inflated_polygon)
+        RosPublisher().publish_min_max_inflated(min_inflated_polygon, max_inflated_polygon, ns=ns)
 
         map_min_x, map_min_y = world.dd.grid_pose[0], world.dd.grid_pose[1]
 

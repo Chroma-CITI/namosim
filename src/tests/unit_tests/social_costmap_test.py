@@ -22,8 +22,8 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         occ_grid = BinaryOccupancyGrid(
             world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
             world.dd.inflation_radius, world.entities, entities_to_ignore=movable_entities_uids)
-        social_costmap = SocialTopologicalOccupationCostGrid.from_binary_occ_grid(occ_grid)
-        self._rp.publish_grid_map(social_costmap.get_grid(), world.dd.res)
+        social_costmap = SocialTopologicalOccupationCostGrid.from_binary_occ_grid(occ_grid, ns='simulation')
+        self._rp.publish_grid_map(social_costmap.get_grid(), world.dd.res, ns=robot.name)
 
     def test_two_rooms_corridor(self):
         world = World()

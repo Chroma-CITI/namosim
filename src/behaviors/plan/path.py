@@ -1,6 +1,6 @@
 import numpy as np
 from src.utils import utils
-from shapely.geometry import LineString, Point
+from shapely.geometry import LineString, Point, MultiPolygon
 from shapely import affinity
 from shapely.ops import cascaded_union
 
@@ -60,10 +60,13 @@ class Path:
                 return False
 
             # Then check for collisions
-            other_entities_polygons = [entity.polygon for entity_uid, entity in world.entities.items()
-                                       if entity_uid != robot_uid and entity_uid != self.obstacle_uid]
-            for polygon in other_entities_polygons:
-                if polygon.intersects(self.collision_geometry):
+            other_entities = {entity_uid: entity for entity_uid, entity in world.entities.items()
+                              if entity_uid != robot_uid and entity_uid != self.obstacle_uid}
+            for uid, entity in other_entities.items():
+                if any(entity.polygon.intersects(polygon) for polygon in self.collision_geometry):
+                    # from src.display.ros_publisher import RosPublisher
+                    # _rp = RosPublisher()
+                    # _rp.publish_debug_polygons(self.collision_geometry, ns=ns)
                     return False
 
             return True

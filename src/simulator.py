@@ -45,7 +45,9 @@ class Simulator:
         os.makedirs(self.abs_path_to_logs_dir)
 
         # Reinitialize rviz display
-        self.rp = RosPublisher()
+
+        agents_names = [a_to_b_config["agent_name"] for a_to_b_config in config["agents_behaviors"]]
+        self.rp = RosPublisher(top_level_namespaces=['simulation'] + agents_names)
         self.rp.cleanup_all()
 
         # Create world from world description yaml file
@@ -122,10 +124,11 @@ class Simulator:
         print("Run started")
         run_start_time = time.time()
 
-        # TODO Test this execution loop to see if it works with multiple (agent_uid, behavior) tuples at once
-        #  (Especially check if properly deterministic)
-
         active_agents = set(self.agent_uid_to_behavior.keys())
+
+        # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!a
+        agent_uid = self.agent_uid_to_behavior.keys()[0]
+        self.rp.publish_sim_world(self.ref_world, agent_uid)
 
         while active_agents:
             for agent_uid, behavior in self.agent_uid_to_behavior.items():
@@ -133,6 +136,9 @@ class Simulator:
                                       if self.agent_uid_to_action_results[agent_uid]
                                       else ActionSuccess)
                 behavior.sense(self.ref_world, last_action_result)
+
+                if agent_uid not in active_agents:
+                    continue
 
                 planning_start_time = time.time()
                 action = behavior.think()

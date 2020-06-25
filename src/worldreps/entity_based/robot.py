@@ -21,19 +21,20 @@ class Robot(Entity):
         self.push_only_list = push_only_list
         self.force_pushes_only = force_pushes_only
         self.movable_whitelist = movable_whitelist
+        self.type = 'robot'
 
         self.min_inflation_radius = self.compute_inflation_radius()
         self.dist_between_robot_front_and_center = self.compute_dist_between_robot_front_and_center()
 
-    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5.):
-        Entity.rotate(self, angle, rot_center, other_entities, angular_res)
+    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5., ignore_collisions=False):
+        Entity.rotate(self, angle, rot_center, other_entities, angular_res, ignore_collisions)
         for sensor in self.sensors:
             pass
             sensor.rotate(angle, rot_center=(self.pose[0], self.pose[1]))
         return self
 
-    def translate(self, xoff, yoff, res, other_entities=None):
-        Entity.translate(self, xoff, yoff, res, other_entities)
+    def translate(self, xoff, yoff, res=0.05, other_entities=None, ignore_collisions=False):
+        Entity.translate(self, xoff, yoff, res, other_entities, ignore_collisions)
         for sensor in self.sensors:
             sensor.translate(xoff, yoff)
         return self
