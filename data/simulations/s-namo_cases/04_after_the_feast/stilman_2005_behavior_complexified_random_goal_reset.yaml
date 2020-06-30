@@ -2,7 +2,7 @@
 
 # Files to load
 files:
-  world_file: "../../../worlds/s-namo_cases/03_crossing/03_crossing_omniscient.yaml"
+  world_file: "../../../worlds/s-namo_cases/04_after_the_feast/04_after_the_feast_omniscient_complexified.yaml"
 
 # Autonomous agents - Behaviors associations
 agents_behaviors:
@@ -30,18 +30,11 @@ agents_behaviors:
         check_new_local_opening_before_global: True # Generally faster if True
         deactivate_grids_logging: True # Generally faster if False
       randomization:
-        randomize_existing_navigation_goals: True
-        goal_multiplier: 10
-      navigation_goals:
-        -
-          name: "first_goal" #  Must correspond to one of the world goal zones's actual name
-        -
-          name: "second_goal"
-        -
-          name: "third_goal"
-        -
-          name: "fourth_goal"
+        generate_random_goals: True
+        nb_goals_to_generate: 5
+        randomization_type: "discrete" # Either "uniform" or "discrete"
 
 # General simulation parameters
 provide_walls: True
 display_sim_knowledge_only_once: False
+reset_after_first_goal: True

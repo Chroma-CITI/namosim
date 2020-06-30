@@ -66,6 +66,22 @@ class AfterTheFeastTest(unittest.TestCase):
         sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_snamo.yaml")
         sim.run()
 
+    def test_stilman_2005_behavior_complexified_random_goal_reset(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_reset.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_complexified_random_goal_no_reset(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_complexified_random_goal_reset_snamo(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_reset_snamo.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_complexified_random_goal_no_reset_snamo(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset_snamo.yaml")
+        sim.run()
+
 
 if __name__ == '__main__':
     unittest.main()

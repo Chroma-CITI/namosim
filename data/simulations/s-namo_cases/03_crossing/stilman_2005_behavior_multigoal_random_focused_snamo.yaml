@@ -30,7 +30,7 @@ agents_behaviors:
         check_new_local_opening_before_global: True # Generally faster if True
         deactivate_grids_logging: True # Generally faster if False
       randomization:
-        activated: True
+        randomize_existing_navigation_goals: True
         goal_multiplier: 10
       navigation_goals:
         -

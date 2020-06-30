@@ -4,7 +4,9 @@ import yaml
 import json
 import os
 import random
+import numpy as np
 from datetime import datetime
+from shapely import affinity
 
 from src.behaviors.navigation_only_behavior import NavigationOnlyBehavior
 from src.behaviors.wu_levihn_2014_behavior import WuLevihn2014Behavior
@@ -19,8 +21,9 @@ from src.display.ros_publisher import RosPublisher
 from src.worldreps.entity_based.world import World
 from src.worldreps.entity_based.robot import Robot
 from src.worldreps.entity_based.obstacle import Obstacle
+from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
 
-from src.utils import stats_utils
+from src.utils import stats_utils, utils
 
 
 class Simulator:
@@ -29,11 +32,12 @@ class Simulator:
         self.sim_start_timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
 
         behavior_yaml_abs_path = os.path.abspath(simulation_file_path)
-        config = yaml.load(open(behavior_yaml_abs_path))
+        self.config = yaml.load(open(behavior_yaml_abs_path))
 
         # Save general simulation parameters
-        self.provide_walls = config["provide_walls"]
-        self.display_sim_knowledge_only_once = config["display_sim_knowledge_only_once"]
+        self.provide_walls = self.config["provide_walls"]
+        self.display_sim_knowledge_only_once = self.config["display_sim_knowledge_only_once"]
+        self.reset_after_first_goal = self.config["reset_after_first_goal"]
         self.human_inflation_radius = 0.55/2.  # [m]
         simulation_file_parent_dirname = os.path.basename(
             os.path.normpath(os.path.abspath(os.path.join(behavior_yaml_abs_path, '..'))))
@@ -46,62 +50,28 @@ class Simulator:
 
         # Reinitialize rviz display
 
-        agents_names = [a_to_b_config["agent_name"] for a_to_b_config in config["agents_behaviors"]]
+        agents_names = [a_to_b_config["agent_name"] for a_to_b_config in self.config["agents_behaviors"]]
         self.rp = RosPublisher(top_level_namespaces=['simulation'] + agents_names)
         self.rp.cleanup_all()
 
         # Create world from world description yaml file
-        world_file_path = config["files"]["world_file"]
+        world_file_path = self.config["files"]["world_file"]
         world_yaml_abs_path = os.path.join(os.path.dirname(behavior_yaml_abs_path), world_file_path)
-        self.ref_world = World()
-        goals_geometries = self.ref_world.load_from_yaml(world_yaml_abs_path)
-        self.init_ref_world = copy.deepcopy(self.ref_world)
+        self.init_ref_world = World()
+        goals_geometries = self.init_ref_world.load_from_yaml(world_yaml_abs_path)
+        self.ref_world = copy.deepcopy(self.init_ref_world)
 
-        # Associate autonomous agents with behaviors
-        self.agent_uid_to_behavior = dict()
-        for agent_to_behavior_config in config["agents_behaviors"]:
-            agent_name = agent_to_behavior_config["agent_name"]
-            agent_uid = self.ref_world.get_entity_uid_from_name(agent_name)
-            if agent_name in self.agent_uid_to_behavior:
-                raise RuntimeError("You can only associate a single behavior with entity: {entity_name}.".format(
-                    entity_name=agent_name
-                ))
-            else:
-                behavior_config = agent_to_behavior_config["behavior"]
-                agent_behavior_name = behavior_config["name"]
+        # Associate autonomous agents with goals and behaviors
+        self.agent_uid_to_goals = self.initialize_agents_goals(goals_geometries)
+        if self.reset_after_first_goal:
+            # Only give first goal if reset after first goal
+            agent_uid_to_goals = {
+                agent_uid: [goals.pop(0)] for agent_uid, goals in self.agent_uid_to_goals.items() if goals
+            }
+        else:
+            agent_uid_to_goals = self.agent_uid_to_goals
+        self.agent_uid_to_behavior = self.initialize_agents_behaviors(agent_uid_to_goals)
 
-                agent_navigation_goals = []
-
-                for config_goal in behavior_config["navigation_goals"]:
-                    if config_goal["name"] in goals_geometries:
-                        agent_navigation_goals.append(goals_geometries[config_goal["name"]])
-
-                if "randomization" in behavior_config:
-                    if "activated" in behavior_config["randomization"]:
-                        if "goal_multiplier" in behavior_config["randomization"]:
-                            agent_navigation_goals *= behavior_config["randomization"]["goal_multiplier"]
-                        random.shuffle(agent_navigation_goals)
-
-                if agent_behavior_name == "navigation_only_behavior":
-                    agent_world = self._create_robot_world_from_sim_world()
-                    self.rp.cleanup_robot_world()
-                    self.agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
-                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
-                elif agent_behavior_name == "wu_levihn_2014_behavior":
-                    agent_world = self._create_robot_world_from_sim_world()
-                    self.rp.cleanup_robot_world()
-                    self.agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
-                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
-                elif agent_behavior_name == "stilman_2005_behavior":
-                    agent_world = copy.deepcopy(self.ref_world)
-                    self.rp.cleanup_robot_world()
-                    self.agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
-                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
-                else:
-                    raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
-                                              "'{b_name}' that is not implemented yet."
-                                              "Maybe you mispelled something ?".format(agent_name=agent_name,
-                                                                                       b_name=agent_behavior_name))
         self.rp.cleanup_sim_world()
 
         if self.display_sim_knowledge_only_once:
@@ -115,57 +85,68 @@ class Simulator:
         self.run_duration = 0.
         self.agent_uid_and_goal_to_world_snapshot = {agent_uid: [] for agent_uid in self.agent_uid_to_behavior.keys()}
 
-
-        self.init_nb_cc, self.init_biggest_cc_size, self.init_all_cc_sum_size, self.init_frag_percentage = stats_utils.get_connectivity_stats(
-            self.init_ref_world, self.human_inflation_radius, tuple()
-        )
+        self.init_nb_cc, self.init_biggest_cc_size, self.init_all_cc_sum_size, self.init_frag_percentage = \
+            stats_utils.get_connectivity_stats(self.init_ref_world, self.human_inflation_radius, tuple())
 
     def run(self):
         print("Run started")
         run_start_time = time.time()
 
-        active_agents = set(self.agent_uid_to_behavior.keys())
+        run_active = True
+        while run_active:
 
-        # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!a
-        agent_uid = self.agent_uid_to_behavior.keys()[0]
-        self.rp.publish_sim_world(self.ref_world, agent_uid)
+            active_agents = set(self.agent_uid_to_behavior.keys())
 
-        while active_agents:
-            for agent_uid, behavior in self.agent_uid_to_behavior.items():
-                last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
-                                      if self.agent_uid_to_action_results[agent_uid]
-                                      else ActionSuccess)
-                behavior.sense(self.ref_world, last_action_result)
+            # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!a
+            agent_uid = self.agent_uid_to_behavior.keys()[0]
+            self.rp.publish_sim_world(self.ref_world, agent_uid)
 
-                if agent_uid not in active_agents:
-                    continue
+            while active_agents:
+                for agent_uid, behavior in self.agent_uid_to_behavior.items():
+                    last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
+                                          if self.agent_uid_to_action_results[agent_uid]
+                                          else ActionSuccess)
+                    behavior.sense(self.ref_world, last_action_result)
 
-                planning_start_time = time.time()
-                action = behavior.think()
-                self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
+                    if agent_uid not in active_agents:
+                        continue
 
-                # If there are no more goals to execute for the agent behavior, then remove it
-                if isinstance(action, ActionGoalsFinished):
-                    active_agents.remove(agent_uid)
-                elif not isinstance(action, ActionGoalResult):
-                    action_result = self.act(agent_uid, action)
-                    self.agent_uid_to_action_results[agent_uid].append(action_result)
-                    if action.goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                        self.agent_uid_and_goal_to_action_results[agent_uid][action.goal].append(action_result)
-                    else:
-                        self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = [action_result]
+                    planning_start_time = time.time()
+                    action = behavior.think()
+                    self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
 
-                elif isinstance(action, ActionGoalResult):
-                    self.agent_uid_and_goal_to_world_snapshot[agent_uid].append({
-                        "goal": action.goal,
-                        "goal_status": str(action),
-                        "world_snapshot": copy.deepcopy(self.ref_world)
-                    })
-                    if action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                        self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = []
+                    # If there are no more goals to execute for the agent behavior, then remove it
+                    if isinstance(action, ActionGoalsFinished):
+                        active_agents.remove(agent_uid)
+                    elif not isinstance(action, ActionGoalResult):
+                        action_result = self.act(agent_uid, action)
+                        self.agent_uid_to_action_results[agent_uid].append(action_result)
+                        if action.goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal].append(action_result)
+                        else:
+                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = [action_result]
 
-                if not self.display_sim_knowledge_only_once:
-                    self.rp.publish_sim_world(self.ref_world, agent_uid)
+                    elif isinstance(action, ActionGoalResult):
+                        self.agent_uid_and_goal_to_world_snapshot[agent_uid].append({
+                            "goal": action.goal,
+                            "goal_status": str(action),
+                            "world_snapshot": copy.deepcopy(self.ref_world)
+                        })
+                        if action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = []
+
+                    if not self.display_sim_knowledge_only_once:
+                        self.rp.publish_sim_world(self.ref_world, agent_uid)
+            goals_left = any([bool(goals) for goals in self.agent_uid_to_goals.values()])
+            if self.reset_after_first_goal and goals_left:
+                self.ref_world = copy.deepcopy(self.init_ref_world)
+                agent_uid_to_goals = {
+                    agent_uid: [goals.pop(0)] for agent_uid, goals in self.agent_uid_to_goals.items() if goals
+                }
+                self.agent_uid_to_behavior = self.initialize_agents_behaviors(agent_uid_to_goals)
+                self.rp.cleanup_sim_world()
+            else:
+                run_active = False
 
         # Print simulation results
         self.run_duration = time.time() - run_start_time
@@ -326,3 +307,132 @@ class Simulator:
             report["agents"].append(agent_report)
 
         return report
+
+    @staticmethod
+    def sample_poses_uniform(world, agent_uid, nb_poses=1):
+        map_min_x, map_min_y, map_max_x, map_max_y = world.get_map_bounds()
+        agent = world.entities[agent_uid]
+        other_entities = [entity for entity in world.entities if entity.uid != agent_uid]
+
+        generated_poses = []
+
+        while len(generated_poses) < nb_poses:
+            pose_collides = True
+            while pose_collides:
+                rand_pose = (
+                    random.uniform(map_min_x, map_max_x),
+                    random.uniform(map_min_y, map_max_y),
+                    random.uniform(0., 360.)
+                )
+                translation, rotation = utils.get_translation_and_rotation(agent.pose, rand_pose)
+                expected_polygon = affinity.rotate(
+                        affinity.translate(agent.polygon, translation[0], translation[1]), rotation
+                )
+                pose_collides = utils.polygon_collides_with_entities(expected_polygon, other_entities)
+                if not pose_collides:
+                    generated_poses.append(rand_pose)
+        return generated_poses
+
+    @staticmethod
+    def sample_poses_on_grid(world, agent_uid, nb_poses):
+        agent = world.entities[agent_uid]
+        bin_inf_occ_grid = BinaryInflatedOccupancyGrid(
+            world.dd.d_width, world.dd.d_height, world.dd.res,
+            world.dd.grid_pose, agent.min_inflation_radius, world.entities, entities_to_ignore=(agent_uid,))
+        grid = bin_inf_occ_grid.get_grid()
+        free_cells = zip(*np.where(grid == 0))
+
+        generated_poses = []
+
+        while free_cells and len(generated_poses) < nb_poses:
+            random_free_cell = random.choice(free_cells)
+            free_cells.remove(random_free_cell)
+            random_theta = random.uniform(0., 360.)
+            rand_pose = utils.grid_pose_to_real_pose(
+                (random_free_cell[0], random_free_cell[1], random_theta), world.dd.res, world.dd.grid_pose
+            )
+            generated_poses.append(rand_pose)
+        return generated_poses
+
+    def initialize_agents_goals(self, goals_geometries):
+        agent_uid_to_goals = {}
+        for agent_to_behavior_config in self.config["agents_behaviors"]:
+            agent_name = agent_to_behavior_config["agent_name"]
+            agent_uid = self.ref_world.get_entity_uid_from_name(agent_name)
+            if agent_name in agent_uid_to_goals:
+                raise RuntimeError("You can only associate a single behavior with entity: {entity_name}.".format(
+                    entity_name=agent_name
+                ))
+            else:
+                behavior_config = agent_to_behavior_config["behavior"]
+                agent_navigation_goals = []
+
+                if "navigation_goals" in behavior_config:
+                    for config_goal in behavior_config["navigation_goals"]:
+                        if config_goal["name"] in goals_geometries:
+                            agent_navigation_goals.append(goals_geometries[config_goal["name"]])
+
+                if "randomization" in behavior_config:
+                    randomization_config = behavior_config["randomization"]
+                    if "randomize_existing_navigation_goals" in randomization_config:
+                        if "goal_multiplier" in randomization_config:
+                            agent_navigation_goals *= randomization_config["goal_multiplier"]
+                        random.shuffle(agent_navigation_goals)
+                    elif "generate_random_goals" in randomization_config:
+                        nb_goals_to_generate = 1
+                        if "nb_goals_to_generate" in randomization_config:
+                            nb_goals_to_generate = randomization_config["nb_goals_to_generate"]
+
+                        randomization_types = ["discrete", "uniform"]
+                        sampling_function = self.sample_poses_on_grid
+                        if "randomization_type" in randomization_config:
+                            randomization_type = randomization_config["randomization_type"]
+                            if randomization_type not in randomization_types:
+                                raise ValueError("Randomization can only be one of : {}".format(randomization_types))
+                            if randomization_type == "discrete":
+                                sampling_function = self.sample_poses_on_grid
+                            elif randomization_type == "uniform":
+                                sampling_function = self.sample_poses_uniform
+
+                        agent_navigation_goals = sampling_function(self.ref_world, agent_uid, nb_goals_to_generate)
+
+                agent_uid_to_goals[agent_uid] = agent_navigation_goals
+
+        return agent_uid_to_goals
+
+    def initialize_agents_behaviors(self, agents_navigation_goals):
+        agent_uid_to_behavior = dict()
+
+        for agent_to_behavior_config in self.config["agents_behaviors"]:
+            agent_name = agent_to_behavior_config["agent_name"]
+            agent_uid = self.ref_world.get_entity_uid_from_name(agent_name)
+            agent_navigation_goals = agents_navigation_goals[agent_uid]
+            if agent_name in agent_uid_to_behavior:
+                raise RuntimeError("You can only associate a single behavior with entity: {entity_name}.".format(
+                    entity_name=agent_name
+                ))
+            else:
+                behavior_config = agent_to_behavior_config["behavior"]
+                agent_behavior_name = behavior_config["name"]
+
+                if agent_behavior_name == "navigation_only_behavior":
+                    agent_world = self._create_robot_world_from_sim_world()
+                    self.rp.cleanup_robot_world()
+                    agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
+                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
+                elif agent_behavior_name == "wu_levihn_2014_behavior":
+                    agent_world = self._create_robot_world_from_sim_world()
+                    self.rp.cleanup_robot_world()
+                    agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
+                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
+                elif agent_behavior_name == "stilman_2005_behavior":
+                    agent_world = copy.deepcopy(self.ref_world)
+                    self.rp.cleanup_robot_world()
+                    agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
+                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
+                else:
+                    raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
+                                              "'{b_name}' that is not implemented yet."
+                                              "Maybe you mispelled something ?".format(
+                        agent_name=agent_name, b_name=agent_behavior_name))
+        return agent_uid_to_behavior

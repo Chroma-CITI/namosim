@@ -232,7 +232,6 @@ def polygon_to_discrete_cells_set(polygon, res, grid_pose, grid_d_width, grid_d_
     return cells_set
 
 
-
 def get_circumscribed_radius(polygon):
     center = list(polygon.centroid.coords)[0]
     points = list(polygon.exterior.coords)
@@ -255,3 +254,24 @@ def get_inscribed_radius(polygon):
 
 def get_inscribed_square_sidelength(radius):
     return math.sqrt(radius ** 2 * 2)
+
+
+def get_translation(start_pose, end_pose):
+    return end_pose[0] - start_pose[0], end_pose[1] - start_pose[1]
+
+
+def get_rotation(start_pose, end_pose):
+    return end_pose[2] - start_pose[2]
+
+
+def get_translation_and_rotation(start_pose, end_pose):
+    translation = get_translation(start_pose, end_pose)
+    rotation = get_rotation(start_pose, end_pose)
+    return translation, rotation
+
+
+def polygon_collides_with_entities(polygon, entities):
+    for entity in entities:
+        if entity.polygon.intersects(polygon):
+            return True
+    return False
