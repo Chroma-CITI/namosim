@@ -19,7 +19,7 @@ agents_behaviors:
         manip_weight: 2.0
       navigation_goals:
         -
-          name: "first_goal" #  Must correspond to one of the world goal zones's actual name
+          name: "goal_01" #  Must correspond to one of the world goal zones's actual name
 
 # General simulation parameters
 provide_walls: True

@@ -110,13 +110,13 @@ things:
   zones:
     goals:
     -
-        name: "first_goal"
+        name: "goal_01"
         geometry:
           from: "file"
           id: "goal_01"
           orientation_id: "goal_01_dir"
     -
-        name: "second_goal"
+        name: "goal_02"
         geometry:
           from: "file"
           id: "goal_02"

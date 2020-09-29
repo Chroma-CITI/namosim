@@ -37,4 +37,4 @@ agents_behaviors:
 # General simulation parameters
 provide_walls: True
 display_sim_knowledge_only_once: False
-reset_after_first_goal: True
+reset_after_goal_01: True

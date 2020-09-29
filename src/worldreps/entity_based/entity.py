@@ -279,3 +279,13 @@ class Entity:
     def light_copy(self):
         return Entity(name=self.name, polygon=copy.deepcopy(self.polygon), pose=self.pose,
                       full_geometry_acquired=self.full_geometry_acquired, uid=self.uid)
+
+    def to_json(self):
+        return {
+            "name": self.name,
+            "type": self.get_type(),
+            "geometry": {
+                "from": "file",
+                "id": self.name
+            }
+        }

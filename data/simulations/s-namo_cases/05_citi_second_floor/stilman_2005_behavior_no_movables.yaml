@@ -31,9 +31,9 @@ agents_behaviors:
         deactivate_grids_logging: True # Generally faster if False
       navigation_goals:
         -
-          name: "first_goal" #  Must correspond to one of the world goal zones's actual name
+          name: "goal_01" #  Must correspond to one of the world goal zones's actual name
         -
-          name: "second_goal"
+          name: "goal_02"
 
 # General simulation parameters
 provide_walls: True

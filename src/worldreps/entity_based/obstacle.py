@@ -263,3 +263,6 @@ class Obstacle(Entity):
         return Obstacle(self.name, None if not copy_polygon else copy.deepcopy(self.polygon),
                         self.pose, self.full_geometry_acquired,
                         type_in=self.type, uid=self.uid)
+
+    def get_type(self):
+        return self.type

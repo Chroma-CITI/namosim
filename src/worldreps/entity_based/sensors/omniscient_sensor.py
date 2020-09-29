@@ -32,3 +32,6 @@ class OmniscientSensor:
 
     def rotate(self,angle, rot_center='centroid'):
         pass
+
+    def to_json(self):
+        return {"type": "omniscient"}

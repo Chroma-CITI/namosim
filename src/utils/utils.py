@@ -2,9 +2,15 @@ import math
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
 import numpy as np
+import os
+import shapely.affinity as affinity
+import mapbox_earcut as earcut
+from shapely.geometry import Polygon
 
 # Constants
 SQRT_OF_2 = math.sqrt(2)
+TWO_PI = 2 * math.pi
+
 
 TAXI_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0))
 CHESSBOARD_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1))
@@ -141,6 +147,14 @@ def grid_pose_to_real_pose(grid_pose, res, parent_grid_pose):
     return res * float(grid_pose[0]) + parent_grid_pose[0] + res * 0.5, res * float(grid_pose[1]) + parent_grid_pose[1] + res * 0.5, float(grid_pose[2])
 
 
+def real_pose_to_fixed_precision_pose(real_pose, trans_mult, rot_mult):
+    return (
+        round(real_pose[0] * trans_mult),
+        round(real_pose[1] * trans_mult),
+        round(real_pose[2] * rot_mult)
+    )
+
+
 def yaw_from_direction(direction_vector):
     if direction_vector[1] < 0:
         yaw = 2 * math.pi - math.acos(
@@ -270,8 +284,190 @@ def get_translation_and_rotation(start_pose, end_pose):
     return translation, rotation
 
 
+def set_polygon_pose(polygon, init_polygon_pose, end_polygon_pose, rotation_center='center'):
+    translation, rotation = get_translation_and_rotation(init_polygon_pose, end_polygon_pose)
+    return affinity.rotate(affinity.translate(polygon,*translation), rotation, origin=rotation_center)
+
+
 def polygon_collides_with_entities(polygon, entities):
     for entity in entities:
         if entity.polygon.intersects(polygon):
             return True
     return False
+
+
+def append_suffix(filename, suffix):
+  return "{0}_{2}{1}".format(*os.path.splitext(filename) + (suffix,))
+
+
+def shapely_polygon_to_triangles_coords(polygon):
+    return polygon_coords_to_triangles_coords(list(polygon.exterior.coords))
+
+
+def polygon_coords_to_triangles_coords(polygon):
+    verts = np.array(polygon).reshape(-1, 2)
+    rings = np.array([verts.shape[0]])
+    triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
+    triangles = [triangles_vertices[n:n + 3] for n in range(0, len(triangles_vertices), 3)]
+    return triangles
+
+
+def is_shapely_polygon_convex(polygon):
+    if not isinstance(polygon, Polygon):
+        raise TypeError(
+            "is_shapely_polygon_convex method expects a shapely.geometry.Polygon object, received: {}".format(
+                str(type(polygon))
+            ))
+    return is_convex_polygon(list(polygon.exterior.coords)[:-1])
+
+
+def is_convex_polygon(polygon):
+    """Return True if the polynomial defined by the sequence of 2D
+    points is 'strictly convex': points are valid, side lengths non-
+    zero, interior angles are strictly between zero and a straight
+    angle, and the polygon does not intersect itself.
+
+    WARNING : The first point must not be repeated at the end of the
+        sequence, i.e. the triangle defined by the sequence
+        [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (0.0, 0.0)]
+        should be [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)].
+
+    NOTES:  1.  Algorithm: the signed changes of the direction angles
+                from one side to the next side must be all positive or
+                all negative, and their sum must equal plus-or-minus
+                one full turn (2 pi radians). Also check for too few,
+                invalid, or repeated points.
+            2.  No check is explicitly done for zero internal angles
+                (180 degree direction-change angle) as this is covered
+                in other ways, including the `n < 3` check.
+
+    Code by StackOverflow user Rory Daulton, available here:
+    https://stackoverflow.com/questions/471962/how-do-i-efficiently-determine-if-a-polygon-is-convex-non-convex-or-complex/472001#472001
+    """
+    try:  # needed for any bad points or direction changes
+        # Check for too few points
+        if len(polygon) < 3:
+            return False
+        # Get starting information
+        old_x, old_y = polygon[-2]
+        new_x, new_y = polygon[-1]
+        new_direction = math.atan2(new_y - old_y, new_x - old_x)
+        angle_sum = 0.0
+        # Check each point (the side ending there, its angle) and accum. angles
+        for ndx, newpoint in enumerate(polygon):
+            # Update point coordinates and side directions, check side length
+            old_x, old_y, old_direction = new_x, new_y, new_direction
+            new_x, new_y = newpoint
+            new_direction = math.atan2(new_y - old_y, new_x - old_x)
+            if old_x == new_x and old_y == new_y:
+                return False  # repeated consecutive points
+            # Calculate & check the normalized direction-change angle
+            angle = new_direction - old_direction
+            if angle <= -math.pi:
+                angle += TWO_PI  # make it in half-open interval (-Pi, Pi]
+            elif angle > math.pi:
+                angle -= TWO_PI
+            if ndx == 0:  # if first time through loop, initialize orientation
+                if angle == 0.0:
+                    return False
+                orientation = 1.0 if angle > 0.0 else -1.0
+            else:  # if other time through loop, check orientation is stable
+                if orientation * angle <= 0.0:  # not both pos. or both neg.
+                    return False
+            # Accumulate the direction-change angle
+            angle_sum += angle
+        # Check that the total number of full turns is plus-or-minus 1
+        return abs(round(angle_sum / TWO_PI)) == 1
+    except (ArithmeticError, TypeError, ValueError):
+        return False  # any exception means not a proper convex polygon
+
+
+def find_circle_terms(x1, y1, x2, y2, x3, y3):
+    """
+    Computes the circle's center coordinates and radius from three points on the circle.
+    Code by Geeksforgeeks user Gyanendra Singh Panwar (gyanendra371), available here:
+    https://www.geeksforgeeks.org/equation-of-circle-when-three-points-on-the-circle-are-given/.
+    Fixed the mistaken "//" operators into plain "/" ones (otherwise the float get cast to int, inducing errors)
+    :param x1: x coordinate of first point
+    :type x1: float
+    :param y1: y coordinate of first point
+    :type y1: float
+    :param x2: x coordinate of second point
+    :type x2: float
+    :param y2: y coordinate of second point
+    :type y2: float
+    :param x3: x coordinate of third point
+    :type x3: float
+    :param y3: y coordinate of third point
+    :type y3: float
+    :return: circle's center coordinates (x-axis, then y-axis) and radius
+    :rtype: float, float, float
+    """
+    x12 = x1 - x2
+    x13 = x1 - x3
+
+    y12 = y1 - y2
+    y13 = y1 - y3
+
+    y31 = y3 - y1
+    y21 = y2 - y1
+
+    x31 = x3 - x1
+    x21 = x2 - x1
+
+    # x1^2 - x3^2
+    sx13 = pow(x1, 2) - pow(x3, 2)
+
+    # y1^2 - y3^2
+    sy13 = pow(y1, 2) - pow(y3, 2)
+
+    sx21 = pow(x2, 2) - pow(x1, 2)
+    sy21 = pow(y2, 2) - pow(y1, 2)
+
+    f = (((sx13) * (x12) + (sy13) *
+          (x12) + (sx21) * (x13) +
+          (sy21) * (x13)) / (2 *
+                              ((y31) * (x12) - (y21) * (x13))))
+
+    g = (((sx13) * (y12) + (sy13) * (y12) +
+          (sx21) * (y13) + (sy21) * (y13)) /
+         (2 * ((x31) * (y12) - (x21) * (y13))))
+
+    c = (-pow(x1, 2) - pow(y1, 2) -
+         2 * g * x1 - 2 * f * y1)
+
+    # eqn of circle be x^2 + y^2 + 2*g*x + 2*f*y + c = 0
+    # where centre is (h = -g, k = -f) and
+    # radius r as r^2 = h^2 + k^2 - c
+    h = -g
+    k = -f
+    sqr_of_r = h * h + k * k - c
+
+    # r is the radius
+    r = math.sqrt(sqr_of_r)
+
+    return h, k, r
+
+
+def points_to_angle(x1, y1, x2, y2, x3, y3):
+    """
+    Compute angle in radians (< pi !) between three points A(x1, y1), B(x2, y2), C(x3, y3), in this order
+    :param x1: x coordinate of first point
+    :type x1: float
+    :param y1: y coordinate of first point
+    :type y1: float
+    :param x2: x coordinate of second point
+    :type x2: float
+    :param y2: y coordinate of second point
+    :type y2: float
+    :param x3: x coordinate of third point
+    :type x3: float
+    :param y3: y coordinate of third point
+    :type y3: float
+    :return: angle between points in radians, is always < pi !
+    :rtype: float
+    """
+    scalar_product = (x1 - x2) * (x3 - x2) + (y1 - y2) * (y3 - y2)
+    norm = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) * math.sqrt((x3 - x2) ** 2 + (y3 - y2) ** 2)
+    return math.acos(scalar_product / norm)
+

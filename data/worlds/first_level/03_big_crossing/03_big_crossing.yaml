@@ -104,7 +104,7 @@ things:
   zones:
     goals:
     -
-        name: "first_goal"
+        name: "goal_01"
         geometry:
           from: "file"
           id: "goal_01"

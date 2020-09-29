@@ -37,16 +37,17 @@ class Simulator:
         # Save general simulation parameters
         self.provide_walls = self.config["provide_walls"]
         self.display_sim_knowledge_only_once = self.config["display_sim_knowledge_only_once"]
-        self.reset_after_first_goal = self.config["reset_after_first_goal"]
+        self.reset_after_first_goal = False if not "reset_after_first_goal" in self.config else self.config["reset_after_first_goal"]
         self.human_inflation_radius = 0.55/2.  # [m]
         simulation_file_parent_dirname = os.path.basename(
             os.path.normpath(os.path.abspath(os.path.join(behavior_yaml_abs_path, '..'))))
-        simulation_filename = os.path.splitext(os.path.basename(behavior_yaml_abs_path))[0]
+        self.simulation_filename = os.path.splitext(os.path.basename(behavior_yaml_abs_path))[0]
 
-        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', simulation_file_parent_dirname, simulation_filename)
+        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', simulation_file_parent_dirname, self.simulation_filename)
         abs_path_to_main_sim_logs_dir = os.path.join(os.path.dirname(__file__), rel_path_to_main_sim_logs_dir)
         self.abs_path_to_logs_dir = os.path.join(abs_path_to_main_sim_logs_dir, self.sim_start_timestring + "/")
         os.makedirs(self.abs_path_to_logs_dir)
+        os.makedirs(self.abs_path_to_logs_dir + "simulation/")
 
         # Reinitialize rviz display
 
@@ -57,11 +58,15 @@ class Simulator:
         # Create world from world description yaml file
         world_file_path = self.config["files"]["world_file"]
         world_yaml_abs_path = os.path.join(os.path.dirname(behavior_yaml_abs_path), world_file_path)
-        self.init_ref_world = World()
-        goals_geometries = self.init_ref_world.load_from_yaml(world_yaml_abs_path)
+        self.init_ref_world = World.load_from_yaml(world_yaml_abs_path)
+        self.init_ref_world.save_to_files(
+            json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + ".json",
+            svg_filepath=self.init_ref_world.init_geometry_filename
+        )
         self.ref_world = copy.deepcopy(self.init_ref_world)
 
         # Associate autonomous agents with goals and behaviors
+        goals_geometries = {goal.name: goal.pose for goal in self.init_ref_world.goals.values()}
         self.agent_uid_to_goals = self.initialize_agents_goals(goals_geometries)
         if self.reset_after_first_goal:
             # Only give first goal if reset after first goal
@@ -95,58 +100,68 @@ class Simulator:
         run_active = True
         while run_active:
 
-            active_agents = set(self.agent_uid_to_behavior.keys())
+            try:
+                active_agents = set(self.agent_uid_to_behavior.keys())
 
-            # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!a
-            agent_uid = self.agent_uid_to_behavior.keys()[0]
-            self.rp.publish_sim_world(self.ref_world, agent_uid)
+                # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!
+                agent_uid = self.agent_uid_to_behavior.keys()[0]
+                self.rp.publish_sim_world(self.ref_world, agent_uid)
 
-            while active_agents:
-                for agent_uid, behavior in self.agent_uid_to_behavior.items():
-                    last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
-                                          if self.agent_uid_to_action_results[agent_uid]
-                                          else ActionSuccess)
-                    behavior.sense(self.ref_world, last_action_result)
+                while active_agents:
+                    for agent_uid, behavior in self.agent_uid_to_behavior.items():
+                        last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
+                                              if self.agent_uid_to_action_results[agent_uid]
+                                              else ActionSuccess)
+                        behavior.sense(self.ref_world, last_action_result)
 
-                    if agent_uid not in active_agents:
-                        continue
+                        if agent_uid not in active_agents:
+                            continue
 
-                    planning_start_time = time.time()
-                    action = behavior.think()
-                    self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
+                        planning_start_time = time.time()
+                        action = behavior.think()
+                        self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
 
-                    # If there are no more goals to execute for the agent behavior, then remove it
-                    if isinstance(action, ActionGoalsFinished):
-                        active_agents.remove(agent_uid)
-                    elif not isinstance(action, ActionGoalResult):
-                        action_result = self.act(agent_uid, action)
-                        self.agent_uid_to_action_results[agent_uid].append(action_result)
-                        if action.goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal].append(action_result)
-                        else:
-                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = [action_result]
+                        # If there are no more goals to execute for the agent behavior, then remove it
+                        if isinstance(action, ActionGoalsFinished):
+                            active_agents.remove(agent_uid)
+                        elif not isinstance(action, ActionGoalResult):
+                            action_result = self.act(agent_uid, action)
+                            self.agent_uid_to_action_results[agent_uid].append(action_result)
+                            if action.goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                                self.agent_uid_and_goal_to_action_results[agent_uid][action.goal].append(action_result)
+                            else:
+                                self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = [action_result]
 
-                    elif isinstance(action, ActionGoalResult):
-                        self.agent_uid_and_goal_to_world_snapshot[agent_uid].append({
-                            "goal": action.goal,
-                            "goal_status": str(action),
-                            "world_snapshot": copy.deepcopy(self.ref_world)
-                        })
-                        if action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = []
+                        elif isinstance(action, ActionGoalResult):
+                            self.agent_uid_and_goal_to_world_snapshot[agent_uid].append({
+                                "goal": action.goal,
+                                "goal_status": str(action),
+                                "world_snapshot": copy.deepcopy(self.ref_world)
+                            })
+                            if action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                                self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = []
 
-                    if not self.display_sim_knowledge_only_once:
-                        self.rp.publish_sim_world(self.ref_world, agent_uid)
-            goals_left = any([bool(goals) for goals in self.agent_uid_to_goals.values()])
-            if self.reset_after_first_goal and goals_left:
-                self.ref_world = copy.deepcopy(self.init_ref_world)
-                agent_uid_to_goals = {
-                    agent_uid: [goals.pop(0)] for agent_uid, goals in self.agent_uid_to_goals.items() if goals
-                }
-                self.agent_uid_to_behavior = self.initialize_agents_behaviors(agent_uid_to_goals)
-                self.rp.cleanup_sim_world()
-            else:
+                        if not self.display_sim_knowledge_only_once:
+                            self.rp.publish_sim_world(self.ref_world, agent_uid)
+                goals_left = any([bool(goals) for goals in self.agent_uid_to_goals.values()])
+                if self.reset_after_first_goal and goals_left:
+                    self.ref_world = copy.deepcopy(self.init_ref_world)
+                    agent_uid_to_goals = {
+                        agent_uid: [goals.pop(0)] for agent_uid, goals in self.agent_uid_to_goals.items() if goals
+                    }
+                    self.agent_uid_to_behavior = self.initialize_agents_behaviors(agent_uid_to_goals)
+                    self.rp.cleanup_sim_world()
+                else:
+                    run_active = False
+            except Exception as e:
                 run_active = False
+                print(e)
+
+
+        self.ref_world.save_to_files(
+            json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_end" + ".json",
+            svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename, "_end")
+        )
 
         # Print simulation results
         self.run_duration = time.time() - run_start_time
@@ -158,7 +173,7 @@ class Simulator:
 
         log_filepath = os.path.join(
                 os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
-        with open(log_filepath, 'w') as f:
+        with open(log_filepath, 'w+') as f:
             f.write(simulation_report_json)
 
         return simulation_report
@@ -227,17 +242,26 @@ class Simulator:
             "agents": []
         }
 
+        goal_counter = 1
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             goals_reports = []
 
             goal_world_snapshots = self.agent_uid_and_goal_to_world_snapshot[agent_uid]
 
-            for goal_world_snapshot in goal_world_snapshots:
+            for counter, goal_world_snapshot in enumerate(goal_world_snapshots):
                 goal = goal_world_snapshot["goal"]
                 goal_status = goal_world_snapshot["goal_status"]
                 world_snapshot = goal_world_snapshot["world_snapshot"]
                 actions_results_to_goal = self.agent_uid_and_goal_to_action_results[agent_uid][goal]
                 transit_path_length, transfer_path_length = stats_utils.get_total_path_lengths(actions_results_to_goal)
+
+                world_snapshot.save_to_files(
+                    json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_after_goal_" + str(
+                        goal_counter) + ".json",
+                    svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename,
+                                                     "_after_goal_" + str(goal_counter))
+                )
+                goal_counter += 1
 
                 end_nb_cc, end_biggest_cc_size, end_all_cc_sum_size, end_frag_percentage = stats_utils.get_connectivity_stats(
                     world_snapshot, self.human_inflation_radius, tuple()
@@ -395,6 +419,7 @@ class Simulator:
                                 sampling_function = self.sample_poses_uniform
 
                         agent_navigation_goals = sampling_function(self.ref_world, agent_uid, nb_goals_to_generate)
+                        # TODO: Add the generated goals to world !
 
                 agent_uid_to_goals[agent_uid] = agent_navigation_goals
 

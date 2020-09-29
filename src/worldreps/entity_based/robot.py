@@ -100,3 +100,17 @@ class Robot(Entity):
                      force_pushes_only=self.force_pushes_only,
                      movable_whitelist=copy.copy(self.movable_whitelist),
                      uid=self.uid)
+
+    def get_type(self):
+        return "robot"
+
+    def to_json(self):
+        json_data = Entity.to_json(self)
+        json_data["geometry"]["orientation_id"] = self.name + "_dir"
+        json_data["movable_whitelist"] = self.movable_whitelist
+        json_data["push_only_list"] = self.push_only_list
+        json_data["force_pushes_only"] = self.force_pushes_only
+        json_data["sensors"] = []
+        for sensor in self.sensors:
+            json_data["sensors"].append(sensor.to_json())
+        return json_data

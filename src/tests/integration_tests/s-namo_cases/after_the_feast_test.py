@@ -9,8 +9,7 @@ class AfterTheFeastTest(unittest.TestCase):
 
     def test_navigation_only_behavior(self):
         sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior.yaml")
-        sim.run()
-        # Test should end up with a failure
+        report = sim.run()
 
     def test_navigation_only_behavior_no_movables(self):
         sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior_no_movables.yaml")
@@ -80,6 +79,22 @@ class AfterTheFeastTest(unittest.TestCase):
 
     def test_stilman_2005_behavior_complexified_random_goal_no_reset_snamo(self):
         sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset_snamo.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_multi_robots_complexified_random_goal_reset(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_reset.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_multi_robots_complexified_random_goal_reset_snamo(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_reset_snamo.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset_snamo(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset_snamo.yaml")
         sim.run()
 
 

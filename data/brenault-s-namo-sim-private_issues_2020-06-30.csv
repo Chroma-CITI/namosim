@@ -1,0 +1,31 @@
+Issue ID,URL,Title,State,Description,Author,Author Username,Assignee,Assignee Username,Confidential,Locked,Due Date,Created At (UTC),Updated At (UTC),Closed At (UTC),Milestone,Weight,Labels,Time Estimate,Time Spent
+1,https://gitlab.inria.fr/brenault/s-namo-sim-private/-/issues/1,"Create ""after the feast"" scenarios with random goal",Open,"'Create ""after the feast"" scenarios with random goal:
+- [x] Single robot, NAMO, no reset
+- [x] Single robot, NAMO, with reset
+- [ ] Single robot, SNAMO, no reset
+- [ ] Single robot, SNAMO, with reset
+- [ ] Multi robot, NAMO, no reset
+- [ ] Multi robot, NAMO, with reset
+- [ ] Multi robot, SNAMO, no reset
+- [ ] Multi robot, SNAMO, with reset",RENAULT Benoit,brenault,RENAULT Benoit,brenault,No,No,,2020-06-30 11:44:06,2020-06-30 12:14:43,,Improve simulations robustness with random goals and start poses,,"Feature,Priority::Medium",0,0
+2,https://gitlab.inria.fr/brenault/s-namo-sim-private/-/issues/2,Improve Logging,Open,"'Save in experiment log folder:
+- [ ] simulation parameters in a JSON file
+- [ ] initial world state in a JSON+SVG file pair
+- [ ] world state after each goal being reached
+- [ ] all successive world states (in a new SVG layer add moved entity's polygon with a border of same color as filling but no filling)",RENAULT Benoit,brenault,RENAULT Benoit,brenault,No,No,,2020-06-30 12:24:16,2020-06-30 12:29:36,,Improve simulations robustness with random goals and start poses,,"Enhancement,Priority::Medium",0,0
+3,https://gitlab.inria.fr/brenault/s-namo-sim-private/-/issues/3,"Add ""reached goals"" metrics in experiment log",Open,"'Use log ""goal_status"" attribute to compute new metrics at the end of simulation :
+- [ ] number of reached goals
+- [ ] total number of goals
+- [ ] percentage of reached goals over total number",RENAULT Benoit,brenault,RENAULT Benoit,brenault,No,No,,2020-06-30 12:28:46,2020-06-30 12:29:11,,Improve simulations robustness with random goals and start poses,,"Enhancement,Priority::Medium",0,0
+4,https://gitlab.inria.fr/brenault/s-namo-sim-private/-/issues/4,Add random start pose generation,Open,"If parameter is simulation file set to true, generate random start pose (generate as many as there are goals if reset is activated between goals !).",RENAULT Benoit,brenault,RENAULT Benoit,brenault,No,No,,2020-06-30 12:32:00,2020-06-30 12:32:00,,Improve simulations robustness with random goals and start poses,,"Feature,Priority::Medium",0,0
+5,https://gitlab.inria.fr/brenault/s-namo-sim-private/-/issues/5,Add aggregation metrics for all robots,Open,"'Add metrics for :
+- [ ] transit path length
+- [ ] transfer path length
+- [ ] total path length
+- [ ] transfer percentage
+- [ ] transit transfer ratio
+- [ ] number of transferred obstacles
+- [ ] number of reallocated obstacles",RENAULT Benoit,brenault,RENAULT Benoit,brenault,No,No,,2020-06-30 12:38:42,2020-06-30 12:49:41,,Improve simulations robustness with random goals and start poses,,"Enhancement,Priority::Low",0,0
+6,https://gitlab.inria.fr/brenault/s-namo-sim-private/-/issues/6,Improve robot pose sampling function,Open,"'- [ ] Add parameter to allow pose generation within movable obstacles
+- [ ] Add optional parameter of binary occupancy grid so that it can be updated in between calls",RENAULT Benoit,brenault,RENAULT Benoit,brenault,No,No,,2020-06-30 12:49:22,2020-06-30 12:49:22,,Improve simulations robustness with random goals and start poses,,"Enhancement,Priority::Low",0,0
+7,https://gitlab.inria.fr/brenault/s-namo-sim-private/-/issues/7,Save world state changes sequence in simulation,Open,Simply save it as a sequence for the moment.,RENAULT Benoit,brenault,RENAULT Benoit,brenault,No,No,,2020-06-30 12:53:00,2020-06-30 12:53:00,,Improve simulations robustness with random goals and start poses,,"Feature,Priority::Medium",0,0

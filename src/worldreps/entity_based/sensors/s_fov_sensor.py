@@ -32,3 +32,11 @@ class SFOVSensor(CircularSectorSensor):
                 # If entity is not registered yet, create it
                 except KeyError as e:
                     raise (e, "Update with S FoV sensor should never need to create an object !")
+
+    def to_json(self):
+        return {
+            "type": "perfect_s_fov",
+            "min_radius": self.fov_min_radius,
+            "max_radius": self.fov_max_radius,
+            "opening_angle": self.fov_opening_angle
+        }

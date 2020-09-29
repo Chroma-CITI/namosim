@@ -8,3 +8,6 @@ class CellHeapNode:
 
     def __lt__(self, other):
         return self.cost < other.cost
+
+    def __eq__(self, other):
+        return self.cost == other.cost and self.cell == other.cell
