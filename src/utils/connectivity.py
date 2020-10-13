@@ -1,8 +1,6 @@
 import numpy as np
 import copy
-
-TAXI_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0))
-CHESSBOARD_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1))
+from src.utils import utils
 
 
 class CCSData:
@@ -23,20 +21,7 @@ class BFS:
         self.root_cell = root_cell
 
 
-def is_in_matrix(cell, width, height):
-    return 0 <= cell[0] < width and 0 <= cell[1] < height
-
-
-def get_neighbors_no_coll(cell, grid, width, height, neighborhood=TAXI_NEIGHBORHOOD):
-    neighbors = set()
-    for i, j in neighborhood:
-        neighbor = cell[0] + i, cell[1] + j
-        if is_in_matrix(neighbor, width, height) and grid[neighbor[0]][neighbor[1]] == 0:
-            neighbors.add(neighbor)
-    return neighbors
-
-
-def bfs_init(grid, width, height, root_cell, neighborhood=TAXI_NEIGHBORHOOD):
+def bfs_init(grid, width, height, root_cell, neighborhood=utils.TAXI_NEIGHBORHOOD):
     queue = [root_cell]
     visited = {root_cell}
     came_from = {}
@@ -44,7 +29,7 @@ def bfs_init(grid, width, height, root_cell, neighborhood=TAXI_NEIGHBORHOOD):
 
     while queue:
         current = queue.pop(0)
-        for neighbor in get_neighbors_no_coll(current, grid, width, height, TAXI_NEIGHBORHOOD):
+        for neighbor in utils.get_neighbors_no_coll(current, grid, width, height, neighborhood):
             if neighbor not in visited:
                 queue.append(neighbor)
                 visited.add(neighbor)
@@ -57,7 +42,7 @@ def bfs_init(grid, width, height, root_cell, neighborhood=TAXI_NEIGHBORHOOD):
     return BFS(visited, came_from, goes_to, root_cell)
 
 
-def bfs_update(grid, width, height, root_cell, ccs_grid, neighborhood=TAXI_NEIGHBORHOOD):
+def bfs_update(grid, width, height, root_cell, ccs_grid, neighborhood=utils.TAXI_NEIGHBORHOOD):
     queue = [root_cell]
     visited = {root_cell}
     came_from = {}
@@ -68,7 +53,7 @@ def bfs_update(grid, width, height, root_cell, ccs_grid, neighborhood=TAXI_NEIGH
 
     while queue:
         current = queue.pop(0)
-        for neighbor in get_neighbors_no_coll(current, grid, width, height, neighborhood):
+        for neighbor in utils.get_neighbors_no_coll(current, grid, width, height, neighborhood):
             if neighbor not in visited:
                 neighbor_prev_component = ccs_grid[neighbor[0]][neighbor[1]]
                 if neighbor_prev_component != prev_component_uid:
@@ -84,7 +69,7 @@ def bfs_update(grid, width, height, root_cell, ccs_grid, neighborhood=TAXI_NEIGH
     return BFS(visited, came_from, goes_to, root_cell), affected_components_uids
 
 
-def init_ccs_for_grid(grid, width, height, neighborhood=TAXI_NEIGHBORHOOD):
+def init_ccs_for_grid(grid, width, height, neighborhood=utils.TAXI_NEIGHBORHOOD):
     init_free_cells = set(zip(*np.where(grid == 0)))
 
     ccs = {}
@@ -126,7 +111,7 @@ def init_ccs_for_grid(grid, width, height, neighborhood=TAXI_NEIGHBORHOOD):
 #     return ccs, ccs_grid, current_uid
 
 
-def update_ccs_and_grid(ccs, current_uid, grid, width, height, neighborhood=TAXI_NEIGHBORHOOD):
+def update_ccs_and_grid(ccs, current_uid, grid, width, height, neighborhood=utils.TAXI_NEIGHBORHOOD):
     free_cells = set(zip(*np.where(grid == 0)))
 
     new_ccs = {}
@@ -243,10 +228,6 @@ def update_ccs_and_grid(ccs, current_uid, grid, width, height, neighborhood=TAXI
 #                     elif prev_cc_grid[neighbor[0]][neighbor[1]] != invaded_cell_prev_cc_uid:
 #                         # If we reach another component, it means we are going to fuse with it
 #                         # So basically, we just let the current bfs join with it and we'll have to remove it after
-
-
-
-
 
 
 if __name__ == '__main__':

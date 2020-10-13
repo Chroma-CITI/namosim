@@ -45,14 +45,9 @@ def reconstruct_path(came_from, end):
     return total_path
 
 
-def astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors=False, threshold_obstacle_value=1, ns=''):
+def astar(grid, start_cell, goal_cell, res, grid_pose,
+          neighborhood = utils.CHESSBOARD_NEIGHBORHOOD, threshold_obstacle_value=1, ns=''):
     rp = RosPublisher()
-
-    # Acceptable transitions from current grid element to neighbors
-    if restrict_4_neighbors:
-        neighborhood = utils.TAXI_NEIGHBORHOOD
-    else:
-        neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
 
     # The set of nodes already evaluated
     close_set = set()
@@ -158,7 +153,7 @@ def a_star_real_path(grid, start_pose, goal_pose, res, grid_pose,
                     heapq.heappush(frontier, (new_cost, next))
 
     # Execute A*
-    astar_path = astar(grid, start_cell, goal_cell, res, grid_pose, restrict_4_neighbors, ns=ns)
+    astar_path = astar(grid, start_cell, goal_cell, res, grid_pose, utils.CHESSBOARD_NEIGHBORHOOD, ns=ns)
     # rp = RosPublisher()
     # rp.publish_grid_path(astar_path, res, grid_pose, ns=ns)
 
@@ -166,3 +161,50 @@ def a_star_real_path(grid, start_pose, goal_pose, res, grid_pose,
     real_path = utils.grid_path_to_real_path(astar_path, start_pose, goal_pose, res, grid_pose)
 
     return real_path
+
+
+def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
+    close_set = set()
+    came_from = dict()
+
+    if isinstance(start, list) or isinstance(start, set):
+        gscore = {element for element in start}
+        open_heap = []
+        for element in start:
+            heapq.heappush(open_heap, (0., element))
+    elif isinstance(start, dict):
+        gscore = {element: cost for element, cost in start.items()}
+        open_heap = []
+        for element, cost in start.items():
+            heapq.heappush(open_heap, (cost, element))
+    else:
+        gscore = {start}
+        open_heap = []
+        for element in start:
+            heapq.heappush(open_heap, (0., element))
+
+    while open_heap:
+        # The node in open_heap having the lowest fScore[] value
+        current = heapq.heappop(open_heap)[1]
+
+        # Exit early if goal is reached
+        if exit_condition(current, goal):
+            return True, came_from, close_set, gscore, open_heap
+
+        # Add current to the close set to prevent unneeded future re-evaluation
+        close_set.add(current)
+
+        # For each neighbor of current node in the defined neighborhood
+        neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set)
+        for neighbor, tentative_g_score in neighbors, tentative_g_scores:
+            # Discover a new node or update info about known one :
+            if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
+                # This path is the best until now. Record it!
+                came_from[neighbor] = current
+                gscore[neighbor] = tentative_g_score
+                fscore_neighbor = tentative_g_score + heuristic(neighbor, goal)
+                if neighbor not in open_heap:
+                    heapq.heappush(open_heap, (fscore_neighbor, neighbor))
+
+    # If goal could not be reached despite exploring the full search space
+    return False, close_set, came_from, gscore, open_heap

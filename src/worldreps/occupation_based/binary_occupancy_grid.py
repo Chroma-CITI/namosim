@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+from src.utils import utils
 
 
 class BinaryOccupancyGrid:
@@ -86,3 +87,53 @@ class BinaryOccupancyGrid:
         if not is_grid_valid:
             self._update_grid()
         return self._grid
+
+
+class NewBinaryOccupancyGrid:
+    def __init__(self, d_width, d_height, res, grid_pose, polygons, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
+        self.d_width, self.d_height = d_width, d_height
+        self.res = res
+        self.grid_pose = grid_pose
+        self.neighborhood=neighborhood
+
+        self.cells_sets = dict()
+        self.grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
+
+        self.update(new_polygons=polygons)
+
+    def update(self, new_polygons=None, removed_polygons=None):
+        fill_polygons = self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
+
+        if new_polygons is not None:
+            for uid, new_polygon in new_polygons.items():
+                if uid in self._cells_sets:
+                    prev_cells = self._cells_sets[uid]
+                    for cell in prev_cells:
+                        self._grid[cell[0]][cell[1]] -= 1
+
+                    new_cells = utils.polygon_to_discrete_cells_set(
+                        new_polygon, self.res, self.grid_pose, self.d_width, self.d_height, fill=fill_polygons)
+                    self._cells_sets[uid] = new_cells
+                    for cell in new_cells:
+                        self._grid[cell[0]][cell[1]] += 1
+
+        if removed_polygons is not None:
+            for uid in removed_polygons:
+                prev_cells = self._cells_sets[uid]
+                for cell in prev_cells:
+                    self._grid[cell[0]][cell[1]] -= 1
+
+
+class NewBinaryInflatedOccupancyGrid(NewBinaryOccupancyGrid):
+    def __init__(self, d_width, d_height, res, grid_pose, polygons, inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
+        self.inflation_radius = inflation_radius
+
+        NewBinaryOccupancyGrid.__init__(
+            self, d_width, d_height, res, grid_pose, polygons, neighborhood)
+
+    def update(self, new_polygons=None, removed_polygons=None):
+        inflated_polygons = {
+            uid: polygon.buffer(self.inflation_radius)
+            for uid, polygon in new_polygons
+        }
+        NewBinaryOccupancyGrid.update(self, inflated_polygons, removed_polygons)

@@ -31,7 +31,7 @@ agents_behaviors:
         deactivate_grids_logging: True # Generally faster if False
       randomization:
         generate_random_goals: True
-        nb_goals_to_generate: 5
+        nb_goals_to_generate: 50
         randomization_type: "discrete" # Either "uniform" or "discrete"
 
 # General simulation parameters

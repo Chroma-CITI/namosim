@@ -9,14 +9,14 @@ from shapely.ops import cascaded_union
 import Box2D
 
 from baseline_behavior import BaselineBehavior
-from src.behaviors.algorithms.a_star import a_star_real_path
+from src.behaviors.algorithms.a_star import astar, a_star_real_path
 from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
 from src.behaviors.algorithms.multi_goal_a_star import multi_goal_a_star_real_path
 from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.worldreps.entity_based.robot import Robot
-from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening  # , is_move_passing_over_pose
+from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, new_check_new_local_opening  # , is_move_passing_over_pose
 from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
 from src.worldreps.entity_based.custom_exceptions import IntersectionError
 from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid
@@ -729,216 +729,361 @@ class Stilman2005Behavior(BaselineBehavior):
         return w_t_plus_2, tho_n, tho_m, cost
 
 
-    # def new_focused_manip_search(self, w_t, o_1, c_1_cells_set, r_f):
-    #     # Initialize manip search simulation world and some shortcut variables
-    #     start_time = time.time()
-    #     w_t_plus_2 = copy.deepcopy(w_t)
-    #     self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
-    #     obstacle = w_t_plus_2.entities[o_1]
-    #     robot = w_t_plus_2.entities[self._robot.uid]
-    #     inflated_grid_by_robot = w_t_plus_2.get_binary_inflated_occupancy_grid((self._robot.uid,))
-    #     dd = w_t_plus_2.dd
-    #     other_entities = [entity for entity in w_t_plus_2.entities.values()
-    #                       if entity.uid != robot.uid and entity.uid != obstacle.uid]
-    #     other_entities_polygons = {entity.uid: entity.polygon for entity in other_entities}
-    #     other_entities_aabb_tree = collision.AABBTree()
-    #     for index, polygon in other_entities_polygons.items():
-    #         other_entities_aabb_tree.add(collision.polygon_to_aabb(polygon), index)
-    #
-    #     map_box = box(*w_t_plus_2.get_map_bounds())
-    #     robot_d_pose = utils.real_pose_to_grid_pose(robot.pose, dd.res, dd.grid_pose, self.rotation_unit_angle)
-    #     robot_goal_cell = utils.real_to_grid(r_f[0], r_f[1], dd.res, dd.grid_pose)
-    #     trans_mult = 1. / w_t_plus_2.dd.res * 10.
-    #     rot_mult = 1.
-    #
-    #     # Get accessible sampled navigation points around obstacle and paths to them
-    #     nav_poses, manip_poses, cost_and_paths = self.get_manip_poses_and_paths(
-    #         obstacle, robot, inflated_grid_by_robot, dd.res, dd.grid_pose)
-    #
-    #     # Get potentially accessible cells for obstacle ordered by associated combined costs
-    #     sorted_cells, inflated_grid_by_obs = self.sorted_cells_by_combined_cost(w_t_plus_2, obstacle, robot, dd, r_f)
-    #
-    #     # - Initialize search exit conditions (when any )
-    #     no_path_to_best_placement_found = True
-    #     obstacle_placement_space_search_incomplete = True
-    #     manipulation_space_search_incomplete = True
-    #
-    #     # - Initialize the set of already evaluated configurations
-    #     close_set = set()
-    #
-    #     # - Initialize the dictionary that remembers for each node, which node it can most efficiently be reached from.
-    #     #   If a node can be reached from many nodes, came_from will eventually contain the
-    #     #   most efficient previous step.
-    #     came_from = {}
-    #
-    #     # - Initialize the dictionary that remembers for each node, the cost of getting from the start node to that node.
-    #     #   The cost of going from start to start is zero.
-    #     gscore = {
-    #         start_cell: 0.
-    #         for nav_pos
-    #     }
-    #
-    #     # - Initialize last goal obstacles poses for efficient find_best_goal method usage
-    #     last_obs_transfer_end_poses = []
-    #
-    #     while no_path_to_best_placement_found and obstacle_placement_space_search_incomplete:
-    #         if manipulation_space_search_incomplete:
-    #             # Get the current best comprise obstacle placement
-    #             obs_transfer_end_pose, obs_transfer_end_poly = self.find_best_goal(
-    #                 sorted_cells, last_obs_transfer_end_poses, dd.res, dd.grid_pose, obstacle, other_entities,
-    #                 inflated_grid_by_robot, robot.pose, c_1_cells_set, robot, robot_goal_cell)
-    #             obs_transfer_end_cell = utils.real_to_grid(
-    #                 obs_transfer_end_pose[0], obs_transfer_end_pose[1], dd.res, dd.grid_pose)
-    #
-    #             # The set of currently discovered nodes that are not evaluated yet.
-    #             open_heap = []
-    #             # Initially, only the start node is known.
-    #             heapq.heappush(open_heap, ConfigurationHeapNode(
-    #                 self.new_heuristic_cost_estimate(start_cell, cur_best_transfer_end_configuration), start_cell))
-    #
-    #             while manipulation_space_search_incomplete:
-    #
-    #                 # The node in open_heap having the lowest fScore[] value
-    #                 current = heapq.heappop(open_heap).configuration
-    #
-    #                 # Exit early if goal is reached
-    #                 if self.exit_condition(current):
-    #                     no_path_to_best_placement_found = False
-    #                     break
-    #
-    #                 # Add current to the close set to prevent unneeded future re-evaluation
-    #                 close_set.add(current)
-    #
-    #                 # For each neighbor of current node in the defined neighborhood
-    #                 neighbors, tentative_g_scores = self.get_neighbors(current, gscore, close_set)
-    #                 for neighbor, tentative_g_score in neighbors, tentative_g_scores:
-    #                     # Discover a new node or update info about known one :
-    #                     if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
-    #                         # This path is the best until now. Record it!
-    #                         came_from[neighbor] = current
-    #                         gscore[neighbor] = tentative_g_score
-    #                         fscore_neighbor = tentative_g_score + self.new_heuristic_cost_estimate(neighbor, cur_best_transfer_end_configuration)
-    #                         if neighbor not in open_heap:
-    #                             heapq.heappush(open_heap, ConfigurationHeapNode(fscore_neighbor, neighbor))
-    #
-    #                 # While open_heap is not empty == While there are discovered nodes that have not been evaluated
-    #                 manipulation_space_search_incomplete = bool(open_heap)
-    #         else:
-    #             if cur_best_transfer_end_configuration in close_set:
-    #                 # Otherwise, if the current best transfer end configuration candidate were not in the completed
-    #                 # close set of evaluated configurations, then it means no path to it can be found, and we must
-    #                 # check the next best candidate.
-    #                 no_path_to_best_placement_found = False
-    #
-    #     # Finally, depending on the state of exit conditions, return appropriate paths
-    #     if no_path_to_best_placement_found:
-    #         tho_n, tho_m, cost = None, None, float('inf')
-    #     else:
-    #         # TODO: Extract values for the return variables, with a separate function
-    #
-    #     end_time = time.time()
-    #     print(end_time - start_time)
-    #
-    #     return w_t_plus_2, tho_n, tho_m, cost
-    #
-    #
-    # def exit_condition(self, current):
-    #     # TODO
-    #
-    #
-    # def new_heuristic_cost_estimate(self, robot_pose, ):
-    #     # TODO
-    #     translation_energy = self.basic_trans_force * np.linalg.norm((r_j[0] - r_i[0], r_j[1] - r_i[1]))
-    #     rotation_energy = 0. if self._rot_angles.size == 0 else self.basic_rot_moment * self._world.dd.res * (
-    #             abs(r_j[2] - r_i[2]) / abs(self.rotation_unit_angle))
-    #     return translation_energy + rotation_energy
-    #
-    #
-    # def find_best_transfer_end_configuration(self, ):
-    #     # TODO
-    #     while goal_obs_poses or ordered_cells_by_cost:
-    #         if goal_obs_poses:
-    #             goal_obs_pose = goal_obs_poses.pop()
-    #             new_obstacle = obstacle.light_copy(copy_polygon=False)
-    #             goal_obs_poly = utils.set_polygon_pose(obstacle.polygon, obstacle.pose, goal_obs_pose)
-    #             new_obstacle.polygon = goal_obs_poly
-    #             if not self.polygon_collides(goal_obs_poly, other_entities):
-    #                 self._rp.publish_sim(None, goal_obs_poly, "/target", ns=self._robot_name)
-    #                 has_new_global_op, has_new_local_op, skipped_global_op_check = self._is_there_opening_to_c_1(
-    #                     grid, res, grid_pose, manip_robot_pose,
-    #                     c_1_cells_set, robot, obstacle, obstacle, new_obstacle, False, goal_cell)
-    #                 if has_new_global_op:
-    #                     return goal_obs_pose, goal_obs_poly
-    #         elif ordered_cells_by_cost:
-    #                 goal_obs_cell = ordered_cells_by_cost.pop()
-    #                 goal_obs_poses = [
-    #                     utils.grid_pose_to_real_pose(list(goal_obs_cell) + [rot], res, grid_pose)
-    #                     for rot in self._all_rot_angles]
-    #     return None
-    #
-    #
-    # def _new_is_there_opening_to_c_1(self, robot_uid, old_robot_polygon, new_robot_polygon,
-    #                              obstacle_uid, old_obstacle_polygon, new_obstacle_polygon,
-    #                              other_entities_polygons, other_entities_uids,
-    #                              inflated_grid, c_1_cells_set, goal_cell, robot_min_inflation_radius):
-    #     """
-    #     Checks if there is a path between robot_cell and a random cell in c_1_cells_set that is not covered by an
-    #     obstacle (especially the one considered for manipulation).
-    #     :raises:
-    #         ValueError: if the cells set given for c_1 is empty : either it means that c_1 is fully covered by an
-    #         obstacle, or that not updating c_1 with freed cells was actually a bad idea.
-    #     :return: True if a path is found, False otherwise
-    #     """
-    #     if self.check_new_local_opening_before_global:
-    #         if leaf_has_new_local_opening:
-    #             has_new_local_opening = True
-    #         else:
-    #             has_new_local_opening, _ = check_new_local_opening(
-    #                 old_obstacle_polygon, new_obstacle_polygon, other_entities_polygons,
-    #                 robot_min_inflation_radius, ns=self._robot_name)
-    #         # Don't prevent full evaluation of plans when obstacle would pass over the goal
-    #         # moved_polygons = [old_robot.polygon, new_robot.polygon, old_obstacle.polygon,
-    #         #                   new_obstacle.polygon]
-    #         move_passes_over_goal = False  # is_move_passing_over_pose(moved_polygons, r_f)
-    #         is_it_worth_fully_evaluating = move_passes_over_goal or has_new_local_opening
-    #     else:
-    #         is_it_worth_fully_evaluating = True
-    #
-    #     if is_it_worth_fully_evaluating:
-    #         if c_1_cells_set:
-    #             inflated_grid.update_buffered_entities({obstacle.uid: obstacle}, {new_obstacle.uid: new_obstacle})
-    #             grid = inflated_grid.get_grid()
-    #             if goal_cell in c_1_cells_set:
-    #                 cell_in_c_1 = goal_cell
-    #             else:
-    #                 c_1_cells_set_iterator = iter(c_1_cells_set)
-    #                 cell_in_c_1 = next(c_1_cells_set_iterator)
-    #                 while grid[cell_in_c_1[0]][cell_in_c_1[1]] != 0:
-    #                     try:
-    #                         cell_in_c_1 = next(c_1_cells_set_iterator)
-    #                     except StopIteration:
-    #                         raise ValueError("_has_created_new_opening_to_c_1 could not find a new opening because"
-    #                                          " c_1_cells_set is entirely inaccessible to the robot")
-    #             cell_pose_in_c_1 = utils.grid_to_real(cell_in_c_1[0], cell_in_c_1[1], res, grid_pose)
-    #             inflated_grid.update_buffered_entities({new_obstacle.uid: new_obstacle}, {obstacle.uid: obstacle})
-    #             self._rp.cleanup_a_star_close_set(ns=self._robot_name)
-    #             has_new_global_opening = bool(
-    #                 a_star_real_path(grid, pred_robot_pose, cell_pose_in_c_1, res, grid_pose,
-    #                                  ns=self._robot_name))  # HACK ?
-    #             skipped_global_opening_check = False
-    #             self._rp.cleanup_blocking_areas(ns=self._robot_name)
-    #             self._rp.cleanup_diameter_inflated_polygons(ns=self._robot_name)
-    #             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
-    #         else:
-    #             raise ValueError("c_1_cells_set should never be empty !")
-    #     else:
-    #         has_new_global_opening, skipped_global_opening_check = False, True
-    #         return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
+    def new_focused_manip_search(self, w_t, o_1, c_1_cells_set, r_f):
+        # Initialize manip search simulation world and some shortcut variables
+        start_time = time.time()
+        w_t_plus_2 = copy.deepcopy(w_t)
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
+        obstacle = w_t_plus_2.entities[o_1]
+        robot = w_t_plus_2.entities[self._robot.uid]
+        inflated_grid_by_robot = w_t_plus_2.get_binary_inflated_occupancy_grid((self._robot.uid,))
+        dd = w_t_plus_2.dd
+        other_entities = [entity for entity in w_t_plus_2.entities.values()
+                          if entity.uid != robot.uid and entity.uid != obstacle.uid]
+        other_entities_polygons = {entity.uid: entity.polygon for entity in other_entities}
+        other_entities_aabb_tree = collision.AABBTree()
+        for index, polygon in other_entities_polygons.items():
+            other_entities_aabb_tree.add(collision.polygon_to_aabb(polygon), index)
 
+        map_box = box(*w_t_plus_2.get_map_bounds())
+        robot_goal_cell = utils.real_to_grid(r_f[0], r_f[1], dd.res, dd.grid_pose)
+        trans_mult = 1. / w_t_plus_2.dd.res * 10.
+        rot_mult = 1.
 
-    def get_neighbors(self, current_configuration, close_set, other_entities_polygons, other_entities_aabb_tree,
-                    res, grid_pose, inflated_grid_by_robot, inflated_grid_by_obstacle, trans_mult, rot_mult,
-                    static_collision_cache, robot_uid, obstacle_uid):
+        # Get accessible sampled navigation points around obstacle and paths to them
+        nav_poses, manip_poses, cost_and_paths = self.get_manip_poses_and_paths(
+            obstacle, robot, inflated_grid_by_robot, dd.res, dd.grid_pose)
+
+        # Get potentially accessible cells for obstacle ordered by associated combined costs
+        sorted_cells, inflated_grid_by_obs = self.sorted_cells_by_combined_cost(w_t_plus_2, obstacle, robot, dd, r_f)
+
+        # - Initialize search exit conditions (when any )
+        no_path_to_best_placement_found = True
+        obstacle_placement_space_search_incomplete = True
+        manipulation_space_search_incomplete = True
+
+        # - Initialize the set of already evaluated configurations
+        close_set = set()
+
+        # - Initialize the dictionary that remembers for each node, which node it can most efficiently be reached from.
+        #   If a node can be reached from many nodes, came_from will eventually contain the
+        #   most efficient previous step.
+        came_from = {}
+
+        # - Initialize the dictionary that remembers for each node, the cost of getting from the start node to that node.
+        #   The cost of going from start to start is zero.
+        # TODO
+        # gscore = {
+        #     start_cell: 0.
+        #     for nav_pos
+        # }
+
+        # - Initialize last goal obstacles poses for efficient find_best_goal method usage
+        last_obs_transfer_end_poses = []
+
+        while no_path_to_best_placement_found and obstacle_placement_space_search_incomplete:
+            if manipulation_space_search_incomplete:
+                # Get the current best comprise obstacle placement
+                obs_transfer_end_pose, obs_transfer_end_poly = self.new_find_best_goal(
+                    sorted_cells, last_obs_transfer_end_poses, dd.res, dd.grid_pose, obstacle, other_entities,
+                    inflated_grid_by_robot, robot.pose, c_1_cells_set, robot, robot_goal_cell)
+                obs_transfer_end_cell = utils.real_to_grid(
+                    obs_transfer_end_pose[0], obs_transfer_end_pose[1], dd.res, dd.grid_pose)
+
+                # The set of currently discovered nodes that are not evaluated yet.
+                open_heap = []
+                # Initially, only the start node is known.
+                # TODO
+                # heapq.heappush(open_heap, ConfigurationHeapNode(
+                #     self.new_heuristic_cost_estimate(start_cell, cur_best_transfer_end_configuration), start_cell))
+
+                while manipulation_space_search_incomplete:
+
+                    # The node in open_heap having the lowest fScore[] value
+                    current = heapq.heappop(open_heap).configuration
+
+                    # Exit early if goal is reached
+                    if self.new_exit_condition(current):
+                        no_path_to_best_placement_found = False
+                        break
+
+                    # Add current to the close set to prevent unneeded future re-evaluation
+                    close_set.add(current)
+
+                    # For each neighbor of current node in the defined neighborhood
+                    neighbors, tentative_g_scores = self.new_get_neighbors(current, gscore, close_set)
+                    for neighbor, tentative_g_score in neighbors, tentative_g_scores:
+                        # Discover a new node or update info about known one :
+                        if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
+                            # This path is the best until now. Record it!
+                            came_from[neighbor] = current
+                            gscore[neighbor] = tentative_g_score
+                            fscore_neighbor = tentative_g_score + self.new_heuristic_cost_estimate(neighbor, cur_best_transfer_end_configuration)
+                            if neighbor not in open_heap:
+                                heapq.heappush(open_heap, ConfigurationHeapNode(fscore_neighbor, neighbor))
+
+                    # While open_heap is not empty == While there are discovered nodes that have not been evaluated
+                    manipulation_space_search_incomplete = bool(open_heap)
+            else:
+                if cur_best_transfer_end_configuration in close_set:
+                    # Otherwise, if the current best transfer end configuration candidate were not in the completed
+                    # close set of evaluated configurations, then it means no path to it can be found, and we must
+                    # check the next best candidate.
+                    no_path_to_best_placement_found = False
+
+        # Finally, depending on the state of exit conditions, return appropriate paths
+        if no_path_to_best_placement_found:
+            tho_n, tho_m, cost = None, None, float('inf')
+        else:
+            # TODO: Extract values for the return variables, with a separate function
+            pass
+
+        end_time = time.time()
+        print(end_time - start_time)
+
+        return w_t_plus_2, tho_n, tho_m, cost
+
+    def new_exit_condition(self, current):
+        # TODO
+        pass
+
+    def new_heuristic_cost_estimate(self, robot_pose):
+        # TODO
+        translation_energy = self.basic_trans_force * np.linalg.norm((r_j[0] - r_i[0], r_j[1] - r_i[1]))
+        rotation_energy = 0. if self._rot_angles.size == 0 else self.basic_rot_moment * self._world.dd.res * (
+                abs(r_j[2] - r_i[2]) / abs(self.rotation_unit_angle))
+        return translation_energy + rotation_energy
+
+    def new_find_best_goal(self, robot_pose, robot_polygon, robot_name, robot_cell, robot_min_inflation_radius,
+                           obstacle_uid, obstacle_pose, obstacle_polygon,
+                           goal_position, goal_cell,
+                           other_entities_polygons, other_entities_aabb_tree,
+                           inflated_grid, ordered_cells_by_cost, c_1_cells_set, init_robot_manip_poses,
+                           trans_mult, rot_mult, gscore, close_set=None,
+                           check_new_local_opening_before_global=True):
+        all_poses_to_d_poses = {}
+
+        while ordered_cells_by_cost:
+            current = ordered_cells_by_cost[-1]
+            if isinstance(current, tuple):
+                # If current is a cell, unfold it into a dict of (robot, obstacle) poses at transfer end
+                obstacle_poses_at_transfer_end = [
+                    utils.grid_pose_to_real_pose(list(current) + [rot], inflated_grid.res, inflated_grid.grid_pose)
+                    for rot in [0.] + self._all_rot_angles
+                ]
+                poses_at_transfer_end = {
+                    obstacle_pose_at_transfer_end: [
+                        self.deduce_robot_goal_pose(
+                            init_robot_manip_pose, obstacle_pose, obstacle_pose_at_transfer_end
+                        )
+                        for init_robot_manip_pose in init_robot_manip_poses
+                    ]
+                    for obstacle_pose_at_transfer_end in obstacle_poses_at_transfer_end
+                }
+                ordered_cells_by_cost[-1] = poses_at_transfer_end
+            elif isinstance(current, dict):
+                # If current is the dict of poses corresponding to a cell
+                if current:
+                    # If the dict is not empty, we must pop the next (robot, obstacle) poses and check their validity
+
+                    if close_set:
+                        # If a close_set of attainable configurations has been provided,
+                        # the (robot, obstacle) pose is valid if:
+                        # - it is a member of the close_set (implies no collisions at transfer end)
+                        # - an opening is created between the intended connected components
+
+                        # 1. Reduce list of (robot, obstacle) poses to the ones that are in close_set,
+                        #    and order them by computed manipulation cost
+
+                        pose_to_d_pose = {
+                            (robot_transfer_end_pose, obstacle_transfer_end_pose):
+                            (
+                                utils.real_pose_to_fixed_precision_pose(
+                                    robot_transfer_end_pose, trans_mult, rot_mult
+                                ),
+                                utils.real_pose_to_fixed_precision_pose(
+                                    obstacle_transfer_end_pose, trans_mult, rot_mult
+                                )
+                            )
+                            for obstacle_transfer_end_pose, robot_transfer_end_poses in current.items()
+                            for robot_transfer_end_pose in robot_transfer_end_poses
+                        }
+
+                        all_poses_to_d_poses = dict(all_poses_to_d_poses, **pose_to_d_pose)
+
+                        poses_to_configurations = sorted([
+                            (
+                                poses[1],
+                                close_set[d_pose],
+                                gscore[d_pose]
+                            )
+                            for poses, d_pose in pose_to_d_pose.items()
+                            if d_pose in close_set
+                        ], key=lambda x: x[2])
+
+                        # 2. Iterate over this new list, and return as soon as one of them has a new global opening
+                        while poses_to_configurations:
+                            obstacle_end_transfer_pose, configuration, _ = poses_to_configurations.pop(0)
+
+                            obstacle_transfer_end_poly = utils.set_polygon_pose(
+                                obstacle_polygon, obstacle_pose, obstacle_end_transfer_pose
+                            )
+                            has_new_global_opening, _, _ = self.new_is_there_opening_to_c_1(
+                                check_new_local_opening_before_global,
+                                robot_name, robot_cell,
+                                obstacle_uid, obstacle_polygon, obstacle_transfer_end_poly,
+                                other_entities_polygons, other_entities_aabb_tree,
+                                inflated_grid, c_1_cells_set, robot_min_inflation_radius,
+                                goal_position, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                                init_blocking_areas=None, init_entity_inflated_polygon=None
+                            )
+
+                            if has_new_global_opening:
+                                return configuration, None, None, None
+
+                        # 3. If iteration has been done in full, there are no openings in the cell, so remove the entire
+                        #    list of poses from ordered_cells_by_cost
+                        ordered_cells_by_cost.pop()
+
+                    else:
+                        # Otherwise, the (robot, obstacle) pose is valid if:
+                        # - there are no static collisions at transfer end
+                        # - an opening is created between the intended connected components
+
+                        # Pop-iterate over poses from the list and return as soon as one of them is valid
+                        while current:
+                            obstacle_end_transfer_pose = next(iter(current))
+                            robot_transfer_end_poses = current[obstacle_end_transfer_pose]
+
+                            obstacle_transfer_end_poly = utils.set_polygon_pose(
+                                obstacle_polygon, obstacle_pose, obstacle_end_transfer_pose
+                            )
+                            # If the obstacle collides at this pose, don't consider checking further
+                            obstacle_transfer_end_aabb = collision.polygon_to_aabb(obstacle_transfer_end_poly)
+                            obstacle_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
+                                obstacle_transfer_end_aabb)
+                            obstacle_collides = False
+                            for uid in obstacle_potential_collision_polygons_uids:
+                                if obstacle_transfer_end_poly.intersects(other_entities_polygons[uid]):
+                                    obstacle_collides = True
+                                    break
+                            if obstacle_collides:
+                                del current[obstacle_end_transfer_pose]
+                                continue
+
+                            # Try to find a valid robot pose at transfer end
+                            robot_transfer_end_pose = None
+                            while robot_transfer_end_poses:
+                                candidate_transfer_end_robot_pose = robot_transfer_end_poses.pop()
+                                robot_transfer_end_poly = utils.set_polygon_pose(
+                                    robot_polygon, robot_pose, candidate_transfer_end_robot_pose
+                                )
+                                robot_transfer_end_aabb = collision.polygon_to_aabb(robot_transfer_end_poly)
+                                robot_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
+                                    robot_transfer_end_aabb)
+                                robot_collides = False
+                                for uid in robot_potential_collision_polygons_uids:
+                                    if robot_transfer_end_poly.intersects(other_entities_polygons[uid]):
+                                        robot_collides = True
+                                        break
+                                if not robot_collides:
+                                    robot_transfer_end_pose = candidate_transfer_end_robot_pose
+                                    break
+
+                            # If there are no valid robot poses for the obstacle pose, don't consider checking further
+                            if not (robot_transfer_end_poses or robot_transfer_end_pose):
+                                del current[obstacle_end_transfer_pose]
+                                continue
+
+                            # Check for new global opening for this obstacle pose
+                            has_new_global_opening, _, _ = self.new_is_there_opening_to_c_1(
+                                check_new_local_opening_before_global,
+                                robot_name, robot_cell,
+                                obstacle_uid, obstacle_polygon, obstacle_transfer_end_poly,
+                                other_entities_polygons, other_entities_aabb_tree,
+                                inflated_grid, c_1_cells_set, robot_min_inflation_radius,
+                                goal_position, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                                init_blocking_areas=None, init_entity_inflated_polygon=None
+                            )
+
+                            if has_new_global_opening:
+                                return (
+                                    robot_transfer_end_pose, robot_transfer_end_poly,
+                                    obstacle_end_transfer_pose, obstacle_transfer_end_poly
+                                )
+                            else:
+                                del current[obstacle_end_transfer_pose]
+                else:
+                    # If the list is empty, we must get to the next cell
+                    ordered_cells_by_cost.pop()
+
+        return None, None, None, None
+
+    def new_is_there_opening_to_c_1(self, check_new_local_opening_before_global,
+                                    robot_name, robot_cell,
+                                    obstacle_uid, old_obstacle_polygon, new_obstacle_polygon,
+                                    other_entities_polygons, other_entities_aabb_tree,
+                                    inflated_grid, c_1_cells_set, robot_min_inflation_radius,
+                                    goal_position, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                                    init_blocking_areas=None, init_entity_inflated_polygon=None):
+        """
+        Checks if there is a path between robot_cell and a random cell in c_1_cells_set that is not covered by an
+        obstacle (especially the one considered for manipulation).
+        :return: True if a path is found, False otherwise
+        TODO: Add proper return of init_blocking_areas and init_entity_inflated_polygon and save them in caller methods
+        """
+        if c_1_cells_set:
+            # Return early if the cell set to be reached is empty
+            has_new_global_opening, has_new_local_opening, skipped_global_opening_check = False, False, True
+            return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
+
+        if check_new_local_opening_before_global:
+            has_new_local_opening, init_blocking_areas, init_entity_inflated_polygon = new_check_new_local_opening(
+                old_obstacle_polygon, new_obstacle_polygon,
+                other_entities_polygons, other_entities_aabb_tree,
+                robot_min_inflation_radius, goal_position,
+                init_blocking_areas, init_entity_inflated_polygon, robot_name
+            )
+        else:
+            has_new_local_opening = True
+
+        if has_new_local_opening:
+            inflated_grid.update({obstacle_uid: new_obstacle_polygon})
+
+            if goal_cell in c_1_cells_set:
+                cell_in_c_1 = goal_cell
+            else:
+                c_1_cells_set_iterator = iter(c_1_cells_set)
+                cell_in_c_1 = next(c_1_cells_set_iterator)
+                while inflated_grid.grid[cell_in_c_1[0]][cell_in_c_1[1]] != 0:
+                    # While selected cell not in free space after manipulation, try another cell
+                    try:
+                        cell_in_c_1 = next(c_1_cells_set_iterator)
+                    except StopIteration:
+                        # No opening because c_1_cells_set is entirely inaccessible to the robot after manipulation
+                        has_new_global_opening, skipped_global_opening_check = False, False
+                        return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
+
+            path_to_cell_in_c_1 = astar(
+                inflated_grid.grid, robot_cell, cell_in_c_1, inflated_grid.res, inflated_grid.grid_pose, neighborhood=neighborhood, ns=robot_name)
+            has_new_global_opening = bool(path_to_cell_in_c_1)
+
+            inflated_grid.update({obstacle_uid: old_obstacle_polygon})
+
+            self._rp.cleanup_a_star_close_set(ns=robot_name)
+            self._rp.cleanup_diameter_inflated_polygons(ns=robot_name)
+            self._rp.cleanup_blocking_areas(ns=robot_name)
+
+            skipped_global_opening_check = False
+
+            return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
+        else:
+            has_new_global_opening, skipped_global_opening_check = False, True
+            return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
+
+    def new_get_neighbors(self, current_configuration, close_set, other_entities_polygons, other_entities_aabb_tree,
+                          inflated_grid_by_robot, inflated_grid_by_obstacle, trans_mult, rot_mult,
+                          static_collision_cache, robot_uid, obstacle_uid, gscore):
         """
         Creates list of neighbors that are not in close set, do not collide dynamically nor statically
         :param current_configuration:
@@ -949,10 +1094,6 @@ class Stilman2005Behavior(BaselineBehavior):
         :type other_entities_polygons:
         :param other_entities_aabb_tree:
         :type other_entities_aabb_tree:
-        :param res:
-        :type res:
-        :param grid_pose:
-        :type grid_pose:
         :param inflated_grid_by_robot:
         :type inflated_grid_by_robot:
         :param inflated_grid_by_obstacle:
@@ -971,6 +1112,7 @@ class Stilman2005Behavior(BaselineBehavior):
         :rtype: list(Configuration)
         """
         neighbors = []
+        tentative_g_scores = []
 
         for action in self._new_actions:
             if isinstance(action, NewRotation):
@@ -995,14 +1137,19 @@ class Stilman2005Behavior(BaselineBehavior):
 
             # Then check for collisions, starting at a grid level
             robot_cell_in_grid = utils.real_to_grid(
-                new_robot_pose[0], new_robot_pose[1], res, grid_pose)
-            obstacle_cell_in_grid = utils.real_pose_to_grid_pose(
-                new_obstacle_pose[0], new_obstacle_pose[1], res, grid_pose)
+                new_robot_pose[0], new_robot_pose[1],
+                inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose
+            )
+            obstacle_cell_in_grid = utils.real_to_grid(
+                new_obstacle_pose[0], new_obstacle_pose[1],
+                inflated_grid_by_obstacle.res, inflated_grid_by_obstacle.grid_pose
+            )
 
-            width, height = inflated_grid_by_robot.shape
             is_no_longer_in_grid = not (
-                utils.is_in_matrix(robot_cell_in_grid, width, height)
-                and utils.is_in_matrix(obstacle_cell_in_grid, width, height)
+                utils.is_in_matrix(
+                    robot_cell_in_grid, inflated_grid_by_robot.d_width, inflated_grid_by_robot.d_height)
+                and utils.is_in_matrix(
+                    obstacle_cell_in_grid, inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
             )
             if is_no_longer_in_grid:
                 continue
@@ -1051,7 +1198,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 static_collision_cache[obstacle_uid][robot_fixed_precision_pose] = False
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            converted_action = self.convert_action(action)  # So that csv lib can properly do collision detection
+            converted_action = self.new_convert_action(action)  # So that csv lib can properly do collision detection
             robot_dynamically_collides, robot_collision_data, _ = collision.csv_check_collisions(
                 other_polygons=other_entities_polygons,
                 polygon_sequence=[current_configuration.robot_polygon, new_robot_polygon],
@@ -1070,17 +1217,18 @@ class Stilman2005Behavior(BaselineBehavior):
                 continue
 
             # If we are here, then this newly computed neighbor configuration is valid and we must save it
-            neighbor = Configuration(
+            neighbor_configuration = Configuration(
                 robot_floating_point_pose=new_robot_pose, robot_polygon=new_robot_polygon,
                 robot_fixed_precision_pose=robot_fixed_precision_pose, robot_cell_in_grid=robot_cell_in_grid,
                 obstacle_floating_point_pose=new_obstacle_pose, obstacle_polygon=new_obstacle_polygon,
                 obstacle_fixed_precision_pose=obstacle_fixed_precision_pose, obstacle_cell_in_grid=obstacle_cell_in_grid
             )
-            neighbors.append(neighbor)
+            neighbors.append(neighbor_configuration)
+            tentative_g_scores.append(gscore[current_configuration] + action.cost)
 
         return neighbors
 
-    def convert_action(self, action, robot_center):
+    def new_convert_action(self, action, robot_center):
         if isinstance(action, Translation):
             return collision.Translation(action.translation_vector)
         elif isinstance(action, Rotation):
@@ -1971,7 +2119,7 @@ class NewTranslation:
 if __name__ == '__main__':
     heap = []
 
-    heapq.heappush(heap, ConfigurationHeapNode(1., (0,0)))
+    heapq.heappush(heap, ConfigurationHeapNode(1., (0, 0)))
     heapq.heappush(heap, ConfigurationHeapNode(10., (0, 1)))
     heapq.heappush(heap, ConfigurationHeapNode(3., (0, 2)))
     heapq.heappush(heap, ConfigurationHeapNode(0.5, (0, 4)))

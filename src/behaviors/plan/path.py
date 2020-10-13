@@ -47,6 +47,10 @@ class Path:
         return bool(self.path)
 
     def is_valid(self, world, robot_uid, blocked_obstacles):
+        # HACK
+        return True
+
+
         if self.has_infinite_cost():
             return False
 

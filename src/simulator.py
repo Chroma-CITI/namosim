@@ -167,6 +167,8 @@ class Simulator:
         self.run_duration = time.time() - run_start_time
 
         simulation_report = self.create_simulation_report()
+        if e:
+            simulation_report['Exception'] = str(e)
         simulation_report_json = json.dumps(simulation_report, indent=4, sort_keys=True)
 
         print(simulation_report_json)
