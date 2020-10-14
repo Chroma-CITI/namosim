@@ -35,14 +35,15 @@ def heuristic_cost_estimate(a, b):
     return utils.euclidean_distance(a, b)
 
 
-def reconstruct_path(came_from, end):
-    total_path = [end]
+def reconstruct_path(came_from, end, reverse=True):
+    path = [end]
     current = end
     while current in came_from:
         current = came_from[current]
-        total_path.append(current)
-    total_path.reverse()
-    return total_path
+        path.append(current)
+    if reverse:
+        path.reverse()
+    return path
 
 
 def astar(grid, start_cell, goal_cell, res, grid_pose,

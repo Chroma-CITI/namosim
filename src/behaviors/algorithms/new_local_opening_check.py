@@ -56,20 +56,19 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon, other_en
     return False, init_blocking_areas
 
 
-
 def new_check_new_local_opening(init_entity_polygon, target_entity_polygon,
                             other_entities_polygons, other_entities_aabb_tree,
-                            inflation_radius, goal_position,
+                            inflation_radius, goal_pose,
                             init_blocking_areas=None, init_entity_inflated_polygon=None, ns=''):
     # Build inflated polygons
     if init_entity_inflated_polygon is not None:
         init_entity_inflated_polygon = init_entity_polygon.buffer(2. * inflation_radius)
-        if init_entity_inflated_polygon.intersects(Point(goal_position)):
+        if init_entity_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
             # Exit early if goal in init_entity_inflated_polygon
             return True, init_blocking_areas, init_entity_inflated_polygon
     target_entity_inflated_polygon = target_entity_polygon.buffer(2. * inflation_radius)
     target_entity_radius_inflated_polygon = target_entity_polygon.buffer(inflation_radius)
-    if target_entity_radius_inflated_polygon.intersects(Point(goal_position)):
+    if target_entity_radius_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
         return False, init_blocking_areas, init_entity_inflated_polygon
 
     RosPublisher().publish_diameter_inflated_polygons(init_entity_inflated_polygon, target_entity_inflated_polygon, ns=ns)

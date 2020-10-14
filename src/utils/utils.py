@@ -471,3 +471,27 @@ def points_to_angle(x1, y1, x2, y2, x3, y3):
     norm = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) * math.sqrt((x3 - x2) ** 2 + (y3 - y2) ** 2)
     return math.acos(scalar_product / norm)
 
+
+def map_bounds(polygons):
+    if not polygons:
+        raise ValueError("There are no entities to populate the grid, it can't be created !")
+
+    map_min_x, map_min_y, map_max_x, map_max_y = float("inf"), float("inf"), -float("inf"), -float("inf")
+
+    for polygon in polygons.values():
+        min_x, min_y, max_x, max_y = polygon.bounds
+        map_min_x, map_min_y = min(map_min_x, min_x), min(map_min_y, min_y)
+        map_max_x, map_max_y = max(map_max_x, max_x), max(map_max_y, max_y)
+    return map_min_x, map_min_y, map_max_x, map_max_y
+
+
+def grid_parameters(polygons, res):
+    real_min_x, real_min_y, real_max_x, real_max_y = map_bounds(polygons)
+    grid_real_width, grid_real_height = real_max_x - real_min_x, real_max_y - real_min_y
+
+    grid_pose = (real_min_x, real_min_y, 0.0)
+    grid_d_width, grid_d_height = (
+        int(round(grid_real_width / res)),
+        int(round(grid_real_height / res))
+    )
+    return grid_pose, grid_d_width, grid_d_height

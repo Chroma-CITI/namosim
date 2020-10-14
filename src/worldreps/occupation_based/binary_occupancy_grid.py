@@ -90,10 +90,15 @@ class BinaryOccupancyGrid:
 
 
 class NewBinaryOccupancyGrid:
-    def __init__(self, d_width, d_height, res, grid_pose, polygons, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
-        self.d_width, self.d_height = d_width, d_height
+    def __init__(self, polygons, res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                 d_width=None, d_height=None, grid_pose=None):
         self.res = res
-        self.grid_pose = grid_pose
+
+        if grid_pose and d_width and d_height:
+            self.grid_pose, self.d_width, self.d_height = d_width, d_height, grid_pose
+        else:
+            self.grid_pose, self.d_width, self.d_height = utils.grid_parameters(polygons, res)
+
         self.neighborhood=neighborhood
 
         self.cells_sets = dict()

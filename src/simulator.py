@@ -93,6 +93,8 @@ class Simulator:
         self.init_nb_cc, self.init_biggest_cc_size, self.init_all_cc_sum_size, self.init_frag_percentage = \
             stats_utils.get_connectivity_stats(self.init_ref_world, self.human_inflation_radius, tuple())
 
+        self.catch_exceptions = False
+
     def run(self):
         print("Run started")
         run_start_time = time.time()
@@ -100,62 +102,58 @@ class Simulator:
         run_active = True
         while run_active:
 
-            try:
-                active_agents = set(self.agent_uid_to_behavior.keys())
+            active_agents = set(self.agent_uid_to_behavior.keys())
 
-                # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!
-                agent_uid = self.agent_uid_to_behavior.keys()[0]
-                self.rp.publish_sim_world(self.ref_world, agent_uid)
+            # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!
+            agent_uid = self.agent_uid_to_behavior.keys()[0]
+            self.rp.publish_sim_world(self.ref_world, agent_uid)
 
-                while active_agents:
-                    for agent_uid, behavior in self.agent_uid_to_behavior.items():
-                        last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
-                                              if self.agent_uid_to_action_results[agent_uid]
-                                              else ActionSuccess)
-                        behavior.sense(self.ref_world, last_action_result)
+            while active_agents:
+                for agent_uid, behavior in self.agent_uid_to_behavior.items():
+                    last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
+                                          if self.agent_uid_to_action_results[agent_uid]
+                                          else ActionSuccess)
+                    behavior.sense(self.ref_world, last_action_result)
 
-                        if agent_uid not in active_agents:
-                            continue
+                    if agent_uid not in active_agents:
+                        continue
 
-                        planning_start_time = time.time()
-                        action = behavior.think()
-                        self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
+                    planning_start_time = time.time()
+                    action = behavior.think()
+                    self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
 
-                        # If there are no more goals to execute for the agent behavior, then remove it
-                        if isinstance(action, ActionGoalsFinished):
-                            active_agents.remove(agent_uid)
-                        elif not isinstance(action, ActionGoalResult):
-                            action_result = self.act(agent_uid, action)
-                            self.agent_uid_to_action_results[agent_uid].append(action_result)
-                            if action.goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                                self.agent_uid_and_goal_to_action_results[agent_uid][action.goal].append(action_result)
-                            else:
-                                self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = [action_result]
+                    # If there are no more goals to execute for the agent behavior, then remove it
+                    if isinstance(action, ActionGoalsFinished):
+                        active_agents.remove(agent_uid)
+                    elif not isinstance(action, ActionGoalResult):
+                        action_result = self.act(agent_uid, action)
+                        self.agent_uid_to_action_results[agent_uid].append(action_result)
+                        if action.goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal].append(action_result)
+                        else:
+                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = [action_result]
 
-                        elif isinstance(action, ActionGoalResult):
-                            self.agent_uid_and_goal_to_world_snapshot[agent_uid].append({
-                                "goal": action.goal,
-                                "goal_status": str(action),
-                                "world_snapshot": copy.deepcopy(self.ref_world)
-                            })
-                            if action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                                self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = []
+                    elif isinstance(action, ActionGoalResult):
+                        self.agent_uid_and_goal_to_world_snapshot[agent_uid].append({
+                            "goal": action.goal,
+                            "goal_status": str(action),
+                            "world_snapshot": copy.deepcopy(self.ref_world)
+                        })
+                        if action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = []
 
-                        if not self.display_sim_knowledge_only_once:
-                            self.rp.publish_sim_world(self.ref_world, agent_uid)
-                goals_left = any([bool(goals) for goals in self.agent_uid_to_goals.values()])
-                if self.reset_after_first_goal and goals_left:
-                    self.ref_world = copy.deepcopy(self.init_ref_world)
-                    agent_uid_to_goals = {
-                        agent_uid: [goals.pop(0)] for agent_uid, goals in self.agent_uid_to_goals.items() if goals
-                    }
-                    self.agent_uid_to_behavior = self.initialize_agents_behaviors(agent_uid_to_goals)
-                    self.rp.cleanup_sim_world()
-                else:
-                    run_active = False
-            except Exception as e:
+                    if not self.display_sim_knowledge_only_once:
+                        self.rp.publish_sim_world(self.ref_world, agent_uid)
+            goals_left = any([bool(goals) for goals in self.agent_uid_to_goals.values()])
+            if self.reset_after_first_goal and goals_left:
+                self.ref_world = copy.deepcopy(self.init_ref_world)
+                agent_uid_to_goals = {
+                    agent_uid: [goals.pop(0)] for agent_uid, goals in self.agent_uid_to_goals.items() if goals
+                }
+                self.agent_uid_to_behavior = self.initialize_agents_behaviors(agent_uid_to_goals)
+                self.rp.cleanup_sim_world()
+            else:
                 run_active = False
-                print(e)
 
 
         self.ref_world.save_to_files(
