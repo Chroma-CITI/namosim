@@ -677,7 +677,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                         best_cells = sorted_cells[-nb_best_cells:]
                                     except ValueError:
                                         pass
-                            continue
+
                         self._rp.publish_sim(new_robot.polygon, new_obstacle.polygon, "/intermediate", ns=self._robot_name)
 
                         # III - Always compute physical cost, but don't bother computing social cost if no opening

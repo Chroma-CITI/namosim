@@ -110,7 +110,7 @@ def bounding_boxes_vertices_from_states_for_points(s_for_points, actions, bb_typ
             or (action_subsequence[0] is None and isinstance(action_subsequence[1], Translation))
         )
         if actions_are_all_translations:
-            for point_states in s_for_points[subsequences_indexes[0]: subsequences_indexes[-1] + 1]:
+            for point_states in s_for_points[subsequence_indexes[0]: subsequence_indexes[-1] + 1]:
                 if bb_type is 'aabbox':
                     minx, miny, maxx, maxy = MultiPoint(point_states).bounds
                     bounding_boxes_points_coords += [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]

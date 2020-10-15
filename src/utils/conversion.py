@@ -3,12 +3,32 @@ from shapely.geometry import Polygon, Point, LineString
 from xml.dom import minidom
 import numpy as np
 import re
+from shapely import affinity
 
 
 SVG_PATH_ATTRIBUTES_WHITELIST = ["id", "d", "style"]
 
+OBSTACE_TRACE_STYLE = 'fill:#000000;fill-opacity:0.05231688;fill-rule:evenodd;stroke:#f1c232;stroke-width:1;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1'
+MOVABLE_ENTITY_STYLE = 'fill:#f1c232;fill-rule:evenodd'
+FIXED_ENTITY_STYLE = 'fill:#000000;fill-rule:evenodd'
+ROBOT_ENTITY_STYLE = 'fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-opacity:1'
+GOAL_STYLE = 'fill:none;fill-rule:evenodd;stroke:#1155cc;stroke-width:3.5999999;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1'
+POSE_STYLE = 'fill:none;stroke:#1155cc;stroke-width:3.5999999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1'
 
-def svg_path_to_shapely_geometry(svg_path, scaling_value):
+
+def add_shapely_geometry_to_svg(shapely_geometry, scaling_value, map_width, map_height, uname, style, svg_data):
+    projected_geometry = affinity.translate(
+        shapely_geometry, map_width / 2., -map_height / 2.
+    ) # TODO Take rotation into account
+    pathd = shapely_geometry_to_svg_pathd(projected_geometry, scaling_value)
+    new_path = svg_data.createElement('svg:path')
+    new_path.setAttribute('id', uname)
+    new_path.setAttribute('d', pathd)
+    new_path.setAttribute('style', style)
+    svg_data.childNodes[0].appendChild(new_path)
+
+
+def svg_pathd_to_shapely_geometry(svg_path, scaling_value):
     parse_result = parse_path(svg_path)
     geom_pts = parse_result.vertices * scaling_value
     geom_pts[:, 1] = -geom_pts[:, 1]  # Mirror on y-axis
@@ -22,7 +42,7 @@ def svg_path_to_shapely_geometry(svg_path, scaling_value):
         raise RuntimeError("SVG path could not be converted to Shapely geometry.")
 
 
-def shapely_geometry_to_svg_path(shapely_geometry, scaling_value):
+def shapely_geometry_to_svg_pathd(shapely_geometry, scaling_value):
     # Extract polygon coordinates
     if isinstance(shapely_geometry, Polygon):
         coords = np.array(shapely_geometry.exterior.coords)

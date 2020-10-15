@@ -61,7 +61,7 @@ def new_check_new_local_opening(init_entity_polygon, target_entity_polygon,
                             inflation_radius, goal_pose,
                             init_blocking_areas=None, init_entity_inflated_polygon=None, ns=''):
     # Build inflated polygons
-    if init_entity_inflated_polygon is not None:
+    if not init_entity_inflated_polygon:
         init_entity_inflated_polygon = init_entity_polygon.buffer(2. * inflation_radius)
         if init_entity_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
             # Exit early if goal in init_entity_inflated_polygon
@@ -75,7 +75,7 @@ def new_check_new_local_opening(init_entity_polygon, target_entity_polygon,
 
     # Build blocking areas
     # Note: Intersection geometry can be either Point, LineString or Polygon
-    if init_blocking_areas is None:
+    if not init_blocking_areas:
         init_blocking_areas = []
 
         init_entity_inflated_polygon_aabb = collision.polygon_to_aabb(init_entity_inflated_polygon)

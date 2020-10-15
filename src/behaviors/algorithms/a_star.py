@@ -164,6 +164,24 @@ def a_star_real_path(grid, start_pose, goal_pose, res, grid_pose,
     return real_path
 
 
+class HeapNode:
+    def __init__(self, cost, element):
+        self.cost = cost
+        self.element= element
+
+    def __cmp__(self, other):
+        # Meant for allowing heapq to properly order the heap's elements according to lowest cost
+        return cmp(self.cost, other.cost)
+
+    def __lt__(self, other):
+        # Meant for allowing heapq to properly order the heap's elements according to lowest cost
+        return self.cost < other.cost
+
+    def __eq__(self, other):
+        # Meant for fast check whether a configuration is in open heap or not
+        return self.element == other.element
+
+
 def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
     close_set = set()
     came_from = dict()
@@ -172,21 +190,21 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
         gscore = {element for element in start}
         open_heap = []
         for element in start:
-            heapq.heappush(open_heap, (0., element))
+            heapq.heappush(open_heap, HeapNode(0., element))
     elif isinstance(start, dict):
         gscore = {element: cost for element, cost in start.items()}
         open_heap = []
         for element, cost in start.items():
-            heapq.heappush(open_heap, (cost, element))
+            heapq.heappush(open_heap, HeapNode(cost, element))
     else:
         gscore = {start}
         open_heap = []
         for element in start:
-            heapq.heappush(open_heap, (0., element))
+            heapq.heappush(open_heap, HeapNode(0., element))
 
     while open_heap:
         # The node in open_heap having the lowest fScore[] value
-        current = heapq.heappop(open_heap)[1]
+        current = heapq.heappop(open_heap).element
 
         # Exit early if goal is reached
         if exit_condition(current, goal):
@@ -197,7 +215,7 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
 
         # For each neighbor of current node in the defined neighborhood
         neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set)
-        for neighbor, tentative_g_score in neighbors, tentative_g_scores:
+        for neighbor, tentative_g_score in zip(neighbors, tentative_g_scores):
             # Discover a new node or update info about known one :
             if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
                 # This path is the best until now. Record it!
@@ -205,7 +223,7 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
                 gscore[neighbor] = tentative_g_score
                 fscore_neighbor = tentative_g_score + heuristic(neighbor, goal)
                 if neighbor not in open_heap:
-                    heapq.heappush(open_heap, (fscore_neighbor, neighbor))
+                    heapq.heappush(open_heap, HeapNode(fscore_neighbor, neighbor))
 
     # If goal could not be reached despite exploring the full search space
     return False, close_set, came_from, gscore, open_heap

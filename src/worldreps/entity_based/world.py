@@ -79,7 +79,7 @@ class World:
         # Convert imported geometry to shapely polygons
         for svg_id, svg_path in svg_paths.items():
             try:
-                shapely_geoms[svg_id] = conversion.svg_path_to_shapely_geometry(svg_path, scaling_value)
+                shapely_geoms[svg_id] = conversion.svg_pathd_to_shapely_geometry(svg_path, scaling_value)
             except RuntimeError:
                 raise RuntimeError("Could not convert svg path to shapely geometry for svg id: {}".format(svg_id))
         # TODO Fix this so that it only accounts for obstacles in polygon layer otherwise, things might get messy with
@@ -213,16 +213,18 @@ class World:
 
         return world
 
-    def save_to_files(self, json_filepath, svg_filepath=None):
+    def save_to_files(self, json_filepath, svg_filepath=None, json_data=None, svg_data=None):
         if not svg_filepath:
             svg_filepath = "./" + self.init_geometry_filename
         working_directory = os.path.dirname(json_filepath)
         abs_svg_filepath = os.path.join(working_directory, svg_filepath)
 
-        json_data = self.to_json(svg_filepath)
+        if not json_data:
+            json_data = self.to_json(svg_filepath)
 
         # Generate SVG data
-        svg_data = self.to_svg()
+        if not svg_data:
+            svg_data = self.to_svg()
 
         # Save both json and SVG to specified path
         with open(json_filepath, "w+") as f:
@@ -273,7 +275,7 @@ class World:
             for geometry_id in updated_geometries_ids:
                 geometry = affinity.translate(
                     current_geometries_ids_and_polygons[geometry_id], self.dd.width / 2., -self.dd.height / 2.)
-                new_svg_path = conversion.shapely_geometry_to_svg_path(geometry, self.scaling_value)
+                new_svg_path = conversion.shapely_geometry_to_svg_pathd(geometry, self.scaling_value)
                 svg_data.getElementById(geometry_id).setAttribute('d', new_svg_path)
         else:
             raise NotImplementedError("TODO : use bootstrap SVG data to build new SVG file from scratch")
@@ -460,12 +462,12 @@ class World:
                 point_a = np.array([entity.pose[0], entity.pose[1]])
                 point_b = point_a + np.array(utils.direction_from_yaw(entity.pose[2])) * radius
                 current_geometries_ids_and_polygons[entity.name + "_dir"] = LineString([point_a, point_b])
-        for goal in self.goals.values():
-            current_geometries_ids_and_polygons[goal.name] = goal.polygon
-            radius = utils.get_inscribed_radius(goal.polygon)
-            point_a = np.array([goal.pose[0], goal.pose[1]])
-            point_b = point_a + np.array(utils.direction_from_yaw(goal.pose[2])) * radius
-            current_geometries_ids_and_polygons[goal.name + "_dir"] = LineString([point_a, point_b])
-        for taboo in self.taboo_zones.values():
-            current_geometries_ids_and_polygons[taboo.name] = taboo.polygon
+        # for goal in self.goals.values():
+        #     current_geometries_ids_and_polygons[goal.name] = goal.polygon
+        #     radius = utils.get_inscribed_radius(goal.polygon)
+        #     point_a = np.array([goal.pose[0], goal.pose[1]])
+        #     point_b = point_a + np.array(utils.direction_from_yaw(goal.pose[2])) * radius
+        #     current_geometries_ids_and_polygons[goal.name + "_dir"] = LineString([point_a, point_b])
+        # for taboo in self.taboo_zones.values():
+        #     current_geometries_ids_and_polygons[taboo.name] = taboo.polygon
         return current_geometries_ids_and_polygons
