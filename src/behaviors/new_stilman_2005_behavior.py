@@ -189,13 +189,12 @@ class NewStilman2005Behavior(BaselineBehavior):
 
         o_1, c_1 = self._rch(w_t, connected_components_grid, avoid_list, prev_list, r_f)
         while (o_1, c_1) != (None, None):
-            w_t_plus_2, tho_n, tho_m = self.manip_search_procedure(w_t, o_1, ccs_data, c_1, r_f)
+            w_t_plus_2, tho_m = self.manip_search_procedure(w_t, o_1, ccs_data, c_1, r_f)
 
             if tho_m is not None:
                 future_plan = self._select_connect(w_t_plus_2, prev_list.union({c_1}), r_f)
                 if future_plan is not None:
-                    # Following line comes from original algorithm, but does not make sense ?
-                    # tho_n = self._find_path(w_t, x_t, tho_m[0])
+                    tho_n = self._find_path(w_t, r_t, tho_m[0])
                     future_plan.path_components[0].obstacle_uid = o_1  #
                     return NewPlan([tho_n, tho_m], self._q_goal, self._robot_uid).append(future_plan)
 
@@ -359,8 +358,8 @@ class NewStilman2005Behavior(BaselineBehavior):
                         # self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose, ns=self._robot_name)
         return None, None
 
-    def _manip_search(self, w_t, o_1, c_1_cells_set, r_f):
-        pass
+    def _manip_search(self, w_t, o_1, ccs_data, c_1_uid, r_f, check_new_local_opening_before_global=True):
+        return w_t, None
 
     def new_focused_manip_search(self, w_t, o_1, ccs_data, c_1_uid, r_f, check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
@@ -419,7 +418,7 @@ class NewStilman2005Behavior(BaselineBehavior):
         }
 
         transfer_start_configurations = {
-            Configuration(
+            RobotObstacleConfiguration(
                 robot_floating_point_pose=manip_pose,
                 robot_polygon=utils.set_polygon_pose(robot_polygon, robot_pose, manip_pose),
                 # robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(manip_pose, trans_mult, rot_mult),
@@ -467,7 +466,7 @@ class NewStilman2005Behavior(BaselineBehavior):
         )
         if best_transfer_end_configuration is not None:
             self._rp.publish_sim(
-                best_transfer_end_configuration.robot_polygon, best_transfer_end_configuration.obstacle_polygon,
+                best_transfer_end_configuration.robot.polygon, best_transfer_end_configuration.obstacle.polygon,
                 "/target", ns=self._robot_name
             )
 
@@ -502,13 +501,13 @@ class NewStilman2005Behavior(BaselineBehavior):
                 )
                 if best_transfer_end_configuration is not None:
                     self._rp.publish_sim(
-                        best_transfer_end_configuration.robot_polygon, best_transfer_end_configuration.obstacle_polygon,
+                        best_transfer_end_configuration.robot.polygon, best_transfer_end_configuration.obstacle.polygon,
                         "/target", ns=self._robot_name
                     )
                     next_transit_start_pose =
                     raw_path = [] + reconstruct_path(came_from, best_transfer_end_configuration) + []
                     tho_m_phys_cost = gscore[transfer_end_configuration] + self.__manip_e(
-                        best_transfer_end_configuration.robot_floating_point_pose, )
+                        best_transfer_end_configuration.robot.floating_point_pose, )
                     tho_m = TransferPath.from_configurations(raw_path, obstacle_uid, tho_m_phys_cost)
                 else:
                     # If after exhausting all possible configurations, none opens a path to the connected component,
@@ -545,16 +544,16 @@ class NewStilman2005Behavior(BaselineBehavior):
             )
 
         def heuristic(_neighbor, _goal):
-            return self.__manip_e(_neighbor.robot_floating_point_pose, _goal.robot_floating_point_pose)
+            return self.__manip_e(_neighbor.robot.floating_point_pose, _goal.robot.floating_point_pose)
 
         def exit_condition(_current, _goal):
             return (
-                _current.obstacle_cell_in_grid == _goal.obstacle_cell_in_grid
+                _current.obstacle.cell_in_grid == _goal.obstacle.cell_in_grid
                 or (
-                    sorted_cell_to_combined_cost[_current.obstacle_cell_in_grid] < bound_quantile
+                    sorted_cell_to_combined_cost[_current.obstacle.cell_in_grid] < bound_quantile
                     and self.can_robot_walk_back_to_next_transit_pose(
                         inflated_grid_by_robot.inflation_radius, inflated_grid_by_robot.res,
-                        _current.robot_floating_point_pose, _current.robot_polygon,
+                        _current.robot.floating_point_pose, _current.robot.polygon,
                         other_entities_polygons, other_entities_aabb_tree
                     )
                 )
@@ -655,8 +654,8 @@ class NewStilman2005Behavior(BaselineBehavior):
                             )
 
                             can_walk_back = self.can_robot_walk_back_to_next_transit_pose(
-                                robot_inflation_radius, inflated_grid.res, configuration.robot_floating_point_pose,
-                                configuration.robot_polygon, other_entities_polygons, other_entities_aabb_tree
+                                robot_inflation_radius, inflated_grid.res, configuration.robot.floating_point_pose,
+                                configuration.robot.polygon, other_entities_polygons, other_entities_aabb_tree
                             )
 
                             if has_new_global_opening and can_walk_back:
@@ -694,21 +693,23 @@ class NewStilman2005Behavior(BaselineBehavior):
 
                             # Try to find a valid robot pose at transfer end
                             robot_transfer_end_pose = None
+                            robot_transfer_end_poly = None
                             while robot_transfer_end_poses:
                                 candidate_transfer_end_robot_pose = robot_transfer_end_poses.pop()
-                                robot_transfer_end_poly = utils.set_polygon_pose(
+                                candidate_transfer_end_robot_poly = utils.set_polygon_pose(
                                     robot_polygon, robot_pose, candidate_transfer_end_robot_pose
                                 )
-                                robot_transfer_end_aabb = collision.polygon_to_aabb(robot_transfer_end_poly)
+                                robot_transfer_end_aabb = collision.polygon_to_aabb(candidate_transfer_end_robot_poly)
                                 robot_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
                                     robot_transfer_end_aabb)
                                 robot_collides = False
                                 for uid in robot_potential_collision_polygons_uids:
-                                    if robot_transfer_end_poly.intersects(other_entities_polygons[uid]):
+                                    if candidate_transfer_end_robot_poly .intersects(other_entities_polygons[uid]):
                                         robot_collides = True
                                         break
                                 if not robot_collides:
                                     robot_transfer_end_pose = candidate_transfer_end_robot_pose
+                                    robot_transfer_end_poly = candidate_transfer_end_robot_poly
                                     break
 
                             # If there are no valid robot poses for the obstacle pose, don't consider checking further
@@ -733,7 +734,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                             )
 
                             if has_new_global_opening and can_walk_back:
-                                return Configuration(
+                                return RobotObstacleConfiguration(
                                     robot_floating_point_pose=robot_transfer_end_pose,
                                     robot_polygon=robot_transfer_end_poly,
                                     # robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
@@ -767,7 +768,8 @@ class NewStilman2005Behavior(BaselineBehavior):
 
         return None
 
-    def can_robot_walk_back_to_next_transit_pose(self, robot_inflation_radius, res, robot_pose, robot_polygon,
+    @staticmethod
+    def can_robot_walk_back_to_next_transit_pose(robot_inflation_radius, res, robot_pose, robot_polygon,
                                                  other_entities_polygons, other_entities_aabb_tree):
         translation_vector_to_next_transit_start_pose = (
                 (robot_inflation_radius + 1.5 * res) * np.array(utils.direction_from_yaw(robot_pose))
@@ -864,14 +866,16 @@ class NewStilman2005Behavior(BaselineBehavior):
         for action in self._new_actions:
             if isinstance(action, NewRotation):
                 robot_center = (
-                    current_configuration.robot_floating_point_pose[0],
-                    current_configuration.robot_floating_point_pose[1]
+                    current_configuration.robot.floating_point_pose[0],
+                    current_configuration.robot.floating_point_pose[1]
                 )
-                new_robot_pose = action.predict_pose(current_configuration.robot_floating_point_pose)
-                new_obstacle_pose = action.predict_pose(current_configuration.obstacle_floating_point_pose, robot_center)
+                new_robot_pose = action.predict_pose(current_configuration.robot.floating_point_pose, robot_center)
+                new_obstacle_pose = action.predict_pose(current_configuration.obstacle.floating_point_pose, robot_center)
             elif isinstance(action, NewTranslation):
-                new_robot_pose = action.predict_pose(current_configuration.robot_floating_point_pose)
-                new_obstacle_pose = action.predict_pose(current_configuration.obstacle_floating_point_pose)
+                new_robot_pose = action.predict_pose(current_configuration.robot.floating_point_pose)
+                new_obstacle_pose = action.predict_pose(current_configuration.obstacle.floating_point_pose)
+            else:
+                raise TypeError('action must either be of type NewRotation or NewTranslation')
 
             # First, check whether the new configuration is in close set, if it is, ignore it
             # robot_fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(
@@ -911,7 +915,7 @@ class NewStilman2005Behavior(BaselineBehavior):
 
             # Continue at static polygon level, using the aabb tree of other polygons
             new_robot_polygon = action.apply(
-                current_configuration.robot_polygon, current_configuration.robot_floating_point_pose)
+                current_configuration.robot.polygon, current_configuration.robot.floating_point_pose)
             if robot_fixed_precision_pose in static_collision_cache[robot_uid]:
                 # print('Robot static cache hit !')
                 if static_collision_cache[robot_uid][robot_fixed_precision_pose]:
@@ -930,7 +934,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                 static_collision_cache[robot_uid][robot_fixed_precision_pose] = False
 
             new_obstacle_polygon = action.apply(
-                current_configuration.obstacle_polygon, current_configuration.robot_floating_point_pose)
+                current_configuration.obstacle.polygon, current_configuration.robot.floating_point_pose)
             if robot_fixed_precision_pose in static_collision_cache[obstacle_uid]:
                 # print('Obstacle static cache hit !')
                 if static_collision_cache[obstacle_uid][robot_fixed_precision_pose]:
@@ -951,11 +955,11 @@ class NewStilman2005Behavior(BaselineBehavior):
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
             converted_action = self.new_convert_action(
                 action,
-                (current_configuration.robot_floating_point_pose[0], current_configuration.robot_floating_point_pose[1])
+                (current_configuration.robot.floating_point_pose[0], current_configuration.robot.floating_point_pose[1])
             )  # So that csv lib can properly do collision detection
             robot_dynamically_collides, robot_collision_data, _ = collision.csv_check_collisions(
                 other_polygons=other_entities_polygons,
-                polygon_sequence=[current_configuration.robot_polygon, new_robot_polygon],
+                polygon_sequence=[current_configuration.robot.polygon, new_robot_polygon],
                 action_sequence=[converted_action], bb_type='minimum_rotated_rectangle',
                 aabb_tree=other_entities_aabb_tree, display_debug=False
             )
@@ -963,7 +967,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                 continue
             obstacle_dynamically_collides, obstacle_collision_data, _ = collision.csv_check_collisions(
                 other_polygons=other_entities_polygons,
-                polygon_sequence=[current_configuration.obstacle_polygon, new_obstacle_polygon],
+                polygon_sequence=[current_configuration.obstacle.polygon, new_obstacle_polygon],
                 action_sequence=[converted_action], bb_type='minimum_rotated_rectangle',
                 aabb_tree=other_entities_aabb_tree, display_debug=False
             )
@@ -971,7 +975,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                 continue
 
             # If we are here, then this newly computed neighbor configuration is valid and we must save it
-            neighbor_configuration = Configuration(
+            neighbor_configuration = RobotObstacleConfiguration(
                 robot_floating_point_pose=new_robot_pose, robot_polygon=new_robot_polygon,
                 robot_fixed_precision_pose=robot_fixed_precision_pose, robot_cell_in_grid=robot_cell_in_grid,
                 obstacle_floating_point_pose=new_obstacle_pose, obstacle_polygon=new_obstacle_polygon,
@@ -982,20 +986,21 @@ class NewStilman2005Behavior(BaselineBehavior):
             )
 
             self._rp.publish_sim(
-                neighbor_configuration.robot_polygon, neighbor_configuration.obstacle_polygon,
+                neighbor_configuration.robot.polygon, neighbor_configuration.obstacle.polygon,
                 "/intermediate", ns=self._robot_name
             )
 
             neighbors.append(neighbor_configuration)
             tentative_g_scores.append(
                 gscore[current_configuration] + self.__manip_e(
-                    current_configuration.robot_floating_point_pose, neighbor_configuration.robot_floating_point_pose
+                    current_configuration.robot.floating_point_pose, neighbor_configuration.robot.floating_point_pose
                 )
             )
 
         return neighbors, tentative_g_scores
 
-    def new_convert_action(self, action, robot_center):
+    @staticmethod
+    def new_convert_action(action, robot_center):
         if isinstance(action, NewTranslation):
             return collision.Translation(action.translation_vector)
         elif isinstance(action, NewRotation):
@@ -1063,7 +1068,8 @@ class NewStilman2005Behavior(BaselineBehavior):
             translation[0], translation[1]).coords[0])
         return robot_goal_point[0], robot_goal_point[1], (robot_manip_pose[2] + rotation) % 360.
 
-    def __h(self, x_i, x_j):
+    @staticmethod
+    def __h(x_i, x_j):
         return math.sqrt((x_j[0] - x_i[0]) ** 2 + (x_j[1] - x_i[1]) ** 2)
 
     def __g(self, x_i, x_j, g_x_i, cc_grid):
@@ -1258,40 +1264,59 @@ class HeapQueueElement:
 
 
 class Configuration:
+    def __init__(self, floating_point_pose, polygon, cell_in_grid, fixed_precision_pose,
+                 action=None, collision_data=None):
+        self.floating_point_pose = floating_point_pose
+        self.polygon = polygon
+        self.cell_in_grid = cell_in_grid
+        self.fixed_precision_pose = fixed_precision_pose
+        self.action = action
+        self.collision_data = collision_data
+
+    def __eq__(self, other):
+        if isinstance(other, HeapNode):
+            return self.fixed_precision_pose == other.element.fixed_precision_pose
+        elif isinstance(other, tuple):
+            return self.fixed_precision_pose == other
+        else:
+            return self.fixed_precision_pose == other.fixed_precision_pose
+
+    def __hash__(self):
+        return hash(self.fixed_precision_pose)
+
+class RobotObstacleConfiguration:
     def __init__(self, robot_floating_point_pose, robot_polygon, robot_cell_in_grid, robot_fixed_precision_pose,
                  obstacle_floating_point_pose, obstacle_polygon, obstacle_cell_in_grid, obstacle_fixed_precision_pose,
                  action=None, robot_collision_data=None, obstacle_collision_data=None):
-        self.robot_floating_point_pose = robot_floating_point_pose
-        self.robot_polygon = robot_polygon
-        self.robot_cell_in_grid = robot_cell_in_grid
-        self.robot_fixed_precision_pose = robot_fixed_precision_pose
-        self.obstacle_polygon = obstacle_polygon
-        self.obstacle_floating_point_pose = obstacle_floating_point_pose
-        self.obstacle_cell_in_grid = obstacle_cell_in_grid
-        self.obstacle_fixed_precision_pose = obstacle_fixed_precision_pose
+        self.robot = Configuration(
+            robot_floating_point_pose, robot_polygon, robot_cell_in_grid, robot_fixed_precision_pose,
+            action=action, collision_data=robot_collision_data
+        )
+        self.obstacle = Configuration(
+            obstacle_floating_point_pose, obstacle_polygon, obstacle_cell_in_grid, obstacle_fixed_precision_pose,
+            action=action, collision_data=obstacle_collision_data
+        )
         self.action = action
-        self.robot_collision_data = robot_collision_data
-        self.obstacle_collision_data = obstacle_collision_data
 
     def __eq__(self, other):
         if isinstance(other, HeapNode):
             return (
-                    self.robot_fixed_precision_pose == other.element.robot_fixed_precision_pose
-                    and self.obstacle_fixed_precision_pose == other.element.obstacle_fixed_precision_pose
+                    self.robot.fixed_precision_pose == other.element.robot.fixed_precision_pose
+                    and self.obstacle.fixed_precision_pose == other.element.obstacle.fixed_precision_pose
             )
         elif isinstance(other, tuple):
             return (
-                    self.robot_fixed_precision_pose == other[0]
-                    and self.obstacle_fixed_precision_pose == other[1]
+                    self.robot.fixed_precision_pose == other[0]
+                    and self.obstacle.fixed_precision_pose == other[1]
             )
         else:
             return (
-                self.robot_fixed_precision_pose == other.robot_fixed_precision_pose
-                and self.obstacle_fixed_precision_pose == other.obstacle_fixed_precision_pose
+                    self.robot.fixed_precision_pose == other.robot.fixed_precision_pose
+                    and self.obstacle.fixed_precision_pose == other.obstacle.fixed_precision_pose
             )
 
     def __hash__(self):
-        return hash((self.robot_fixed_precision_pose, self.obstacle_fixed_precision_pose))
+        return hash((self.robot.fixed_precision_pose, self.obstacle.fixed_precision_pose))
 
 
 class NewRotation:
@@ -1302,7 +1327,7 @@ class NewRotation:
     def apply(self, polygon, pose):
         return affinity.rotate(geom=polygon, angle=self.angle, origin=(pose[0], pose[1]), use_radians=False)
 
-    def predict_pose(self, pose, center='center'):
+    def predict_pose(self, pose, center):
         new_point = affinity.rotate(
             geom=Point((pose[0], pose[1])), angle=self.angle, origin=center, use_radians=False
         ).coords[0]
@@ -1405,20 +1430,20 @@ class TransferPath:
     def from_configurations(cls, configurations, obstacle_uid, phys_cost=None, social_cost=0., weight=1.):
         configurations_min_start = configurations[1:]
         robot_path = NewPath(
-            poses=[configuration.robot_floating_point_pose for configuration in configurations],
-            polygons=[configuration.robot_polygon for configuration in configurations],
+            poses=[configuration.robot.floating_point_pose for configuration in configurations],
+            polygons=[configuration.robot.polygon for configuration in configurations],
             actions=[configuration.action for configuration in configurations_min_start],
             collision_data={
-                (i, i+1): configuration.robot_collision_data
+                (i, i+1): configuration.robot.collision_data
                 for i, configuration in enumerate(configurations_min_start)
             }
         )
         obstacle_path = NewPath(
-            poses=[configuration.obstacle_floating_point_pose for configuration in configurations],
-            polygons=[configuration.obstacle_polygon for configuration in configurations],
+            poses=[configuration.obstacle.floating_point_pose for configuration in configurations],
+            polygons=[configuration.obstacle.polygon for configuration in configurations],
             actions=[configuration.action for configuration in configurations_min_start],
             collision_data={
-                (i, i + 1): configuration.obstacle_collision_data
+                (i, i + 1): configuration.obstacle.collision_data
                 for i, configuration in enumerate(configurations_min_start)
             }
         )
