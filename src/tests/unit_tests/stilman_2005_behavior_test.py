@@ -28,7 +28,7 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         goal_cell_component_cells = copy.deepcopy(connected_components[goal_cell_component_id])
         r_f = self.behavior._navigation_goals.pop(0)
 
-        w_t_plus_2, tho_n, tho_m, cost = self.behavior._manip_search(
+        w_t_plus_2, tho_n, tho_m, cost = self.behavior.manip_search(
             ref_world, test_obstacle_uid, goal_cell_component_cells, r_f)
 
         self._rp.publish_c_1(tho_n, ns=self._robot_name)
@@ -40,7 +40,7 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         ref_world = self.sim.ref_world
         self._rp.publish_robot_world(ref_world, self.robot_uid, ns=self.behavior.robot_name)
         r_f = self.behavior._navigation_goals[0]
-        o_1, c_1 = self.behavior._rch(ref_world, set(), set(), r_f)
+        o_1, c_1 = self.behavior.rch(ref_world, set(), set(), r_f)
         print(
             "First obstacle in the path is <{o_name}>, and the first disconnected free-space is {cid}".format(
                 o_name=ref_world.entities[o_1].name, cid=c_1))
@@ -51,7 +51,7 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         ref_world = self.sim.ref_world
         self._rp.publish_robot_world(ref_world, self.robot_uid, ns=self.behavior.robot_name)
         r_f = self.behavior._navigation_goals[0]
-        plan = self.behavior._select_connect(ref_world, set(), r_f)
+        plan = self.behavior.select_connect(ref_world, set(), r_f)
         print("")
 
 

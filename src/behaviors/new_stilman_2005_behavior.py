@@ -52,11 +52,11 @@ class NewStilman2005Behavior(BaselineBehavior):
         self.bound_percentage = parameters["solution_interval_bound_percentage"]
         if parameters["manipulation_search_procedure"] == "DFS":
             if self.use_social_cost:
-                self.manip_search_procedure = self.new_focused_manip_search
+                self.manip_search_procedure = self.focused_manip_search
             else:
                 raise ValueError("Focused manipulation search requires the use_social_cost variable to be True !")
         elif parameters["manipulation_search_procedure"] == "BFS":
-            self.manip_search_procedure = self._manip_search
+            self.manip_search_procedure = self.manip_search
         self.w_social, self.w_obs, self.w_goal = 15., 10., 2.
         self.w_sum = self.w_social + self.w_obs + self.w_goal
         self.distance_to_obs_cost_is_realistic = True
@@ -121,7 +121,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                     # time.sleep(3.)
 
                 # top_1 = time.time()
-                self._p_opt = self._select_connect(self._world, set(), self._q_goal)
+                self._p_opt = self.select_connect(self._world, set(), self._q_goal)
                 # top_2 = time.time()
                 # duration = top_2 - top_1
                 # print(duration)
@@ -146,7 +146,7 @@ class NewStilman2005Behavior(BaselineBehavior):
             print("FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
             return ActionGoalsFinished()
 
-    def _select_connect(self, w_t, prev_list, r_f, ccs_data=None):
+    def select_connect(self, w_t, prev_list, r_f, ccs_data=None):
         """
         High Level Planner _select_connect (SC).
         It makes use of _rch and _manip_search in a greedy heuristic search with backtracking.
@@ -164,7 +164,7 @@ class NewStilman2005Behavior(BaselineBehavior):
 
         avoid_list = set()
 
-        simple_path_to_goal = self._find_path(w_t, r_t, r_f)
+        simple_path_to_goal = self.find_path(w_t, r_t, r_f)
         if simple_path_to_goal:
             # If the goal is in the same free space component as the robot in simulated w_t
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
@@ -187,24 +187,24 @@ class NewStilman2005Behavior(BaselineBehavior):
         connected_components_grid = ccs_data.ccs_grid
         self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd, ns=self._robot_name)
 
-        o_1, c_1 = self._rch(w_t, connected_components_grid, avoid_list, prev_list, r_f)
+        o_1, c_1 = self.rch(w_t, connected_components_grid, avoid_list, prev_list, r_f)
         while (o_1, c_1) != (None, None):
             w_t_plus_2, tho_m = self.manip_search_procedure(w_t, o_1, ccs_data, c_1, r_f)
 
             if tho_m is not None:
-                future_plan = self._select_connect(w_t_plus_2, prev_list.union({c_1}), r_f)
+                future_plan = self.select_connect(w_t_plus_2, prev_list.union({c_1}), r_f)
                 if future_plan is not None:
-                    tho_n = self._find_path(w_t, r_t, tho_m[0])
+                    tho_n = self.find_path(w_t, r_t, tho_m[0]) # TODO Get proper transit pose from tho_m
                     future_plan.path_components[0].obstacle_uid = o_1  #
                     return NewPlan([tho_n, tho_m], self._q_goal, self._robot_uid).append(future_plan)
 
             avoid_list.add((o_1, c_1))
 
-            o_1, c_1 = self._rch(w_t, connected_components_grid, avoid_list, prev_list, r_f)
+            o_1, c_1 = self.rch(w_t, connected_components_grid, avoid_list, prev_list, r_f)
 
         return None
 
-    def _rch(self, w_t, connected_components_grid, avoid_list, prev_list, r_f):
+    def rch(self, w_t, connected_components_grid, avoid_list, prev_list, r_f):
         """
         Relaxed Constraint Heuristic (RCH)
         It is a navigation planner derived from A* that allows collisions with movable obstacles, with the following
@@ -250,7 +250,7 @@ class NewStilman2005Behavior(BaselineBehavior):
         # Initially, only the start node is known.
         heapq.heappush(
             open_queue, HeapQueueElement(
-                f=self.__h(start_cell, goal_cell), cell=start_cell, obs_id=0, comp_id=0))
+                f=self.h(start_cell, goal_cell), cell=start_cell, obs_id=0, comp_id=0))
 
         self._rp.cleanup_a_star_close_set(ns=self._robot_name)
         # self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose, ns=self._robot_name)
@@ -288,7 +288,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                         and static_obs_grid[neighbor_cell[0]][neighbor_cell[1]] == 0):
 
                     # The cost from start to a neighbor.
-                    tentative_g_score = self.__g(
+                    tentative_g_score = self.g(
                         current.cell, neighbor_cell, gscore[current.cell], connected_components_grid)
                     # WAS BEFORE : tentative_g_score =  gscore[current.cell] + dist_between(current.cell, neighbor_cell)
 
@@ -296,14 +296,14 @@ class NewStilman2005Behavior(BaselineBehavior):
                     if tentative_g_score < gscore[neighbor_cell] or neighbor_cell not in [i.cell for i in open_queue]:
                         # This path is the best until now. Record it!
                         gscore[neighbor_cell] = tentative_g_score
-                        fscore_neighbor_cell = tentative_g_score + self.__h(neighbor_cell, goal_cell)
+                        fscore_neighbor_cell = tentative_g_score + self.h(neighbor_cell, goal_cell)
 
                         path_has_traversed_first_disconnected_comp = current.comp_id != 0
 
                         if path_has_traversed_first_disconnected_comp:
                             # After the path has traversed its first disconnected component, keep remembering it and the
                             # traversed obstacle to get to it as the firsts !
-                            self.__enqueue(
+                            self.enqueue(
                                 open_queue, neighbor_cell, fscore_neighbor_cell, current.obs_id, current.comp_id)
                         else:
                             # If no other disconnected component has been traversed yet, take a look at whether we have
@@ -323,45 +323,45 @@ class NewStilman2005Behavior(BaselineBehavior):
                                         # ...and the component associated with this cell is not in any blacklist, then
                                         # associate the neighbor cell with the same obstacle and the new component
                                         # --> Application of Rule #3
-                                        self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell,
-                                                       current.obs_id, neighbor_component)
+                                        self.enqueue(open_queue, neighbor_cell, fscore_neighbor_cell,
+                                                     current.obs_id, neighbor_component)
                                     # else:
                                     #     print("Path has not traversed its first disconnected component but has"
                                     #           "traversed its first obstacle, and neighbor is in c_r_free, but "
                                     #           "its component is in prev_list or avoid_list.")
                                 else:
                                     # ...and the neighbor cell is in an obstacle...
-                                    o_uid = self.__robot_exc_contained_in_obs(neighbor_cell, w_t)
+                                    o_uid = self.robot_exc_contained_in_obs(neighbor_cell, w_t)
                                     is_obs_traversed_by_neighbor_cell_same_as_current = o_uid == current.obs_id
                                     if is_obs_traversed_by_neighbor_cell_same_as_current:
                                         # ...and this obstacle is the same as the current one so we associate the
                                         # neighbor cell with it too. Application of Rule #2
-                                        self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell,
-                                                       current.obs_id, 0)
+                                        self.enqueue(open_queue, neighbor_cell, fscore_neighbor_cell,
+                                                     current.obs_id, 0)
                             else:
                                 # If the path has not traversed its first obstacle yet...
 
                                 if is_neighbor_in_c_r_free:
                                     # ...and the neighbor cell is in the free space (in the initial component),
                                     # associate the cell with no obstacle and with the initial component
-                                    self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell, 0, 0)
+                                    self.enqueue(open_queue, neighbor_cell, fscore_neighbor_cell, 0, 0)
                                     continue
 
-                                o_uid = self.__robot_exc_contained_in_obs(neighbor_cell, w_t)
+                                o_uid = self.robot_exc_contained_in_obs(neighbor_cell, w_t)
                                 is_valid_obstacle_uid = o_uid > 0
                                 if is_valid_obstacle_uid:
                                     # If the neighbor cell is not in the free space but in an obstacle, and if it is
                                     # exclusively in this obstacle, then associate the cell with this obstacle and the
                                     # initial component. Application of Rule #2
-                                    self.__enqueue(open_queue, neighbor_cell, fscore_neighbor_cell, o_uid, 0)
+                                    self.enqueue(open_queue, neighbor_cell, fscore_neighbor_cell, o_uid, 0)
 
                         # self._rp.publish_rch_open_queue(open_queue, w_t.dd.res, w_t.dd.grid_pose, ns=self._robot_name)
         return None, None
 
-    def _manip_search(self, w_t, o_1, ccs_data, c_1_uid, r_f, check_new_local_opening_before_global=True):
+    def manip_search(self, w_t, o_1, ccs_data, c_1_uid, r_f, check_new_local_opening_before_global=True):
         return w_t, None
 
-    def new_focused_manip_search(self, w_t, o_1, ccs_data, c_1_uid, r_f, check_new_local_opening_before_global=True):
+    def focused_manip_search(self, w_t, o_1, ccs_data, c_1_uid, r_f, check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
@@ -441,7 +441,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                     obstacle_pose[0], obstacle_pose[1],
                     res, inflated_grid_by_obstacle.grid_pose
                 )
-            ): self.__manip_e(nav_pose, manip_pose)
+            ): self.manip_e(nav_pose, manip_pose)
             for manip_pose, nav_pose in transfer_start_to_transit_end_robot_pose.items()
         }
 
@@ -454,7 +454,7 @@ class NewStilman2005Behavior(BaselineBehavior):
         bound_quantile = sorted_cell_to_combined_cost[cells_sorted_by_combined_cost[bound_quantile_index]]
 
         # 1. Find the best obstacle transfer end configuration, that is, the one with the best compromise cost
-        best_transfer_end_configuration = self.new_find_best_transfer_end_configuration(
+        best_transfer_end_configuration = self.find_best_transfer_end_configuration(
             robot_pose, robot_polygon, robot_name, robot_cell, robot_max_inflation_radius,
             obstacle_uid, obstacle_pose, obstacle_polygon,
             goal_pose, goal_cell,
@@ -471,7 +471,7 @@ class NewStilman2005Behavior(BaselineBehavior):
             )
 
             # 2. If a best obstacle transfer end configuration has been found, use A Star to find a path toward it
-            path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.new_a_star_for_manip_search(
+            path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.a_star_for_manip_search(
                 transfer_start_configurations, best_transfer_end_configuration,
                 robot_uid, obstacle_uid,
                 other_entities_polygons, other_entities_aabb_tree,
@@ -489,7 +489,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                 # 4. If no path is found on the first, try finding a best configuration that has a path towards it
                 #   (because we assume the A Star search to have completed, giving us the paths to ALL reachable
                 #   configurations.
-                best_transfer_end_configuration = self.new_find_best_transfer_end_configuration(
+                best_transfer_end_configuration = self.find_best_transfer_end_configuration(
                     robot_pose, robot_polygon, robot_name, robot_cell, robot_max_inflation_radius,
                     obstacle_uid, obstacle_pose, obstacle_polygon,
                     goal_pose, goal_cell,
@@ -504,10 +504,34 @@ class NewStilman2005Behavior(BaselineBehavior):
                         best_transfer_end_configuration.robot.polygon, best_transfer_end_configuration.obstacle.polygon,
                         "/target", ns=self._robot_name
                     )
-                    next_transit_start_pose =
-                    raw_path = [] + reconstruct_path(came_from, best_transfer_end_configuration) + []
-                    tho_m_phys_cost = gscore[transfer_end_configuration] + self.__manip_e(
-                        best_transfer_end_configuration.robot.floating_point_pose, )
+                    raw_path = reconstruct_path(came_from, best_transfer_end_configuration)
+                    ############# TODO PUT THIS IN FUNCTION, CALL IT HERE AND ABOVE (after 'if path_found:')
+                    init_transit_start_pose = transfer_start_to_transit_end_robot_pose[
+                        raw_path[0].robot.floating_point_pose]
+                    init_transit_start_configuration = Configuration(
+                        init_transit_start_pose,
+                        utils.set_polygon_pose(robot_polygon, robot_pose, init_transit_start_pose),
+                        utils.real_to_grid(
+                            init_transit_start_pose[0], init_transit_start_pose[1],
+                            inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose
+                        ),
+                        utils.real_pose_to_grid_pose(
+                            init_transit_start_pose, inflated_grid_by_robot.res,
+                            inflated_grid_by_robot.grid_pose, self.rotation_unit_angle
+                        )
+                    )
+                    next_transit_start_configuration = self.get_robot_walk_back_to_next_transit_configuration(
+                        best_transfer_end_configuration.robot.floating_point_pose,
+                        best_transfer_end_configuration.robot.polygon,
+                        inflated_grid_by_robot.inflation_radius,
+                        inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose
+                    )
+                    ############# TODO ALSO UPDATE SCORE COMPUTATION Above
+                    tho_m_phys_cost = gscore[transfer_end_configuration] + self.manip_e(
+                        best_transfer_end_configuration.robot.floating_point_pose,
+                        next_transit_start_configuration.floating_point_pose
+                    )
+                    #############
                     tho_m = TransferPath.from_configurations(raw_path, obstacle_uid, tho_m_phys_cost)
                 else:
                     # If after exhausting all possible configurations, none opens a path to the connected component,
@@ -525,16 +549,16 @@ class NewStilman2005Behavior(BaselineBehavior):
 
         return w_t_plus_2, tho_m
 
-    def new_a_star_for_manip_search(self, start, goal,
-                                    robot_uid, obstacle_uid,
-                                    other_entities_polygons, other_entities_aabb_tree,
-                                    inflated_grid_by_robot, inflated_grid_by_obstacle,
-                                    trans_mult, rot_mult,
-                                    static_collision_cache,
-                                    sorted_cell_to_combined_cost, bound_quantile):
+    def a_star_for_manip_search(self, start, goal,
+                                robot_uid, obstacle_uid,
+                                other_entities_polygons, other_entities_aabb_tree,
+                                inflated_grid_by_robot, inflated_grid_by_obstacle,
+                                trans_mult, rot_mult,
+                                static_collision_cache,
+                                sorted_cell_to_combined_cost, bound_quantile):
 
         def get_neighbors(_current, _gscore, _close_set):
-            return self.new_get_neighbors(
+            return self.get_neighbors(
                 _current, _gscore, _close_set,
                 robot_uid, obstacle_uid,
                 other_entities_polygons, other_entities_aabb_tree,
@@ -544,7 +568,7 @@ class NewStilman2005Behavior(BaselineBehavior):
             )
 
         def heuristic(_neighbor, _goal):
-            return self.__manip_e(_neighbor.robot.floating_point_pose, _goal.robot.floating_point_pose)
+            return self.manip_e(_neighbor.robot.floating_point_pose, _goal.robot.floating_point_pose)
 
         def exit_condition(_current, _goal):
             return (
@@ -563,13 +587,13 @@ class NewStilman2005Behavior(BaselineBehavior):
             start, goal, exit_condition=exit_condition, get_neighbors=get_neighbors, heuristic=heuristic
         )
 
-    def new_find_best_transfer_end_configuration(self, robot_pose, robot_polygon, robot_name, robot_cell, robot_inflation_radius,
-                                                 obstacle_uid, obstacle_pose, obstacle_polygon,
-                                                 goal_pose, goal_cell,
-                                                 other_entities_polygons, other_entities_aabb_tree,
-                                                 inflated_grid, ordered_cells_by_cost, c_1_cells_set, init_robot_manip_poses,
-                                                 trans_mult, rot_mult, gscore=None, close_set=None,
-                                                 check_new_local_opening_before_global=True):
+    def find_best_transfer_end_configuration(self, robot_pose, robot_polygon, robot_name, robot_cell, robot_inflation_radius,
+                                             obstacle_uid, obstacle_pose, obstacle_polygon,
+                                             goal_pose, goal_cell,
+                                             other_entities_polygons, other_entities_aabb_tree,
+                                             inflated_grid, ordered_cells_by_cost, c_1_cells_set, init_robot_manip_poses,
+                                             trans_mult, rot_mult, gscore=None, close_set=None,
+                                             check_new_local_opening_before_global=True):
         all_poses_to_d_poses = {}
 
         while ordered_cells_by_cost:
@@ -643,7 +667,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                             obstacle_transfer_end_poly = utils.set_polygon_pose(
                                 obstacle_polygon, obstacle_pose, obstacle_transfer_end_pose
                             )
-                            has_new_global_opening, _, _ = self.new_is_there_opening_to_c_1(
+                            has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
                                 check_new_local_opening_before_global,
                                 robot_name, robot_cell,
                                 obstacle_uid, obstacle_polygon, obstacle_transfer_end_poly,
@@ -718,7 +742,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                                 continue
 
                             # Check for new global opening for this obstacle pose
-                            has_new_global_opening, _, _ = self.new_is_there_opening_to_c_1(
+                            has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
                                 check_new_local_opening_before_global,
                                 robot_name, robot_cell,
                                 obstacle_uid, obstacle_polygon, obstacle_transfer_end_poly,
@@ -786,14 +810,31 @@ class NewStilman2005Behavior(BaselineBehavior):
         )
         return not robot_dynamically_collides
 
+    def get_robot_walk_back_to_next_transit_configuration(self, robot_pose, robot_polygon, robot_inflation_radius,
+                                                          res, grid_pose):
+        translation_vector_to_next_transit_start_pose = (
+                (robot_inflation_radius + 1.5 * res) * np.array(utils.direction_from_yaw(robot_pose))
+        )
+        action = collision.Translation(
+            translation_vector_to_next_transit_start_pose
+        )
+        new_robot_polygon = action.apply(robot_polygon)
+        new_robot_center = new_robot_polygon.centroid.coords[0]
+        new_robot_pose = (new_robot_center[0], new_robot_center[1], robot_pose[2])
+        new_cell_in_grid = utils.real_to_grid(new_robot_pose[0], new_robot_pose[1], res, grid_pose)
+        new_fixed_precision_pose = utils.real_pose_to_grid_pose(
+            new_robot_pose, res, grid_pose, self.rotation_unit_angle)
+        return Configuration(
+            new_robot_pose, new_robot_polygon, new_cell_in_grid, new_fixed_precision_pose, action
+        )
 
-    def new_is_there_opening_to_c_1(self, check_new_local_opening_before_global,
-                                    robot_name, robot_cell,
-                                    obstacle_uid, old_obstacle_polygon, new_obstacle_polygon,
-                                    other_entities_polygons, other_entities_aabb_tree,
-                                    inflated_grid, c_1_cells_set, robot_min_inflation_radius,
-                                    goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-                                    init_blocking_areas=None, init_entity_inflated_polygon=None):
+    def is_there_opening_to_c_1(self, check_new_local_opening_before_global,
+                                robot_name, robot_cell,
+                                obstacle_uid, old_obstacle_polygon, new_obstacle_polygon,
+                                other_entities_polygons, other_entities_aabb_tree,
+                                inflated_grid, c_1_cells_set, robot_min_inflation_radius,
+                                goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                                init_blocking_areas=None, init_entity_inflated_polygon=None):
         """
         Checks if there is a path between robot_cell and a random cell in c_1_cells_set that is not covered by an
         obstacle (especially the one considered for manipulation).
@@ -851,12 +892,12 @@ class NewStilman2005Behavior(BaselineBehavior):
             has_new_global_opening, skipped_global_opening_check = False, True
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
-    def new_get_neighbors(self, current_configuration, gscore, close_set,
-                          robot_uid, obstacle_uid,
-                          other_entities_polygons, other_entities_aabb_tree,
-                          inflated_grid_by_robot, inflated_grid_by_obstacle,
-                          trans_mult, rot_mult,
-                          static_collision_cache):
+    def get_neighbors(self, current_configuration, gscore, close_set,
+                      robot_uid, obstacle_uid,
+                      other_entities_polygons, other_entities_aabb_tree,
+                      inflated_grid_by_robot, inflated_grid_by_obstacle,
+                      trans_mult, rot_mult,
+                      static_collision_cache):
         """
         Creates list of neighbors that are not in close set, do not collide dynamically nor statically
         """
@@ -953,7 +994,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                 static_collision_cache[obstacle_uid][robot_fixed_precision_pose] = False
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            converted_action = self.new_convert_action(
+            converted_action = self.convert_action(
                 action,
                 (current_configuration.robot.floating_point_pose[0], current_configuration.robot.floating_point_pose[1])
             )  # So that csv lib can properly do collision detection
@@ -992,7 +1033,7 @@ class NewStilman2005Behavior(BaselineBehavior):
 
             neighbors.append(neighbor_configuration)
             tentative_g_scores.append(
-                gscore[current_configuration] + self.__manip_e(
+                gscore[current_configuration] + self.manip_e(
                     current_configuration.robot.floating_point_pose, neighbor_configuration.robot.floating_point_pose
                 )
             )
@@ -1000,7 +1041,7 @@ class NewStilman2005Behavior(BaselineBehavior):
         return neighbors, tentative_g_scores
 
     @staticmethod
-    def new_convert_action(action, robot_center):
+    def convert_action(action, robot_center):
         if isinstance(action, NewTranslation):
             return collision.Translation(action.translation_vector)
         elif isinstance(action, NewRotation):
@@ -1048,7 +1089,7 @@ class NewStilman2005Behavior(BaselineBehavior):
 
         return valid_transit_end_poses, valid_transfer_start_poses
 
-    def _find_path(self, w_t, r_t, r_f):
+    def find_path(self, w_t, r_t, r_f):
         # TODO REWRITE USING NEW A STAR IMPLEMENTATION ! AND CORRECTLY COMPUTING COST !
         circum_radius = utils.get_circumscribed_radius(w_t.entities[self._robot.uid].polygon)
         grid = BinaryInflatedOccupancyGrid(
@@ -1069,29 +1110,29 @@ class NewStilman2005Behavior(BaselineBehavior):
         return robot_goal_point[0], robot_goal_point[1], (robot_manip_pose[2] + rotation) % 360.
 
     @staticmethod
-    def __h(x_i, x_j):
+    def h(x_i, x_j):
         return math.sqrt((x_j[0] - x_i[0]) ** 2 + (x_j[1] - x_i[1]) ** 2)
 
-    def __g(self, x_i, x_j, g_x_i, cc_grid):
-        return g_x_i + (1 - self.alpha) + self.alpha * self.__w_heur(x_i, x_j, cc_grid)
+    def g(self, x_i, x_j, g_x_i, cc_grid):
+        return g_x_i + (1 - self.alpha) + self.alpha * self.w_heur(x_i, x_j, cc_grid)
 
-    def __w_heur(self, x_i, x_j, cc_grid):
+    def w_heur(self, x_i, x_j, cc_grid):
         if cc_grid[x_j[0]][x_j[1]] > 0:
             return 0.
         else:
             return self.heur_w
 
-    def __manip_e(self, r_i, r_j):
+    def manip_e(self, r_i, r_j):
         translation_energy = self.basic_trans_force * utils.euclidean_distance(r_j, r_i)
         rotation_energy = 0. if self._rot_angles.size == 0 else self.basic_rot_moment * (
                     abs(r_j[2] - r_i[2]) / abs(self.rotation_unit_angle))
         return translation_energy + rotation_energy
 
     @staticmethod
-    def __enqueue(queue, cell, f, obs_id, comp_id):
+    def enqueue(queue, cell, f, obs_id, comp_id):
         heapq.heappush(queue, HeapQueueElement(cell, f, obs_id, comp_id))
 
-    def __robot_exc_contained_in_obs(self, cell, w_t):
+    def robot_exc_contained_in_obs(self, cell, w_t):
         """
         If cell is contained only by one obstacle o_i, returns o_i.
         If contained by no obstacle, returns 0. If contained by more than one, returns -1.
@@ -1249,6 +1290,7 @@ class NewStilman2005Behavior(BaselineBehavior):
 
         return cells_sorted_by_combined_cost, sorted_cell_to_combined_cost
 
+
 class HeapQueueElement:
     def __init__(self, cell, f, obs_id, comp_id):
         self.cell = cell
@@ -1283,6 +1325,7 @@ class Configuration:
 
     def __hash__(self):
         return hash(self.fixed_precision_pose)
+
 
 class RobotObstacleConfiguration:
     def __init__(self, robot_floating_point_pose, robot_polygon, robot_cell_in_grid, robot_fixed_precision_pose,
@@ -1428,6 +1471,8 @@ class TransferPath:
 
     @classmethod
     def from_configurations(cls, configurations, obstacle_uid, phys_cost=None, social_cost=0., weight=1.):
+        # TODO Add parameters and fields to take init and end configurations into account, modify validity checks and
+        # all other functions
         configurations_min_start = configurations[1:]
         robot_path = NewPath(
             poses=[configuration.robot.floating_point_pose for configuration in configurations],
@@ -1616,6 +1661,7 @@ class NewPlan:
         return True
 
     def pop_next_step(self):
+        # TODO Add specific plan step where robot attaches itself to obstacle
         # If the currently executed path component still has steps to execute, pop the first
         current_path = self.path_components[0]
         if not current_path.is_empty():
