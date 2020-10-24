@@ -86,6 +86,20 @@ def manhattan_distance(a, b):
     return abs(b[0] - a[0]) + abs(b[1] - a[1])
 
 
+def sum_of_euclidean_distances(poses):
+    if len(poses) == 0:
+        return float("inf")
+    elif len(poses) == 1:
+        return 0.
+
+    total = 0.
+    prev_pose = poses[0]
+    for cur_pose in poses[1:len(poses)]:
+        total += euclidean_distance(cur_pose, prev_pose)
+        prev_pose = cur_pose
+
+    return total
+
 def get_neighbors(cell, width, height, neighborhood=TAXI_NEIGHBORHOOD):
     neighbors = set()
     for i, j in neighborhood:
@@ -403,6 +417,10 @@ def find_circle_terms(x1, y1, x2, y2, x3, y3):
     :return: circle's center coordinates (x-axis, then y-axis) and radius
     :rtype: float, float, float
     """
+    if x1 == x2 == x3 and y1 == y2 == y3:
+        # Manage special case where the point does not move
+        return x1, y1, 0.
+
     x12 = x1 - x2
     x13 = x1 - x3
 
@@ -424,17 +442,11 @@ def find_circle_terms(x1, y1, x2, y2, x3, y3):
     sx21 = pow(x2, 2) - pow(x1, 2)
     sy21 = pow(y2, 2) - pow(y1, 2)
 
-    f = (((sx13) * (x12) + (sy13) *
-          (x12) + (sx21) * (x13) +
-          (sy21) * (x13)) / (2 *
-                              ((y31) * (x12) - (y21) * (x13))))
+    f = (sx13 * x12 + sy13 * x12 + sx21 * x13 + sy21 * x13) / (2 * (y31 * x12 - y21 * x13))
 
-    g = (((sx13) * (y12) + (sy13) * (y12) +
-          (sx21) * (y13) + (sy21) * (y13)) /
-         (2 * ((x31) * (y12) - (x21) * (y13))))
+    g = (sx13 * y12 + sy13 * y12 + sx21 * y13 + sy21 * y13) / (2. * (x31 * y12 - x21 * y13))
 
-    c = (-pow(x1, 2) - pow(y1, 2) -
-         2 * g * x1 - 2 * f * y1)
+    c = (-pow(x1, 2) - pow(y1, 2) - 2. * g * x1 - 2. * f * y1)
 
     # eqn of circle be x^2 + y^2 + 2*g*x + 2*f*y + c = 0
     # where centre is (h = -g, k = -f) and
@@ -468,8 +480,11 @@ def points_to_angle(x1, y1, x2, y2, x3, y3):
     :rtype: float
     """
     scalar_product = (x1 - x2) * (x3 - x2) + (y1 - y2) * (y3 - y2)
-    norm = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) * math.sqrt((x3 - x2) ** 2 + (y3 - y2) ** 2)
-    return math.acos(scalar_product / norm)
+    product_of_norms = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) * math.sqrt((x3 - x2) ** 2 + (y3 - y2) ** 2)
+    term = scalar_product / product_of_norms
+    term = max(-1., term)
+    term = min(1., term)
+    return math.acos(term)
 
 
 def map_bounds(polygons):
@@ -495,3 +510,28 @@ def grid_parameters(polygons, res):
         int(round(grid_real_height / res))
     )
     return grid_pose, grid_d_width, grid_d_height
+
+def are_points_on_opposite_sides(ax, ay, bx, by, x1, y1, x2, y2):
+    """
+    Method inspired by answer of Stackoverflow use copper.har at link :
+    https://math.stackexchange.com/questions/162728/how-to-determine-if-2-points-are-on-opposite-sides-of-a-line
+    :param ax: X coordinate of one of the points
+    :type ax: float
+    :param ay: Y coordinate of one of the points
+    :type ay: float
+    :param bx: X coordinate of the other point
+    :type bx: float
+    :param by: Y coordinate of the other point
+    :type by: float
+    :param x1: X coordinate of one the line's points
+    :type x1: float
+    :param y1: Y coordinate of one the line's points
+    :type y1: float
+    :param x2: X coordinate of the other point of the line
+    :type x2: float
+    :param y2: Y coordinate of the other point of the line
+    :type y2: float
+    :return: True if the points are on opposite sides of the line, False otherwise
+    :rtype: bool
+    """
+    return ((y1 - y2) * (ax - x1) + (x2 - x1) * (ay - y1)) * ((y1 - y2) * (bx - x1) + (x2 - x1) * (by - y1)) < 0.
