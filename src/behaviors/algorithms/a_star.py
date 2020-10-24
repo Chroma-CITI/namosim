@@ -208,7 +208,7 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
 
         # Exit early if goal is reached
         if exit_condition(current, goal):
-            return True, came_from, close_set, gscore, open_heap
+            return True, current, came_from, close_set, gscore, open_heap
 
         # Add current to the close set to prevent unneeded future re-evaluation
         close_set.add(current)
@@ -226,4 +226,6 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
                     heapq.heappush(open_heap, HeapNode(fscore_neighbor, neighbor))
 
     # If goal could not be reached despite exploring the full search space
-    return False, close_set, came_from, gscore, open_heap
+    return False, current, came_from, close_set, gscore, open_heap
+
+# def
