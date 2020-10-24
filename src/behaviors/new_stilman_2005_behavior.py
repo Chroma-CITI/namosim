@@ -3,23 +3,20 @@ import heapq
 import math
 import numpy as np
 import time
+from collections import OrderedDict
 from shapely.geometry import LineString, Point, box
 from shapely import affinity
-from shapely.ops import cascaded_union
-import Box2D
 
 from baseline_behavior import BaselineBehavior
 from src.behaviors.algorithms.a_star import astar, a_star_real_path, new_generic_a_star, reconstruct_path, HeapNode
-from src.behaviors.plan.path import Path
-from src.behaviors.plan.plan import Plan
 from src.behaviors.algorithms.multi_goal_a_star import multi_goal_a_star_real_path
 from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.worldreps.entity_based.robot import Robot
-from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, new_check_new_local_opening  # , is_move_passing_over_pose
+from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, new_check_new_local_opening
 from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
 from src.worldreps.entity_based.custom_exceptions import IntersectionError
-from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, NewBinaryOccupancyGrid, NewBinaryInflatedOccupancyGrid
+from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, NewBinaryInflatedOccupancyGrid
 from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
 import src.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
 import src.utils.collision as collision
@@ -89,11 +86,13 @@ class NewStilman2005Behavior(BaselineBehavior):
 
         self.is_first_transfer_step = False
 
+        self.check_horizon = 10
+
     def think(self):
         if self._navigation_goals or self._q_goal is not None:
             if self._q_goal is None:
                 self._q_goal = self._navigation_goals.pop(0)
-                self._p_opt = Plan([], self._q_goal)
+                self._p_opt = NewPlan([], self._q_goal, self._robot_uid)
 
             q_r = self._robot.pose
 
@@ -106,7 +105,9 @@ class NewStilman2005Behavior(BaselineBehavior):
                 self._q_goal = None
                 return action
 
-            if not self._p_opt.is_valid(self._world, self._robot_uid):
+            all_entities_poses = {uid: entity.pose for uid, entity in self._world.entities.items()}
+            all_entities_polygons = {uid: entity.polygon for uid, entity in self._world.entities.items()}
+            if not self._p_opt.is_valid(all_entities_poses, all_entities_polygons, check_horizon=self.check_horizon):
                 if self.use_social_cost and self._social_costmap is None:
                     movable_entities_uids = [uid for uid, entity in self._world.entities.items()
                                              if isinstance(entity, Robot) or (isinstance(entity, Obstacle)
@@ -160,7 +161,8 @@ class NewStilman2005Behavior(BaselineBehavior):
         :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
         :return: None to backtrack, current partial plan otherwise.
         """
-        r_t = w_t.entities[self._robot.uid].pose
+        robot_at_t = w_t.entities[self._robot.uid]
+        r_t = robot_at_t.pose
 
         avoid_list = set()
 
@@ -168,7 +170,11 @@ class NewStilman2005Behavior(BaselineBehavior):
         if simple_path_to_goal:
             # If the goal is in the same free space component as the robot in simulated w_t
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
-            return Plan([Path(simple_path_to_goal)], self._q_goal)
+            # TODO FIX COST COMPUTATION TO FIT SAME MODEL AS MANIP SEARCH !
+            return NewPlan([TransitPath.from_poses(
+                simple_path_to_goal, robot_at_t.polygon, robot_at_t.pose,
+                phys_cost=utils.sum_of_euclidean_distances(simple_path_to_goal)
+            )], self._q_goal, self._robot_uid)
 
         inf_grid = w_t.get_binary_inflated_occupancy_grid((self._robot.uid,)).get_grid()
         if ccs_data is None:
@@ -186,7 +192,7 @@ class NewStilman2005Behavior(BaselineBehavior):
         o_1, c_1 = self._rch(w_t, connected_components_grid, avoid_list, prev_list, r_f)
         while (o_1, c_1) != (None, None):
             c_1_cells_set = ccs_data.ccs[c_1].visited
-            w_t_plus_2, tho_n, tho_m, cost = self.manip_search_procedure(w_t, o_1, c_1_cells_set, r_f)
+            w_t_plus_2, tho_n, tho_m = self.manip_search_procedure(w_t, o_1, c_1_cells_set, r_f)
 
             if tho_m is not None:
                 future_plan = self._select_connect(w_t_plus_2, prev_list.union({c_1}), r_f)
@@ -194,7 +200,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                     # Following line comes from original algorithm, but does not make sense ?
                     # tho_n = self._find_path(w_t, x_t, tho_m[0])
                     future_plan.path_components[0].obstacle_uid = o_1  #
-                    return Plan([tho_n, tho_m], self._q_goal).append(future_plan)
+                    return NewPlan([tho_n, tho_m], self._q_goal, self._robot_uid).append(future_plan)
 
             avoid_list.add((o_1, c_1))
 
@@ -498,7 +504,6 @@ class NewStilman2005Behavior(BaselineBehavior):
         # transit path to contact pose tho_n, transfer path from contact pose tho_m and overall cost
         best_action_tree_leaf = best_action_leaf_for_tree[0].action_tree_node
         best_action_branch = self.__get_actions_branch(best_action_tree_leaf)
-        cost = best_action_branch[-1].phys_cost
         tho_n, tho_m = self.__actions_branch_to_path(best_action_branch)
 
         # 7. Update w_t_plus_2 to represent with final state that corresponds to best action branch result
@@ -513,7 +518,7 @@ class NewStilman2005Behavior(BaselineBehavior):
         self._rp.publish_sim(final_robot.polygon, final_obstacle.polygon, "/target", ns=self._robot_name)
         # cc_grid.re_init_grid(binary_inflated_occupancy_grid.get_grid())
         # self._rp.publish_connected_components_grid(cc_grid.get_grid(), dd)
-        return w_t_plus_2, tho_n, tho_m, cost
+        return w_t_plus_2, tho_n, tho_m
 
     def new_focused_manip_search(self, w_t, o_1, c_1_cells_set, r_f, check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
@@ -559,13 +564,13 @@ class NewStilman2005Behavior(BaselineBehavior):
         nav_poses, manip_poses, cost_and_paths = self.get_manip_poses_and_paths(
             obstacle, robot, inflated_grid_by_robot, res, inflated_grid_by_robot.grid_pose)
 
-        start_configurations = {
+        start_configurations_to_costs_and_paths = {
             Configuration(
                 robot_floating_point_pose=manip_pose,
                 robot_polygon=utils.set_polygon_pose(robot_polygon, robot_pose, manip_pose),
                 # robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(manip_pose, trans_mult, rot_mult),
                 robot_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                    manip_pose, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose
+                    manip_pose, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose, self.rotation_unit_angle
                 ),
                 robot_cell_in_grid=utils.real_to_grid(
                     manip_pose[0], manip_pose[1],
@@ -577,27 +582,32 @@ class NewStilman2005Behavior(BaselineBehavior):
                 #     obstacle_pose, trans_mult, rot_mult
                 # ),
                 obstacle_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                    obstacle_pose, inflated_grid_by_obstacle.res, inflated_grid_by_obstacle.grid_pose
+                    obstacle_pose, inflated_grid_by_obstacle.res, inflated_grid_by_obstacle.grid_pose, self.rotation_unit_angle
                 ),
                 obstacle_cell_in_grid=utils.real_to_grid(
                     obstacle_pose[0], obstacle_pose[1],
                     res, inflated_grid_by_obstacle.grid_pose
                 )
-            ): cost
-            for manip_pose, (cost, _) in list(zip(manip_poses, cost_and_paths))
+            ): (cost, path)
+            for manip_pose, (cost, path) in list(zip(manip_poses, cost_and_paths))
             if cost != float('inf')
         }
+
+        start_configurations = {config: cost for config, (cost, _) in start_configurations_to_costs_and_paths.items()}
 
         if not start_configurations:
             # If there are no attainable manipulation configurations, exit early
             return w_t_plus_2, None, None, float('inf')
 
         # Get potentially accessible cells for obstacle ordered by associated combined costs
-        cells_sorted_by_combined_cost = self.new_sorted_cells_by_combined_cost(
+        cells_sorted_by_combined_cost, sorted_cell_to_combined_cost = self.new_sorted_cells_by_combined_cost(
             inflated_grid_by_obstacle, robot_polygon, robot_pose, obstacle_pose, goal_pose
         )
+        bound_quantile_index = int(round(len(cells_sorted_by_combined_cost) * (1. - self.bound_percentage))) - 1
+        bound_quantile_index = 0 if bound_quantile_index < 0 else bound_quantile_index
+        bound_quantile = sorted_cell_to_combined_cost[cells_sorted_by_combined_cost[bound_quantile_index]]
 
-        # 1.
+        # 1. Find the best obstacle transfer end configuration, that is, the one with the best compromise cost
         best_transfer_end_configuration = self.new_find_best_transfer_end_configuration(
             robot_pose, robot_polygon, robot_name, robot_cell, robot_max_inflation_radius,
             obstacle_uid, obstacle_pose, obstacle_polygon,
@@ -614,18 +624,29 @@ class NewStilman2005Behavior(BaselineBehavior):
                 "/target", ns=self._robot_name
             )
 
-            path_found, close_set, came_from, gscore, _ = self.new_a_star_for_manip_search(
+            # 2. If a best obstacle transfer end configuration has been found, use A Star to find a path toward it
+            path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.new_a_star_for_manip_search(
                 start_configurations, best_transfer_end_configuration,
                 robot_uid, obstacle_uid,
                 other_entities_polygons, other_entities_aabb_tree,
                 inflated_grid_by_robot, inflated_grid_by_obstacle,
                 trans_mult, rot_mult,
-                static_collision_cache
+                static_collision_cache,
+                sorted_cell_to_combined_cost, bound_quantile
             )
             if path_found:
-                raw_path = reconstruct_path(came_from, best_transfer_end_configuration)
-                # TODO Convert reconstructed path to Path object
+                # 3. If a path is found, return it
+                raw_path = reconstruct_path(came_from, transfer_end_configuration)
+                tho_n_phys_cost = start_configurations_to_costs_and_paths[raw_path[0]][0]
+                tho_m_phys_cost = gscore[transfer_end_configuration] - tho_n_phys_cost
+                tho_n = TransitPath.from_poses(
+                    start_configurations_to_costs_and_paths[raw_path[0]][1], robot_polygon, robot_pose, tho_n_phys_cost
+                )
+                tho_m = TransferPath.from_configurations(raw_path, obstacle_uid, tho_m_phys_cost)
             else:
+                # 4. If no path is found on the first, try finding a best configuration that has a path towards it
+                #   (because we assume the A Star search to have completed, giving us the paths to ALL reachable
+                #   configurations.
                 best_transfer_end_configuration = self.new_find_best_transfer_end_configuration(
                     robot_pose, robot_polygon, robot_name, robot_cell, robot_max_inflation_radius,
                     obstacle_uid, obstacle_pose, obstacle_polygon,
@@ -642,20 +663,36 @@ class NewStilman2005Behavior(BaselineBehavior):
                         "/target", ns=self._robot_name
                     )
                     raw_path = reconstruct_path(came_from, best_transfer_end_configuration)
-                    # TODO Convert reconstructed path to Path object
+                    tho_n_phys_cost = start_configurations_to_costs_and_paths[raw_path[0]][0]
+                    tho_m_phys_cost = gscore[transfer_end_configuration] - tho_n_phys_cost
+                    tho_n = TransitPath.from_poses(
+                        start_configurations_to_costs_and_paths[raw_path[0]][1], robot_polygon, robot_pose,
+                        tho_n_phys_cost
+                    )
+                    tho_m = TransferPath.from_configurations(raw_path, obstacle_uid, tho_m_phys_cost)
                 else:
-                    tho_n, tho_m, cost = None, None, float('inf')
+                    # If after exhausting all possible configurations, none opens a path to the connected component,
+                    # return None
+                    tho_n, tho_m = None, None
         else:
-            tho_n, tho_m, cost = None, None, float('inf')
+            # If after exhausting all possible configurations, none opens a path to the connected component,
+            # return None
+            tho_n, tho_m = None, None
 
-        return w_t_plus_2, tho_n, tho_m, cost
+        # Don't forget to update w_t_plus_2 with transfer end state
+        if tho_m:
+            robot.pose, robot.polygon = tho_m.robot_path.poses[-1], tho_m.robot_path.polygons[-1]
+            obstacle.pose, obstacle.polygon = tho_m.obstacle_path.poses[-1], tho_m.obstacle_path.polygons[-1]
+
+        return w_t_plus_2, tho_n, tho_m
 
     def new_a_star_for_manip_search(self, start, goal,
                                     robot_uid, obstacle_uid,
                                     other_entities_polygons, other_entities_aabb_tree,
                                     inflated_grid_by_robot, inflated_grid_by_obstacle,
                                     trans_mult, rot_mult,
-                                    static_collision_cache):
+                                    static_collision_cache,
+                                    sorted_cell_to_combined_cost, bound_quantile):
 
         def get_neighbors(_current, _gscore, _close_set):
             return self.new_get_neighbors(
@@ -668,10 +705,14 @@ class NewStilman2005Behavior(BaselineBehavior):
             )
 
         def heuristic(_neighbor, _goal):
-            return utils.euclidean_distance(_neighbor.robot_floating_point_pose, _goal.robot_floating_point_pose)
+            return self.__manip_e(_neighbor.robot_floating_point_pose, _goal.robot_floating_point_pose)
+            # return utils.euclidean_distance(_neighbor.robot_floating_point_pose, _goal.robot_floating_point_pose)
 
         def exit_condition(_current, _goal):
-            return _current.robot_fixed_precision_pose == _goal.robot_fixed_precision_pose
+            return (
+                _current.obstacle_cell_in_grid == _goal.obstacle_cell_in_grid
+                or sorted_cell_to_combined_cost[_current.obstacle_cell_in_grid] < bound_quantile
+            )
 
         return new_generic_a_star(
             start, goal, exit_condition=exit_condition, get_neighbors=get_neighbors, heuristic=heuristic
@@ -728,10 +769,10 @@ class NewStilman2005Behavior(BaselineBehavior):
                                 #     obstacle_transfer_end_pose, trans_mult, rot_mult
                                 # )
                                 utils.real_pose_to_grid_pose(
-                                    robot_transfer_end_pose, inflated_grid.res, inflated_grid.grid_pose
+                                    robot_transfer_end_pose, inflated_grid.res, inflated_grid.grid_pose, self.rotation_unit_angle
                                 ),
                                 utils.real_pose_to_grid_pose(
-                                    obstacle_transfer_end_pose, inflated_grid.res, inflated_grid.grid_pose
+                                    obstacle_transfer_end_pose, inflated_grid.res, inflated_grid.grid_pose, self.rotation_unit_angle
                                 )
                             )
                             for obstacle_transfer_end_pose, robot_transfer_end_poses in current.items()
@@ -843,7 +884,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                                     #     robot_transfer_end_pose, trans_mult, rot_mult
                                     # ),
                                     robot_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                                        robot_transfer_end_pose, inflated_grid.res, inflated_grid.grid_pose
+                                        robot_transfer_end_pose, inflated_grid.res, inflated_grid.grid_pose, self.rotation_unit_angle
                                     ),
                                     robot_cell_in_grid=utils.real_to_grid(
                                         robot_transfer_end_pose[0], robot_transfer_end_pose[1],
@@ -855,7 +896,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                                     #     obstacle_transfer_end_pose, trans_mult, rot_mult
                                     # ),
                                     obstacle_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                                        obstacle_transfer_end_pose, inflated_grid.res, inflated_grid.grid_pose
+                                        obstacle_transfer_end_pose, inflated_grid.res, inflated_grid.grid_pose, self.rotation_unit_angle
                                     ),
                                     obstacle_cell_in_grid=utils.real_to_grid(
                                         obstacle_transfer_end_pose[0], obstacle_transfer_end_pose[1],
@@ -963,11 +1004,10 @@ class NewStilman2005Behavior(BaselineBehavior):
             #     new_robot_pose, trans_mult, rot_mult)
             # obstacle_fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(
             #     new_obstacle_pose, trans_mult, rot_mult)
-
             robot_fixed_precision_pose = utils.real_pose_to_grid_pose(
-                new_robot_pose, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose)
+                new_robot_pose, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose, self.rotation_unit_angle)
             obstacle_fixed_precision_pose = utils.real_pose_to_grid_pose(
-                new_obstacle_pose, inflated_grid_by_obstacle.res, inflated_grid_by_obstacle.grid_pose)
+                new_obstacle_pose, inflated_grid_by_obstacle.res, inflated_grid_by_obstacle.grid_pose, self.rotation_unit_angle)
 
             if (robot_fixed_precision_pose, obstacle_fixed_precision_pose) in close_set:
                 continue
@@ -1042,16 +1082,16 @@ class NewStilman2005Behavior(BaselineBehavior):
             robot_dynamically_collides, robot_collision_data, _ = collision.csv_check_collisions(
                 other_polygons=other_entities_polygons,
                 polygon_sequence=[current_configuration.robot_polygon, new_robot_polygon],
-                actions = [converted_action], bb_type='minimum_rotated_rectangle',
-                aabb_tree=other_entities_aabb_tree
+                action_sequence=[converted_action], bb_type='minimum_rotated_rectangle',
+                aabb_tree=other_entities_aabb_tree, display_debug=False
             )
             if robot_dynamically_collides:
                 continue
-            obstacle_dynamically_collides, obs_collision_data, _ = collision.csv_check_collisions(
+            obstacle_dynamically_collides, obstacle_collision_data, _ = collision.csv_check_collisions(
                 other_polygons=other_entities_polygons,
                 polygon_sequence=[current_configuration.obstacle_polygon, new_obstacle_polygon],
-                actions=[converted_action], bb_type='minimum_rotated_rectangle',
-                aabb_tree=other_entities_aabb_tree
+                action_sequence=[converted_action], bb_type='minimum_rotated_rectangle',
+                aabb_tree=other_entities_aabb_tree, display_debug=False
             )
             if obstacle_dynamically_collides:
                 continue
@@ -1061,7 +1101,10 @@ class NewStilman2005Behavior(BaselineBehavior):
                 robot_floating_point_pose=new_robot_pose, robot_polygon=new_robot_polygon,
                 robot_fixed_precision_pose=robot_fixed_precision_pose, robot_cell_in_grid=robot_cell_in_grid,
                 obstacle_floating_point_pose=new_obstacle_pose, obstacle_polygon=new_obstacle_polygon,
-                obstacle_fixed_precision_pose=obstacle_fixed_precision_pose, obstacle_cell_in_grid=obstacle_cell_in_grid
+                obstacle_fixed_precision_pose=obstacle_fixed_precision_pose, obstacle_cell_in_grid=obstacle_cell_in_grid,
+                action=converted_action,
+                robot_collision_data=robot_collision_data.values()[0],
+                obstacle_collision_data=obstacle_collision_data.values()[0]
             )
 
             self._rp.publish_sim(
@@ -1070,7 +1113,11 @@ class NewStilman2005Behavior(BaselineBehavior):
             )
 
             neighbors.append(neighbor_configuration)
-            tentative_g_scores.append(gscore[current_configuration] + self.basic_trans_force) # TODO PROPERLY COMPUTE ACTION COST
+            tentative_g_scores.append(
+                gscore[current_configuration] + self.__manip_e(
+                    current_configuration.robot_floating_point_pose, neighbor_configuration.robot_floating_point_pose
+                )
+            )
 
         return neighbors, tentative_g_scores
 
@@ -1087,6 +1134,9 @@ class NewStilman2005Behavior(BaselineBehavior):
         #  - points from middle of sides (DONE)
         #  - points sampled along buffered polygon (to create from scratch)
         #  - points sampled along lines parallel to sides, s.t. we have at least a robot width from endpoints (scratch)
+
+        # TODO REWRITE SO THAT IT ONLY CHECKS IF NAV POSES ARE IN ROBOT FREE SPACE COMPONENT !
+        #  AND HAVE THO_N COMPUTED IN SELECT CONNECT AND NOT MANIP SEARCH !
 
         # Diferrentiate between the *navigation pose* at the end of transit path that must be outside of the inflated
         # obstacle and the *manipulation pose* that can be within the inflated obstacle but is part of the transfer path
@@ -1200,6 +1250,7 @@ class NewStilman2005Behavior(BaselineBehavior):
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
     def _find_path(self, w_t, r_t, r_f):
+        # TODO REWRITE USING NEW A STAR IMPLEMENTATION ! AND CORRECTLY COMPUTING COST !
         circum_radius = utils.get_circumscribed_radius(w_t.entities[self._robot.uid].polygon)
         grid = BinaryInflatedOccupancyGrid(
             w_t.dd.d_width, w_t.dd.d_height, w_t.dd.res, w_t.dd.grid_pose,
@@ -1239,8 +1290,8 @@ class NewStilman2005Behavior(BaselineBehavior):
             return self.heur_w
 
     def __manip_e(self, r_i, r_j):
-        translation_energy = self.basic_trans_force * np.linalg.norm((r_j[0] - r_i[0], r_j[1] - r_i[1]))
-        rotation_energy = 0. if self._rot_angles.size == 0 else self.basic_rot_moment * self._world.dd.res * (
+        translation_energy = self.basic_trans_force * utils.euclidean_distance(r_j, r_i)
+        rotation_energy = 0. if self._rot_angles.size == 0 else self.basic_rot_moment * (
                     abs(r_j[2] - r_i[2]) / abs(self.rotation_unit_angle))
         return translation_energy + rotation_energy
 
@@ -1326,14 +1377,13 @@ class NewStilman2005Behavior(BaselineBehavior):
             if action_node.parent is None:
                 break
 
-        tho_n = Path(real_transit_path, phys_cost=transit_path_cost)
+        tho_n = TransitPath()
 
         transfer_path_phys_cost = actions_branch[-1].phys_cost - transit_path_cost
         transfer_path_social_cost = actions_branch[-1].social_cost
         o_uid = actions_branch[-1].obstacle.uid
 
-        tho_m = Path(real_transfer_path, is_transfer=True, o_uid=o_uid, phys_cost=transfer_path_phys_cost,
-                     social_cost=transfer_path_social_cost, collision_geometry=collision_polygons)
+        tho_m = TransferPath()
 
         # self._rp.publish_debug_polygons(collision_polygons, ns=self._robot_name)
 
@@ -1419,10 +1469,12 @@ class NewStilman2005Behavior(BaselineBehavior):
         combined_cost = (self.w_social * normalized_social_cost
                          + self.w_obs * normalized_distance_cost
                          + self.w_goal * normalized_distance_to_goal) / self.w_sum
-        sorted_cell_to_combined_cost = sorted(
-            zip(acc_cells_for_obs, combined_cost), key=lambda tup: tup[1], reverse=True)
-        cells_sorted_by_combined_cost, _ = zip(*sorted_cell_to_combined_cost)
-        cells_sorted_by_combined_cost = list(cells_sorted_by_combined_cost)
+
+        sorted_cell_to_combined_cost = OrderedDict(
+            sorted(zip(acc_cells_for_obs, combined_cost), key=lambda t: t[1], reverse=True)
+        )
+
+        cells_sorted_by_combined_cost = list(sorted_cell_to_combined_cost.keys())
 
         self._rp.cleanup_multigoal_a_star_close_set(ns=self._robot_name)
         self._rp.cleanup_grid_map(ns=self._robot_name)
@@ -1465,13 +1517,13 @@ class NewStilman2005Behavior(BaselineBehavior):
                 debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
 
             combined_costmap = np.zeros((inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height))
-            for cell, combined_cost in sorted_cell_to_combined_cost:
+            for cell, combined_cost in sorted_cell_to_combined_cost.items():
                 combined_costmap[cell[0]][cell[1]] = combined_cost
             stocg.display_or_log(
                 combined_costmap, "-combined_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
                 debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
 
-        return cells_sorted_by_combined_cost
+        return cells_sorted_by_combined_cost, sorted_cell_to_combined_cost
 
 
 class FollowTransitPathAction:
@@ -1590,7 +1642,8 @@ class ActionHeapNode:
 
 class Configuration:
     def __init__(self, robot_floating_point_pose, robot_polygon, robot_cell_in_grid, robot_fixed_precision_pose,
-                 obstacle_floating_point_pose, obstacle_polygon, obstacle_cell_in_grid, obstacle_fixed_precision_pose):
+                 obstacle_floating_point_pose, obstacle_polygon, obstacle_cell_in_grid, obstacle_fixed_precision_pose,
+                 action=None, robot_collision_data=None, obstacle_collision_data=None):
         self.robot_floating_point_pose = robot_floating_point_pose
         self.robot_polygon = robot_polygon
         self.robot_cell_in_grid = robot_cell_in_grid
@@ -1599,6 +1652,9 @@ class Configuration:
         self.obstacle_floating_point_pose = obstacle_floating_point_pose
         self.obstacle_cell_in_grid = obstacle_cell_in_grid
         self.obstacle_fixed_precision_pose = obstacle_fixed_precision_pose
+        self.action = action
+        self.robot_collision_data = robot_collision_data
+        self.obstacle_collision_data = obstacle_collision_data
 
     def __eq__(self, other):
         if isinstance(other, HeapNode):
@@ -1658,3 +1714,294 @@ class NewTranslation:
             geom=Point((pose[0], pose[1])), xoff=translation_vector[0], yoff=translation_vector[1], zoff=0.
         ).coords[0]
         return new_point[0], new_point[1], pose[2]
+
+
+class NewPath:
+    def __init__(self, poses, polygons, actions, collision_data=None, indexes=None):
+        self.poses = poses
+        self.polygons = polygons
+        self.actions = actions
+        self.collision_data = collision_data
+        self.indexes = indexes
+        if self.indexes is None:
+            self.reset_indexes()
+
+    def is_empty(self):
+        return not bool(self.indexes)
+
+    def is_valid(self, other_entities_polygons, other_entities_aabb_tree=None, check_horizon=None):
+        if self.is_empty():
+            return True
+
+        if not other_entities_aabb_tree:
+            other_entities_aabb_tree = collision.AABBTree()
+            for uid, polygon in other_entities_polygons.items():
+                other_entities_aabb_tree.add(collision.polygon_to_aabb(polygon), uid)
+
+        horizon_limited_indexes = self.indexes[:check_horizon]
+        indexes = (horizon_limited_indexes + [horizon_limited_indexes[-1] + 1])
+
+        # TODO ADD PATH COLLISION DATA TO SELF.COLLISION DATA, ONLY CSVS AND BB VERTICES !!!
+        path_dynamically_collides, path_collision_data, _ = collision.csv_check_collisions(
+            other_polygons=other_entities_polygons,
+            polygon_sequence=self.polygons,
+            action_sequence=self.actions, bb_type='minimum_rotated_rectangle',
+            aabb_tree=other_entities_aabb_tree,
+            indexes=indexes, collision_data=self.collision_data,
+            display_debug=True
+        )
+
+        return not path_dynamically_collides
+
+    def pop_next_step(self):
+        # If there are steps left to execute in self.path, pop and return the first
+        if self.indexes:
+            return self.poses[self.indexes.pop(0) + 1]
+        else:
+            # Return None otherwise
+            return None
+
+    def reset_indexes(self):
+        self.indexes = [i for i in range(len(self.actions))]
+
+    def is_path_started(self):
+        return len(self.indexes) != len(self.actions)
+
+    def is_start_pose(self, pose):
+        return pose == self.poses[0]
+
+    def get_length(self):
+        return len(self.indexes)
+
+
+class TransferPath:
+    def __init__(self, robot_path, obstacle_path, obstacle_uid, phys_cost=None, social_cost=0., weight=1.):
+        self.robot_path = robot_path
+        self.obstacle_path = obstacle_path
+        self.obstacle_uid = obstacle_uid
+        self.phys_cost = phys_cost if phys_cost is not None else utils.sum_of_euclidean_distances(self.robot_path.poses) * weight
+        self.social_cost = social_cost
+        self.total_cost = self.phys_cost + self.social_cost
+        self.is_transfer = True  # TODO Remove this attribute that is currentlty kept to avoid circular dependency with ros_conversion.py
+
+    @classmethod
+    def from_configurations(cls, configurations, obstacle_uid, phys_cost=None, social_cost=0., weight=1.):
+        configurations_min_start = configurations[1:]
+        robot_path = NewPath(
+            poses=[configuration.robot_floating_point_pose for configuration in configurations],
+            polygons=[configuration.robot_polygon for configuration in configurations],
+            actions=[configuration.action for configuration in configurations_min_start],
+            collision_data={
+                (i, i+1): configuration.robot_collision_data
+                for i, configuration in enumerate(configurations_min_start)
+            }
+        )
+        obstacle_path = NewPath(
+            poses=[configuration.obstacle_floating_point_pose for configuration in configurations],
+            polygons=[configuration.obstacle_polygon for configuration in configurations],
+            actions=[configuration.action for configuration in configurations_min_start],
+            collision_data={
+                (i, i + 1): configuration.obstacle_collision_data
+                for i, configuration in enumerate(configurations_min_start)
+            }
+        )
+        return cls(robot_path, obstacle_path, obstacle_uid, phys_cost, social_cost, weight)
+
+    def has_infinite_cost(self):
+        return True if self.total_cost == float("inf") else False
+
+    def is_empty(self):
+        return self.robot_path.is_empty() and self.obstacle_path.is_empty()
+
+    def is_valid(self, obstacle_pose, other_entities_polygons, check_horizon=None):
+        if not self.robot_path.is_path_started():
+            obstacle_at_start_pose = self.obstacle_path.is_start_pose(obstacle_pose)
+        else:
+            obstacle_at_start_pose = True
+
+        other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
+
+        is_robot_path_valid = self.robot_path.is_valid(
+            other_entities_polygons, other_entities_aabb_tree, check_horizon
+        )
+        is_obstacle_path_valid = (
+            self.obstacle_path.is_valid(other_entities_polygons, other_entities_aabb_tree, check_horizon)
+        )
+
+        return is_robot_path_valid and is_obstacle_path_valid and obstacle_at_start_pose
+
+    def pop_next_step(self):
+        self.obstacle_path.pop_next_step()
+        return self.robot_path.pop_next_step()
+
+    def get_length(self):
+        return self.robot_path.get_length()
+
+
+class TransitPath:
+    def __init__(self, robot_path, phys_cost=None, social_cost=0., weight=1.):
+        self.robot_path = robot_path
+        self.phys_cost = phys_cost if phys_cost is not None else utils.sum_of_euclidean_distances(self.robot_path.poses) * weight
+        self.social_cost = social_cost
+        self.total_cost = self.phys_cost + self.social_cost
+        self.is_transfer = False  # TODO Remove this attribute that is currentlty kept to avoid circular dependency with ros_conversion.py
+
+    @classmethod
+    def from_poses(cls, poses, robot_polygon, robot_pose, phys_cost=None, social_cost=0., weight=1.):
+        polygons = [utils.set_polygon_pose(robot_polygon, robot_pose, pose) for pose in poses]
+        actions = []
+        prev_pose = poses[0]
+        poses_minus_start = poses[1:]
+        for pose in poses_minus_start:
+            actions.append(collision.LinearMovement(
+                translation_vector=(pose[0] - prev_pose[0], pose[1] - prev_pose[1]),
+                angle=pose[2] - prev_pose[2],
+                center=(pose[0], pose[1])
+            ))
+            prev_pose = pose
+        robot_path = NewPath(poses=poses, polygons=polygons, actions=actions)
+        return cls(robot_path, phys_cost, social_cost, weight)
+
+    def has_infinite_cost(self):
+        return True if self.total_cost == float("inf") else False
+
+    def is_empty(self):
+        return self.robot_path.is_empty()
+
+    def is_valid(self, other_entities_polygons, check_horizon=None):
+        other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
+
+        is_robot_path_valid = self.robot_path.is_valid(
+            other_entities_polygons, other_entities_aabb_tree, check_horizon
+        )
+        return is_robot_path_valid
+
+    def pop_next_step(self):
+        return self.robot_path.pop_next_step()
+
+    def get_length(self):
+        return self.robot_path.get_length()
+
+
+from plan.plan_step import PlanStep
+
+
+class NewPlan:
+    def __init__(self, path_components, goal, robot_uid):
+        self.path_components = path_components
+        self.goal = goal
+        self.robot_uid = robot_uid
+        self.phys_cost = 0.0
+        self.social_cost = 0.0
+        self.total_cost = 0.0
+        if path_components:
+            for path in path_components:
+                self.phys_cost = self.phys_cost + path.phys_cost
+                self.social_cost = self.social_cost + path.social_cost
+                self.total_cost = self.total_cost + path.total_cost
+        else:
+            self.phys_cost = float("inf")
+            self.social_cost = float("inf")
+            self.total_cost = float("inf")
+
+    def append(self, future_plan):
+        self.path_components += future_plan.path_components
+        self.phys_cost += future_plan.phys_cost
+        self.social_cost += future_plan.social_cost
+        self.total_cost += future_plan.total_cost
+        return self
+
+    def has_infinite_cost(self):
+        return True if self.total_cost == float("inf") else False
+
+    def is_empty(self):
+        if self.path_components:
+            for path_component in self.path_components:
+                if not path_component.is_empty():
+                    return False
+            return True
+        else:
+            return True
+
+    def is_valid(self, all_entities_poses, all_entities_polygons, check_horizon=None):
+        if self.has_infinite_cost():
+            return False
+        if not self.path_components:
+            return False
+
+        if check_horizon:
+            shared_horizon = check_horizon
+            for path in self.path_components:
+                if shared_horizon > 0:
+                    if isinstance(path, TransitPath):
+                        other_entities_polygons = {
+                            uid: p for uid, p in all_entities_polygons.items() if uid != self.robot_uid
+                        }
+                        valid_path = path.is_valid(other_entities_polygons, shared_horizon)
+                    elif isinstance(path, TransferPath):
+                        other_entities_polygons = {
+                            uid: p for uid, p in all_entities_polygons.items()
+                            if uid != self.robot_uid and uid != path.obstacle_uid
+                        }
+                        obstacle_pose = all_entities_poses[path.obstacle_uid]
+                        valid_path = path.is_valid(obstacle_pose, other_entities_polygons, shared_horizon)
+                    else:
+                        raise TypeError('Expected TransitPath or TransferPath instance.')
+                    if not valid_path:
+                        return False
+                    shared_horizon = 0 if path.get_length() >= shared_horizon else shared_horizon - path.get_length()
+                else:
+                    break
+        else:
+            for path in self.path_components:
+                if isinstance(path, TransitPath):
+                    other_entities_polygons = {
+                        uid: p for uid, p in all_entities_polygons.items() if uid != self.robot_uid
+                    }
+                    valid_path = path.is_valid(other_entities_polygons)
+                elif isinstance(path, TransferPath):
+                    other_entities_polygons = {
+                        uid: p for uid, p in all_entities_polygons.items()
+                        if uid != self.robot_uid or uid != path.obstacle_uid
+                    }
+                    obstacle_pose = all_entities_poses[path.obstacle_uid]
+                    valid_path = path.is_valid(obstacle_pose, other_entities_polygons)
+                else:
+                    raise TypeError('Expected TransitPath or TransferPath instance.')
+                if not valid_path:
+                    return False
+
+        return True
+
+    def pop_next_step(self):
+        # If the currently executed path component still has steps to execute, pop the first
+        current_path = self.path_components[0]
+        if not current_path.is_empty():
+            return PlanStep(target_pose=current_path.pop_next_step(),
+                            goal=self.goal,
+                            is_transfer=isinstance(current_path, TransferPath),
+                            obstacle_uid=(
+                                None
+                                if not isinstance(current_path, TransferPath)
+                                else current_path.obstacle_uid
+                            )
+            )
+        else:
+            # If the plan still has components to execute after the one we just finished,
+            if self.path_components:
+                # pop the finished one,
+                self.path_components.pop(0)
+                # and send back the first element of the next path
+                if self.path_components:
+                    current_path = self.path_components[0]
+                    return PlanStep(target_pose=current_path.pop_next_step(),
+                                    goal=self.goal,
+                                    is_transfer=isinstance(current_path, TransferPath),
+                                    obstacle_uid=(
+                                        None
+                                        if not isinstance(current_path, TransferPath)
+                                        else current_path.obstacle_uid
+                                    )
+                    )
+            else:
+                return None
