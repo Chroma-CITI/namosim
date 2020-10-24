@@ -12,7 +12,7 @@ def hex_to_rgba(hex_string):
 rate = 100000000000
 
 # Deactivate GUI
-deactivate_gui = True
+deactivate_gui = False
 
 # Simulation topics names (without namespace)
 sim_knowledge_topic = "/knowledge"
