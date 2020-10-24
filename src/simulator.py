@@ -5,6 +5,7 @@ import json
 import os
 import random
 import numpy as np
+import traceback
 from datetime import datetime
 from shapely import affinity
 
@@ -124,7 +125,11 @@ class Simulator:
                         continue
 
                     planning_start_time = time.time()
-                    action = behavior.think()
+                    try:
+                        action = behavior.think()
+                    except:
+                        traceback.print_exc()
+                        continue
                     self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
 
                     # If there are no more goals to execute for the agent behavior, then remove it
@@ -516,7 +521,7 @@ class Simulator:
                 elif agent_behavior_name == "stilman_2005_behavior":
                     agent_world = copy.deepcopy(self.ref_world)
                     self.rp.cleanup_robot_world()
-                    agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
+                    agent_uid_to_behavior[agent_uid] = NewStilman2005Behavior(
                         agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
                 else:
                     raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
