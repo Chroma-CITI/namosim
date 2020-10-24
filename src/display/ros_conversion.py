@@ -198,7 +198,7 @@ def plan_to_markerarray(plan, frame_id):
         if component.is_transfer:
             current_color = cfg.transfer_path_color
         marker = real_path_to_linestrip(
-            component.path, '/plan', p_id, frame_id, current_color, cfg.path_line_width, cfg.path_line_z_index)
+            component.robot_path.poses, '/plan', p_id, frame_id, current_color, cfg.path_line_width, cfg.path_line_z_index)
         markers.append(marker)
         p_id += 1
     markerarray.markers = markers
