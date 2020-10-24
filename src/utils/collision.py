@@ -33,20 +33,6 @@ class Translation(Action):
         return affinity.translate(geom=polygon, xoff=self.translation_vector[0], yoff=self.translation_vector[1], zoff=0.)
 
 
-class LinearMovement(Action):
-
-    def __init__(self, translation_vector, angle, center='center'):
-        self.angle = angle
-        self.center = center
-        self.translation_vector = translation_vector
-
-    def apply(self, polygon):
-        return affinity.rotate(geom=affinity.translate(
-            geom=polygon, xoff=self.translation_vector[0], yoff=self.translation_vector[1], zoff=0.),
-            angle=self.angle, origin=self.center, use_radians=False
-        )
-
-
 class ActionList:
 
     def __init__(self, actions):
@@ -93,7 +79,6 @@ def bounding_boxes_vertices_from_states_for_points(s_for_points, actions, bb_typ
         cur_seq_still_same_type = (
             isinstance(action, Translation) and isinstance(prev_action, Translation)
             or isinstance(action, Rotation) and isinstance(prev_action, Rotation)
-            or isinstance(action, LinearMovement) and isinstance(prev_action, LinearMovement)
         )
         if cur_seq_still_same_type:
             action_subsequences[cur_index].append(action)
@@ -123,7 +108,6 @@ def bounding_boxes_vertices_from_states_for_points(s_for_points, actions, bb_typ
                 else:
                     raise TypeError('"aabbox" and "minimum_rotated_rectangle" are the only accepted values for bb_type.')
         else:
-            prev_action = None
             prev_points_state = []
             for action, index in zip(action_subsequence, subsequence_indexes):
                 points_state = [point_states[index] for point_states in s_for_points]
@@ -132,18 +116,10 @@ def bounding_boxes_vertices_from_states_for_points(s_for_points, actions, bb_typ
                     for prev_point_state, point_state in zip(prev_points_state, points_state):
                         bounding_boxes_points_coords += arc_bounding_box(
                             point_a=prev_point_state, point_b=point_state, rot_angle=action.angle,
-                            center=action.center, trans_vector=None, bb_type=bb_type
-                        )
-                elif isinstance(action, LinearMovement):
-                    for prev_point_state, point_state in zip(prev_points_state, points_state):
-                        bounding_boxes_points_coords += arc_bounding_box(
-                            point_a=prev_point_state, point_b=point_state, rot_angle=action.angle,
-                            center=action.center, trans_vector=action.translation_vector, bb_type=bb_type
+                            center=action.center, bb_type=bb_type
                         )
 
                 prev_points_state = points_state
-                prev_action = action
-
 
     return MultiPoint(bounding_boxes_points_coords)
 
@@ -187,7 +163,14 @@ def polygon_to_aabb(polygon):
     return AABB([(xmin, xmax), (ymin, ymax)])
 
 
-def arc_bounding_box(point_a, point_b, rot_angle, center, trans_vector=None, bb_type='minimum_rotated_rectangle'):
+def polygons_to_aabb_tree(polygons):
+    aabb_tree = AABBTree()
+    for uid, polygon in polygons.items():
+        aabb_tree.add(polygon_to_aabb(polygon), uid)
+    return aabb_tree
+
+
+def arc_bounding_box(point_a, point_b, rot_angle, center, bb_type='minimum_rotated_rectangle'):
     """
     Computes the bounding box of the arc formed by the rotation or combined rotation+translation of a point a
     to another location b
@@ -195,66 +178,68 @@ def arc_bounding_box(point_a, point_b, rot_angle, center, trans_vector=None, bb_
     :type point_a: (float, float)
     :param point_b: Final point state after rotation (and translation if relevant)
     :type point_b: (float, float)
-    :param rot_angle: rotation angle in radians. MUST BE BELOW 2PI !
+    :param rot_angle: rotation angle in degrees. MUST BE BETWEEN -360 and 360 degrees !
     :type rot_angle: float
     :param center: rotation origin point
     :type center: (float, float)
-    :param trans_vector: translation vector (dx, dy)
-    :type trans_vector: (float, float)
     :param bb_type: either 'minimum_rotated_rectangle' or 'aabbox'
     :type bb_type: str
     :return: Return a list of four points coordinates corresponding to the bounding box
     :rtype: [(float, float), (float, float), (float, float), (float, float)]
     """
-    # Compute extra extremal points
-    point_a_shapely = Point(point_a)
 
-    point_c_shapely = affinity.rotate(point_a_shapely, rot_angle/2., origin=center)
-    if trans_vector:
-        point_c_shapely = affinity.translate(point_c_shapely, xoff=trans_vector[0]/2., yoff=trans_vector[1]/2.)
-    point_c = list(point_c_shapely.coords)[0]
-
-    center_x, center_y, r = utils.find_circle_terms(
-        point_a[0], point_a[1], point_b[0], point_b[1], point_c[0], point_c[1])
-
-    alpha = (utils.points_to_angle(point_a[0], point_a[1], center_x, center_y, point_c[0], point_c[1])
-             + utils.points_to_angle(point_c[0], point_c[1], center_x, center_y, point_b[0], point_b[1]))
-
-    if alpha == 0.:
+    if -1.e-10 < rot_angle < 1.e-10:
         # It means that there is no movement, A and B are the same point.
-        if bb_type is 'minimum_rotated_rectangle':
-            return list(MultiPoint([point_a, point_b]).minimum_rotated_rectangle.exterior.coords)[0:4]
-        elif bb_type is 'aabbox':
+        if bb_type is 'aabbox':
             minx, miny, maxx, maxy = MultiPoint([point_a, point_b]).bounds
-            return list(Polygon([(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]).exterior.coords)[0:4]
-    elif 0. < alpha <= math.pi:
+            return [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]
+        elif bb_type is 'minimum_rotated_rectangle':
+            min_rot_rec = MultiPoint([point_a, point_b]).minimum_rotated_rectangle
+            if isinstance(min_rot_rec, Polygon):
+                return list(min_rot_rec.exterior.coords)[0:4]
+            elif isinstance(min_rot_rec, LineString):
+                return list(min_rot_rec.coords)
+    elif -180. <= rot_angle <= 180.:
         # If the arc is less than a half circle, we only need to use its middle point C to have the coordinates
         # of the bounding box
+
+        # Compute extra extremal point C and circle terms
+        point_a_shapely = Point(point_a)
+        point_c = affinity.rotate(point_a_shapely, rot_angle / 2., origin=center).coords[0]
+        center_x, center_y, r = utils.find_circle_terms(
+            point_a[0], point_a[1], point_b[0], point_b[1], point_c[0], point_c[1])
+
         if bb_type is 'minimum_rotated_rectangle':
             return list(MultiPoint([point_a, point_b, point_c]).minimum_rotated_rectangle.exterior.coords)[0:4]
         elif bb_type is 'aabbox':
             minx, miny, maxx, maxy = MultiPoint([point_a, point_b, point_c]).bounds
             return list(Polygon([(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]).exterior.coords)[0:4]
-    elif math.pi < alpha < utils.TWO_PI:
+    elif -360. < rot_angle < 360.:
         # If the arc is greater than a half circle, we need to compute the other bounding points;
         # that is, the intersection points D and E between the circle's equation and the perpendicular line
         # to the ray passing through C
 
+        # Compute extra extremal point C and circle terms
+        point_a_shapely = Point(point_a)
+        point_c = affinity.rotate(point_a_shapely, rot_angle / 2., origin=center).coords[0]
+        center_x, center_y, r = utils.find_circle_terms(
+            point_a[0], point_a[1], point_b[0], point_b[1], point_c[0], point_c[1])
+
         # Ray passing through C line terms
-        m1 = (point_c[1] - center_y) / (point_c[0] - center_x)  # (yc - yo) / (xc - xo)
-        p1 = center_y - m1 * center_x  # yo - m1 * xo
+        m1 = (point_c[1] - center_y) / (point_c[0] - center_x)
+        p1 = center_y - m1 * center_x
 
         if m1 != 0.:
             # If the line passing by the center and C is not horizontal
 
             # Perpendicular to the ray line terms
             m2 = 0. if m1 >= 1e15 else -1. / m1
-            p2 = center_y - m2 * center_x   # yo - m2 * xo
+            p2 = center_y - m2 * center_x
 
             # Terms of the equation to solve for x coordinate of points D and E
             a = 1. + m2 ** 2
-            b = m2 * (2. * p2 - 2. * center_y) - 2. * center_x  # m2 * (p2 - 2. * center_y) - 2. * center_x  # 2. * (m2 * (p2 - center_y) - center_x)
-            c = center_x ** 2 + p2 ** 2 + center_y ** 2 - 2. * p2 * center_y - r ** 2  # center_x ** 2 + p2 ** 2 + center_y ** 2 - r ** 2
+            b = m2 * (2. * p2 - 2. * center_y) - 2. * center_x
+            c = center_x ** 2 + p2 ** 2 + center_y ** 2 - 2. * p2 * center_y - r ** 2
 
             # Solve the equation to get the coordinates of points D and E
             discriminant = (b ** 2) - (4. * a * c)
@@ -328,11 +313,11 @@ def arc_bounding_box(point_a, point_b, rot_angle, center, trans_vector=None, bb_
                 point_d[1]
             ]
 
-        return list(zip(bb_points_x, bb_points_y)), [point_a, point_b, point_c, point_d, point_e]
+        return list(zip(bb_points_x, bb_points_y))
 
 
-def csv_check_collisions(other_polygons, polygon_sequence, actions, bb_type='minimum_rotated_rectangle',
-                         aabb_tree=None, polygon_indexes=None, collision_data=None, display_debug=False):
+def csv_check_collisions(other_polygons, polygon_sequence, action_sequence, bb_type='minimum_rotated_rectangle',
+                         aabb_tree=None, indexes=None, collision_data=None, display_debug=False):
     # TODO : Consider adding verification at first step whether there is a collision or not between polygon and all
     #    polygons in polygon_sequence, it may improve performance ? Or not.
     # TODO : Implement collision detection as separate method that makes use of the AABBTree
@@ -340,22 +325,23 @@ def csv_check_collisions(other_polygons, polygon_sequence, actions, bb_type='min
     # Initialize at first recursive iteration
     if not collision_data:
         collision_data = {}
-    if not polygon_indexes:
-        polygon_indexes = [i for i in range(len(polygon_sequence))]
+    if not indexes:
+        indexes = [i for i in range(len(polygon_sequence))]
     if not aabb_tree:
-        aabb_tree = AABBTree()
-        for uid, polygon in other_polygons.items():
-            aabb_tree.add(polygon_to_aabb(polygon), uid)
+        aabb_tree = polygons_to_aabb_tree(other_polygons)
 
     # Allow reuse of pre-computed CSV polygons to save perfomance
-    polygon_indexes_tuple = tuple(polygon_indexes)
-    if polygon_indexes_tuple in collision_data:
-        bb_vertices = collision_data[polygon_indexes_tuple]["bb_vertices"]
-        csv_polygon = collision_data[polygon_indexes_tuple]["csv_polygon"]
+    indexes_tuple = tuple(indexes)
+    if indexes_tuple in collision_data:
+        bb_vertices = collision_data[indexes_tuple]["bb_vertices"]
+        csv_polygon = collision_data[indexes_tuple]["csv_polygon"]
     else:
-        bb_vertices = bounding_boxes_vertices([polygon_sequence[index] for index in polygon_indexes], actions)
+        bb_vertices = bounding_boxes_vertices(
+            [polygon_sequence[index] for index in indexes],
+            [action_sequence[index] for index in indexes[:-1]]
+        )
         csv_polygon = csv_from_bb_vertices(bb_vertices)
-        collision_data[polygon_indexes_tuple] = {
+        collision_data[indexes_tuple] = {
             "bb_vertices": bb_vertices,
             "csv_polygon": csv_polygon,
         }
@@ -371,16 +357,18 @@ def csv_check_collisions(other_polygons, polygon_sequence, actions, bb_type='min
         if csv_polygon.intersects(polygon):
             intersects = True
             intersection = csv_polygon.intersection(polygon)
-            collision_data[polygon_indexes_tuple]["intersection_polygon"] = intersection
+            collision_data[indexes_tuple]["intersection_polygon"] = intersection
 
-            if display_debug:
+            if display_debug and len(indexes) == 2:
                 fig, ax = plt.subplots()
                 for p in polygon_sequence:
-                    ax.plot(*p.exterior.xy, color='blue')
+                    ax.plot(*p.exterior.xy, color='grey')
+                for i in indexes:
+                    ax.plot(*polygon_sequence[i].exterior.xy, color='blue')
                 for p in other_polygons.values():
                     ax.plot(*p.exterior.xy, color='black')
                 x, y = zip(*[[vertex.x, vertex.y] for vertex in bb_vertices])
-                ax.scatter(x, y)
+                ax.scatter(x, y, marker='x')
                 ax.plot(*csv_polygon.exterior.xy, color='green')
                 ax.plot(*intersection.exterior.xy, color='red')
                 ax.axis('equal')
@@ -390,18 +378,16 @@ def csv_check_collisions(other_polygons, polygon_sequence, actions, bb_type='min
             break
 
     if intersects:
-        if len(polygon_indexes) > 2:
-            first_half_polygon_indexes = polygon_indexes[:len(polygon_indexes)//2 + 1]
-            second_half_polygon_indexes = polygon_indexes[len(polygon_indexes)//2:]
-            first_half_actions = actions[:len(actions)//2]
-            second_half_actions = actions[len(actions)//2:]
+        if len(indexes) > 2:
+            first_half_indexes = indexes[:len(indexes) // 2 + 1]
+            second_half_indexes = indexes[len(indexes) // 2:]
             first_half_collides, collision_data, aabb_tree = csv_check_collisions(
-                other_polygons, polygon_sequence, first_half_actions,
-                polygon_indexes=first_half_polygon_indexes,
+                other_polygons, polygon_sequence, action_sequence,
+                indexes=first_half_indexes,
                 collision_data=collision_data, display_debug=display_debug)
             second_half_collides, collision_data, aabb_tree = csv_check_collisions(
-                other_polygons, polygon_sequence, second_half_actions,
-                polygon_indexes=second_half_polygon_indexes,
+                other_polygons, polygon_sequence, action_sequence,
+                indexes=second_half_indexes,
                 collision_data=collision_data, display_debug=display_debug)
             return (first_half_collides or second_half_collides), collision_data, aabb_tree
         else:
@@ -480,8 +466,8 @@ if __name__ == '__main__':
     _fig.show()
 
     obs_collides, obs_collision_data, _aabb_tree = csv_check_collisions(
-        [{1: obs}], polygon_states, action_list.actions, display_debug=True)
+        {1: obs}, polygon_states, action_list.actions, display_debug=True)
     print(str(obs_collides))
     not_obs_collides, not_obs_collision_data, not_obs_aabb_tree = csv_check_collisions(
-        [{2: not_obs}], polygon_states, action_list.actions, display_debug=True)
+        {2: not_obs}, polygon_states, action_list.actions, display_debug=True)
     print(str(not_obs_collides))
