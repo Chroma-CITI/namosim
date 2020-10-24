@@ -109,6 +109,10 @@ def get_neighbors(cell, width, height, neighborhood=TAXI_NEIGHBORHOOD):
     return neighbors
 
 
+def get_neighbors_no_checks(cell, neighborhood=TAXI_NEIGHBORHOOD):
+    return {(cell[0] + i, cell[1] + j) for i, j in neighborhood}
+
+
 def get_neighbors_no_coll(cell, grid, width, height, neighborhood=TAXI_NEIGHBORHOOD):
     neighbors = set()
     for i, j in neighborhood:
@@ -136,6 +140,14 @@ def get_set_neighbors_no_coll(cell_set, grid, neighborhood=TAXI_NEIGHBORHOOD, pr
     neighbor_set.difference_update(cell_set)
     if previous_cell_set is not None:
         neighbor_set.difference_update(previous_cell_set)
+    return neighbor_set
+
+
+def get_set_neighbors_no_checks(cell_set, neighborhood=TAXI_NEIGHBORHOOD):
+    neighbor_set = set()
+    for cell in cell_set:
+        neighbor_set.update(get_neighbors_no_checks(cell, neighborhood))
+    neighbor_set.difference_update(cell_set)
     return neighbor_set
 
 
@@ -511,6 +523,7 @@ def grid_parameters(polygons, res):
     )
     return grid_pose, grid_d_width, grid_d_height
 
+
 def are_points_on_opposite_sides(ax, ay, bx, by, x1, y1, x2, y2):
     """
     Method inspired by answer of Stackoverflow use copper.har at link :
@@ -535,3 +548,47 @@ def are_points_on_opposite_sides(ax, ay, bx, by, x1, y1, x2, y2):
     :rtype: bool
     """
     return ((y1 - y2) * (ax - x1) + (x2 - x1) * (ay - y1)) * ((y1 - y2) * (bx - x1) + (x2 - x1) * (by - y1)) < 0.
+
+
+def sample_poses_at_middle_of_inflated_sides(polygon, dist_from_sides, close_to_zero_atol=1e-06):
+    """
+    Computes and returns the manipulation poses that are at a distance dist_from_border from the sides,
+    and facing their middle.
+    :param dist_from_sides: distance from the obstacle's sides at which the manipulation poses are computed [m]
+    :type dist_from_sides: float
+    :return: list of manipulation poses
+    :rtype: list(tuple(float, float, float))
+    """
+    poses = []
+
+    # METHOD BY CHANGING CARTESIAN REFERENTIAL
+    poly_center = polygon.centroid.coords[0]
+    for i in range(len(polygon.exterior.coords) - 1):
+        d = dist_from_sides
+        x_a, y_a = polygon.exterior.coords[i]  # First side segment point
+        x_b, y_b = polygon.exterior.coords[i + 1]  # Second side segment point
+        x_m, y_m = ((x_a + x_b) / 2.0, (y_a + y_b) / 2.0)  # Middle of side segment
+        norm_a_b = np.linalg.norm([x_b - x_a, y_b - y_a])  # Side segment length
+        if norm_a_b != 0.:
+            # Compute candidate manip points obtained by cartesian referential change
+            points = [(x_m + d * (y_b - y_a) / norm_a_b, y_m + d * (x_b - x_a) / norm_a_b),
+                      (x_m + d * (y_b - y_a) / norm_a_b, y_m - d * (x_b - x_a) / norm_a_b),
+                      (x_m - d * (y_b - y_a) / norm_a_b, y_m + d * (x_b - x_a) / norm_a_b),
+                      (x_m - d * (y_b - y_a) / norm_a_b, y_m - d * (x_b - x_a) / norm_a_b)]
+            manip_point = (0., 0.)
+            max_dist = 0.0
+            # Iterate over candidate manip points to select only the closest one orthogonal to side segment
+            for x_r, y_r in points:
+                scalar_product = (x_b - x_a) * (x_r - x_m) + (y_b - y_a) * (y_r - y_m)
+                if abs(scalar_product - 0.) <= close_to_zero_atol:
+                    norm_r_poly_center = np.linalg.norm([poly_center[0] - x_r, poly_center[1] - y_r])
+                    if norm_r_poly_center > max_dist:
+                        manip_point = (x_r, y_r)
+                        max_dist = norm_r_poly_center
+
+            # Save selected manip point in returned list
+            direction = (x_m - manip_point[0], y_m - manip_point[1])
+            manip_pose = (manip_point[0], manip_point[1], yaw_from_direction(direction))
+            poses.append(manip_pose)
+
+    return poses
