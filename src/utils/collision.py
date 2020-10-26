@@ -356,8 +356,8 @@ def csv_check_collisions(other_polygons, polygon_sequence, action_sequence, bb_t
         polygon = other_polygons[uid]
         if csv_polygon.intersects(polygon):
             intersects = True
-            intersection = csv_polygon.intersection(polygon)
-            collision_data[indexes_tuple]["intersection_polygon"] = intersection
+            # intersection = csv_polygon.intersection(polygon)
+            # collision_data[indexes_tuple]["intersection_polygon"] = intersection
 
             if display_debug and len(indexes) == 2:
                 fig, ax = plt.subplots()
@@ -370,6 +370,7 @@ def csv_check_collisions(other_polygons, polygon_sequence, action_sequence, bb_t
                 x, y = zip(*[[vertex.x, vertex.y] for vertex in bb_vertices])
                 ax.scatter(x, y, marker='x')
                 ax.plot(*csv_polygon.exterior.xy, color='green')
+                intersection = csv_polygon.intersection(polygon)
                 ax.plot(*intersection.exterior.xy, color='red')
                 ax.axis('equal')
                 fig.show()
