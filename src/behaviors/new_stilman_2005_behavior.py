@@ -14,7 +14,7 @@ from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.worldreps.entity_based.robot import Robot
 from src.behaviors.algorithms.new_local_opening_check import new_check_new_local_opening
-from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
+from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess, Grab, Release, GoToPose, Translation, Rotation
 from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, NewBinaryInflatedOccupancyGrid
 from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
 import src.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
@@ -75,9 +75,9 @@ class NewStilman2005Behavior(BaselineBehavior):
         self._actions = []
         self._new_actions = []
         for trans_vector in self._trans_vectors:
-            self._new_actions.append(NewTranslation(trans_vector))
+            self._new_actions.append(Translation(trans_vector))
         for rot_angle in self._rot_angles:
-            self._new_actions.append(NewRotation(rot_angle))
+            self._new_actions.append(Rotation(rot_angle))
 
         self._social_costmap = None
 
@@ -908,14 +908,14 @@ class NewStilman2005Behavior(BaselineBehavior):
         tentative_g_scores = []
 
         for action in self._new_actions:
-            if isinstance(action, NewRotation):
+            if isinstance(action, Rotation):
                 robot_center = (
                     current_configuration.robot.floating_point_pose[0],
                     current_configuration.robot.floating_point_pose[1]
                 )
                 new_robot_pose = action.predict_pose(current_configuration.robot.floating_point_pose, robot_center)
                 new_obstacle_pose = action.predict_pose(current_configuration.obstacle.floating_point_pose, robot_center)
-            elif isinstance(action, NewTranslation):
+            elif isinstance(action, Translation):
                 new_robot_pose = action.predict_pose(current_configuration.robot.floating_point_pose)
                 new_obstacle_pose = action.predict_pose(current_configuration.obstacle.floating_point_pose)
             else:
@@ -995,7 +995,7 @@ class NewStilman2005Behavior(BaselineBehavior):
                 static_collision_cache[obstacle_uid][robot_fixed_precision_pose] = False
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            converted_action = self.convert_action(
+            converted_action = collision.convert_action(
                 action,
                 (current_configuration.robot.floating_point_pose[0], current_configuration.robot.floating_point_pose[1])
             )  # So that csv lib can properly do collision detection
@@ -1040,13 +1040,6 @@ class NewStilman2005Behavior(BaselineBehavior):
             )
 
         return neighbors, tentative_g_scores
-
-    @staticmethod
-    def convert_action(action, robot_center):
-        if isinstance(action, NewTranslation):
-            return collision.Translation(action.translation_vector)
-        elif isinstance(action, NewRotation):
-            return collision.Rotation(action.angle, robot_center)
 
     def get_transit_end_and_transfer_start_poses(self, obstacle_polygon, robot_inflation_radius, robot_accessible_cells, res, grid_pose):
         """
@@ -1361,45 +1354,6 @@ class RobotObstacleConfiguration:
 
     def __hash__(self):
         return hash((self.robot.fixed_precision_pose, self.obstacle.fixed_precision_pose))
-
-
-class NewRotation:
-
-    def __init__(self, angle):
-        self.angle = angle
-
-    def apply(self, polygon, pose):
-        return affinity.rotate(geom=polygon, angle=self.angle, origin=(pose[0], pose[1]), use_radians=False)
-
-    def predict_pose(self, pose, center):
-        new_point = affinity.rotate(
-            geom=Point((pose[0], pose[1])), angle=self.angle, origin=center, use_radians=False
-        ).coords[0]
-        return (
-            new_point[0], new_point[1],
-            (pose[2] + self.angle) % 360.0
-        )
-
-
-class NewTranslation:
-
-    def __init__(self, translation_vector):
-        self.translation_vector = translation_vector
-        self.translation_length = utils.euclidean_distance((0., 0.), translation_vector)
-        self.translation_linestring = LineString([(0., 0.), self.translation_vector])
-
-    def apply(self, polygon, pose):
-        rotated_linestring = affinity.rotate(self.translation_linestring, pose[2], origin=(0., 0.))
-        translation_vector = rotated_linestring.coords[1]
-        return affinity.translate(geom=polygon, xoff=translation_vector[0], yoff=translation_vector[1], zoff=0.)
-
-    def predict_pose(self, pose):
-        rotated_linestring = affinity.rotate(self.translation_linestring, pose[2], origin=(0., 0.))
-        translation_vector = rotated_linestring.coords[1]
-        new_point = affinity.translate(
-            geom=Point((pose[0], pose[1])), xoff=translation_vector[0], yoff=translation_vector[1], zoff=0.
-        ).coords[0]
-        return new_point[0], new_point[1], pose[2]
 
 
 class NewPath:
