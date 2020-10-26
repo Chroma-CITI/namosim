@@ -99,10 +99,10 @@ class Simulator:
         self.catch_exceptions = False
 
     def run(self):
-        print("Run started")
         run_start_time = time.time()
 
         run_active = True
+        exceptions_traces_met_during_run = []
         while run_active:
 
             active_agents = set(self.agent_uid_to_behavior.keys())
@@ -115,27 +115,41 @@ class Simulator:
             trace_polygons = []
 
             while active_agents:
+                # Sense loop: update each agent's knowledge of the world
                 for agent_uid, behavior in self.agent_uid_to_behavior.items():
-                    last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
-                                          if self.agent_uid_to_action_results[agent_uid]
-                                          else ActionSuccess)
-                    behavior.sense(self.ref_world, last_action_result)
+                    if agent_uid in active_agents:
+                        last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
+                                              if self.agent_uid_to_action_results[agent_uid]
+                                              else ActionSuccess)
+                        behavior.sense(self.ref_world, last_action_result)
 
-                    if agent_uid not in active_agents:
-                        continue
-
+                # Think loop: get each agent to think about their next step
+                agent_uid_to_next_action = {}
+                for agent_uid, behavior in self.agent_uid_to_behavior.items():
                     planning_start_time = time.time()
                     try:
-                        action = behavior.think()
+                        agent_uid_to_next_action[agent_uid] = behavior.think()
                     except:
+                        exceptions_traces_met_during_run.append(traceback.format_exc())
                         traceback.print_exc()
                         continue
                     self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
 
-                    # If there are no more goals to execute for the agent behavior, then remove it
+                # Act loop: try to execute each agent's next step 'at the same time',
+                for agent_uid, behavior in self.agent_uid_to_behavior.items():
+                    action = agent_uid_to_next_action[agent_uid]
+
                     if isinstance(action, ActionGoalsFinished):
+                        # If the agent signals it has executed all of its goals, remove it from the active agents
                         active_agents.remove(agent_uid)
-                    elif not isinstance(action, ActionGoalResult):
+                    elif isinstance(action, ActionGoalResult):
+                        # If the agent signals whether it reached its current goal or could not reach it
+                        goal_counter += 1
+                        self.save_world_snapshot(agent_uid, action, goal_counter, trace_polygons)
+                        if action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = []
+                    else:
+                        # If there is an actual action to be executed
                         action_result = self.act(agent_uid, action)
 
                         trace_polygons.append(self.ref_world.entities[agent_uid].polygon)
@@ -148,70 +162,12 @@ class Simulator:
                         else:
                             self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = [action_result]
 
-                    elif isinstance(action, ActionGoalResult):
-                        goal_counter += 1
-                        world_snapshot = copy.deepcopy(self.ref_world)
-                        self.agent_uid_and_goal_to_world_snapshot[agent_uid].append({
-                            "goal": action.goal,
-                            "goal_status": str(action),
-                            "world_snapshot": copy.deepcopy(self.ref_world)
-                        })
+                # Once the simulation reference world has been modified, display the modification
+                if not self.display_sim_knowledge_only_once:
+                    self.rp.publish_sim_world(self.ref_world, agent_uid)
 
-                        json_filepath = self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_after_goal_" + str(
-                            goal_counter) + ".json"
-                        svg_filepath = utils.append_suffix(self.init_ref_world.init_geometry_filename,
-                                                           "_after_goal_" + str(goal_counter))
-                        svg_data = world_snapshot.to_svg()
-
-                        conversion.add_shapely_geometry_to_svg(
-                            utils.set_polygon_pose(
-                                self.ref_world.entities[agent_uid].polygon, self.ref_world.entities[agent_uid].pose, action.goal
-                            ),
-                            self.ref_world.scaling_value,
-                            self.ref_world.dd.width,
-                            self.ref_world.dd.height,
-                            'goal_generated_' + str(goal_counter),
-                            conversion.GOAL_STYLE,
-                            svg_data
-                        )
-
-                        # TODO ADD ORIENTATION GEOMETRY
-                        # conversion.add_shapely_geometry_to_svg(
-                        #     utils.set_polygon_pose(
-                        #         self.ref_world[agent_uid].polygon, self.ref_world[agent_uid].pose, action.goal
-                        #     ),
-                        #     self.ref_world.scaling_value,
-                        #     self.ref_world.dd.grid_pose,
-                        #     'goal_generated_' + str(goal_counter) + '_dir',
-                        #     conversion.GOAL_STYLE,
-                        #     svg_data
-                        # )
-
-                        for polygon in trace_polygons:
-                            conversion.add_shapely_geometry_to_svg(
-                                polygon,
-                                self.ref_world.scaling_value,
-                                self.ref_world.dd.width,
-                                self.ref_world.dd.height,
-                                'goal_generated_' + str(goal_counter),
-                                conversion.OBSTACE_TRACE_STYLE,
-                                svg_data
-                            )
-                        trace_polygons = []
-
-                        json_data = world_snapshot.to_json(svg_filepath)
-                        world_snapshot.save_to_files(
-                            json_data=json_data,
-                            svg_data=svg_data,
-                            json_filepath=json_filepath,
-                            svg_filepath=svg_filepath
-                        )
-
-                        if action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                            self.agent_uid_and_goal_to_action_results[agent_uid][action.goal] = []
-
-                    if not self.display_sim_knowledge_only_once:
-                        self.rp.publish_sim_world(self.ref_world, agent_uid)
+            # If the simulation is set to be reset after all agents have reached their first goal,
+            # and there are goals left to reach, reset the simulation world and give the agents their next goal
             goals_left = any([bool(goals) for goals in self.agent_uid_to_goals.values()])
             if self.reset_after_first_goal and goals_left:
                 self.ref_world = copy.deepcopy(self.init_ref_world)
@@ -221,8 +177,8 @@ class Simulator:
                 self.agent_uid_to_behavior = self.initialize_agents_behaviors(agent_uid_to_goals)
                 self.rp.cleanup_sim_world()
             else:
+                # Otherwise, simply leave and finish up the simulation
                 run_active = False
-
 
         self.ref_world.save_to_files(
             json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_end" + ".json",
@@ -233,11 +189,9 @@ class Simulator:
         self.run_duration = time.time() - run_start_time
 
         simulation_report = self.create_simulation_report()
-        # if e:
-        #     simulation_report['Exception'] = str(e)
+        if exceptions_traces_met_during_run:
+            simulation_report['Exceptions'] = json.dumps(exceptions_traces_met_during_run)
         simulation_report_json = json.dumps(simulation_report, indent=4, sort_keys=True)
-
-        print(simulation_report_json)
 
         log_filepath = os.path.join(
                 os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
@@ -529,3 +483,61 @@ class Simulator:
                                               "Maybe you mispelled something ?".format(
                         agent_name=agent_name, b_name=agent_behavior_name))
         return agent_uid_to_behavior
+
+    def save_world_snapshot(self, agent_uid, action, goal_counter, trace_polygons):
+        world_snapshot = copy.deepcopy(self.ref_world)
+        self.agent_uid_and_goal_to_world_snapshot[agent_uid].append({
+            "goal": action.goal,
+            "goal_status": str(action),
+            "world_snapshot": copy.deepcopy(self.ref_world)
+        })
+
+        json_filepath = self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_after_goal_" + str(
+            goal_counter) + ".json"
+        svg_filepath = utils.append_suffix(self.init_ref_world.init_geometry_filename,
+                                           "_after_goal_" + str(goal_counter))
+        svg_data = world_snapshot.to_svg()
+
+        conversion.add_shapely_geometry_to_svg(
+            utils.set_polygon_pose(
+                self.ref_world.entities[agent_uid].polygon, self.ref_world.entities[agent_uid].pose, action.goal
+            ),
+            self.ref_world.scaling_value,
+            self.ref_world.dd.width,
+            self.ref_world.dd.height,
+            'goal_generated_' + str(goal_counter),
+            conversion.GOAL_STYLE,
+            svg_data
+        )
+
+        # TODO ADD ORIENTATION GEOMETRY
+        # conversion.add_shapely_geometry_to_svg(
+        #     utils.set_polygon_pose(
+        #         self.ref_world[agent_uid].polygon, self.ref_world[agent_uid].pose, action.goal
+        #     ),
+        #     self.ref_world.scaling_value,
+        #     self.ref_world.dd.grid_pose,
+        #     'goal_generated_' + str(goal_counter) + '_dir',
+        #     conversion.GOAL_STYLE,
+        #     svg_data
+        # )
+
+        for polygon in trace_polygons:
+            conversion.add_shapely_geometry_to_svg(
+                polygon,
+                self.ref_world.scaling_value,
+                self.ref_world.dd.width,
+                self.ref_world.dd.height,
+                'goal_generated_' + str(goal_counter),
+                conversion.OBSTACE_TRACE_STYLE,
+                svg_data
+            )
+        del trace_polygons[:len(trace_polygons)]
+
+        json_data = world_snapshot.to_json(svg_filepath)
+        world_snapshot.save_to_files(
+            json_data=json_data,
+            svg_data=svg_data,
+            json_filepath=json_filepath,
+            svg_filepath=svg_filepath
+        )
