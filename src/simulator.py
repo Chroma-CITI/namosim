@@ -117,278 +117,14 @@ class Simulator:
 
             while active_agents:
                 # Sense loop: update each agent's knowledge of the world
-                for agent_uid, behavior in self.agent_uid_to_behavior.items():
-                    if agent_uid in active_agents:
-                        last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
-                                              if self.agent_uid_to_action_results[agent_uid]
-                                              else ar.ActionSuccess)
-                        behavior.sense(self.ref_world, last_action_result)
+                self.sense(active_agents)
 
                 # Think loop: get each agent to think about their next step
-                agent_uid_to_next_action = {}
-                for agent_uid, behavior in self.agent_uid_to_behavior.items():
-                    if agent_uid in active_agents:
-                        planning_start_time = time.time()
-                        try:
-                            agent_next_action = behavior.think()
-
-                            if isinstance(agent_next_action, ba.GoalsFinished):
-                                # If the agent has executed all of its goals, remove it from the active agents
-                                active_agents.remove(agent_uid)
-                            elif isinstance(agent_next_action, ba.GoalFailed):
-                                goal_counter += 1
-                                self.save_world_snapshot(agent_uid, agent_next_action, goal_counter, trace_polygons)
-                                if agent_next_action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                                    self.agent_uid_and_goal_to_action_results[agent_uid][agent_next_action.goal] = []
-                            elif isinstance(agent_next_action, ba.GoalsSuccess):
-                                # If the agent reached its current goal
-                                goal_counter += 1
-                                self.save_world_snapshot(agent_uid, agent_next_action, goal_counter, trace_polygons)
-                            else:
-                                # If the agent could think of a plan and its step
-                                agent_uid_to_next_action[agent_uid] = agent_next_action
-                        except:
-                            exceptions_traces_met_during_run.append(traceback.format_exc())
-                            traceback.print_exc()
-                            continue
-                        self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
+                agent_uid_to_next_action = self.think(
+                    active_agents, goal_counter, trace_polygons, exceptions_traces_met_during_run)
 
                 # Act loops: Verify that each action is doable individually, together and if so execute them
-                agent_uid_to_doable_action = {
-                    uid: action for uid, action in agent_uid_to_next_action.items() if isinstance(action, ba.Wait)
-                }
-                agent_uid_to_impossible_action_result = {}
-
-                # 1. Check static geometrical validity of MOVEMENT actions:
-                #    (GOTOPOSE, TRANSLATION, ROTATION, GRAB, RELEASE)
-                transition_polygons = {}
-                agent_uid_to_movement_actions = {
-                    uid: action for uid, action in agent_uid_to_next_action.items()
-                    if isinstance(action, (ba.GoToPose, ba.Translation, ba.Rotation))
-                    and uid not in agent_uid_to_impossible_action_result
-                }
-                agent_uid_to_statically_doable_action = {}
-                for agent_uid, next_action in agent_uid_to_movement_actions.items():
-                    # If there is an actual action to be executed
-                    attached_entity_uid = (
-                        None if agent_uid not in attached_entity_to_robot.inverse
-                        else attached_entity_to_robot.inverse[agent_uid]
-                    )
-                    to_be_attached_entity_uid = (
-                        None if not isinstance(next_action, (ba.Grab, ba.Release)) else next_action.entity_uid
-                    )
-                    other_entities = {
-                        uid: entity
-                        for uid, entity in self.ref_world.entities.items()
-                        if uid != agent_uid and uid != attached_entity_uid and uid != to_be_attached_entity_uid
-                    }
-                    other_polygons = {uid: e.polygon for uid, e in other_entities}
-                    other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_polygons)
-                    agent = self.ref_world.entities[agent_uid]
-
-                    if isinstance(next_action, ba.GoToPose):
-                        collision_polygon = LineString([agent.pose, next_action.pose]).buffer(
-                            utils.get_circumscribed_radius(agent.polygon))
-                        collision_aabb = collision.polygon_to_aabb(collision_polygon)
-                        potential_collision_uids = other_entities_aabb_tree.overlap_values(collision_aabb)
-                        agent_collides = False
-                        for uid in potential_collision_uids:
-                            if other_polygons[uid].intersects(collision_polygon):
-                                agent_collides = True
-                                agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
-                                    next_action, agent_uid, uid, other_polygons[uid].intersection(collision_polygon)
-                                )
-                                break
-                        if not agent_collides:
-                            agent_uid_to_statically_doable_action[agent_uid] = next_action
-                            transition_polygons[agent_uid] = collision_polygon
-                    elif isinstance(next_action, ba.Rotation) or isinstance(next_action, ba.Translation):
-                        converted_action = ba.convert_action(next_action, (agent.pose[0], agent.pose[1]))
-                        agent_polygon_sequence = [agent.polygon, next_action.apply(agent.polygon, agent.pose)]
-                        agent_collides, agent_collision_data, _ = collision.csv_check_collisions(
-                            other_polygons, agent_polygon_sequence, [converted_action],
-                            'minimum_rotated_rectangle', other_entities_aabb_tree, [0, 1]
-                        )
-                        if agent_collides:
-                            agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
-                                next_action, agent_uid,
-                                agent_collision_data[(0, 1)]['colliding_polygon_uid'],
-                                agent_collision_data[(0, 1)]['intersection_polygon']
-                            )
-                        else:
-                            if attached_entity_uid:
-                                att_entity = self.ref_world.entities[attached_entity_uid]
-                                att_entity_polygon_sequence = [
-                                    att_entity.polygon, next_action.apply(att_entity.polygon, att_entity.pose)]
-                                att_entity_collides, att_entity_collision_data, _ = collision.csv_check_collisions(
-                                    other_polygons, att_entity_polygon_sequence, [converted_action],
-                                    'minimum_rotated_rectangle', other_entities_aabb_tree, [0, 1]
-                                )
-                                if att_entity_collides:
-                                    agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
-                                        next_action, attached_entity_uid,
-                                        att_entity_collision_data[(0, 1)]['colliding_polygon_uid'],
-                                        att_entity_collision_data[(0, 1)]['intersection_polygon']
-                                    )
-                                else:
-                                    transition_polygons[agent_uid] = agent_collision_data[(0, 1)]['csv_polygon']
-                                    transition_polygons[attached_entity_uid] = att_entity_collision_data[(0, 1)]['csv_polygon']
-                                    agent_uid_to_statically_doable_action[agent_uid] = next_action
-                            else:
-                                transition_polygons[agent_uid] = agent_collision_data[(0, 1)]['csv_polygon']
-                                agent_uid_to_statically_doable_action[agent_uid] = next_action
-                    else:
-                        raise TypeError('Provided action type is not supported.')
-
-                # 2. Check dynamic (transitionnal) geometrical validity of MOVEMENT actions:
-                #    (GOTOPOSE, TRANSLATION, ROTATION, GRAB, RELEASE)
-                for agent_uid, action in agent_uid_to_statically_doable_action.items():
-                    attached_entity_uid = (
-                        None if agent_uid not in attached_entity_to_robot.inverse
-                        else attached_entity_to_robot.inverse[agent_uid]
-                    )
-                    to_be_attached_entity_uid = (
-                        None if not isinstance(action, (ba.Grab, ba.Release)) else action.entity_uid
-                    )
-
-                    other_transition_polygons = {
-                        uid: p for uid, p in transition_polygons
-                        if uid != agent_uid and uid != attached_entity_uid and uid != to_be_attached_entity_uid
-                    }
-                    other_transitions_aabb_tree = collision.polygons_to_aabb_tree(other_transition_polygons)
-                    agent_transition_polygon = transition_polygons[agent_uid]
-                    agent_transition_aabb = collision.polygon_to_aabb(agent_transition_polygon)
-
-                    agent_potential_collision_uids = other_transitions_aabb_tree.overlap_values(agent_transition_aabb)
-                    agent_transitionnally_collides = False
-                    for uid in agent_potential_collision_uids:
-                        if other_transition_polygons[uid].intersects(agent_transition_polygon):
-                            agent_transitionnally_collides = True
-                            agent_uid_to_impossible_action_result[agent_uid] = ar.DynamicCollisionFailure(
-                                action, agent_uid, uid,
-                                other_transition_polygons[uid].intersection(agent_transition_polygon)
-                            )
-                            break
-
-                    if not agent_transitionnally_collides:
-                        if attached_entity_uid:
-                            att_entity_transition_polygon = transition_polygons[attached_entity_uid]
-                            att_entity_transition_aabb = collision.polygon_to_aabb(att_entity_transition_polygon)
-
-                            att_entity_potential_collision_uids = other_transitions_aabb_tree.overlap_values(
-                                agent_transition_aabb)
-                            att_entity_transitionnally_collides = False
-                            for uid in att_entity_potential_collision_uids:
-                                if other_transition_polygons[uid].intersects(att_entity_transition_polygon):
-                                    att_entity_transitionnally_collides = True
-                                    agent_uid_to_impossible_action_result[agent_uid] = ar.DynamicCollisionFailure(
-                                        action, attached_entity_uid, uid,
-                                        other_transition_polygons[uid].intersection(att_entity_transition_polygon)
-                                    )
-                                    break
-                            if not att_entity_transitionnally_collides:
-                                agent_uid_to_doable_action[agent_uid] = action
-                        else:
-                            agent_uid_to_doable_action[agent_uid] = action
-
-                # 3. Check conceptual validity of RELEASE actions
-                agent_uid_to_release_action = {
-                    uid: action for uid, action in agent_uid_to_doable_action.items() if
-                isinstance(action, ba.Release)
-                }
-                about_to_be_released_uids = set()
-                for agent_uid, release_action in agent_uid_to_release_action.items():
-                    if release_action.entity_uid in attached_entity_to_robot:
-                        agent_that_already_grabbed_entity = attached_entity_to_robot[
-                            release_action.entity_uid]
-                        if agent_that_already_grabbed_entity == agent_uid:
-                            about_to_be_released_uids.add(release_action.entity_uid)
-                        else:
-                            agent_uid_to_impossible_action_result[agent_uid] = ar.GrabbedByOtherFailure(
-                                release_action, agent_that_already_grabbed_entity
-                            )
-                            del agent_uid_to_doable_action[agent_uid]
-                    else:
-                        agent_uid_to_impossible_action_result[agent_uid] = ar.NotGrabbedFailure(
-                            release_action)
-                        del agent_uid_to_doable_action[agent_uid]
-
-                # 4. Check conceptual validity of GRAB actions
-                agent_uid_to_grab_action = {
-                    uid: action for uid, action in agent_uid_to_doable_action.items() if
-                isinstance(action, ba.Grab)
-                }
-                for agent_uid, grab_action, in agent_uid_to_grab_action.items():
-                    if grab_action.entity_uid in attached_entity_to_robot:
-                        if grab_action.entity_uid not in about_to_be_released_uids:
-                            agent_that_already_grabbed_entity = attached_entity_to_robot[
-                                grab_action.entity_uid]
-                            agent_uid_to_impossible_action_result[agent_uid] = ar.AlreadyGrabbedFailure(
-                                grab_action, agent_that_already_grabbed_entity
-                            )
-                            del agent_uid_to_doable_action[agent_uid]
-                    elif agent_uid in attached_entity_to_robot.inverse:
-                        agent_uid_to_impossible_action_result[agent_uid] = ar.GrabMoreThanOneFailure(
-                            grab_action)
-                        del agent_uid_to_doable_action[agent_uid]
-
-                # SECOND Act loop: execute all doable actions in reference simulation world, save results
-                for agent_uid, action in agent_uid_to_doable_action.items():
-                    agent = self.ref_world.entities[agent_uid]
-                    if isinstance(action, ba.Wait):
-                        pass
-                    elif isinstance(action, ba.GoToPose):
-                        agent.polygon = utils.set_polygon_pose(agent.polygon, agent.pose, action.pose)
-                        agent.pose = action.pose
-                        trace_polygons.append(agent.polygon)
-                    elif isinstance(action, (ba.Translation, ba.Rotation)):
-                        attached_entity_uid = (
-                            None if agent_uid not in attached_entity_to_robot.inverse
-                            else attached_entity_to_robot.inverse[agent_uid]
-                        )
-
-                        agent.polygon = action.apply(agent.polygon, agent.pose)
-                        agent.pose = action.predict_pose(agent.pose)
-                        trace_polygons.append(agent.polygon)
-
-                        if attached_entity_uid:
-                            attached_entity = self.ref_world.entities[attached_entity_uid]
-
-                            attached_entity.polygon = action.apply(attached_entity.polygon, attached_entity.pose)
-                            attached_entity.pose = action.predict_pose(attached_entity.pose)
-                            trace_polygons.append(attached_entity.polygon)
-
-                        if isinstance(action, ba.Grab):
-                            attached_entity_to_robot[action.entity_uid] = agent_uid
-                        elif isinstance(action, ba.Release):
-                            del attached_entity_to_robot[action.entity_uid]
-                    else:
-                        raise TypeError('Action must be of type Wait, Translation, Rotation, GoToPose, Grab or Release')
-
-                    action_result = ar.ActionSuccess(action)
-
-                    # Save Action Result in action result history
-                    self.agent_uid_to_action_results[agent_uid].append(action_result)
-
-                    agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
-                    if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                        self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
-                    else:
-                        self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
-
-                # Third Act loop: Save results of impossible actions
-                for agent_uid, action_result in agent_uid_to_impossible_action_result.items():
-                    self.agent_uid_to_action_results[agent_uid].append(action_result)
-
-                    agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
-                    if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                        self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
-                    else:
-                        self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
-
-                # Once the simulation reference world has been modified, display the modification
-                if not self.display_sim_knowledge_only_once:
-                    self.rp.publish_sim_world(self.ref_world, agent_uid)
+                self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons)
 
             # If the simulation is set to be reset after all agents have reached their first goal,
             # and there are goals left to reach, reset the simulation world and give the agents their next goal
@@ -736,3 +472,278 @@ class Simulator:
             json_filepath=json_filepath,
             svg_filepath=svg_filepath
         )
+
+    def sense(self, active_agents):
+        for agent_uid, behavior in self.agent_uid_to_behavior.items():
+            if agent_uid in active_agents:
+                last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
+                                      if self.agent_uid_to_action_results[agent_uid]
+                                      else ar.ActionSuccess)
+                behavior.sense(self.ref_world, last_action_result)
+
+    def think(self, active_agents, goal_counter, trace_polygons, exceptions_traces_met_during_run):
+        agent_uid_to_next_action = {}
+        for agent_uid, behavior in self.agent_uid_to_behavior.items():
+            if agent_uid in active_agents:
+                planning_start_time = time.time()
+                try:
+                    agent_next_action = behavior.think()
+
+                    if isinstance(agent_next_action, ba.GoalsFinished):
+                        # If the agent has executed all of its goals, remove it from the active agents
+                        active_agents.remove(agent_uid)
+                    elif isinstance(agent_next_action, ba.GoalFailed):
+                        goal_counter += 1
+                        self.save_world_snapshot(agent_uid, agent_next_action, goal_counter, trace_polygons)
+                        if agent_next_action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                            self.agent_uid_and_goal_to_action_results[agent_uid][agent_next_action.goal] = []
+                    elif isinstance(agent_next_action, ba.GoalsSuccess):
+                        # If the agent reached its current goal
+                        goal_counter += 1
+                        self.save_world_snapshot(agent_uid, agent_next_action, goal_counter, trace_polygons)
+                    else:
+                        # If the agent could think of a plan and its step
+                        agent_uid_to_next_action[agent_uid] = agent_next_action
+                except:
+                    exceptions_traces_met_during_run.append(traceback.format_exc())
+                    traceback.print_exc()
+                    continue
+                self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
+        return agent_uid_to_next_action
+
+    def act(self, agent_uid_to_next_action, attached_entity_to_robot, trace_polygons):
+        agent_uid_to_doable_action = {
+            uid: action for uid, action in agent_uid_to_next_action.items() if isinstance(action, ba.Wait)
+        }
+        agent_uid_to_impossible_action_result = {}
+
+        # 1. Check static geometrical validity of MOVEMENT actions:
+        #    (GOTOPOSE, TRANSLATION, ROTATION, GRAB, RELEASE)
+        transition_polygons = {}
+        agent_uid_to_movement_actions = {
+            uid: action for uid, action in agent_uid_to_next_action.items()
+            if isinstance(action, (ba.GoToPose, ba.Translation, ba.Rotation))
+               and uid not in agent_uid_to_impossible_action_result
+        }
+        agent_uid_to_statically_doable_action = {}
+        for agent_uid, next_action in agent_uid_to_movement_actions.items():
+            # If there is an actual action to be executed
+            attached_entity_uid = (
+                None if agent_uid not in attached_entity_to_robot.inverse
+                else attached_entity_to_robot.inverse[agent_uid]
+            )
+            to_be_attached_entity_uid = (
+                None if not isinstance(next_action, (ba.Grab, ba.Release)) else next_action.entity_uid
+            )
+            other_entities = {
+                uid: entity
+                for uid, entity in self.ref_world.entities.items()
+                if uid != agent_uid and uid != attached_entity_uid and uid != to_be_attached_entity_uid
+            }
+            other_polygons = {uid: e.polygon for uid, e in other_entities}
+            other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_polygons)
+            agent = self.ref_world.entities[agent_uid]
+
+            if isinstance(next_action, ba.GoToPose):
+                collision_polygon = LineString([agent.pose, next_action.pose]).buffer(
+                    utils.get_circumscribed_radius(agent.polygon))
+                collision_aabb = collision.polygon_to_aabb(collision_polygon)
+                potential_collision_uids = other_entities_aabb_tree.overlap_values(collision_aabb)
+                agent_collides = False
+                for uid in potential_collision_uids:
+                    if other_polygons[uid].intersects(collision_polygon):
+                        agent_collides = True
+                        agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
+                            next_action, agent_uid, uid, other_polygons[uid].intersection(collision_polygon)
+                        )
+                        break
+                if not agent_collides:
+                    agent_uid_to_statically_doable_action[agent_uid] = next_action
+                    transition_polygons[agent_uid] = collision_polygon
+            elif isinstance(next_action, ba.Rotation) or isinstance(next_action, ba.Translation):
+                converted_action = ba.convert_action(next_action, (agent.pose[0], agent.pose[1]))
+                agent_polygon_sequence = [agent.polygon, next_action.apply(agent.polygon, agent.pose)]
+                agent_collides, agent_collision_data, _ = collision.csv_check_collisions(
+                    other_polygons, agent_polygon_sequence, [converted_action],
+                    'minimum_rotated_rectangle', other_entities_aabb_tree, [0, 1]
+                )
+                if agent_collides:
+                    agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
+                        next_action, agent_uid,
+                        agent_collision_data[(0, 1)]['colliding_polygon_uid'],
+                        agent_collision_data[(0, 1)]['intersection_polygon']
+                    )
+                else:
+                    if attached_entity_uid:
+                        att_entity = self.ref_world.entities[attached_entity_uid]
+                        att_entity_polygon_sequence = [
+                            att_entity.polygon, next_action.apply(att_entity.polygon, att_entity.pose)]
+                        att_entity_collides, att_entity_collision_data, _ = collision.csv_check_collisions(
+                            other_polygons, att_entity_polygon_sequence, [converted_action],
+                            'minimum_rotated_rectangle', other_entities_aabb_tree, [0, 1]
+                        )
+                        if att_entity_collides:
+                            agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
+                                next_action, attached_entity_uid,
+                                att_entity_collision_data[(0, 1)]['colliding_polygon_uid'],
+                                att_entity_collision_data[(0, 1)]['intersection_polygon']
+                            )
+                        else:
+                            transition_polygons[agent_uid] = agent_collision_data[(0, 1)]['csv_polygon']
+                            transition_polygons[attached_entity_uid] = att_entity_collision_data[(0, 1)]['csv_polygon']
+                            agent_uid_to_statically_doable_action[agent_uid] = next_action
+                    else:
+                        transition_polygons[agent_uid] = agent_collision_data[(0, 1)]['csv_polygon']
+                        agent_uid_to_statically_doable_action[agent_uid] = next_action
+            else:
+                raise TypeError('Provided action type is not supported.')
+
+        # 2. Check dynamic (transitionnal) geometrical validity of MOVEMENT actions:
+        #    (GOTOPOSE, TRANSLATION, ROTATION, GRAB, RELEASE)
+        for agent_uid, action in agent_uid_to_statically_doable_action.items():
+            attached_entity_uid = (
+                None if agent_uid not in attached_entity_to_robot.inverse
+                else attached_entity_to_robot.inverse[agent_uid]
+            )
+            to_be_attached_entity_uid = (
+                None if not isinstance(action, (ba.Grab, ba.Release)) else action.entity_uid
+            )
+
+            other_transition_polygons = {
+                uid: p for uid, p in transition_polygons
+                if uid != agent_uid and uid != attached_entity_uid and uid != to_be_attached_entity_uid
+            }
+            other_transitions_aabb_tree = collision.polygons_to_aabb_tree(other_transition_polygons)
+            agent_transition_polygon = transition_polygons[agent_uid]
+            agent_transition_aabb = collision.polygon_to_aabb(agent_transition_polygon)
+
+            agent_potential_collision_uids = other_transitions_aabb_tree.overlap_values(agent_transition_aabb)
+            agent_transitionnally_collides = False
+            for uid in agent_potential_collision_uids:
+                if other_transition_polygons[uid].intersects(agent_transition_polygon):
+                    agent_transitionnally_collides = True
+                    agent_uid_to_impossible_action_result[agent_uid] = ar.DynamicCollisionFailure(
+                        action, agent_uid, uid,
+                        other_transition_polygons[uid].intersection(agent_transition_polygon)
+                    )
+                    break
+
+            if not agent_transitionnally_collides:
+                if attached_entity_uid:
+                    att_entity_transition_polygon = transition_polygons[attached_entity_uid]
+                    att_entity_transition_aabb = collision.polygon_to_aabb(att_entity_transition_polygon)
+
+                    att_entity_potential_collision_uids = other_transitions_aabb_tree.overlap_values(
+                        agent_transition_aabb)
+                    att_entity_transitionnally_collides = False
+                    for uid in att_entity_potential_collision_uids:
+                        if other_transition_polygons[uid].intersects(att_entity_transition_polygon):
+                            att_entity_transitionnally_collides = True
+                            agent_uid_to_impossible_action_result[agent_uid] = ar.DynamicCollisionFailure(
+                                action, attached_entity_uid, uid,
+                                other_transition_polygons[uid].intersection(att_entity_transition_polygon)
+                            )
+                            break
+                    if not att_entity_transitionnally_collides:
+                        agent_uid_to_doable_action[agent_uid] = action
+                else:
+                    agent_uid_to_doable_action[agent_uid] = action
+
+        # 3. Check conceptual validity of RELEASE actions
+        agent_uid_to_release_action = {
+            uid: action for uid, action in agent_uid_to_doable_action.items() if
+            isinstance(action, ba.Release)
+        }
+        about_to_be_released_uids = set()
+        for agent_uid, release_action in agent_uid_to_release_action.items():
+            if release_action.entity_uid in attached_entity_to_robot:
+                agent_that_already_grabbed_entity = attached_entity_to_robot[
+                    release_action.entity_uid]
+                if agent_that_already_grabbed_entity == agent_uid:
+                    about_to_be_released_uids.add(release_action.entity_uid)
+                else:
+                    agent_uid_to_impossible_action_result[agent_uid] = ar.GrabbedByOtherFailure(
+                        release_action, agent_that_already_grabbed_entity
+                    )
+                    del agent_uid_to_doable_action[agent_uid]
+            else:
+                agent_uid_to_impossible_action_result[agent_uid] = ar.NotGrabbedFailure(
+                    release_action)
+                del agent_uid_to_doable_action[agent_uid]
+
+        # 4. Check conceptual validity of GRAB actions
+        agent_uid_to_grab_action = {
+            uid: action for uid, action in agent_uid_to_doable_action.items() if
+            isinstance(action, ba.Grab)
+        }
+        for agent_uid, grab_action, in agent_uid_to_grab_action.items():
+            if grab_action.entity_uid in attached_entity_to_robot:
+                if grab_action.entity_uid not in about_to_be_released_uids:
+                    agent_that_already_grabbed_entity = attached_entity_to_robot[
+                        grab_action.entity_uid]
+                    agent_uid_to_impossible_action_result[agent_uid] = ar.AlreadyGrabbedFailure(
+                        grab_action, agent_that_already_grabbed_entity
+                    )
+                    del agent_uid_to_doable_action[agent_uid]
+            elif agent_uid in attached_entity_to_robot.inverse:
+                agent_uid_to_impossible_action_result[agent_uid] = ar.GrabMoreThanOneFailure(
+                    grab_action)
+                del agent_uid_to_doable_action[agent_uid]
+
+        # SECOND Act loop: execute all doable actions in reference simulation world, save results
+        for agent_uid, action in agent_uid_to_doable_action.items():
+            agent = self.ref_world.entities[agent_uid]
+            if isinstance(action, ba.Wait):
+                pass
+            elif isinstance(action, ba.GoToPose):
+                agent.polygon = utils.set_polygon_pose(agent.polygon, agent.pose, action.pose)
+                agent.pose = action.pose
+                trace_polygons.append(agent.polygon)
+            elif isinstance(action, (ba.Translation, ba.Rotation)):
+                attached_entity_uid = (
+                    None if agent_uid not in attached_entity_to_robot.inverse
+                    else attached_entity_to_robot.inverse[agent_uid]
+                )
+
+                agent.polygon = action.apply(agent.polygon, agent.pose)
+                agent.pose = action.predict_pose(agent.pose)
+                trace_polygons.append(agent.polygon)
+
+                if attached_entity_uid:
+                    attached_entity = self.ref_world.entities[attached_entity_uid]
+
+                    attached_entity.polygon = action.apply(attached_entity.polygon, attached_entity.pose)
+                    attached_entity.pose = action.predict_pose(attached_entity.pose)
+                    trace_polygons.append(attached_entity.polygon)
+
+                if isinstance(action, ba.Grab):
+                    attached_entity_to_robot[action.entity_uid] = agent_uid
+                elif isinstance(action, ba.Release):
+                    del attached_entity_to_robot[action.entity_uid]
+            else:
+                raise TypeError('Action must be of type Wait, Translation, Rotation, GoToPose, Grab or Release')
+
+            action_result = ar.ActionSuccess(action)
+
+            # Save Action Result in action result history
+            self.agent_uid_to_action_results[agent_uid].append(action_result)
+
+            agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
+            if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
+            else:
+                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
+
+        # Third Act loop: Save results of impossible actions
+        for agent_uid, action_result in agent_uid_to_impossible_action_result.items():
+            self.agent_uid_to_action_results[agent_uid].append(action_result)
+
+            agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
+            if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
+            else:
+                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
+
+        # Once the simulation reference world has been modified, display the modification
+        if not self.display_sim_knowledge_only_once:
+            self.rp.publish_sim_world(self.ref_world, agent_uid)
