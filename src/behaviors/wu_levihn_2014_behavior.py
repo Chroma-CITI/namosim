@@ -10,7 +10,7 @@ from src.behaviors.plan.plan import Plan
 from src.behaviors.algorithms.multi_goal_a_star import two_way_multi_goal_a_star
 from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, is_move_passing_over_pose
 
-from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
+from plan.basic_actions import ActionGoalFailure, GoalsFinished, ActionGoalSuccess
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.behaviors.plan.action_result import ActionSuccess
 from baseline_behavior import BaselineBehavior
@@ -98,7 +98,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
 
         else:
             print("FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
-            return ActionGoalsFinished()
+            return GoalsFinished()
 
     def make_plan(self, q_r, q_goal):
         # Update e_l

@@ -4,40 +4,35 @@ from shapely.geometry import Point, LineString
 from src.utils import utils, collision
 
 
-class ActionGoalResult:
+class GoalResult:
     def __init__(self, goal):
         self.goal = goal
 
 
-class ActionGoalSuccess(ActionGoalResult):
+class GoalsFinished:
+    def __init__(self):
+        pass
+
+
+class GoalFailed:
     def __init__(self, goal):
-        ActionGoalResult.__init__(self, goal)
+        self.goal = goal
+
+
+class ActionGoalSuccess(GoalResult):
+    def __init__(self, goal):
+        GoalResult.__init__(self, goal)
 
     def __str__(self):
         return "success"
 
 
-class ActionGoalFailure(ActionGoalResult):
+class ActionGoalFailure(GoalResult):
     def __init__(self, goal):
-        ActionGoalResult.__init__(self, goal)
+        GoalResult.__init__(self, goal)
 
     def __str__(self):
         return "failure"
-
-
-class ActionGoalsFinished:
-    def __init__(self):
-        pass
-
-
-class Grab:
-    def __init__(self, entity_uid):
-        self.entity_uid = entity_uid
-
-
-class Release:
-    def __init__(self, entity_uid):
-        self.entity_uid = entity_uid
 
 
 class GoToPose:
@@ -87,6 +82,16 @@ class Translation:
             geom=Point((pose[0], pose[1])), xoff=translation_vector[0], yoff=translation_vector[1], zoff=0.
         ).coords[0]
         return new_point[0], new_point[1], pose[2]
+
+
+class Grab(Translation):
+    def __init__(self, entity_uid):
+        self.entity_uid = entity_uid
+
+
+class Release(Translation):
+    def __init__(self, entity_uid):
+        self.entity_uid = entity_uid
 
 
 def convert_action(action, robot_center):

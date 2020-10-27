@@ -318,9 +318,8 @@ def arc_bounding_box(point_a, point_b, rot_angle, center, bb_type='minimum_rotat
 
 def csv_check_collisions(other_polygons, polygon_sequence, action_sequence, bb_type='minimum_rotated_rectangle',
                          aabb_tree=None, indexes=None, collision_data=None, display_debug=False):
-    # TODO : Consider adding verification at first step whether there is a collision or not between polygon and all
-    #    polygons in polygon_sequence, it may improve performance ? Or not.
-    # TODO : Implement collision detection as separate method that makes use of the AABBTree
+    # TODO: Separate collision_data and csv_polygon. Only return bb_vertices if debug option is active.
+    # TODO: Make object for collision data, not dict.
 
     # Initialize at first recursive iteration
     if not collision_data:
@@ -356,8 +355,9 @@ def csv_check_collisions(other_polygons, polygon_sequence, action_sequence, bb_t
         polygon = other_polygons[uid]
         if csv_polygon.intersects(polygon):
             intersects = True
-            # intersection = csv_polygon.intersection(polygon)
-            # collision_data[indexes_tuple]["intersection_polygon"] = intersection
+            collision_data[indexes_tuple]['colliding_polygon_uid'] = uid
+            intersection = csv_polygon.intersection(polygon)
+            collision_data[indexes_tuple]["intersection_polygon"] = intersection
 
             if display_debug and len(indexes) == 2:
                 fig, ax = plt.subplots()

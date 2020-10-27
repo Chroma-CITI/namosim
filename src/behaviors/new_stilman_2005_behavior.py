@@ -14,7 +14,7 @@ from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.worldreps.entity_based.robot import Robot
 from src.behaviors.algorithms.new_local_opening_check import new_check_new_local_opening
-from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess, Grab, Release, GoToPose, Translation, Rotation
+import plan.basic_actions as ba
 from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, NewBinaryInflatedOccupancyGrid
 from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
 import src.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
@@ -75,9 +75,9 @@ class NewStilman2005Behavior(BaselineBehavior):
         self._actions = []
         self._new_actions = []
         for trans_vector in self._trans_vectors:
-            self._new_actions.append(Translation(trans_vector))
+            self._new_actions.append(ba.Translation(trans_vector))
         for rot_angle in self._rot_angles:
-            self._new_actions.append(Rotation(rot_angle))
+            self._new_actions.append(ba.Rotation(rot_angle))
 
         self._social_costmap = None
 
@@ -85,20 +85,32 @@ class NewStilman2005Behavior(BaselineBehavior):
 
         self.check_horizon = 10
 
+    def are_all_goals_finished(self):
+        return not self._navigation_goals and self._q_goal is None
+
+    def is_goal_success(self, q_r):
+        # TODO Extract abs_tol constant and make it a parameter for each goal
+        return all(np.isclose(q_r, self._q_goal, rtol=1e-5))
+
+    def get_current_goal(self):
+        return self._q_goal
+
     def think(self):
-        if self._navigation_goals or self._q_goal is not None:
+        if self.are_all_goals_finished():
+            logging.info(
+                "FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
+            return ba.GoalsFinished()
+        else:
             if self._q_goal is None:
                 self._q_goal = self._navigation_goals.pop(0)
                 self._p_opt = NewPlan([], self._q_goal, self._robot_uid)
 
             q_r = self._robot.pose
 
-            # TODO Extract abs_tol constant and make it a parameter for each goal
-            is_close_enough_to_goal = all(np.isclose(q_r, self._q_goal, rtol=1e-5))
-            if is_close_enough_to_goal:
+            if self.is_goal_success(q_r):
                 logging.info("SUCCESS: Agent '{name}' has successfully reached pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                action = ActionGoalSuccess(self._q_goal)
+                action = ba.GoalSuccess(self._q_goal)
                 self._q_goal = None
                 return action
 
@@ -133,13 +145,8 @@ class NewStilman2005Behavior(BaselineBehavior):
             elif self._p_opt is None or self._p_opt.has_infinite_cost():
                 logging.warning("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                action = ActionGoalFailure(self._q_goal)
                 self._q_goal = None
-                return action
-
-        else:
-            logging.info("FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
-            return ActionGoalsFinished()
+                return GoalFailure(self._q_goal)
 
     def select_connect(self, w_t, prev_list, r_f, ccs_data=None):
         """

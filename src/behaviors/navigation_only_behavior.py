@@ -2,7 +2,7 @@ from src.behaviors.algorithms.a_star import a_star_real_path
 from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
 import numpy as np
-from plan.basic_actions import ActionGoalFailure, ActionGoalsFinished, ActionGoalSuccess
+from plan.basic_actions import ActionGoalFailure, GoalsFinished, ActionGoalSuccess
 from baseline_behavior import BaselineBehavior
 
 
@@ -45,4 +45,4 @@ class NavigationOnlyBehavior(BaselineBehavior):
 
         else:
             print("FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
-            return ActionGoalsFinished()
+            return GoalsFinished()
