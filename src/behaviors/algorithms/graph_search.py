@@ -15,7 +15,6 @@ And augmented to support:
 - Non-binary occupation grids
 - Manhattan distance
 plan_for_obstacle
-TODO : PARAMETERIZE MORE AND MOVE CONSTANTS OUT OF THE WAY
 
 By:
 Benoit Renault (benoit.renault@inria.fr)
@@ -23,8 +22,46 @@ Benoit Renault (benoit.renault@inria.fr)
 
 import heapq
 from src.utils import utils
-from src.display.ros_publisher import RosPublisher
+try:
+    from src.display.ros_publisher import RosPublisher
+    USE_ROS = True
+except ImportError:
+    USE_ROS = False
+
 from cell_heap_node import CellHeapNode
+
+
+class PriorityQueue:
+    def __init__(self):
+        self.heap = []
+        self.elements_to_heap_nodes_uids = {}
+        self.next_uid = 1
+
+    def push(self, cost, element):
+        new_heap_node = HeapNode(cost, element, self.next_uid)
+        self.next_uid += 1
+        if element in self.elements_to_heap_nodes_uids:
+            self.elements_to_heap_nodes_uids[element].append(new_heap_node.uid)
+        else:
+            self.elements_to_heap_nodes_uids[element] = [new_heap_node.uid]
+        heapq.heappush(self.heap, new_heap_node)
+
+    def pop(self):
+        while self:
+            candidate_heap_node = heapq.heappop(self.heap)
+            corresponding_element = candidate_heap_node.element
+            corresponding_uids = self.elements_to_heap_nodes_uids[corresponding_element]
+            if corresponding_uids[-1] == candidate_heap_node.uid:
+                corresponding_uids.pop()
+                if not corresponding_uids:
+                    del self.elements_to_heap_nodes_uids[corresponding_element]
+                return corresponding_element
+            else:
+                corresponding_uids.remove(candidate_heap_node.uid)
+        return None
+
+    def __nonzero__(self):
+        return bool(self.heap)
 
 
 def dist_between(a, b):
@@ -165,9 +202,10 @@ def a_star_real_path(grid, start_pose, goal_pose, res, grid_pose,
 
 
 class HeapNode:
-    def __init__(self, cost, element):
+    def __init__(self, cost, element, uid):
         self.cost = cost
         self.element= element
+        self.uid = uid
 
     def __cmp__(self, other):
         # Meant for allowing heapq to properly order the heap's elements according to lowest cost
@@ -179,36 +217,27 @@ class HeapNode:
 
     def __eq__(self, other):
         # Meant for fast check whether a configuration is in open heap or not
-        return self.element == other.element
+        if isinstance(other, tuple):
+            return self.element == other
+        else:
+            return self.element == other.element
 
 
 def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
-    close_set = set()
+    close_set = {start}
     came_from = dict()
+    gscore = {start: 0.}
+    open_queue = PriorityQueue()
+    open_queue.push(heuristic_cost_estimate(start, goal), start)
+    current = None
 
-    if isinstance(start, list) or isinstance(start, set):
-        gscore = {element for element in start}
-        open_heap = []
-        for element in start:
-            heapq.heappush(open_heap, HeapNode(0., element))
-    elif isinstance(start, dict):
-        gscore = {element: cost for element, cost in start.items()}
-        open_heap = []
-        for element, cost in start.items():
-            heapq.heappush(open_heap, HeapNode(cost, element))
-    else:
-        gscore = {start}
-        open_heap = []
-        for element in start:
-            heapq.heappush(open_heap, HeapNode(0., element))
-
-    while open_heap:
-        # The node in open_heap having the lowest fScore[] value
-        current = heapq.heappop(open_heap).element
+    while open_queue:
+        # The first node in open_queue
+        current = open_queue.pop()
 
         # Exit early if goal is reached
         if exit_condition(current, goal):
-            return True, current, came_from, close_set, gscore, open_heap
+            return True, current, came_from, close_set, gscore, open_queue
 
         # Add current to the close set to prevent unneeded future re-evaluation
         close_set.add(current)
@@ -216,16 +245,127 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
         # For each neighbor of current node in the defined neighborhood
         neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set)
         for neighbor, tentative_g_score in zip(neighbors, tentative_g_scores):
-            # Discover a new node or update info about known one :
             if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
                 # This path is the best until now. Record it!
                 came_from[neighbor] = current
                 gscore[neighbor] = tentative_g_score
+                # TODO: Check if saving the heuristic in a hscores dict would bring a significant perf improvement
                 fscore_neighbor = tentative_g_score + heuristic(neighbor, goal)
-                if neighbor not in open_heap:
-                    heapq.heappush(open_heap, HeapNode(fscore_neighbor, neighbor))
+                open_queue.push(fscore_neighbor, neighbor)
 
     # If goal could not be reached despite exploring the full search space
-    return False, current, came_from, close_set, gscore, open_heap
+    return False, current, came_from, close_set, gscore, open_queue
+    # if isinstance(start, list) or isinstance(start, set):
+    #     gscore = {element: 0. for element in start}
+    #     open_queue = []
+    #     for element in start:
+    #         heapq.heappush(open_queue, HeapNode(0., element))
+    # elif isinstance(start, dict):
+    #     gscore = {element: cost for element, cost in start.items()}
+    #     open_queue = []
+    #     for element, cost in start.items():
+    #         heapq.heappush(open_queue, HeapNode(cost, element))
+    # else:
+    #     gscore = {start: 0.}
+    #     open_queue = []
+    #     heapq.heappush(open_queue, HeapNode(0., start))
 
-# def
+
+def basic_exit_condition(current, goal):
+    """
+    Simple exit condition that checks whether the goal is the current cell.
+    :param current:
+    :type current: any type that has an __eq__ function compatible with the type of the goal parameter
+    :param goal:
+    :type goal: any type that has an __eq__ function compatible with the type of the goal parameter
+    :return: True if current == goal, False otherwise. Exception if no __eq__ operator is found
+    :rtype: bool
+    """
+    return current == goal
+
+
+def grid_get_neighbors(current, gscore, close_set, grid, width, height, chess_neighborhood=False):
+    neighbors, gscores = [], []
+    current_gscore = gscore[current]
+    for i, j in utils.TAXI_NEIGHBORHOOD:
+        neighbor = current[0] + i, current[1] + j
+        neighbor_is_valid = (
+            neighbor not in close_set
+            and utils.is_in_matrix(neighbor, width, height)
+            and grid[neighbor[0]][neighbor[1]] == 0
+        )
+        if neighbor_is_valid:
+            neighbors.append(neighbor)
+            gscores.append(current_gscore + 1.)
+    if chess_neighborhood:
+        for i, j in utils.CHESSBOARD_NEIGHBORHOOD_EXTRAS:
+            neighbor = current[0] + i, current[1] + j
+            neighbor_is_valid = (
+                neighbor not in close_set
+                and utils.is_in_matrix(neighbor, width, height)
+                and grid[neighbor[0]][neighbor[1]] == 0
+                and grid[current[0]][neighbor[1]] == 0
+                and grid[neighbor[0]][current[1]] == 0
+            )
+            if neighbor_is_valid:
+                neighbors.append(neighbor)
+                gscores.append(current_gscore + utils.SQRT_OF_2)
+    return neighbors, gscores
+
+
+def grid_search_a_star(start, goal, grid, width, height, chess_neighborhood=False):
+
+    def grid_get_neighbors_instance(current, gscore, close_set):
+        return grid_get_neighbors(current, gscore, close_set, grid, width, height, chess_neighborhood)
+
+    if chess_neighborhood:
+        return new_generic_a_star(
+            start, goal, basic_exit_condition, grid_get_neighbors_instance, utils.chebyshev_distance
+        )
+    else:
+        return new_generic_a_star(
+            start, goal, basic_exit_condition, grid_get_neighbors_instance, utils.manhattan_distance
+        )
+
+
+def new_generic_dijkstra(start, goal, exit_condition, get_neighbors):
+    close_set = {start}
+    came_from = dict()
+    gscore = {start: 0.}
+    open_queue = PriorityQueue()
+    open_queue.push(0., start)
+    current = None
+
+    while open_queue:
+        # The first node in open_queue
+        current = open_queue.pop()
+
+        # Exit early if goal is reached
+        if exit_condition(current, goal):
+            return True, current, came_from, close_set, gscore, open_queue
+
+        # Add current to the close set to prevent unneeded future re-evaluation
+        close_set.add(current)
+
+        # For each neighbor of current node in the defined neighborhood
+        neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set)
+        for neighbor, tentative_g_score in zip(neighbors, tentative_g_scores):
+            if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
+                # This path is the best until now. Record it!
+                came_from[neighbor] = current
+                gscore[neighbor] = tentative_g_score
+                open_queue.push(tentative_g_score, neighbor)
+
+    # If goal could not be reached despite exploring the full search space
+    return False, current, came_from, close_set, gscore, open_queue
+
+
+def grid_search_dijkstra(start, goal, grid, width, height, chess_neighborhood=False):
+
+    def grid_get_neighbors_instance(current, gscore, close_set):
+        return grid_get_neighbors(current, gscore, close_set, grid, width, height, chess_neighborhood)
+
+    if chess_neighborhood:
+        return new_generic_dijkstra(start, goal, basic_exit_condition, grid_get_neighbors_instance)
+    else:
+        return new_generic_dijkstra(start, goal, basic_exit_condition, grid_get_neighbors_instance)

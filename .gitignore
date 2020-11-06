@@ -111,3 +111,6 @@ logs/
 
 # Temporary folder
 tmp/
+
+# Grid maps dataset for tests from https://www.movingai.com/benchmarks/
+data/gridsearch-dataset/www.movingai.com/

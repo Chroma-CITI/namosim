@@ -14,12 +14,7 @@ class GoalsFinished:
         pass
 
 
-class GoalFailed:
-    def __init__(self, goal):
-        self.goal = goal
-
-
-class ActionGoalSuccess(GoalResult):
+class GoalSuccess(GoalResult):
     def __init__(self, goal):
         GoalResult.__init__(self, goal)
 
@@ -27,7 +22,7 @@ class ActionGoalSuccess(GoalResult):
         return "success"
 
 
-class ActionGoalFailure(GoalResult):
+class GoalFailed(GoalResult):
     def __init__(self, goal):
         GoalResult.__init__(self, goal)
 
@@ -57,9 +52,11 @@ class Rotation:
         new_point = affinity.rotate(
             geom=Point((pose[0], pose[1])), angle=self.angle, origin=center, use_radians=False
         ).coords[0]
+        orientation = (pose[2] + self.angle) % 360.
+        orientation = orientation if orientation >= 0. else orientation + 360.
         return (
-            new_point[0], new_point[1],
-            (pose[2] + self.angle) % 360.0
+            new_point[0], new_point[1], orientation
+
         )
 
 
@@ -85,17 +82,22 @@ class Translation:
 
 
 class Grab(Translation):
-    def __init__(self, entity_uid):
+    def __init__(self, translation_vector, entity_uid):
+        Translation.__init__(self, translation_vector)
         self.entity_uid = entity_uid
 
 
 class Release(Translation):
-    def __init__(self, entity_uid):
+    def __init__(self, translation_vector, entity_uid):
+        Translation.__init__(self, translation_vector)
         self.entity_uid = entity_uid
 
 
-def convert_action(action, robot_center):
+def convert_action(action, robot_pose):
     if isinstance(action, Translation):
-        return collision.Translation(action.translation_vector)
+        translation_linestring = LineString([(0., 0.), action.translation_vector])
+        rotated_linestring = affinity.rotate(translation_linestring, robot_pose[2], origin=(0., 0.))
+        translation_vector = rotated_linestring.coords[1]
+        return collision.Translation(translation_vector)
     elif isinstance(action, Rotation):
-        return collision.Rotation(action.angle, robot_center)
+        return collision.Rotation(action.angle, (robot_pose[0], robot_pose[1]))

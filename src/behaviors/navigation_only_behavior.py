@@ -1,8 +1,8 @@
-from src.behaviors.algorithms.a_star import a_star_real_path
+from src.behaviors.algorithms.graph_search import a_star_real_path
 from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
 import numpy as np
-from plan.basic_actions import ActionGoalFailure, GoalsFinished, ActionGoalSuccess
+from plan.basic_actions import GoalFailed, GoalsFinished, GoalSuccess
 from baseline_behavior import BaselineBehavior
 
 
@@ -23,7 +23,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
             if is_close_enough_to_goal:
                 print("SUCCESS: Agent '{name}' has successfully reached pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                action = ActionGoalSuccess(self._q_goal)
+                action = GoalSuccess(self._q_goal)
                 self._q_goal = None
                 return action
 
@@ -39,7 +39,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
             elif self._p_opt.has_infinite_cost():
                 print("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                action = ActionGoalFailure(self._q_goal)
+                action = GoalFailed(self._q_goal)
                 self._q_goal = None
                 return action
 

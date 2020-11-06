@@ -1,7 +1,7 @@
 from heapq import heappush, heappop
 import copy
 from src.utils import utils
-from a_star import heuristic_cost_estimate, dist_between
+from graph_search import heuristic_cost_estimate, dist_between
 from cell_heap_node import CellHeapNode
 from src.display.ros_publisher import RosPublisher
 

@@ -9,7 +9,7 @@ from shapely.ops import cascaded_union
 import Box2D
 
 from baseline_behavior import BaselineBehavior
-from src.behaviors.algorithms.a_star import astar, a_star_real_path, new_generic_a_star, reconstruct_path
+from src.behaviors.algorithms.graph_search import a_star_real_path
 from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
 from src.behaviors.algorithms.multi_goal_a_star import multi_goal_a_star_real_path
@@ -17,7 +17,7 @@ from src.utils import utils
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.worldreps.entity_based.robot import Robot
 from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, new_check_new_local_opening  # , is_move_passing_over_pose
-from plan.basic_actions import ActionGoalFailure, GoalsFinished, ActionGoalSuccess
+from plan.basic_actions import GoalFailed, GoalsFinished, GoalSuccess
 from src.worldreps.entity_based.custom_exceptions import IntersectionError
 from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, NewBinaryOccupancyGrid, NewBinaryInflatedOccupancyGrid
 from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
@@ -100,7 +100,7 @@ class Stilman2005Behavior(BaselineBehavior):
             if is_close_enough_to_goal:
                 print("SUCCESS: Agent '{name}' has successfully reached pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                action = ActionGoalSuccess(self._q_goal)
+                action = GoalSuccess(self._q_goal)
                 self._q_goal = None
                 return action
 
@@ -137,7 +137,7 @@ class Stilman2005Behavior(BaselineBehavior):
             elif self._p_opt is None or self._p_opt.has_infinite_cost():
                 print("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                action = ActionGoalFailure(self._q_goal)
+                action = GoalFailed(self._q_goal)
                 self._q_goal = None
                 return action
 

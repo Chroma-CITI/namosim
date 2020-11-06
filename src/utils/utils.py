@@ -8,12 +8,15 @@ import mapbox_earcut as earcut
 from shapely.geometry import Polygon
 
 # Constants
-SQRT_OF_2 = math.sqrt(2)
-TWO_PI = 2 * math.pi
+SQRT_OF_2 = math.sqrt(2.)
+SQRT_OF_2_MIN_1 = SQRT_OF_2 - 1.
+SQRT_OF_2_MIN_2 = SQRT_OF_2 - 2.
+TWO_PI = 2. * math.pi
 
 
 TAXI_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0))
 CHESSBOARD_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1))
+CHESSBOARD_NEIGHBORHOOD_EXTRAS = ((1, 1), (1, -1), (-1, 1), (-1, -1))
 
 OMNI_ROBOT_TAXI_TRANS_VECTORS = TAXI_NEIGHBORHOOD
 OMNI_ROBOT_TAXI_ROT_ANGLES = (90., 180., 270.,
@@ -82,8 +85,18 @@ def euclidean_distance(a, b):
     return math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
 
 
-def manhattan_distance(a, b):
-    return abs(b[0] - a[0]) + abs(b[1] - a[1])
+def euclidean_distance_squared_heuristic(a, b):
+    return (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2
+
+
+def manhattan_distance(a, b, c_cost=1.):
+    return c_cost * (abs(b[0] - a[0]) + abs(b[1] - a[1]))
+
+
+def chebyshev_distance(a, b, c_cost=1., d_cost=SQRT_OF_2):
+    dx = abs(a[0] - b[0])
+    dy = abs(a[1] - b[1])
+    return c_cost * (dx + dy) + (d_cost - 2. * c_cost) * min(dx, dy)
 
 
 def sum_of_euclidean_distances(poses):
@@ -99,6 +112,7 @@ def sum_of_euclidean_distances(poses):
         prev_pose = cur_pose
 
     return total
+
 
 def get_neighbors(cell, width, height, neighborhood=TAXI_NEIGHBORHOOD):
     neighbors = set()

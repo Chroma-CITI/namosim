@@ -1,6 +1,10 @@
 class ActionSuccess:
-    def __init__(self, action):
+    def __init__(self, action, robot_pose, is_transfer=False, obstacle_uid=None):
         self.action = action
+        # TODO remove these temporary attributes
+        self.robot_pose = robot_pose
+        self.is_transfer = is_transfer
+        self.obstacle_uid = obstacle_uid
 
     def __str__(self):
         return "Action was a success"
@@ -29,19 +33,6 @@ class UnmanipulableFailure(ManipulationFailure):
 
     def __str__(self):
         return "Manipulation of unmovable obstacle {uid} failed.".format(uid=self.manipulated_obstacle_uid)
-
-
-class IntersectionFailure(ActionFailure):
-    def __init__(self, action, obstacle_in_collision_1, obstacle_in_collision_2):
-        ActionFailure.__init__(self, action)
-        self.obstacle_in_collision_1 = obstacle_in_collision_1
-        self.obstacle_in_collision_2 = obstacle_in_collision_2
-
-    def __str__(self):
-        return "Action failed," \
-               "because of collision between {coll_obs_1} and {coll_obs_2}".format(
-                    coll_obs_1=self.obstacle_in_collision_1,
-                    coll_obs_2=self.obstacle_in_collision_2)
 
 
 class AlreadyGrabbedFailure(ActionFailure):

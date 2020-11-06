@@ -24,8 +24,8 @@ def get_nb_reallocated_obstacles(init_world, end_world):
 def get_transferred_obstacles_set(actions_results):
     transferred_obstacles = set()
     for action_result in actions_results:
-        if isinstance(action_result, ActionSuccess) and action_result.action.is_transfer:
-            transferred_obstacles.add(action_result.action.obstacle_uid)
+        if isinstance(action_result, ActionSuccess) and action_result.is_transfer:
+            transferred_obstacles.add(action_result.obstacle_uid)
     return transferred_obstacles
 
 
@@ -33,10 +33,10 @@ def get_transferred_obstacles_sequence(actions_results):
     transferred_obstacles = []
     for action_result in actions_results:
         action = action_result.action
-        if isinstance(action_result, ActionSuccess) and action.is_transfer:
+        if isinstance(action_result, ActionSuccess) and action_result.is_transfer:
             if len(transferred_obstacles) >= 1:
-                if action.obstacle_uid != transferred_obstacles[-1]:
-                    transferred_obstacles.append(action.obstacle_uid)
+                if action_result.obstacle_uid != transferred_obstacles[-1]:
+                    transferred_obstacles.append(action_result.obstacle_uid)
             else:
                 transferred_obstacles.append(action.obstacle_uid)
     return transferred_obstacles
@@ -55,9 +55,9 @@ def get_total_path_lengths(actions_results):
         prev_action_result = next(action_result_iter)
         for action_result in action_result_iter:
             if isinstance(action_result, ActionSuccess):
-                cur_pose = action_result.action.target_pose
-                prev_pose = prev_action_result.action.target_pose
-                if action_result.action.is_transfer:
+                cur_pose = action_result.robot_pose
+                prev_pose = prev_action_result.robot_pose
+                if action_result.is_transfer:
                     transfer_path_length += euclidean_distance(cur_pose, prev_pose)
                 else:
                     transit_path_length += euclidean_distance(cur_pose, prev_pose)
@@ -105,14 +105,14 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
     return nb_cc, biggest_cc_size, all_cc_sum_size, frag_percentage
 
 
-def get_social_costs_stats(world, entities_to_ignore):
+def get_social_costs_stats(world, entities_to_compute_social_cost_for):
     occ_grid = BinaryOccupancyGrid(
         world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
-        world.dd.inflation_radius, world.entities, entities_to_ignore).get_grid()
+        world.dd.inflation_radius, world.entities, entities_to_compute_social_cost_for).get_grid()
     abs_social_costmap = compute_social_costmap(occ_grid, world.dd.res, log_costmaps=False, ns='simulation')
 
     absolute_social_cost = 0.
-    for entity_uid in entities_to_ignore:
+    for entity_uid in entities_to_compute_social_cost_for:
         entity = world.entities[entity_uid]
         entity_cell_set = entity.get_discrete_cells_set(
             world.dd.inflation_radius, world.dd.res, world.dd.grid_pose, world.dd.d_width, world.dd.d_height)

@@ -4,13 +4,13 @@ import time
 from shapely import affinity
 from shapely.ops import cascaded_union
 
-from src.behaviors.algorithms.a_star import a_star_real_path
+from src.behaviors.algorithms.graph_search import a_star_real_path
 from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
 from src.behaviors.algorithms.multi_goal_a_star import two_way_multi_goal_a_star
 from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening, is_move_passing_over_pose
 
-from plan.basic_actions import ActionGoalFailure, GoalsFinished, ActionGoalSuccess
+from plan.basic_actions import GoalFailed, GoalsFinished, GoalSuccess
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.behaviors.plan.action_result import ActionSuccess
 from baseline_behavior import BaselineBehavior
@@ -58,7 +58,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
             if is_close_enough_to_goal:
                 print("SUCCESS: Agent '{name}' has successfully reached pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                action = ActionGoalSuccess(self._q_goal)
+                action = GoalSuccess(self._q_goal)
                 self._q_goal = None
                 return action
 
@@ -92,7 +92,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
             elif self._p_opt.has_infinite_cost():
                 print("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
                     name=self._robot.name, nav_goal=str(self._q_goal)))
-                action = ActionGoalFailure(self._q_goal)
+                action = GoalFailed(self._q_goal)
                 self._q_goal = None
                 return action
 
