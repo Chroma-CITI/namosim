@@ -4,18 +4,22 @@ import numpy as np
 from shapely import affinity
 import copy
 
-import rospy
-from tf2_ros import StaticTransformBroadcaster
-from visualization_msgs.msg import Marker, MarkerArray
-from geometry_msgs.msg import PoseArray, TransformStamped, Transform, Vector3, Quaternion
-from std_msgs.msg import Header
-from nav_msgs.msg import Path, OccupancyGrid, MapMetaData
-from grid_map_msgs.msg import GridMap
+try:
+    import rospy
+    from tf2_ros import StaticTransformBroadcaster
+    from visualization_msgs.msg import Marker, MarkerArray
+    from geometry_msgs.msg import PoseArray, TransformStamped, Transform, Vector3, Quaternion
+    from std_msgs.msg import Header
+    from nav_msgs.msg import Path, OccupancyGrid, MapMetaData
+    from grid_map_msgs.msg import GridMap
+    import ros_conversion as conv
+    import ros_publisher_config as cfg
+    USE_ROS = True
+except ImportError:
+    USE_ROS = False
 
 from src.utils.singleton import Singleton
 from src.worldreps.entity_based.robot import Robot
-import ros_conversion as conv
-import ros_publisher_config as cfg
 
 
 class NamespaceCache:
@@ -29,6 +33,9 @@ class NamespaceCache:
 
 class RosPublisher(with_metaclass(Singleton)):
     def __init__(self, top_level_namespaces=('simulation', 'agent')):
+        if not USE_ROS:
+            return
+
         self.top_level_namespaces = top_level_namespaces
 
         # HACK: Must necessarily be invoked in the init method of this singleton and not at module-level (rospy bug...)

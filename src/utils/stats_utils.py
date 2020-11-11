@@ -1,11 +1,10 @@
 from src.behaviors.plan.action_result import ActionSuccess
 from src.utils.utils import euclidean_distance
-from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid
-from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
-from src.worldreps.occupation_based.connected_components_grid import \
-    occupancy_grid_to_graph, get_graph_connected_components, connected_components_to_grid
+import src.utils.connectivity as connectivity
+from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, BinaryInflatedOccupancyGrid
 from src.worldreps.occupation_based.social_topological_occupation_cost_grid import compute_social_costmap
 from src.display.ros_publisher import RosPublisher
+from src.utils import utils
 
 
 def get_reallocated_obstacles(init_world, end_world):
@@ -83,12 +82,15 @@ def get_transit_transfer_ratio(actions_results):
 
 
 def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
+    polygons = {uid: e.polygon for uid, e in world.entities.items() if uid not in entities_to_ignore}
     occ_grid = BinaryInflatedOccupancyGrid(
-        world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
-        inflation_radius, world.entities, entities_to_ignore).get_grid()
-
-    connected_components = get_graph_connected_components(occupancy_grid_to_graph(occ_grid))
-    connected_components_grid = connected_components_to_grid(connected_components, occ_grid)
+        polygons, world.dd.res, inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+    )
+    ccs_data = connectivity.CCSData(
+        *connectivity.init_ccs_for_grid(occ_grid.grid, occ_grid.d_width, occ_grid.d_height, occ_grid.neighborhood)
+    )
+    connected_components = ccs_data.ccs
+    connected_components_grid = ccs_data.ccs_grid
     RosPublisher().publish_connected_components_grid(connected_components_grid, world.dd, ns='simulation')
 
     # cc is abbreviation of connected component
@@ -96,26 +98,26 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
 
     biggest_cc_size, all_cc_sum_size = 0, 0
     for cc in connected_components.values():
-        all_cc_sum_size += len(cc)
-        if len(cc) > biggest_cc_size:
-            biggest_cc_size = len(cc)
+        all_cc_sum_size += len(cc.visited)
+        if len(cc.visited) > biggest_cc_size:
+            biggest_cc_size = len(cc.visited)
 
     frag_percentage = 0 if all_cc_sum_size == 0 else (1. - float(biggest_cc_size) / float(all_cc_sum_size)) * 100.
 
     return nb_cc, biggest_cc_size, all_cc_sum_size, frag_percentage
 
 
-def get_social_costs_stats(world, entities_to_compute_social_cost_for):
-    occ_grid = BinaryOccupancyGrid(
-        world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
-        world.dd.inflation_radius, world.entities, entities_to_compute_social_cost_for).get_grid()
+def get_social_costs_stats(world, entities_to_compute_social_cost_for, ):
+    polygons = {uid: e.polygon for uid, e in world.entities.items() if uid not in entities_to_compute_social_cost_for}
+    occ_grid = BinaryOccupancyGrid(polygons, world.dd.res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD).grid
     abs_social_costmap = compute_social_costmap(occ_grid, world.dd.res, log_costmaps=False, ns='simulation')
 
     absolute_social_cost = 0.
     for entity_uid in entities_to_compute_social_cost_for:
         entity = world.entities[entity_uid]
-        entity_cell_set = entity.get_discrete_cells_set(
-            world.dd.inflation_radius, world.dd.res, world.dd.grid_pose, world.dd.d_width, world.dd.d_height)
+        entity_cell_set = utils.polygon_to_discrete_cells_set(
+            entity.polygon, occ_grid.res, occ_grid.grid_pose, occ_grid.d_width, occ_grid.d_height
+        )
         for cell in entity_cell_set:
             absolute_social_cost += abs_social_costmap[cell[0]][cell[1]]
 

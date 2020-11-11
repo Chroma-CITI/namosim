@@ -1,105 +1,43 @@
 import numpy as np
-import copy
+import math
+from shapely.geometry import Polygon
+
 from src.utils import utils
 
 
+class GridParams:
+    def __init__(self, grid_pose, d_width, d_height, r_width, r_height, aabb_polygon):
+        self.grid_pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon = (
+            grid_pose, d_width, d_height, r_width, r_height, aabb_polygon
+        )
+
+    def __eq__(self, other):
+        return (self.grid_pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon) == (
+            other.grid_pose, other.d_width, other.d_height, other.r_width, other.r_height, other.aabb_polygon
+        )
+
+    def all(self):
+        return self.grid_pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon
+
+
+def grid_parameters(polygons, res):
+    min_x, min_y, max_x, max_y = utils.map_bounds(polygons)
+    real_width, real_height = max_x - min_x, max_y - min_y
+    real_pose = min_x, min_y, 0.0
+    d_width, d_height = math.ceil(real_width / res), math.ceil(real_height / res)
+    aabb_polygon = Polygon([(min_x, min_y), (min_x, max_y), (max_x, max_y), (max_x, min_y)])
+    return GridParams(real_pose, d_width, d_height, real_width, real_height, aabb_polygon)
+
+
 class BinaryOccupancyGrid:
-    def __init__(self, d_width, d_height, res, grid_pose, inflation_radius, entities, entities_to_ignore=None):
-        self._entities_to_ignore = entities_to_ignore if entities_to_ignore is not None else dict()
-        self._prev_entities = dict()
-        self._next_entities = copy.copy(entities)
-        self.d_width, self.d_height = d_width, d_height
-        self.res = res
-        self.grid_pose = grid_pose
-        self.inflation_radius = inflation_radius
-        self._grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
-        self._update_grid()
-
-    def _update_grid(self):
-        # plt.imshow(self.get_inflated_grid()); plt.show()
-        for new_entity in self._next_entities.values():
-            if new_entity.uid not in self._entities_to_ignore:
-                new_cells = new_entity.get_discrete_cells_set(
-                    self.inflation_radius, self.res, self.grid_pose, self.d_width, self.d_height)
-                for cell in new_cells:
-                    self._grid[cell[0]][cell[1]] += 1
-        for prev_entity in self._prev_entities.values():
-            if prev_entity.uid not in self._entities_to_ignore:
-                prev_cells = prev_entity.get_discrete_cells_set(
-                    self.inflation_radius, self.res, self.grid_pose, self.d_width, self.d_height)
-                for cell in prev_cells:
-                    self._grid[cell[0]][cell[1]] -= 1
-
-        self._prev_entities = dict()
-        self._next_entities = dict()
-
-        # plt.imshow(self._int_grid); plt.show()
-
-    def update_buffered_entities(self, prev_entities, next_entities):
-        for entity_uid, entity in prev_entities.items():
-            # Only update the prev_entity if it is not already stored (otherwise, we would not have the original
-            # state of the entity when the grid needs to be updated) and if it is not ignored
-            if entity_uid not in self._prev_entities and entity_uid not in self._entities_to_ignore:
-                # self._prev_entities[1] = "a"
-                self._prev_entities[entity_uid] = entity
-                # print(self._prev_entities)
-                # del self._prev_entities[1]
-                is_update_an_entity_removal = entity_uid not in next_entities
-                if is_update_an_entity_removal and entity_uid in self._next_entities:
-                    # Prevents artifacts if translation/rotation is applied to removed object before removal,
-                    # which could in some cases lead to the obstacle be re-added to the grid after it has been removed
-                    del self._next_entities[entity_uid]
-
-        for entity_uid, entity in next_entities.items():
-            # Always update the next_entity to reflect the latest state to be used when the grid is updated, except if
-            # the entity is supposed to be ignored
-            if entity_uid not in self._entities_to_ignore:
-                self._next_entities[entity_uid] = entity
-
-    def update_grid_and_return_freed_and_invaded_cells(self):
-        invaded_cells = set()
-        freed_cells = set()
-
-        for new_entity in self._next_entities.values():
-            if new_entity.uid not in self._entities_to_ignore:
-                new_cells = new_entity.get_discrete_cells_set(
-                    self.inflation_radius, self.res, self.grid_pose, self.d_width, self.d_height)
-                for cell in new_cells:
-                    if self._grid[cell[0]][cell[1]] == 0:
-                        invaded_cells.add(cell)
-                    self._grid[cell[0]][cell[1]] += 1
-        for prev_entity in self._prev_entities.values():
-            if prev_entity.uid not in self._entities_to_ignore:
-                prev_cells = prev_entity.get_discrete_cells_set(
-                    self.inflation_radius, self.res, self.grid_pose, self.d_width, self.d_height)
-                for cell in prev_cells:
-                    self._grid[cell[0]][cell[1]] -= 1
-                    if self._grid[cell[0]][cell[1]] == 0:
-                        freed_cells.add(cell)
-
-        self._prev_entities = dict()
-        self._next_entities = dict()
-
-        return invaded_cells, freed_cells
-
-    def get_grid(self):
-        is_grid_valid = not self._prev_entities and not self._next_entities
-        if not is_grid_valid:
-            self._update_grid()
-        return self._grid
-
-
-class NewBinaryOccupancyGrid:
-    def __init__(self, polygons, res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-                 d_width=None, d_height=None, grid_pose=None):
+    def __init__(self, polygons, res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=None):
         self.res = res
 
-        if grid_pose and d_width and d_height:
-            self.grid_pose, self.d_width, self.d_height = grid_pose, d_width, d_height
-        else:
-            self.grid_pose, self.d_width, self.d_height = utils.grid_parameters(polygons, res)
+        self.params = params if params else grid_parameters(polygons, res)
 
-        self.neighborhood=neighborhood
+        self.pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon = self.params.all()
+
+        self.neighborhood = neighborhood
 
         self.cells_sets = dict()
         self.grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
@@ -117,7 +55,7 @@ class NewBinaryOccupancyGrid:
                         self.grid[cell[0]][cell[1]] -= 1
 
                 new_cells = utils.polygon_to_discrete_cells_set(
-                    new_polygon, self.res, self.grid_pose, self.d_width, self.d_height, fill=fill_polygons)
+                    new_polygon, self.res, self.pose, self.d_width, self.d_height, fill=fill_polygons)
                 self.cells_sets[uid] = new_cells
                 for cell in new_cells:
                     self.grid[cell[0]][cell[1]] += 1
@@ -128,14 +66,31 @@ class NewBinaryOccupancyGrid:
                 for cell in prev_cells:
                     self.grid[cell[0]][cell[1]] -= 1
 
+    def only_obstacle_uid_in_cell(self, cell):
+        """
+        If cell is contained only by one obstacle o_i, returns o_i.
+        If contained by no obstacle, returns 0. If contained by more than one, returns -1.
+        :param cell: cell coordinates (x, y)
+        :type cell: tuple(int, int)
+        :return: obstacle uid or 0 or -1
+        :rtype: int
+        """
+        if self.grid[cell[0]][cell[1]] == 0:
+            return 0
+        elif self.grid[cell[0]][cell[1]] > 1:
+            return -1
+        else:
+            for uid, cell_set in self.cells_sets.items():
+                if cell in cell_set:
+                    return uid
+            raise RuntimeError('It should be impossible for an occupied cell of the grid to not be in any cells set.')
 
-class NewBinaryInflatedOccupancyGrid(NewBinaryOccupancyGrid):
-    def __init__(self, polygons, res, inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-                 d_width=None, d_height=None, grid_pose=None):
+
+class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
+    def __init__(self, polygons, res, inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=None):
         self.inflation_radius = inflation_radius
 
-        NewBinaryOccupancyGrid.__init__(
-            self, polygons, res, neighborhood, d_width, d_height, grid_pose)
+        BinaryOccupancyGrid.__init__(self, polygons, res, neighborhood, params)
 
     def update(self, new_polygons=None, removed_polygons=None):
         if new_polygons:
@@ -143,6 +98,6 @@ class NewBinaryInflatedOccupancyGrid(NewBinaryOccupancyGrid):
                 uid: polygon.buffer(self.inflation_radius)
                 for uid, polygon in new_polygons.items()
             }
-            NewBinaryOccupancyGrid.update(self, inflated_polygons, removed_polygons)
+            BinaryOccupancyGrid.update(self, inflated_polygons, removed_polygons)
         else:
-            NewBinaryOccupancyGrid.update(self, new_polygons, removed_polygons)
+            BinaryOccupancyGrid.update(self, new_polygons, removed_polygons)

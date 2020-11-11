@@ -170,7 +170,7 @@ def is_in_matrix(cell, width, height):
 
 
 def real_to_grid(real_x, real_y, res, grid_pose):
-    return int(round((real_x - grid_pose[0]) / res)), int(round((real_y - grid_pose[1]) / res))
+    return math.floor((real_x - grid_pose[0]) / res), math.floor((real_y - grid_pose[1]) / res)
 
 
 def grid_to_real(cell_x, cell_y, res, grid_pose):
@@ -178,8 +178,8 @@ def grid_to_real(cell_x, cell_y, res, grid_pose):
 
 
 def real_pose_to_grid_pose(real_pose, res, grid_pose, clamp_angle=None):
-    return (int(round((real_pose[0] - grid_pose[0]) / res)),
-            int(round((real_pose[1] - grid_pose[1]) / res)),
+    return (math.floor((real_pose[0] - grid_pose[0]) / res),
+            math.floor((real_pose[1] - grid_pose[1]) / res),
             real_pose[2] if clamp_angle is None else int(round(real_pose[2] / clamp_angle) * clamp_angle))
 
 
@@ -214,7 +214,7 @@ def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
         return []
     real_path = [start_pose]
     previous_pose = start_pose
-    for cell in grid_path[1:len(grid_path) - 1]:
+    for cell in grid_path[1:]:
         real_x, real_y = grid_to_real(cell[0], cell[1], res, grid_pose)
         direction_vector = (real_x - previous_pose[0], real_y - previous_pose[1])
         real_yaw = yaw_from_direction(direction_vector)
@@ -244,6 +244,7 @@ def matplotlib_show_grid(grid):
     plt.show()
 
 
+# region DEPRECATED
 def polygon_to_grid(polygon, res, fill=True):
     # Compute real min point and max point of polygon bounding box (subgrid)
     min_x, min_y, max_x, max_y = polygon.bounds
@@ -278,12 +279,51 @@ def subgrid_to_discrete_cells_set(subgrid, subgrid_pose, res, grid_pose, grid_d_
     discrete_cells_set = {cell for cell in unchecked_cells if is_in_matrix(cell, grid_d_width, grid_d_height)}
 
     return discrete_cells_set
+# endregion
 
 
 def polygon_to_discrete_cells_set(polygon, res, grid_pose, grid_d_width, grid_d_height, fill=True):
-    subgrid, subgrid_pose, = polygon_to_grid(polygon, res, fill)
-    cells_set = subgrid_to_discrete_cells_set(subgrid, subgrid_pose, res, grid_pose, grid_d_width, grid_d_height)
+    dep_subgrid, dep_subgrid_pose = polygon_to_grid(polygon, res, fill)
+    dep_cells_set = subgrid_to_discrete_cells_set(dep_subgrid, dep_subgrid_pose, res, grid_pose, grid_d_width, grid_d_height)
+    subgrid, subgrid_min_x, subgrid_min_y = polygon_to_subgrid(polygon, res, grid_pose, fill)
+    cells_set = subgrid_to_cells_set(subgrid, subgrid_min_x, subgrid_min_y)
     return cells_set
+
+
+def subgrid_to_cells_set(subgrid, subgrid_min_x, subgrid_min_y):
+    x_coords, y_coords = np.where(subgrid == 1)
+    x_coords += subgrid_min_x
+    y_coords += subgrid_min_y
+    return set(zip(x_coords, y_coords))
+
+
+def polygon_to_subgrid(polygon, res, grid_pose, fill=True):
+    # TODO implement rotation when it may prove useful
+
+    # Project polygon in the grid's coordinate system
+    projected_polygon = affinity.translate(polygon, -grid_pose[0], -grid_pose[1])
+
+    # Compute real min point and max point of projected polygon grid-axis-aligned bounding box
+    min_x, min_y, max_x, max_y = projected_polygon.bounds
+
+    # Clamp the values to their appropriate cell
+    min_d_x, min_d_y = math.floor(min_x / res), math.floor(min_y / res)
+    max_d_x, max_d_y = math.floor(max_x / res), math.floor(max_y / res)
+
+    # Compute cell width and height of subgrid
+    d_width, d_height = max_d_x - min_d_x + 1, max_d_y + min_d_y + 1
+
+    # Use PIL to discretize polygon
+    # - Create PIL image
+    img = Image.new('L', (d_width, d_height), 0)
+    # - Transform real polygon coordinates in image coordinate system
+    poly_coordinates_in_image = [((x - min_x) / res, (y - min_y) / res) for x, y in projected_polygon.exterior.coords]
+    # - Discretize polygon into image
+    ImageDraw.Draw(img).polygon(poly_coordinates_in_image, outline=1, fill=1 if fill else 0)
+    # - Transform image back into polygon coordinate system
+    subgrid = np.flipud(np.rot90(np.array(img)))
+
+    return subgrid, min_d_x, min_d_y
 
 
 def get_circumscribed_radius(polygon):
@@ -524,18 +564,6 @@ def map_bounds(polygons):
         map_min_x, map_min_y = min(map_min_x, min_x), min(map_min_y, min_y)
         map_max_x, map_max_y = max(map_max_x, max_x), max(map_max_y, max_y)
     return map_min_x, map_min_y, map_max_x, map_max_y
-
-
-def grid_parameters(polygons, res):
-    real_min_x, real_min_y, real_max_x, real_max_y = map_bounds(polygons)
-    grid_real_width, grid_real_height = real_max_x - real_min_x, real_max_y - real_min_y
-
-    grid_pose = (real_min_x, real_min_y, 0.0)
-    grid_d_width, grid_d_height = (
-        int(round(grid_real_width / res)),
-        int(round(grid_real_height / res))
-    )
-    return grid_pose, grid_d_width, grid_d_height
 
 
 def are_points_on_opposite_sides(ax, ay, bx, by, x1, y1, x2, y2):

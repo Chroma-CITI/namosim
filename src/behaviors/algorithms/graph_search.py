@@ -22,13 +22,7 @@ Benoit Renault (benoit.renault@inria.fr)
 
 import heapq
 from src.utils import utils
-try:
-    from src.display.ros_publisher import RosPublisher
-    USE_ROS = True
-except ImportError:
-    USE_ROS = False
-
-from cell_heap_node import CellHeapNode
+from src.display.ros_publisher import RosPublisher
 
 
 class PriorityQueue:
@@ -64,14 +58,6 @@ class PriorityQueue:
         return bool(self.heap)
 
 
-def dist_between(a, b):
-    return utils.euclidean_distance(a, b)
-
-
-def heuristic_cost_estimate(a, b):
-    return utils.euclidean_distance(a, b)
-
-
 def reconstruct_path(came_from, end, reverse=True):
     path = [end]
     current = end
@@ -81,124 +67,6 @@ def reconstruct_path(came_from, end, reverse=True):
     if reverse:
         path.reverse()
     return path
-
-
-def astar(grid, start_cell, goal_cell, res, grid_pose,
-          neighborhood = utils.CHESSBOARD_NEIGHBORHOOD, threshold_obstacle_value=1, ns=''):
-    rp = RosPublisher()
-
-    # The set of nodes already evaluated
-    close_set = set()
-
-    # The dictionary that remembers for each node, which node it can most efficiently be reached from.
-    # If a node can be reached from many nodes, cameFrom will eventually contain the
-    # most efficient previous step.
-    came_from = {}
-
-    # The dictionary that remembers for each node, the cost of getting from the start node to that node.
-    # The cost of going from start to start is zero.
-    gscore = {start_cell: 0}
-
-    # The dictionary that remembers for each node, the total cost of getting from the start node to the goal
-    # by passing by that node. That value is partly known, partly heuristic.
-    fscore = {start_cell: heuristic_cost_estimate(start_cell, goal_cell)}
-
-    # The set of currently discovered nodes that are not evaluated yet.
-    open_heap = []
-    # Initially, only the start node is known.
-    heapq.heappush(open_heap, CellHeapNode(fscore[start_cell], start_cell))
-
-    # rp.publish_a_star_open_heap(open_heap, res, grid_pose, ns=ns)
-
-    # While open_heap is not empty == While there are discovered nodes that have not been evaluated
-    while open_heap:
-
-        # The node in open_heap having the lowest fScore[] value
-        current = heapq.heappop(open_heap).cell
-        # rp.publish_a_star_open_heap(open_heap, res, grid_pose, ns=ns)
-
-        # Exit early if goal is reached
-        if current == goal_cell:
-            # rp.cleanup_a_star_open_heap(ns=ns)
-            rp.cleanup_a_star_close_set(ns=ns)
-            return reconstruct_path(came_from, goal_cell)
-
-        close_set.add(current)
-        rp.publish_a_star_close_set(close_set, res, grid_pose, ns=ns)
-
-        # For each neighbor of current node in the defined neighborhood
-        for i, j in neighborhood:
-            neighbor = current[0] + i, current[1] + j
-
-            # If neighbor's g score has not been computed yet, assign +inf
-            if neighbor not in gscore:
-                gscore[neighbor] = float("inf")
-
-            # Check that neighbor exists within the map, has not already been evaluated, is not an obstacle (except if
-            # the neighbor is the goal cell)
-            if (utils.is_in_matrix(neighbor, grid.shape[0], grid.shape[1])
-                    and neighbor not in close_set
-                    and (grid[neighbor[0]][neighbor[1]] < threshold_obstacle_value or neighbor == goal_cell)):
-
-                cost_between_current_and_neighbor = dist_between(current, neighbor)
-
-                # The cost from start to a neighbor.
-                tentative_g_score = gscore[current] + cost_between_current_and_neighbor
-
-                # Discover a new node or update info about known one :
-                if tentative_g_score < gscore[neighbor] or neighbor not in [i.cell for i in open_heap]:
-                    # This path is the best until now. Record it!
-                    came_from[neighbor] = current
-                    gscore[neighbor] = tentative_g_score
-                    fscore[neighbor] = tentative_g_score + heuristic_cost_estimate(neighbor, goal_cell)
-                    heapq.heappush(open_heap, CellHeapNode(fscore[neighbor], neighbor))
-                    # rp.publish_a_star_open_heap(open_heap, res, grid_pose, ns=ns)
-
-    # rp.cleanup_a_star_open_heap(ns=ns)
-    rp.publish_a_star_close_set(close_set, res, grid_pose, ns=ns)
-    # rp.cleanup_a_star_close_set(ns=ns)
-    return []
-
-
-def a_star_real_path(grid, start_pose, goal_pose, res, grid_pose,
-                     restrict_4_neighbors=False, authorize_goal_in_occupied_zone = False, ns=''):
-    start_cell = utils.real_to_grid(start_pose[0], start_pose[1], res, grid_pose)
-    # first_start_cell_considered = start_cell
-    goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], res, grid_pose)
-
-    #
-    if grid[start_cell[0]][start_cell[1]] != 0:
-        straight_dist = res
-        diag_dist = res * utils.SQRT_OF_2
-        width, height = grid.shape
-
-        frontier = []
-        heapq.heappush(frontier, (0., start_cell))
-        cost_so_far = {start_cell: 0.}
-
-        while frontier:
-            current = heapq.heappop(frontier)[1]
-
-            if grid[current[0]][current[1]] == 0:
-                start_cell = current
-                break
-            neighbors = utils.get_neighbors(current, width, height, utils.CHESSBOARD_NEIGHBORHOOD)
-            for next in neighbors:
-                extra_cost = straight_dist if current[0] == next[0] or current[1] == next[1] else diag_dist
-                new_cost = cost_so_far[current] + extra_cost
-                if next not in cost_so_far or new_cost < cost_so_far[next]:
-                    cost_so_far[next] = new_cost
-                    heapq.heappush(frontier, (new_cost, next))
-
-    # Execute A*
-    astar_path = astar(grid, start_cell, goal_cell, res, grid_pose, utils.CHESSBOARD_NEIGHBORHOOD, ns=ns)
-    # rp = RosPublisher()
-    # rp.publish_grid_path(astar_path, res, grid_pose, ns=ns)
-
-    # Convert A* output to standard ROS path
-    real_path = utils.grid_path_to_real_path(astar_path, start_pose, goal_pose, res, grid_pose)
-
-    return real_path
 
 
 class HeapNode:
@@ -228,7 +96,7 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
     came_from = dict()
     gscore = {start: 0.}
     open_queue = PriorityQueue()
-    open_queue.push(heuristic_cost_estimate(start, goal), start)
+    open_queue.push(heuristic(start, goal), start)
     current = None
 
     while open_queue:
@@ -284,8 +152,8 @@ def basic_exit_condition(current, goal):
     return current == goal
 
 
-def grid_get_neighbors(current, gscore, close_set, grid, width, height, chess_neighborhood=False):
-    neighbors, gscores = [], []
+def grid_get_neighbors_taxi(current, gscore, close_set, grid, width, height):
+    neighbors, tentative_gscores = [], []
     current_gscore = gscore[current]
     for i, j in utils.TAXI_NEIGHBORHOOD:
         neighbor = current[0] + i, current[1] + j
@@ -296,36 +164,87 @@ def grid_get_neighbors(current, gscore, close_set, grid, width, height, chess_ne
         )
         if neighbor_is_valid:
             neighbors.append(neighbor)
-            gscores.append(current_gscore + 1.)
-    if chess_neighborhood:
-        for i, j in utils.CHESSBOARD_NEIGHBORHOOD_EXTRAS:
-            neighbor = current[0] + i, current[1] + j
-            neighbor_is_valid = (
+            tentative_gscores.append(current_gscore + 1.)
+
+    return neighbors, tentative_gscores
+
+
+def grid_get_neighbors_chessboard_simple(current, gscore, close_set, grid, width, height):
+    neighbors, tentative_gscores = grid_get_neighbors_taxi(current, gscore, close_set, grid, width, height)
+    current_gscore = gscore[current]
+
+    for i, j in utils.CHESSBOARD_NEIGHBORHOOD_EXTRAS:
+        neighbor = current[0] + i, current[1] + j
+        neighbor_is_valid = (
                 neighbor not in close_set
                 and utils.is_in_matrix(neighbor, width, height)
                 and grid[neighbor[0]][neighbor[1]] == 0
-                and grid[current[0]][neighbor[1]] == 0
-                and grid[neighbor[0]][current[1]] == 0
-            )
-            if neighbor_is_valid:
-                neighbors.append(neighbor)
-                gscores.append(current_gscore + utils.SQRT_OF_2)
-    return neighbors, gscores
-
-
-def grid_search_a_star(start, goal, grid, width, height, chess_neighborhood=False):
-
-    def grid_get_neighbors_instance(current, gscore, close_set):
-        return grid_get_neighbors(current, gscore, close_set, grid, width, height, chess_neighborhood)
-
-    if chess_neighborhood:
-        return new_generic_a_star(
-            start, goal, basic_exit_condition, grid_get_neighbors_instance, utils.chebyshev_distance
         )
+        if neighbor_is_valid:
+            neighbors.append(neighbor)
+            tentative_gscores.append(current_gscore + utils.SQRT_OF_2)
+    return neighbors, tentative_gscores
+
+
+def grid_get_neighbors_chessboard_check_diag_neighbors(current, gscore, close_set, grid, width, height):
+    neighbors, tentative_gscores = grid_get_neighbors_taxi(current, gscore, close_set, grid, width, height)
+    current_gscore = gscore[current]
+
+    for i, j in utils.CHESSBOARD_NEIGHBORHOOD_EXTRAS:
+        neighbor = current[0] + i, current[1] + j
+        neighbor_is_valid = (
+            neighbor not in close_set
+            and utils.is_in_matrix(neighbor, width, height)
+            and grid[neighbor[0]][neighbor[1]] == 0
+            and grid[current[0]][neighbor[1]] == 0
+            and grid[neighbor[0]][current[1]] == 0
+        )
+        if neighbor_is_valid:
+            neighbors.append(neighbor)
+            tentative_gscores.append(current_gscore + utils.SQRT_OF_2)
+    return neighbors, tentative_gscores
+
+
+def grid_search_a_star(start, goal, grid, width, height, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, check_diag_neighbors=False):
+
+    is_chess_neighborhood = neighborhood==utils.CHESSBOARD_NEIGHBORHOOD
+
+    if is_chess_neighborhood:
+        if check_diag_neighbors:
+            def grid_get_neighbors_instance(current, gscore, close_set):
+                return grid_get_neighbors_chessboard_check_diag_neighbors(
+                    current, gscore, close_set, grid, width, height
+                )
+        else:
+            def grid_get_neighbors_instance(current, gscore, close_set):
+                return grid_get_neighbors_chessboard_simple(current, gscore, close_set, grid, width, height)
+
+        heuristic = utils.chebyshev_distance
     else:
-        return new_generic_a_star(
-            start, goal, basic_exit_condition, grid_get_neighbors_instance, utils.manhattan_distance
+        def grid_get_neighbors_instance(current, gscore, close_set):
+            return grid_get_neighbors_taxi(current, gscore, close_set, grid, width, height)
+
+        heuristic = utils.manhattan_distance
+
+    return new_generic_a_star(start, goal, basic_exit_condition, grid_get_neighbors_instance, heuristic)
+
+
+def real_to_grid_search_a_star(start_pose, goal_pose, grid):
+        start_cell = utils.real_to_grid(start_pose[0], start_pose[1], grid.res, grid.grid_pose)
+        goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], grid.res, grid.grid_pose)
+
+        if grid.grid[start_cell[0]][start_cell[1]] > 0 or grid.grid[goal_cell[0]][goal_cell[1]] > 0:
+            return []
+
+        path_found, last_cell, came_from, _, _, _ = grid_search_a_star(
+            start_cell, goal_cell, grid.grid, grid.d_width, grid.d_height, grid.neighborhood, check_diag_neighbors=False
         )
+
+        if path_found:
+            raw_path = reconstruct_path(came_from, last_cell)
+            return utils.grid_path_to_real_path(raw_path, start_pose, goal_pose, grid.res, grid.grid_pose)
+        else:
+            return []
 
 
 def new_generic_dijkstra(start, goal, exit_condition, get_neighbors):
@@ -360,12 +279,14 @@ def new_generic_dijkstra(start, goal, exit_condition, get_neighbors):
     return False, current, came_from, close_set, gscore, open_queue
 
 
-def grid_search_dijkstra(start, goal, grid, width, height, chess_neighborhood=False):
+def grid_search_dijkstra(start, goal, grid, width, height, neighborhood=False):
+
+    is_chess_neighborhood = neighborhood==utils.CHESSBOARD_NEIGHBORHOOD
 
     def grid_get_neighbors_instance(current, gscore, close_set):
-        return grid_get_neighbors(current, gscore, close_set, grid, width, height, chess_neighborhood)
+        return grid_get_neighbors(current, gscore, close_set, grid, width, height, is_chess_neighborhood)
 
-    if chess_neighborhood:
+    if is_chess_neighborhood:
         return new_generic_dijkstra(start, goal, basic_exit_condition, grid_get_neighbors_instance)
     else:
         return new_generic_dijkstra(start, goal, basic_exit_condition, grid_get_neighbors_instance)

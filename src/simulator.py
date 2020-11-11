@@ -14,7 +14,7 @@ from shapely.geometry import LineString
 
 from src.behaviors.navigation_only_behavior import NavigationOnlyBehavior
 from src.behaviors.wu_levihn_2014_behavior import WuLevihn2014Behavior
-from src.behaviors.new_stilman_2005_behavior import NewStilman2005Behavior
+from src.behaviors.stilman_2005_behavior import Stilman2005Behavior
 
 import src.behaviors.plan.basic_actions as ba
 import src.behaviors.plan.action_result as ar
@@ -24,7 +24,6 @@ from src.display.ros_publisher import RosPublisher
 from src.worldreps.entity_based.world import World
 from src.worldreps.entity_based.robot import Robot
 from src.worldreps.entity_based.obstacle import Obstacle
-from src.worldreps.occupation_based.binary_inflated_occupancy_grid import BinaryInflatedOccupancyGrid
 
 from src.utils import stats_utils, utils, conversion, collision
 
@@ -416,7 +415,7 @@ class Simulator:
                 elif agent_behavior_name == "stilman_2005_behavior":
                     agent_world = copy.deepcopy(self.ref_world)
                     self.rp.cleanup_robot_world()
-                    agent_uid_to_behavior[agent_uid] = NewStilman2005Behavior(
+                    agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
                         agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
                 else:
                     raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
