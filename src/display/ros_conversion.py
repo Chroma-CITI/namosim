@@ -20,7 +20,7 @@ from src.worldreps.entity_based.robot import Robot
 from src.worldreps.entity_based.obstacle import Obstacle
 from src.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
 from src.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
-
+from src.worldreps.occupation_based.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 
 def init_header():
     return Header(stamp=rospy.Time.now(), frame_id="map")
@@ -36,16 +36,25 @@ def init_ros_path():
 
 
 def world_to_costmap(world, robot_uid):
-    world_grid = world.get_binary_inflated_occupancy_grid((robot_uid,))
+    robot = world.entities[robot_uid]
+    polygons = {
+        uid: entity.polygon for uid, entity in world.entities.items()
+        if not isinstance(entity, Robot)
+    }
+    robot_max_inflation_radius = utils.get_circumscribed_radius(robot.polygon)
+    static_obs_inf_grid = BinaryInflatedOccupancyGrid(
+        polygons, world.dd.res, robot_max_inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+    )
+
     costmap = OccupancyGrid(header=init_header())
     costmap.info.map_load_time = costmap.header.stamp
-    costmap.info.resolution = world.dd.res
-    costmap.info.width = world.dd.d_width
-    costmap.info.height = world.dd.d_height
-    costmap.info.origin.position.x = world.dd.grid_pose[0]
-    costmap.info.origin.position.y = world.dd.grid_pose[1]
+    costmap.info.resolution = static_obs_inf_grid.res
+    costmap.info.width = static_obs_inf_grid.d_width
+    costmap.info.height = static_obs_inf_grid.d_height
+    costmap.info.origin.position.x = static_obs_inf_grid.grid_pose[0]
+    costmap.info.origin.position.y = static_obs_inf_grid.grid_pose[1]
     costmap.info.origin.position.z = -0.1
-    costmap.data = np.fliplr(np.rot90(world_grid.get_grid(), 3)).flatten().astype(np.int8).tolist()
+    costmap.data = np.fliplr(np.rot90(static_obs_inf_grid.grid, 3)).flatten().astype(np.int8).tolist()
 
     return costmap
 
