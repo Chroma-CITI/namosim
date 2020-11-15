@@ -21,10 +21,13 @@ class GridParams:
 
 
 def grid_parameters(polygons, res):
-    min_x, min_y, max_x, max_y = utils.map_bounds(polygons)
-    real_width, real_height = max_x - min_x, max_y - min_y
+    r_min_x, r_min_y, r_max_x, r_max_y = utils.map_bounds(polygons)
+    min_x, min_y = math.floor(r_min_x / res) * res, math.floor(r_min_y / res) * res
+    max_x, max_y = math.ceil(r_max_x / res) * res, math.ceil(r_max_y / res) * res
+    d_width = abs(int(math.floor(r_min_x / res))) + abs(int(math.ceil(r_max_x / res)))
+    d_height = abs(int(math.floor(r_min_y / res))) + abs(int(math.ceil(r_max_y / res)))
+    real_width, real_height = d_width * res, d_height * res
     real_pose = min_x, min_y, 0.0
-    d_width, d_height = math.ceil(real_width / res), math.ceil(real_height / res)
     aabb_polygon = Polygon([(min_x, min_y), (min_x, max_y), (max_x, max_y), (max_x, min_y)])
     return GridParams(real_pose, d_width, d_height, real_width, real_height, aabb_polygon)
 
@@ -35,7 +38,7 @@ class BinaryOccupancyGrid:
 
         self.params = params if params else grid_parameters(polygons, res)
 
-        self.pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon = self.params.all()
+        self.grid_pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon = self.params.all()
 
         self.neighborhood = neighborhood
 
@@ -55,7 +58,8 @@ class BinaryOccupancyGrid:
                         self.grid[cell[0]][cell[1]] -= 1
 
                 new_cells = utils.polygon_to_discrete_cells_set(
-                    new_polygon, self.res, self.pose, self.d_width, self.d_height, fill=fill_polygons)
+                    new_polygon, self.res, self.grid_pose, self.d_width, self.d_height, self.r_width, self.r_height, fill=fill_polygons
+                )
                 self.cells_sets[uid] = new_cells
                 for cell in new_cells:
                     self.grid[cell[0]][cell[1]] += 1
