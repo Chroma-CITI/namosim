@@ -13,7 +13,7 @@ from shapely import affinity
 from shapely.geometry import LineString
 
 from src.behaviors.navigation_only_behavior import NavigationOnlyBehavior
-from src.behaviors.wu_levihn_2014_behavior import WuLevihn2014Behavior
+# from src.behaviors.wu_levihn_2014_behavior import WuLevihn2014Behavior
 from src.behaviors.stilman_2005_behavior import Stilman2005Behavior
 
 import src.behaviors.plan.basic_actions as ba
