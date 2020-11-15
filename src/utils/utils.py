@@ -1,4 +1,5 @@
 import math
+from matplotlib.path import Path
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw
 import numpy as np
@@ -6,6 +7,9 @@ import os
 import shapely.affinity as affinity
 import mapbox_earcut as earcut
 from shapely.geometry import Polygon
+import time
+import rasterio.features
+import skimage.draw
 
 # Constants
 SQRT_OF_2 = math.sqrt(2.)
@@ -170,7 +174,7 @@ def is_in_matrix(cell, width, height):
 
 
 def real_to_grid(real_x, real_y, res, grid_pose):
-    return math.floor((real_x - grid_pose[0]) / res), math.floor((real_y - grid_pose[1]) / res)
+    return int(math.floor((real_x - grid_pose[0]) / res)), int(math.floor((real_y - grid_pose[1]) / res))
 
 
 def grid_to_real(cell_x, cell_y, res, grid_pose):
@@ -178,8 +182,8 @@ def grid_to_real(cell_x, cell_y, res, grid_pose):
 
 
 def real_pose_to_grid_pose(real_pose, res, grid_pose, clamp_angle=None):
-    return (math.floor((real_pose[0] - grid_pose[0]) / res),
-            math.floor((real_pose[1] - grid_pose[1]) / res),
+    return (int(math.floor((real_pose[0] - grid_pose[0]) / res)),
+            int(math.floor((real_pose[1] - grid_pose[1]) / res)),
             real_pose[2] if clamp_angle is None else int(round(real_pose[2] / clamp_angle) * clamp_angle))
 
 
@@ -282,48 +286,128 @@ def subgrid_to_discrete_cells_set(subgrid, subgrid_pose, res, grid_pose, grid_d_
 # endregion
 
 
-def polygon_to_discrete_cells_set(polygon, res, grid_pose, grid_d_width, grid_d_height, fill=True):
-    dep_subgrid, dep_subgrid_pose = polygon_to_grid(polygon, res, fill)
-    dep_cells_set = subgrid_to_discrete_cells_set(dep_subgrid, dep_subgrid_pose, res, grid_pose, grid_d_width, grid_d_height)
-    subgrid, subgrid_min_x, subgrid_min_y = polygon_to_subgrid(polygon, res, grid_pose, fill)
-    cells_set = subgrid_to_cells_set(subgrid, subgrid_min_x, subgrid_min_y)
+def polygon_to_discrete_cells_set(polygon, res, grid_pose, grid_d_width, grid_d_height, grid_r_width, grid_r_height, fill=True):
+    subgrid, subgrid_min_x, subgrid_min_y = polygon_to_subgrid(polygon, res, grid_pose, grid_r_width, grid_r_height, fill)
+    cells_set = subgrid_to_cells_set(subgrid, subgrid_min_x, subgrid_min_y, grid_d_width, grid_d_height)
     return cells_set
 
 
-def subgrid_to_cells_set(subgrid, subgrid_min_x, subgrid_min_y):
+def subgrid_to_cells_set(subgrid, subgrid_min_x, subgrid_min_y, grid_d_width, grid_d_height):
     x_coords, y_coords = np.where(subgrid == 1)
     x_coords += subgrid_min_x
     y_coords += subgrid_min_y
-    return set(zip(x_coords, y_coords))
+    unchecked_cells = zip(x_coords, y_coords)
+    discrete_cells_set = {cell for cell in unchecked_cells if is_in_matrix(cell, grid_d_width, grid_d_height)}
+    return discrete_cells_set
 
 
-def polygon_to_subgrid(polygon, res, grid_pose, fill=True):
+def polygon_to_subgrid(polygon, res, grid_pose, grid_r_width, grid_r_height, fill=True):
     # TODO implement rotation when it may prove useful
 
-    # Project polygon in the grid's coordinate system
-    projected_polygon = affinity.translate(polygon, -grid_pose[0], -grid_pose[1])
-
     # Compute real min point and max point of projected polygon grid-axis-aligned bounding box
-    min_x, min_y, max_x, max_y = projected_polygon.bounds
+    min_x, min_y, max_x, max_y = polygon.bounds
 
     # Clamp the values to their appropriate cell
-    min_d_x, min_d_y = math.floor(min_x / res), math.floor(min_y / res)
-    max_d_x, max_d_y = math.floor(max_x / res), math.floor(max_y / res)
+    min_d_x, min_d_y = int(math.floor((min_x - grid_pose[0]) / res)), int(math.floor((min_y - grid_pose[1]) / res))
+    max_d_x, max_d_y = int(math.ceil((max_x - grid_pose[0]) / res)), int(math.ceil((max_y - grid_pose[1]) / res))
 
     # Compute cell width and height of subgrid
-    d_width, d_height = max_d_x - min_d_x + 1, max_d_y + min_d_y + 1
+    d_width, d_height = max_d_x - min_d_x + 1, max_d_y - min_d_y + 1
 
-    # Use PIL to discretize polygon
-    # - Create PIL image
-    img = Image.new('L', (d_width, d_height), 0)
-    # - Transform real polygon coordinates in image coordinate system
-    poly_coordinates_in_image = [((x - min_x) / res, (y - min_y) / res) for x, y in projected_polygon.exterior.coords]
-    # - Discretize polygon into image
-    ImageDraw.Draw(img).polygon(poly_coordinates_in_image, outline=1, fill=1 if fill else 0)
-    # - Transform image back into polygon coordinate system
-    subgrid = np.flipud(np.rot90(np.array(img)))
+    min_x_bi1s, min_y_bis = grid_pose[0] + res * float(min_d_x), grid_pose[1] + res * float(min_d_y)
+    subgrid_projected_polygon = affinity.translate(polygon, -grid_pose[0] - min_d_x * res, -grid_pose[1] - min_d_y * res)
 
-    return subgrid, min_d_x, min_d_y
+    custom_start_time = time.time()
+    new_subgrid = np.zeros((d_width, d_height), dtype=int)
+    # For each cell in subgrid, create a shapely square polygon and check
+    for i in range(d_width):
+        for j in range(d_height):
+            coordinates = [
+                    (i * res, j * res),
+                    ((i + 1) * res, j * res),
+                    ((i + 1) * res, (j + 1) * res),
+                    (i * res, (j + 1) * res)
+                ]
+            cell_poly = Polygon(coordinates)
+            if cell_poly.intersects(subgrid_projected_polygon):
+                new_subgrid[i][j] = 1
+    custom_duration = time.time() - custom_start_time
+    poly_coordinates_in_image = list(subgrid_projected_polygon.exterior.coords)
+
+    # # Use PIL to discretize polygon DEPRECATED BECAUSE NOT TRUSTWORTHY
+    # # - Create PIL image
+    # pil_start_time = time.time()
+    # img = Image.new('L', (d_width, d_height), 0)
+    # # - Transform real polygon coordinates in image coordinate system
+    # # - Discretize polygon into image
+    # ImageDraw.Draw(img).polygon(poly_coordinates_in_image, outline=1, fill=1 if fill else 0)
+    # # - Transform image back into polygon coordinate system
+    # subgrid = np.flipud(np.rot90(np.array(img)))
+    # pil_duration = time.time() - pil_start_time
+
+    # Use matplotlib to discretize polygon
+    mpl_start_time = time.time()
+    poly_path = Path(poly_coordinates_in_image)
+    x_g, y_g = np.mgrid[:d_width, :d_height]
+    x, y = (x_g.reshape(-1, 1), y_g.reshape(-1, 1))
+    coors = np.hstack((x, y))
+    mask = poly_path.contains_points(coors)
+    for dx, dy in [(0., 1.), (1., 1.), (1., 0.)]:
+        x2, y2 = x + dx, y + dy
+        coors = np.hstack((x2, y2))
+        mask += poly_path.contains_points(coors)
+    mpl_subgrid = mask.reshape(d_width, d_height)
+    mpl_duration = time.time() - mpl_start_time
+
+    # # Use rasterio to discretize polygon
+    # ras_start_time = time.time()
+    # ras_subgrid = rasterio.features.rasterize([subgrid_projected_polygon], (d_width, d_height))
+    # ras_duration = time.time() - ras_start_time
+    #
+    # # Use skimage to discretize polygon
+    # sk_start_time = time.time()
+    # in_rr, in_cc = skimage.draw.polygon(*zip(*poly_coordinates_in_image), shape=(d_width, d_height))
+    # out_rr, out_cc = skimage.draw.polygon_perimeter(*zip(*poly_coordinates_in_image), shape=(d_width, d_height))
+    # sk_subgrid = np.zeros((d_width, d_height), dtype=np.uint8)
+    # sk_subgrid[in_rr, in_cc] = 1
+    # sk_subgrid[out_rr, out_cc] = 1
+    # sk_duration = time.time() - sk_start_time
+    #
+    # # Reduce +
+    # c2_start_time = time.time()
+    # coordinates_cells = []
+    # coordinates_cells_set = set()
+    # for real_coords in poly_coordinates_in_image[:-1]:
+    #     grid_coords = int(math.floor(real_coords[0] / res)), int(math.floor(real_coords[1] / res))
+    #     if grid_coords not in coordinates_cells_set:
+    #         coordinates_cells_set.add(grid_coords)
+    #         coordinates_cells.append(grid_coords)
+    # coordinates_cells.append((int(math.floor(poly_coordinates_in_image[-1][0] / res)), int(math.floor(poly_coordinates_in_image[-1][1] / res))))
+    # c2_duration = time.time() - c2_start_time
+
+    return new_subgrid, min_d_x, min_d_y
+
+
+# def is_point_inside_polygon(point, polygon):
+#     int cross = 0
+#     for (int i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++)
+#     i, polygon.coords = 0
+#
+# """
+# bool Polygon::isInside(const Position& point) const
+# {
+#   int cross = 0;
+#   for (int i = 0, j = vertices_.size() - 1; i < vertices_.size(); j = i++) {
+#     if ( ((vertices_[i].y() > point.y()) != (vertices_[j].y() > point.y()))
+#            && (point.x() < (vertices_[j].x() - vertices_[i].x()) * (point.y() - vertices_[i].y()) /
+#             (vertices_[j].y() - vertices_[i].y()) + vertices_[i].x()) )
+#     {
+#       cross++;
+#     }
+#   }
+#   return bool(cross % 2);
+# }
+# """
 
 
 def get_circumscribed_radius(polygon):
@@ -559,7 +643,7 @@ def map_bounds(polygons):
 
     map_min_x, map_min_y, map_max_x, map_max_y = float("inf"), float("inf"), -float("inf"), -float("inf")
 
-    for polygon in polygons.values():
+    for uid, polygon in polygons.items():
         min_x, min_y, max_x, max_y = polygon.bounds
         map_min_x, map_min_y = min(map_min_x, min_x), min(map_min_y, min_y)
         map_max_x, map_max_y = max(map_max_x, max_x), max(map_max_y, max_y)
