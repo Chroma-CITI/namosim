@@ -285,17 +285,12 @@ class World:
                     new_entity.name, obj.name))
         self.entities[new_entity.uid] = new_entity
 
-        self._invalidate_and_inform_grids(prev_entities=dict(), next_entities={new_entity.uid: new_entity})
-
     def remove_entity(self, entity_uid):
         removed_entity = self.entities[entity_uid]
         if entity_uid in self.entities:
             del self.entities[entity_uid]
         else:
             raise KeyError("Warning, you tried to remove an entity that is not registered in this world !")
-
-        self._invalidate_and_inform_grids(prev_entities={removed_entity.uid: removed_entity},
-                                          next_entities=dict())
 
     def remove_entities(self, entities_uids):
         for entity_uid in entities_uids:
@@ -305,23 +300,17 @@ class World:
         entity = self.entities[entity_uid]
         prev_entity = copy.deepcopy(entity)
         entity.translate(translation[0], translation[1], self.dd.res)
-        self._invalidate_and_inform_grids(prev_entities={entity_uid: prev_entity},
-                                          next_entities={entity_uid: entity})
 
     def rotate_entity(self, entity_uid, rotation, rot_center='centroid'):
         entity = self.entities[entity_uid]
         prev_entity = copy.deepcopy(entity)
         entity.rotate(rotation, rot_center)
-        self._invalidate_and_inform_grids(prev_entities={entity_uid: prev_entity},
-                                          next_entities={entity_uid: entity})
 
     def set_entity_polygon(self, entity_uid, polygon, full_geometry_acquired=False):
         entity = self.entities[entity_uid]
         prev_entity = copy.deepcopy(entity)
         entity.set_polygon(polygon)
         entity.full_geometry_acquired = full_geometry_acquired
-        self._invalidate_and_inform_grids(prev_entities={entity_uid: prev_entity},
-                                          next_entities={entity_uid: entity})
 
     def get_map_bounds(self):
         if len(self.entities) == 0:
