@@ -15,7 +15,7 @@ from src.worldreps.entity_based.obstacle import Obstacle
 from src.behaviors.algorithms.new_local_opening_check import check_new_local_opening
 import plan.basic_actions as ba
 import plan.action_result as ar
-from src.worldreps.occupation_based.binary_occupancy_grid import BinaryInflatedOccupancyGrid
+from src.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, BinaryInflatedOccupancyGrid
 import src.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
 import src.utils.collision as collision
 import src.utils.connectivity as connectivity
@@ -30,12 +30,7 @@ class Stilman2005Behavior(BaselineBehavior):
         parameters = behavior_config["parameters"]
         # - Original Stilman method configuration parameters
         self.alpha = parameters["alpha_for_obstacle_choice_heur"]
-        if parameters["neighborhood_for_obstacle_choice_heur"] == "TAXI":
-            self.neighborhood = utils.TAXI_NEIGHBORHOOD
-        elif parameters["neighborhood_for_obstacle_choice_heur"] == "CHESSBOARD":
-            self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
-        else:
-            self.neighborhood = utils.TAXI_NEIGHBORHOOD  # default if bad parameter
+        self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD  # default if bad parameter
         # self.heur_w = parameters["heuristic_cost_for_traversing_obstacle_in_choice_heur"]
         # self.basic_trans_force = parameters["basic_translation_force"]
         # self.basic_rot_moment = parameters["basic_rotation_moment"]
@@ -128,21 +123,7 @@ class Stilman2005Behavior(BaselineBehavior):
             self._q_goal = None
             return action
 
-        static_obs_polygons = {
-            uid: entity.polygon for uid, entity in self._world.entities.items()
-            if isinstance(entity, Obstacle) and self._robot.deduce_movability(entity.type) == "unmovable"
-        }
-        robot_max_inflation_radius = utils.get_circumscribed_radius(self._robot.polygon)
-        static_obs_grid = BinaryInflatedOccupancyGrid(
-            static_obs_polygons, self._world.dd.res, robot_max_inflation_radius, neighborhood=self.neighborhood
-        )
-        if self.use_social_cost and self._social_costmap is None:
-
-            self._social_costmap = stocg.compute_social_costmap(
-                static_obs_grid.grid, self._world.dd.res, log_costmaps=self.activate_grids_logging,
-                abs_path_to_logs_dir=self.abs_path_to_logs_dir, ns=self._robot_name)
-            self._rp.publish_grid_map(self._social_costmap, self._world.dd.res, ns=self._robot_name)
-
+        replan = False
         if isinstance(self._last_action_result, ar.ActionFailure):
             action_failed_because_of_other_agent = isinstance(
                 self._last_action_result,
@@ -153,9 +134,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self.wait_steps -= 1
                 return ba.Wait()
             else:
-                self._p_opt = self.select_connect(
-                    self._world, static_obs_grid, self._q_goal, neighborhood=self.neighborhood
-                )
+                replan = True
                 # OR? :
                 # logging.warning("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
                 #     name=self._robot.name, nav_goal=str(self._q_goal)))
@@ -171,7 +150,30 @@ class Stilman2005Behavior(BaselineBehavior):
 
             if not p_opt_is_valid:
                 # If the plan is not valid, try replanning
-                self._p_opt = self.select_connect(self._world, static_obs_grid, self._q_goal, neighborhood=self.neighborhood)
+                replan = True
+        if replan:
+            static_obs_polygons = {
+                uid: entity.polygon for uid, entity in self._world.entities.items()
+                if isinstance(entity, Obstacle) and self._robot.deduce_movability(entity.type) == "unmovable"
+            }
+            robot_max_inflation_radius = utils.get_circumscribed_radius(self._robot.polygon)
+            static_obs_inf_grid = BinaryInflatedOccupancyGrid(
+                static_obs_polygons, self._world.dd.res, robot_max_inflation_radius, neighborhood=self.neighborhood
+            )
+
+            if self.use_social_cost and self._social_costmap is None:
+                static_obs_grid = BinaryOccupancyGrid(
+                    static_obs_polygons, self._world.dd.res, neighborhood=self.neighborhood,
+                    params=static_obs_inf_grid.params
+                )
+                self._social_costmap = stocg.compute_social_costmap(
+                    static_obs_grid.grid, self._world.dd.res, log_costmaps=self.activate_grids_logging,
+                    abs_path_to_logs_dir=self.abs_path_to_logs_dir, ns=self._robot_name)
+                self._rp.publish_grid_map(self._social_costmap, self._world.dd.res, ns=self._robot_name)
+
+            self._p_opt = self.select_connect(
+                self._world, static_obs_inf_grid, self._q_goal, neighborhood=self.neighborhood
+            )
 
         if self._p_opt.has_infinite_cost():
             # If no plan for the goal was found
@@ -185,7 +187,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 next_step = self._p_opt.pop_next_step()
                 return next_step
 
-    def select_connect(self, w_t, static_obs_grid, r_f, ccs_data=None, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
+    def select_connect(self, w_t, static_obs_inf_grid, r_f, ccs_data=None, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
         """
         High Level Planner _select_connect (SC).
         It makes use of _rch and _manip_search in a greedy heuristic search with backtracking.
@@ -207,10 +209,10 @@ class Stilman2005Behavior(BaselineBehavior):
         other_entities_polygons = {uid: e.polygon for uid, e in w_t.entities.items() if e.uid != self._robot.uid}
         robot_max_inflation_radius = utils.get_circumscribed_radius(robot_at_t.polygon)
         inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
-            other_entities_polygons, res, robot_max_inflation_radius, neighborhood, static_obs_grid.params
+            other_entities_polygons, res, robot_max_inflation_radius, neighborhood, static_obs_inf_grid.params
         )
-        robot_cell = utils.real_to_grid(r_t[0], r_t[1], static_obs_grid.res, static_obs_grid.grid_pose)
-        goal_cell = utils.real_to_grid(r_f[0], r_f[1], static_obs_grid.res, static_obs_grid.grid_pose)
+        robot_cell = utils.real_to_grid(r_t[0], r_t[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose)
+        goal_cell = utils.real_to_grid(r_f[0], r_f[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose)
 
         simple_path_to_goal = self.find_path(r_t, r_f, inflated_grid_by_robot, robot_at_t.polygon)
         if simple_path_to_goal:
@@ -219,7 +221,6 @@ class Stilman2005Behavior(BaselineBehavior):
             # TODO FIX COST COMPUTATION TO FIT SAME MODEL AS MANIP SEARCH !
             return Plan([simple_path_to_goal], self._q_goal, self._robot_uid)
 
-        
         if ccs_data is None:
             ccs_data = connectivity.CCSData(
                 *connectivity.init_ccs_for_grid(
@@ -235,7 +236,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd, ns=self._robot_name)
 
         o_1, c_1 = self.rch(
-            robot_cell, goal_cell, static_obs_grid, connected_components_grid,
+            robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
             inflated_grid_by_robot, avoid_list, neighborhood
         )
         while o_1 != 0:
@@ -244,7 +245,7 @@ class Stilman2005Behavior(BaselineBehavior):
             w_t_plus_2, tho_m = self.manip_search_procedure(w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f)
 
             if tho_m is not None:
-                future_plan = self.select_connect(w_t_plus_2, static_obs_grid, r_f, ccs_data, neighborhood)
+                future_plan = self.select_connect(w_t_plus_2, static_obs_inf_grid, r_f, ccs_data, neighborhood)
                 if future_plan is not None:
                     tho_n = self.find_path(r_t, tho_m.robot_path.poses[0], inflated_grid_by_robot, robot_at_t.polygon)
                     return Plan([tho_n, tho_m], self._q_goal, self._robot_uid).append(future_plan)
@@ -252,7 +253,7 @@ class Stilman2005Behavior(BaselineBehavior):
             avoid_list.add((o_1, c_1))
 
             o_1, c_1 = self.rch(
-                robot_cell, goal_cell, static_obs_grid, connected_components_grid,
+                robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
                 inflated_grid_by_robot, avoid_list, neighborhood
             )
 
@@ -393,7 +394,7 @@ class Stilman2005Behavior(BaselineBehavior):
             translation_cost = self.translation_factor * dist
             return translation_cost * (1. if not is_transfer else self.transfer_coefficient)
 
-        def h_function(_c):
+        def h_function(_c, _g):
             translation_cost = self.translation_factor * utils.euclidean_distance(
                 utils.grid_to_real(_c.cell[0], _c.cell[1], inflated_robot_grid.res, inflated_robot_grid.grid_pose),
                 goal_real
@@ -454,13 +455,11 @@ class Stilman2005Behavior(BaselineBehavior):
         )
         inflated_grid_by_obstacle = BinaryInflatedOccupancyGrid(
             other_entities_polygons, res, obstacle_min_inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-            pose=inflated_grid_by_robot.pose,
-            d_width=inflated_grid_by_robot.d_width,
-            d_height=inflated_grid_by_robot.d_height
+            params=inflated_grid_by_robot.params
         )
 
-        robot_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], res, inflated_grid_by_robot.pose)
-        goal_pose, goal_cell = r_f, utils.real_to_grid(r_f[0], r_f[1], res, inflated_grid_by_robot.pose)
+        robot_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], res, inflated_grid_by_robot.grid_pose)
+        goal_pose, goal_cell = r_f, utils.real_to_grid(r_f[0], r_f[1], res, inflated_grid_by_robot.grid_pose)
 
         trans_mult = 1. / res * 10.
         rot_mult = 1.
@@ -469,7 +468,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # Get accessible sampled navigation points around obstacle and paths to them
         transit_end_robot_poses, transfer_start_robot_poses = self.get_transit_end_and_transfer_start_poses(
-            obstacle_polygon, robot_max_inflation_radius, r_acc_cells_set, res, inflated_grid_by_robot.pose
+            obstacle_polygon, robot_max_inflation_radius, r_acc_cells_set, res, inflated_grid_by_robot.grid_pose
         )
 
         if not transfer_start_robot_poses:
@@ -486,11 +485,11 @@ class Stilman2005Behavior(BaselineBehavior):
                 robot_polygon=utils.set_polygon_pose(robot_polygon, robot_pose, manip_pose),
                 # robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(manip_pose, trans_mult, rot_mult),
                 robot_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                    manip_pose, inflated_grid_by_robot.res, inflated_grid_by_robot.pose, self.rotation_unit_angle
+                    manip_pose, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose, self.rotation_unit_angle
                 ),
                 robot_cell_in_grid=utils.real_to_grid(
                     manip_pose[0], manip_pose[1],
-                    res, inflated_grid_by_robot.pose
+                    res, inflated_grid_by_robot.grid_pose
                 ),
                 obstacle_floating_point_pose=obstacle_pose,
                 obstacle_polygon=obstacle_polygon,
@@ -499,11 +498,11 @@ class Stilman2005Behavior(BaselineBehavior):
                 # ),
                 obstacle_fixed_precision_pose=utils.real_pose_to_grid_pose(
                     obstacle_pose, inflated_grid_by_obstacle.res,
-                    inflated_grid_by_obstacle.pose, self.rotation_unit_angle
+                    inflated_grid_by_obstacle.grid_pose, self.rotation_unit_angle
                 ),
                 obstacle_cell_in_grid=utils.real_to_grid(
                     obstacle_pose[0], obstacle_pose[1],
-                    res, inflated_grid_by_obstacle.pose
+                    res, inflated_grid_by_obstacle.grid_pose
                 )
             ): self.g(nav_pose, manip_pose, is_transfer=True)
             for manip_pose, nav_pose in transfer_start_to_transit_end_robot_pose.items()
@@ -1277,8 +1276,9 @@ class Stilman2005Behavior(BaselineBehavior):
 
         robot_cells_at_goal = utils.polygon_to_discrete_cells_set(
             robot_poly_at_goal, inflated_grid_by_obstacle.res,
-            inflated_grid_by_obstacle.grid_pose, inflated_grid_by_obstacle.d_width,
-            inflated_grid_by_obstacle.d_height, fill=True
+            inflated_grid_by_obstacle.grid_pose,
+            inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height,
+            inflated_grid_by_obstacle.r_width, inflated_grid_by_obstacle.r_height, fill=True
         )
 
         # Compute set of potentially reachable cells for obstacle and a heuristic cost to join them
@@ -1290,12 +1290,16 @@ class Stilman2005Behavior(BaselineBehavior):
             if cell in cell_to_cost:
                 del cell_to_cost[cell]
 
+        # Filter cells where social == -1.
+        for cell in cell_to_cost.keys():
+            if self._social_costmap[cell[0]][cell[1]] == -1.:
+                del cell_to_cost[cell]
+
         acc_cells_for_obs, distance_cost = cell_to_cost.keys(), np.array(cell_to_cost.values())
 
         social_cost = np.array([
             self._social_costmap[cell[0]][cell[1]]
-            for cell in acc_cells_for_obs
-            if self._social_costmap[cell[0]][cell[1]] != -1.])
+            for cell in acc_cells_for_obs])
 
         if not self.distance_to_obs_cost_is_realistic:
             distance_cost = np.array([
@@ -1400,8 +1404,8 @@ class RCHConfiguration:
         else:
             return (
                     self.cell == other.cell
-                    and self.first_obstacle_uid == other.first_traversed_obstacle
-                    and self.first_component_uid == other.first_traversed_component
+                    and self.first_obstacle_uid == other.first_obstacle_uid
+                    and self.first_component_uid == other.first_component_uid
             )
 
     def __hash__(self):
