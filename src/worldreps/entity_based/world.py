@@ -15,7 +15,6 @@ from src.worldreps.entity_based.custom_exceptions import EntityPlacementExceptio
 from src.worldreps.discretization_data import DiscretizationData
 from src.display.ros_publisher import RosPublisher
 from obstacle import Obstacle
-from src.worldreps.occupation_based.connected_components_grid import ConnectedComponentsMeta
 from robot import Robot
 from taboo import Taboo
 from goal import Goal
