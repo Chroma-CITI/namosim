@@ -19,4 +19,18 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=2.7',
+    install_requires=[
+        # CORE LIBRARIES (used about everywhere)
+        'numpy', # For all matrix-based logic
+        'shapely', # For all geometry-based logic
+        'matplotlib', # For standalone display without ROS Rviz, and for debug purposes
+        'aabbtree', # Used to accelerate collision check detection
+        # LOOSELY COUPLED LIBRARIES (used just in a few instances, could be easily replaced)
+        'mapbox_earcut', # To triangulate polygons (required for conversion to ROS messages)
+        'bidict', # Two-way dictionnary library used in simulator main class
+        'svgpath2mpl', # Used to convert SVG geometries to Shapely geometries
+        'Pillow', # Used to convert grids to images
+        'scikit-image',  # Used to rasterize polygon contours and for image skeleton computation
+        'scipy' # Used for skeleton computation
+    ],
 )
