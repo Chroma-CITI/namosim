@@ -1,4 +1,4 @@
-from src.behaviors.algorithms.graph_search import a_star_real_path
+from src.behaviors.algorithms.graph_search import real_to_grid_search_a_star
 from src.behaviors.plan.path import Path
 from src.behaviors.plan.plan import Plan
 import numpy as np
@@ -29,9 +29,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
 
             if not self._p_opt.is_valid(self._world, self._robot_uid):
                 grid = self._world.get_binary_inflated_occupancy_grid((self._robot_uid,)).get_grid()
-                self._p_opt = Plan(
-                    [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose, ns=self._robot_name))],
-                    self._q_goal)
+                self._p_opt = Plan([Path(real_to_grid_search_a_star(q_r, self._q_goal, grid))], self._q_goal)
 
             if not self._p_opt.is_empty():
                 next_step = self._p_opt.pop_next_step()
