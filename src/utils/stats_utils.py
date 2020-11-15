@@ -109,14 +109,14 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
 
 def get_social_costs_stats(world, entities_to_compute_social_cost_for, ):
     polygons = {uid: e.polygon for uid, e in world.entities.items() if uid not in entities_to_compute_social_cost_for}
-    occ_grid = BinaryOccupancyGrid(polygons, world.dd.res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD).grid
-    abs_social_costmap = compute_social_costmap(occ_grid, world.dd.res, log_costmaps=False, ns='simulation')
+    occ_grid = BinaryOccupancyGrid(polygons, world.dd.res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD)
+    abs_social_costmap = compute_social_costmap(occ_grid.grid, occ_grid.res, log_costmaps=False, ns='simulation')
 
     absolute_social_cost = 0.
     for entity_uid in entities_to_compute_social_cost_for:
         entity = world.entities[entity_uid]
         entity_cell_set = utils.polygon_to_discrete_cells_set(
-            entity.polygon, occ_grid.res, occ_grid.grid_pose, occ_grid.d_width, occ_grid.d_height
+            entity.polygon, occ_grid.res, occ_grid.grid_pose, occ_grid.d_width, occ_grid.d_height, occ_grid.r_width, occ_grid.r_height
         )
         for cell in entity_cell_set:
             absolute_social_cost += abs_social_costmap[cell[0]][cell[1]]
