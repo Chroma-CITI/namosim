@@ -11,5 +11,11 @@ svgpath2mpl >= 0.2.1 # Used to convert SVG geometries to Shapely geometries
 Pillow >= 6.1.0 # Used to convert grids to images
 scikit-image >= 0.10.1  # Used to rasterize polygon contours and for image skeleton computation
 scipy >= 1.2.2 # Used for skeleton computation
+plotly >= 4.9.0 # Used for beautiful stats display
+
+# LIBRARIES THAT ARE BOUND TO GO AWAY
+pyyaml >= 5.3.1  # Used to import world and simulation config files in their old format, now in JSON, less error-prone
+future >= 0.18.2  # Used for metaclass support needed for writing RosPublisher singleton
+rasterio >= 1.1.8  # Used for testing the library's rasterization capabilities
 
 # Note version numbers are for tested versions of librairies, lower numbers may work.
