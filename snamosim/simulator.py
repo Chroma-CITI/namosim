@@ -438,17 +438,17 @@ class Simulator:
                                            "_after_goal_" + str(goal_counter))
         svg_data = world_snapshot.to_svg()
 
-        conversion.add_shapely_geometry_to_svg(
-            utils.set_polygon_pose(
-                self.ref_world.entities[agent_uid].polygon, self.ref_world.entities[agent_uid].pose, action.goal
-            ),
-            self.ref_world.scaling_value,
-            self.ref_world.dd.width,
-            self.ref_world.dd.height,
-            'goal_generated_' + str(goal_counter),
-            conversion.GOAL_STYLE,
-            svg_data
-        )
+        # conversion.add_shapely_geometry_to_svg(
+        #     utils.set_polygon_pose(
+        #         self.ref_world.entities[agent_uid].polygon, self.ref_world.entities[agent_uid].pose, action.goal
+        #     ),
+        #     self.ref_world.scaling_value,
+        #     self.ref_world.dd.width,
+        #     self.ref_world.dd.height,
+        #     'goal_generated_' + str(goal_counter),
+        #     conversion.GOAL_STYLE,
+        #     svg_data
+        # )
 
         # TODO ADD ORIENTATION GEOMETRY
         # conversion.add_shapely_geometry_to_svg(
