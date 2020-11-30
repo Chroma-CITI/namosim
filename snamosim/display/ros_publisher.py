@@ -363,6 +363,35 @@ class RosPublisher(with_metaclass(Singleton)):
     # endregion
 
     # region STILMAN 2005 RCH OPEN QUEUE
+    def publish_rch_data(self, current, gscore, close_set, open_queue, neighbors, res, grid_pose, ns=''):
+        full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
+        if self.is_activated(full_topic):
+            # Publish current cell
+            marker = conv.grid_cells_to_cube_list_markers(
+                [current.cell], res, grid_pose, color=cfg.flashy_purple, ns="/rch_current_cell"
+            )
+            marker_array = MarkerArray(markers=[marker])
+            self.publish(full_topic, marker_array)
+
+            # Publish neighbors
+            marker = conv.grid_cells_to_cube_list_markers(
+                [neighbor.cell for neighbor in neighbors], res, grid_pose, color=cfg.flashy_red,
+                ns="/rch_current_cell_neighbors"
+            )
+            marker_array = MarkerArray(markers=[marker])
+            self.publish(full_topic, marker_array)
+
+            # Publish close_set
+            new_cells = [conf.cell for conf in close_set.difference(self.namespaces_caches[ns].prev_rch_close_set)]
+            marker_array, self.namespaces_caches[ns].rch_close_set_start_id = conv.grid_cells_to_cube_markerarray(
+                new_cells, res, grid_pose, cfg.dark_brown, self.namespaces_caches[ns].rch_close_set_start_id, ns="/rch_close_set")
+            self.namespaces_caches[ns].prev_rch_close_set = copy.copy(close_set)
+            self.publish(full_topic, marker_array)
+
+            # Publish open_heap
+
+            # Publish gscore as paths between cells poses
+
     def publish_rch_open_queue(self, open_queue, res, grid_pose, ns=''):
         full_topic = cfg.stilman_rch_open_heap_topic if not ns else '/' + ns + cfg.stilman_rch_open_heap_topic
         if self.is_activated(full_topic):

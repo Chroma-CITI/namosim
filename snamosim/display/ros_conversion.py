@@ -152,11 +152,11 @@ def costmap_to_grid_map(costmap, res, frame_id=cfg.social_gridmap_frame_id):
     return grid_map
 
 
-def grid_cells_to_cube_list_markers(grid_cells, res, grid_pose, color, cube_list=None):
+def grid_cells_to_cube_list_markers(grid_cells, res, grid_pose, color, cube_list=None, ns=""):
     if cube_list is None:
         cube_list = Marker(
             type=Marker.CUBE_LIST,
-            ns="",
+            ns=ns,
             id=0,
             header=Header(frame_id=cfg.main_frame_id, stamp=rospy.Time.now()),
             color=color,
@@ -170,15 +170,15 @@ def grid_cells_to_cube_list_markers(grid_cells, res, grid_pose, color, cube_list
     return cube_list
 
 
-def grid_cells_to_cube_markerarray(grid_cells, res, grid_pose, color, start_id=0):
+def grid_cells_to_cube_markerarray(grid_cells, res, grid_pose, color, start_id=0, ns=""):
     marker_array = MarkerArray()
     markers = []
     cur_id = start_id
     for cell in grid_cells:
         cur_id += 1
         x, y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
-        z = -0.5
-        cube = Marker(type=Marker.CUBE, ns="", id=cur_id,
+        z = -0.09
+        cube = Marker(type=Marker.CUBE, ns=ns, id=cur_id,
             header=Header(frame_id=cfg.main_frame_id, stamp=rospy.Time.now()),
             color=color, scale=Vector3(res, res, res), pose=Pose(position=Vector3(x, y, z)))
         markers.append(cube)

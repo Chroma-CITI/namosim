@@ -395,6 +395,10 @@ def append_suffix(filename, suffix):
   return "{0}_{2}{1}".format(*os.path.splitext(filename) + (suffix,))
 
 
+def shapely_polygon_to_shapely_triangles(polygon):
+    return [Polygon(triangle_coords) for triangle_coords in shapely_polygon_to_triangles_coords(polygon)]
+
+
 def shapely_polygon_to_triangles_coords(polygon):
     return polygon_coords_to_triangles_coords(list(polygon.exterior.coords))
 
@@ -475,6 +479,13 @@ def is_convex_polygon(polygon):
         return abs(round(angle_sum / TWO_PI)) == 1
     except (ArithmeticError, TypeError, ValueError):
         return False  # any exception means not a proper convex polygon
+
+
+def convert_to_convex_polygons_list(polygon):
+    if is_shapely_polygon_convex(polygon):
+        return [polygon]
+    else:
+        return shapely_polygon_to_shapely_triangles(polygon)
 
 
 def find_circle_terms(x1, y1, x2, y2, x3, y3):
@@ -894,3 +905,10 @@ def accurate_rasterize_in_grid(polygon, res, grid_pose, d_width, d_height, fill=
         if is_in_matrix(grid_cell, d_width, d_height):
             grid_cells.add(grid_cell)
     return grid_cells
+
+
+def local_shapely_polygon_coordinates(polygon, pose):
+    return affinity.translate(
+        affinity.rotate(polygon, -pose[2], origin=(pose[0], pose[1]), use_radians=False),
+        -pose[0], -pose[1]
+    ).exterior.coords[:-1]
