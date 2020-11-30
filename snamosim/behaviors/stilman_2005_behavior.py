@@ -175,7 +175,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._world, static_obs_inf_grid, self._q_goal, neighborhood=self.neighborhood
             )
 
-        if self._p_opt.has_infinite_cost():
+        if not self._p_opt:
             # If no plan for the goal was found
             logging.warning("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
                 name=self._robot.name, nav_goal=str(self._q_goal)))
@@ -259,8 +259,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return None
 
-    @staticmethod
-    def rch_get_neighbors(current, gscore, close_set,
+    def rch_get_neighbors(self, current, gscore, close_set, open_queue,
                           static_obs_grid, connected_components_grid, inflated_robot_grid,
                           avoid_list, init_robot_component_uid, g_function, neighborhood=utils.TAXI_NEIGHBORHOOD):
         """
@@ -360,6 +359,11 @@ class Stilman2005Behavior(BaselineBehavior):
                     )
                 )
 
+        self._rp.publish_rch_data(
+            current, gscore, close_set, open_queue, neighbors,
+            inflated_robot_grid.res, inflated_robot_grid.grid_pose, ns=self._robot_name
+        )
+
         return neighbors, tentative_gscores
 
     def rch(self, start_cell, goal_cell,
@@ -401,9 +405,9 @@ class Stilman2005Behavior(BaselineBehavior):
             )
             return translation_cost
 
-        def rch_get_neighbors_instance(current, gscore, close_set):
+        def rch_get_neighbors_instance(current, gscore, close_set, open_queue):
             return self.rch_get_neighbors(
-                current, gscore, close_set,
+                current, gscore, close_set, open_queue,
                 static_obs_grid, connected_components_grid, inflated_robot_grid,
                 avoid_list, init_robot_component_uid, g_function, neighborhood
             )
@@ -425,7 +429,7 @@ class Stilman2005Behavior(BaselineBehavior):
             return 0, 0
 
     def manip_search(self, w_t, o_1, ccs_data, c_1_cells_set, r_f, check_new_local_opening_before_global=True):
-        return w_t, None
+        raise NotImplementedError()
 
     def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
@@ -616,9 +620,9 @@ class Stilman2005Behavior(BaselineBehavior):
                                 static_collision_cache,
                                 sorted_cell_to_combined_cost, bound_quantile):
 
-        def get_neighbors(_current, _gscore, _close_set):
+        def get_neighbors(_current, _gscore, _close_set, _open_queue):
             return self.manip_search_get_neighbors(
-                _current, _gscore, _close_set,
+                _current, _gscore, _close_set, _open_queue,
                 robot_uid, obstacle_uid,
                 other_entities_polygons, other_entities_aabb_tree,
                 inflated_grid_by_robot, inflated_grid_by_obstacle,
@@ -997,7 +1001,7 @@ class Stilman2005Behavior(BaselineBehavior):
             has_new_global_opening, skipped_global_opening_check = False, True
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
-    def manip_search_get_neighbors(self, current_configuration, gscore, close_set,
+    def manip_search_get_neighbors(self, current_configuration, gscore, close_set, _open_queue,
                                    robot_uid, obstacle_uid,
                                    other_entities_polygons, other_entities_aabb_tree,
                                    inflated_grid_by_robot, inflated_grid_by_obstacle,
