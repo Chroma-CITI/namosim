@@ -907,8 +907,25 @@ def accurate_rasterize_in_grid(polygon, res, grid_pose, d_width, d_height, fill=
     return grid_cells
 
 
-def local_shapely_polygon_coordinates(polygon, pose):
+def shapely_geom_to_local(geom, local_cs_pose_in_global):
     return affinity.translate(
-        affinity.rotate(polygon, -pose[2], origin=(pose[0], pose[1]), use_radians=False),
-        -pose[0], -pose[1]
-    ).exterior.coords[:-1]
+        affinity.rotate(
+            geom, -local_cs_pose_in_global[2],
+            origin=(local_cs_pose_in_global[0], local_cs_pose_in_global[1]), use_radians=False
+        ),
+        -local_cs_pose_in_global[0], -local_cs_pose_in_global[1]
+    )
+
+
+def shapely_geom_to_global(geom, local_cs_pose_in_global):
+    return affinity.translate(
+        affinity.rotate(
+            geom, local_cs_pose_in_global[2],
+            origin=(local_cs_pose_in_global[0], local_cs_pose_in_global[1]), use_radians=False
+        ),
+        local_cs_pose_in_global[0], local_cs_pose_in_global[1]
+    )
+
+
+def coords(polygon):
+    return polygon.exterior.coords[:-1]
