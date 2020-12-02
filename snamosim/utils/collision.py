@@ -331,10 +331,13 @@ def csv_check_collisions(other_polygons, polygon_sequence, action_sequence, bb_t
 
     # Allow reuse of pre-computed CSV polygons to save perfomance
     indexes_tuple = tuple(indexes)
-    if indexes_tuple in collision_data:
+    if indexes_tuple in collision_data and collision_data[indexes_tuple]:
         bb_vertices = collision_data[indexes_tuple]["bb_vertices"]
         csv_polygon = collision_data[indexes_tuple]["csv_polygon"]
     else:
+        if indexes_tuple in collision_data and not collision_data[indexes_tuple]:
+            del collision_data[indexes_tuple]
+
         bb_vertices = bounding_boxes_vertices(
             [polygon_sequence[index] for index in indexes],
             [action_sequence[index] for index in indexes[:-1]]
