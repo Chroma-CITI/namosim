@@ -4,68 +4,12 @@ from shapely.geometry import Polygon
 from shapely import affinity
 import matplotlib.pyplot as plt
 import math
-import Box2D
-
-
-class MyContactListener(Box2D.b2ContactListener):
-    def BeginContact(self, contact):
-        # TODO save collision pairs because there can be several of these
-        self._collision_detected = True
-        # self.fix_a_uid = contact.fixtureA.userData['uid']
-        # self.fix_b_uid = contact.fixtureB.userData['uid']
-
-    def is_collision_detected(self):
-        return_value = hasattr(self, '_collision_detected') and self._collision_detected
-        self._collision_detected = False
-        return return_value
+import snamosim.utils.b2_collision as b2_collision
 
 
 class Box2DTest(unittest.TestCase):
     def setUp(self):
         pass
-
-    @staticmethod
-    def initialize_box_2d_world(polygons, poses, robot_uid, obstacle_uid):
-        contact_listener = MyContactListener()
-        box2d_world = Box2D.b2World(gravity=(0., 0.), contactListener=contact_listener)
-
-        b2_bodies = {}
-
-        for uid, polygon in polygons.items():
-            if uid != robot_uid and uid != obstacle_uid:
-                convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(
-                    utils.shapely_geom_to_local(polygon, poses[uid])
-                )
-
-                b2_bodies[uid] = box2d_world.CreateStaticBody(
-                    fixtures=[
-                        Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': uid})
-                        for coords in convex_polygons_coords
-                    ],
-                    position=(poses[uid][0], poses[uid][1]), angle=poses[uid][2]
-                )
-
-        local_robot_polygon = utils.shapely_geom_to_local(polygons[robot_uid], poses[robot_uid])
-        robot_convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_robot_polygon)
-        robot_fixtures_defs = [
-            Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': robot_uid})
-            for coords in robot_convex_polygons_coords
-        ]
-
-        local_obstacle_polygon = utils.shapely_geom_to_local(polygons[obstacle_uid], poses[robot_uid])
-        obstacle_convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_obstacle_polygon)
-        obstacle_fixtures_defs = [
-            Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': obstacle_uid})
-            for coords in obstacle_convex_polygons_coords
-        ]
-
-        welded_body = box2d_world.CreateDynamicBody(
-            fixtures=robot_fixtures_defs + obstacle_fixtures_defs, position=(poses[robot_uid][0], poses[robot_uid][1]),
-            angle=math.radians(poses[robot_uid][2]), bullet=True,
-            userData={'obstacle_local_centroid': local_obstacle_polygon.centroid}
-        )
-
-        return box2d_world, b2_bodies, welded_body, contact_listener
 
     def test_basic_with_opening(self):
         robot_uid, obstacle_uid = 1, 5
@@ -91,11 +35,11 @@ class Box2DTest(unittest.TestCase):
             uid: (polygon.centroid.coords[0][0], polygon.centroid.coords[0][1], 0.) for uid, polygon in polygons.items()
         }
 
-        box2d_world, b2_bodies, welded_body, contact_listener = self.initialize_box_2d_world(
+        b2_data = b2_collision.initialize_box_2d_world(
             polygons, poses, robot_uid, obstacle_uid
         )
 
-        init_welded_body_position, init_welded_body_angle = tuple(welded_body.position), welded_body.angle
+        init_welded_body_position, init_welded_body_angle = tuple(b2_data.welded_body.position), b2_data.welded_body.angle
         init_robot_pose, init_obstacle_pose = poses[robot_uid], poses[obstacle_uid]
 
         fig, ax = plt.subplots()
@@ -107,27 +51,27 @@ class Box2DTest(unittest.TestCase):
         print('')
 
         for i in range(2):
-            welded_body.linearVelocity, welded_body.angularVelocity = (0., 0.), math.radians(180.)
+            b2_data.welded_body.linearVelocity, b2_data.welded_body.angularVelocity = (0., 0.), math.radians(180.)
 
-            box2d_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
+            b2_data.box2d_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
 
-            collides = contact_listener.is_collision_detected()
+            collides = b2_data.contact_listener.is_collision_detected()
 
             if collides:
-                welded_body.position, welded_body.angle = init_welded_body_position, init_welded_body_angle
-                welded_body.linearVelocity, welded_body.angularVelocity = (0., 0.), 0.
+                b2_data.welded_body.position, b2_data.welded_body.angle = init_welded_body_position, init_welded_body_angle
+                b2_data.welded_body.linearVelocity, b2_data.welded_body.angularVelocity = (0., 0.), 0.
 
-                box2d_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
+                b2_data.box2d_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
 
             new_robot_pose = (
-                welded_body.position[0], welded_body.position[1],
-                utils.angle_to_360_interval(math.degrees(welded_body.angle))
+                b2_data.welded_body.position[0], b2_data.welded_body.position[1],
+                utils.angle_to_360_interval(math.degrees(b2_data.welded_body.angle))
             )
             polygons[robot_uid] = utils.set_polygon_pose(polygons[robot_uid], poses[robot_uid], new_robot_pose)
             poses[robot_uid] = new_robot_pose
 
             new_obstacle_centroid_coords = utils.shapely_geom_to_global(
-                welded_body.userData['obstacle_local_centroid'], new_robot_pose
+                b2_data.welded_body.userData['obstacle_local_centroid'], new_robot_pose
             ).coords[0]
             new_obstacle_pose = (
                 new_obstacle_centroid_coords[0], new_obstacle_centroid_coords[1],
@@ -138,15 +82,14 @@ class Box2DTest(unittest.TestCase):
             )
             poses[obstacle_uid] = new_obstacle_pose
 
-            fig, ax = plt.subplots()
-            for polygon in polygons.values():
-                ax.plot(*polygon.exterior.xy, color='black')
-            ax.axis('equal')
-            fig.show()
+        fig, ax = plt.subplots()
+        for polygon in polygons.values():
+            ax.plot(*polygon.exterior.xy, color='black')
+        ax.axis('equal')
+        fig.show()
 
-            print('')
+        print('')
 
 
 if __name__ == '__main__':
     unittest.main()
-s
