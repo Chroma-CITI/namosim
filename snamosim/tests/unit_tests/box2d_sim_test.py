@@ -1,19 +1,75 @@
 import unittest
 from snamosim.utils import utils
-from shapely.geometry import Polygon, MultiPolygon
+from shapely.geometry import Polygon
 from shapely import affinity
 import matplotlib.pyplot as plt
-import numpy as np
 import math
 import Box2D
+
+
+class MyContactListener(Box2D.b2ContactListener):
+    def BeginContact(self, contact):
+        # TODO save collision pairs because there can be several of these
+        self._collision_detected = True
+        # self.fix_a_uid = contact.fixtureA.userData['uid']
+        # self.fix_b_uid = contact.fixtureB.userData['uid']
+
+    def is_collision_detected(self):
+        return_value = hasattr(self, '_collision_detected') and self._collision_detected
+        self._collision_detected = False
+        return return_value
 
 
 class Box2DTest(unittest.TestCase):
     def setUp(self):
         pass
 
+    @staticmethod
+    def initialize_box_2d_world(polygons, poses, robot_uid, obstacle_uid):
+        contact_listener = MyContactListener()
+        box2d_world = Box2D.b2World(gravity=(0., 0.), contactListener=contact_listener)
+
+        b2_bodies = {}
+
+        for uid, polygon in polygons.items():
+            if uid != robot_uid and uid != obstacle_uid:
+                convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(
+                    utils.shapely_geom_to_local(polygon, poses[uid])
+                )
+
+                b2_bodies[uid] = box2d_world.CreateStaticBody(
+                    fixtures=[
+                        Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': uid})
+                        for coords in convex_polygons_coords
+                    ],
+                    position=(poses[uid][0], poses[uid][1]), angle=poses[uid][2]
+                )
+
+        local_robot_polygon = utils.shapely_geom_to_local(polygons[robot_uid], poses[robot_uid])
+        robot_convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_robot_polygon)
+        robot_fixtures_defs = [
+            Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': robot_uid})
+            for coords in robot_convex_polygons_coords
+        ]
+
+        local_obstacle_polygon = utils.shapely_geom_to_local(polygons[obstacle_uid], poses[robot_uid])
+        obstacle_convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_obstacle_polygon)
+        obstacle_fixtures_defs = [
+            Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': obstacle_uid})
+            for coords in obstacle_convex_polygons_coords
+        ]
+
+        welded_body = box2d_world.CreateDynamicBody(
+            fixtures=robot_fixtures_defs + obstacle_fixtures_defs, position=(poses[robot_uid][0], poses[robot_uid][1]),
+            angle=math.radians(poses[robot_uid][2]), bullet=True,
+            userData={'obstacle_local_centroid': local_obstacle_polygon.centroid}
+        )
+
+        return box2d_world, b2_bodies, welded_body, contact_listener
+
     def test_basic_with_opening(self):
-        basic_polygons = {
+        robot_uid, obstacle_uid = 1, 5
+        polygons = {
             1: Polygon([
                 (-1.3947547483983858, 1.5067685773149324), (-1.4019618999238, 1.430010414020828), (-1.4379945248779387, 1.3618531594840966), (-1.4973669460672254, 1.31267315779076), (-1.5710403014139362, 1.2899576101374424), (-1.6477984929303193, 1.2971647616628565), (-1.7159557474670506, 1.3331973583947168), (-1.7651357491603874, 1.3925698078062823), (-1.7878512968137048, 1.4662431631529929), (-1.7806441452882906, 1.5430013264470972), (-1.744611520334152, 1.6111585809838285), (-1.685239099144865, 1.6603385826771653), (-1.6115657437981543, 1.6830541303304827), (-1.5348075522817712, 1.6758470070273472), (-1.4666502977450397, 1.6398143820732085), (-1.4174702960517032, 1.580441932661643), (-1.3947547483983858, 1.5067685773149324)
             ]),  # 'robot_01'
@@ -30,152 +86,67 @@ class Box2DTest(unittest.TestCase):
                 (-0.5248448339118901, 1.7772249033386955), (-1.053948522563712, 1.7772249033386955), (-1.053948522563712, 1.248134225157339), (-0.5248448339118901, 1.248134225157339), (-0.5248448339118901, 1.7772249033386955)
             ])  # 'movable_box'
         }
-        basic_polygons[1] = affinity.translate(basic_polygons[1], 0.3, 0.)
-        # It will not be necessary to preserve these
-        basic_convex_polygons = {
-            uid: utils.convert_to_convex_polygons_list(polygon) for uid, polygon in basic_polygons.items()
+        polygons[robot_uid] = affinity.translate(polygons[robot_uid], 0.3, 0.)
+        poses = {
+            uid: (polygon.centroid.coords[0][0], polygon.centroid.coords[0][1], 0.) for uid, polygon in polygons.items()
         }
 
-        class MyContactListener(Box2D.b2ContactListener):
-            def BeginContact(self, contact):
-                fix_a_uid = contact.fixtureA.body.userData['uid']
-                fix_b_uid = contact.fixtureB.body.userData['uid']
-                self._collision_detected = True
-
-            def is_collision_detected(self):
-                return_value = hasattr(self, '_collision_detected') and self._collision_detected
-                self._collision_detected = False
-                return return_value
-
-
-        my_contact_listener = MyContactListener()
-        box2d_world = Box2D.b2World(gravity=(0., 0.), contactListener=my_contact_listener)
-
-        b2_bodies = {
-            uid: box2d_world.CreateStaticBody(
-                fixtures=[
-                    Box2D.b2FixtureDef(
-                        shape=Box2D.b2PolygonShape(
-                            vertices=utils.coords(utils.shapely_geom_to_local(
-                                polygon,
-                                (basic_polygons[uid].centroid.coords[0][0], basic_polygons[uid].centroid.coords[0][1], 0.)
-                            ))
-                        )
-                    )
-                    for polygon in convex_polygons
-                ],
-                position=basic_polygons[uid].centroid.coords[0], angle=math.radians(0.),
-                userData={'uid': uid}
-            )
-            for uid, convex_polygons in basic_convex_polygons.items()
-            if uid != 1 and uid != 5  # Not the robot and not the obstacle
-        }
-
-        init_robot_pose = (basic_polygons[1].centroid.coords[0][0], basic_polygons[1].centroid.coords[0][1], 0.)
-        robot_pose = init_robot_pose
-        # robot_body = box2d_world.CreateDynamicBody(
-        #     fixtures=[
-        #         Box2D.b2FixtureDef(
-        #             shape=Box2D.b2PolygonShape(
-        #                 vertices=utils.local_shapely_polygon_coordinates(basic_polygons[1], robot_pose)
-        #             )
-        #         )
-        #     ],
-        #     position=(robot_pose[0], robot_pose[1]), angle=math.radians(robot_pose[2]), bullet=True,
-        #     userData={'uid': 1}
-        # )
-
-        init_obstacle_pose = (basic_polygons[5].centroid.coords[0][0], basic_polygons[5].centroid.coords[0][1], 0.)
-        obstacle_pose = init_obstacle_pose
-        # obstacle_body = box2d_world.CreateDynamicBody(
-        #     fixtures=[
-        #         Box2D.b2FixtureDef(
-        #             shape=Box2D.b2PolygonShape(
-        #                 vertices=utils.local_shapely_polygon_coordinates(basic_polygons[5], obstacle_pose)
-        #             )
-        #         )
-        #     ],
-        #     position=(obstacle_pose[0], obstacle_pose[1]), angle=math.radians(obstacle_pose[2]), bullet=True,
-        #     userData={'uid': 5}
-        # )
-        #
-        # box2d_world.CreateWeldJoint(bodyA=robot_body, bodyB=obstacle_body)
-
-        welded_polygon = MultiPolygon([basic_polygons[1], basic_polygons[5]])
-        init_welded_pose = welded_polygon.centroid.coords[0][0], welded_polygon.centroid.coords[0][1], 0.
-        welded_pose = init_welded_pose
-        # Careful here ! if the robot or obstacle were concave, would have to use other list of polygons
-        robot_local_polygon = utils.shapely_geom_to_local(basic_polygons[1], welded_pose)
-        robot_local_centroid = robot_local_polygon.centroid
-        robot_fixture_def = Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=utils.coords(robot_local_polygon)))
-        obstacle_local_polygon = utils.shapely_geom_to_local(basic_polygons[5], welded_pose)
-        obstacle_local_centroid = obstacle_local_polygon.centroid
-        obstacle_fixture_def = Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=utils.coords(obstacle_local_polygon)))
-
-        welded_body = box2d_world.CreateDynamicBody(
-            fixtures=[robot_fixture_def, obstacle_fixture_def], position=(welded_pose[0], welded_pose[1]),
-            angle=math.radians(welded_pose[2]), bullet=True, userData={'uid': 5}
+        box2d_world, b2_bodies, welded_body, contact_listener = self.initialize_box_2d_world(
+            polygons, poses, robot_uid, obstacle_uid
         )
 
+        init_welded_body_position, init_welded_body_angle = tuple(welded_body.position), welded_body.angle
+        init_robot_pose, init_obstacle_pose = poses[robot_uid], poses[obstacle_uid]
+
         fig, ax = plt.subplots()
-        for polygon in basic_polygons.values():
+        for polygon in polygons.values():
             ax.plot(*polygon.exterior.xy, color='black')
-        # for convex_polygons in basic_convex_polygons.values():
-        #     for polygon in convex_polygons:
-        #         ax.plot(*polygon.exterior.xy, color='blue')
         ax.axis('equal')
         fig.show()
 
         print('')
 
-        for i in range(10):
-            welded_body.linearVelocity = (0., 0.)
-            welded_body.angularVelocity = math.radians(0.)
+        for i in range(2):
+            welded_body.linearVelocity, welded_body.angularVelocity = (0., 0.), math.radians(180.)
 
             box2d_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
 
-            collides = my_contact_listener.is_collision_detected()
+            collides = contact_listener.is_collision_detected()
 
             if collides:
-                welded_body.position = (init_welded_pose[0], init_welded_pose[1])
-                welded_body.angle = init_welded_pose[2]
-                welded_body.linearVelocity = (0., 0.)
-                welded_body.angularVelocity = 0.
+                welded_body.position, welded_body.angle = init_welded_body_position, init_welded_body_angle
+                welded_body.linearVelocity, welded_body.angularVelocity = (0., 0.), 0.
 
                 box2d_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
 
-                welded_pose = welded_body.position[0], welded_body.position[1], math.degrees(welded_body.angle)
+            new_robot_pose = (
+                welded_body.position[0], welded_body.position[1],
+                utils.angle_to_360_interval(math.degrees(welded_body.angle))
+            )
+            polygons[robot_uid] = utils.set_polygon_pose(polygons[robot_uid], poses[robot_uid], new_robot_pose)
+            poses[robot_uid] = new_robot_pose
 
-                new_robot_centroid_coords = utils.shapely_geom_to_global(robot_local_centroid, welded_pose).coords[0]
-                new_robot_pose = new_robot_centroid_coords[0], new_robot_centroid_coords[1], robot_pose[2] + welded_pose[2]
-                basic_polygons[1] = utils.set_polygon_pose(basic_polygons[1], robot_pose, new_robot_pose)
-                robot_pose = new_robot_pose
-
-                new_obstacle_centroid_coords = utils.shapely_geom_to_global(obstacle_local_centroid, welded_pose).coords[0]
-                new_obstacle_pose = new_obstacle_centroid_coords[0], new_obstacle_centroid_coords[1], obstacle_pose[2] + welded_pose[2]
-                basic_polygons[5] = utils.set_polygon_pose(basic_polygons[5], obstacle_pose, new_obstacle_pose)
-                obstacle_pose = new_obstacle_pose
-            else:
-                welded_pose = welded_body.position[0], welded_body.position[1], math.degrees(welded_body.angle)
-
-                new_robot_centroid_coords = utils.shapely_geom_to_global(robot_local_centroid, welded_pose).coords[0]
-                new_robot_pose = new_robot_centroid_coords[0], new_robot_centroid_coords[1], robot_pose[2] + welded_pose[2]
-                basic_polygons[1] = utils.set_polygon_pose(basic_polygons[1], robot_pose, new_robot_pose)
-                robot_pose = new_robot_pose
-
-                new_obstacle_centroid_coords = utils.shapely_geom_to_global(obstacle_local_centroid, welded_pose).coords[0]
-                new_obstacle_pose = new_obstacle_centroid_coords[0], new_obstacle_centroid_coords[1], obstacle_pose[2] + welded_pose[2]
-                basic_polygons[5] = utils.set_polygon_pose(basic_polygons[5], obstacle_pose, new_obstacle_pose)
-                obstacle_pose = new_obstacle_pose
+            new_obstacle_centroid_coords = utils.shapely_geom_to_global(
+                welded_body.userData['obstacle_local_centroid'], new_robot_pose
+            ).coords[0]
+            new_obstacle_pose = (
+                new_obstacle_centroid_coords[0], new_obstacle_centroid_coords[1],
+                utils.angle_to_360_interval(init_obstacle_pose[2] + new_robot_pose[2] - init_robot_pose[2])
+            )
+            polygons[obstacle_uid] = utils.set_polygon_pose(
+                polygons[obstacle_uid], poses[obstacle_uid], new_obstacle_pose
+            )
+            poses[obstacle_uid] = new_obstacle_pose
 
             fig, ax = plt.subplots()
-            for polygon in basic_polygons.values():
+            for polygon in polygons.values():
                 ax.plot(*polygon.exterior.xy, color='black')
             ax.axis('equal')
             fig.show()
 
-        print('')
+            print('')
 
 
 if __name__ == '__main__':
     unittest.main()
+s

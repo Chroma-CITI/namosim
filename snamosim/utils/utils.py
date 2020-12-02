@@ -407,7 +407,8 @@ def polygon_coords_to_triangles_coords(polygon):
     verts = np.array(polygon).reshape(-1, 2)
     rings = np.array([verts.shape[0]])
     triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
-    triangles = [triangles_vertices[n:n + 3] for n in range(0, len(triangles_vertices), 3)]
+    triangles_vertices_as_tuples = [tuple(triangle_vertices) for triangle_vertices in triangles_vertices]
+    triangles = [triangles_vertices_as_tuples[n:n + 3] for n in range(0, len(triangles_vertices_as_tuples), 3)]
     return triangles
 
 
@@ -486,6 +487,13 @@ def convert_to_convex_polygons_list(polygon):
         return [polygon]
     else:
         return shapely_polygon_to_shapely_triangles(polygon)
+
+
+def convert_to_convex_polygons_coordinates_list(polygon):
+    if is_shapely_polygon_convex(polygon):
+        return [coords(polygon)]
+    else:
+        return shapely_polygon_to_triangles_coords(polygon)
 
 
 def find_circle_terms(x1, y1, x2, y2, x3, y3):
@@ -907,25 +915,23 @@ def accurate_rasterize_in_grid(polygon, res, grid_pose, d_width, d_height, fill=
     return grid_cells
 
 
-def shapely_geom_to_local(geom, local_cs_pose_in_global):
-    return affinity.translate(
-        affinity.rotate(
-            geom, -local_cs_pose_in_global[2],
-            origin=(local_cs_pose_in_global[0], local_cs_pose_in_global[1]), use_radians=False
-        ),
-        -local_cs_pose_in_global[0], -local_cs_pose_in_global[1]
-    )
+def shapely_geom_to_local(global_geom, local_cs_pose_in_global):
+    translated_geometry = affinity.translate(global_geom, -local_cs_pose_in_global[0], -local_cs_pose_in_global[1])
+    final_geometry = affinity.rotate(translated_geometry, angle=-local_cs_pose_in_global[2], origin=(0., 0.))
+    return final_geometry
 
 
-def shapely_geom_to_global(geom, local_cs_pose_in_global):
-    return affinity.translate(
-        affinity.rotate(
-            geom, local_cs_pose_in_global[2],
-            origin=(local_cs_pose_in_global[0], local_cs_pose_in_global[1]), use_radians=False
-        ),
-        local_cs_pose_in_global[0], local_cs_pose_in_global[1]
-    )
+def shapely_geom_to_global(local_geom, local_cs_pose_in_global):
+    rotated_geometry = affinity.rotate(local_geom, angle=local_cs_pose_in_global[2], origin=(0., 0.))
+    final_geometry = affinity.translate(rotated_geometry, local_cs_pose_in_global[0], local_cs_pose_in_global[1])
+    return final_geometry
 
 
 def coords(polygon):
     return polygon.exterior.coords[:-1]
+
+
+def angle_to_360_interval(angle):
+    final_angle = angle % 360.
+    final_angle = final_angle if final_angle >= 0. else final_angle + 360.
+    return final_angle
