@@ -18,6 +18,7 @@ import plan.action_result as ar
 from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, BinaryInflatedOccupancyGrid
 import snamosim.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
 import snamosim.utils.collision as collision
+import snamosim.utils.b2_collision as b2_collision
 import snamosim.utils.connectivity as connectivity
 
 
@@ -431,7 +432,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def manip_search(self, w_t, o_1, ccs_data, c_1_cells_set, r_f, check_new_local_opening_before_global=True):
         raise NotImplementedError()
 
-    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True):
+    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True, use_b2=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
@@ -507,9 +508,10 @@ class Stilman2005Behavior(BaselineBehavior):
                 obstacle_cell_in_grid=utils.real_to_grid(
                     obstacle_pose[0], obstacle_pose[1],
                     res, inflated_grid_by_obstacle.grid_pose
-                )
+                ),
+                manip_pose_id=manip_pose_id
             ): self.g(nav_pose, manip_pose, is_transfer=True)
-            for manip_pose, nav_pose in transfer_start_to_transit_end_robot_pose.items()
+            for manip_pose_id, (manip_pose, nav_pose) in enumerate(transfer_start_to_transit_end_robot_pose.items())
         }
 
         # Get potentially accessible cells for obstacle ordered by associated combined costs
@@ -535,12 +537,28 @@ class Stilman2005Behavior(BaselineBehavior):
                 "/target", ns=self._robot_name
             )
 
+            if use_b2:
+                other_entities_poses = {
+                    uid: entity.pose
+                    for uid, entity in w_t_plus_2.entities.items() if uid != robot_uid and uid != obstacle_uid
+                }
+                robot_polygons = {c.manip_pose_id: c.robot.polygon for c in transfer_start_configurations.keys()}
+                robot_poses = {
+                    c.manip_pose_id: c.robot.floating_point_pose for c in transfer_start_configurations.keys()
+                }
+                b2_sim = b2_collision.B2Sim(
+                    other_entities_polygons, other_entities_poses, obstacle_polygon, obstacle_pose,
+                    robot_polygons, robot_poses, robot_uid, obstacle_uid
+                )
+            else:
+                b2_sim = None
+
             # 2. If a best obstacle transfer end configuration has been found, use A Star to find a path toward it
             path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.a_star_for_manip_search(
                 transfer_start_configurations, best_transfer_end_configuration,
                 robot_uid, obstacle_uid, other_entities_polygons, other_entities_aabb_tree,
                 inflated_grid_by_robot, inflated_grid_by_obstacle, trans_mult, rot_mult, static_collision_cache,
-                sorted_cell_to_combined_cost, bound_quantile
+                sorted_cell_to_combined_cost, bound_quantile, b2_sim
             )
             if path_found:
                 # 3. If a path is found, return it
@@ -618,7 +636,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 inflated_grid_by_robot, inflated_grid_by_obstacle,
                                 trans_mult, rot_mult,
                                 static_collision_cache,
-                                sorted_cell_to_combined_cost, bound_quantile):
+                                sorted_cell_to_combined_cost, bound_quantile, b2_sim):
 
         def get_neighbors(_current, _gscore, _close_set, _open_queue):
             return self.manip_search_get_neighbors(
@@ -627,7 +645,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 other_entities_polygons, other_entities_aabb_tree,
                 inflated_grid_by_robot, inflated_grid_by_obstacle,
                 trans_mult, rot_mult,
-                static_collision_cache
+                static_collision_cache, b2_sim
             )
 
         def heuristic(_neighbor, _goal):
@@ -1006,7 +1024,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                    other_entities_polygons, other_entities_aabb_tree,
                                    inflated_grid_by_robot, inflated_grid_by_obstacle,
                                    trans_mult, rot_mult,
-                                   static_collision_cache):
+                                   static_collision_cache, b2_sim):
         """
         Creates list of neighbors that are not in close set, do not collide dynamically nor statically
         """
@@ -1128,27 +1146,46 @@ class Stilman2005Behavior(BaselineBehavior):
             if not new_obstacle_polygon.within(inflated_grid_by_obstacle.aabb_polygon):
                 continue
 
+            self._rp.publish_sim(
+                new_robot_polygon, new_obstacle_polygon,
+                "/intermediate", ns=self._robot_name
+            )
+
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            converted_action = ba.convert_action(
-                action,
-                current_configuration.robot.floating_point_pose
-            )  # So that csv lib can properly do collision detection
-            robot_dynamically_collides, robot_collision_data, _ = collision.csv_check_collisions(
-                other_polygons=other_entities_polygons,
-                polygon_sequence=[current_configuration.robot.polygon, new_robot_polygon],
-                action_sequence=[converted_action], bb_type='minimum_rotated_rectangle',
-                aabb_tree=other_entities_aabb_tree, display_debug=False
-            )
-            if robot_dynamically_collides:
-                continue
-            obstacle_dynamically_collides, obstacle_collision_data, _ = collision.csv_check_collisions(
-                other_polygons=other_entities_polygons,
-                polygon_sequence=[current_configuration.obstacle.polygon, new_obstacle_polygon],
-                action_sequence=[converted_action], bb_type='minimum_rotated_rectangle',
-                aabb_tree=other_entities_aabb_tree, display_debug=False
-            )
-            if obstacle_dynamically_collides:
-                continue
+            if b2_sim:
+                dyn_collides = b2_sim.check_action_collides(
+                    current_configuration.robot.floating_point_pose, current_configuration.manip_pose_id, action
+                )
+                if dyn_collides:
+                    continue
+
+                # TODO: REMOVE THIS, IT SHOULD NOT BE NECESSARY
+                converted_action = ba.convert_action(
+                    action,
+                    current_configuration.robot.floating_point_pose
+                )  # So that csv lib can properly do collision detection
+                robot_collision_data, obstacle_collision_data = None, None
+            else:
+                converted_action = ba.convert_action(
+                    action,
+                    current_configuration.robot.floating_point_pose
+                )  # So that csv lib can properly do collision detection
+                robot_dynamically_collides, robot_collision_data, _ = collision.csv_check_collisions(
+                    other_polygons=other_entities_polygons,
+                    polygon_sequence=[current_configuration.robot.polygon, new_robot_polygon],
+                    action_sequence=[converted_action], bb_type='minimum_rotated_rectangle',
+                    aabb_tree=other_entities_aabb_tree, display_debug=False
+                )
+                if robot_dynamically_collides:
+                    continue
+                obstacle_dynamically_collides, obstacle_collision_data, _ = collision.csv_check_collisions(
+                    other_polygons=other_entities_polygons,
+                    polygon_sequence=[current_configuration.obstacle.polygon, new_obstacle_polygon],
+                    action_sequence=[converted_action], bb_type='minimum_rotated_rectangle',
+                    aabb_tree=other_entities_aabb_tree, display_debug=False
+                )
+                if obstacle_dynamically_collides:
+                    continue
 
             # If we are here, then this newly computed neighbor configuration is valid and we must save it
             neighbor_configuration = RobotObstacleConfiguration(
@@ -1157,13 +1194,9 @@ class Stilman2005Behavior(BaselineBehavior):
                 obstacle_floating_point_pose=new_obstacle_pose, obstacle_polygon=new_obstacle_polygon,
                 obstacle_fixed_precision_pose=obstacle_fixed_precision_pose,
                 obstacle_cell_in_grid=obstacle_cell_in_grid, action=action, collision_action=converted_action,
-                robot_collision_data=robot_collision_data.values()[0],
-                obstacle_collision_data=obstacle_collision_data.values()[0]
-            )
-
-            self._rp.publish_sim(
-                neighbor_configuration.robot.polygon, neighbor_configuration.obstacle.polygon,
-                "/intermediate", ns=self._robot_name
+                robot_collision_data=None if not robot_collision_data else robot_collision_data.values()[0],
+                obstacle_collision_data=None if not obstacle_collision_data else obstacle_collision_data.values()[0],
+                manip_pose_id=current_configuration.manip_pose_id
             )
 
             neighbors.append(neighbor_configuration)
@@ -1441,7 +1474,8 @@ class Configuration:
 class RobotObstacleConfiguration:
     def __init__(self, robot_floating_point_pose, robot_polygon, robot_cell_in_grid, robot_fixed_precision_pose,
                  obstacle_floating_point_pose, obstacle_polygon, obstacle_cell_in_grid, obstacle_fixed_precision_pose,
-                 action=None, collision_action=None, robot_collision_data=None, obstacle_collision_data=None):
+                 action=None, collision_action=None, robot_collision_data=None, obstacle_collision_data=None,
+                 manip_pose_id=None):
         self.robot = Configuration(
             robot_floating_point_pose, robot_polygon, robot_cell_in_grid, robot_fixed_precision_pose,
             action=action, collision_action=collision_action, collision_data=robot_collision_data
@@ -1452,6 +1486,7 @@ class RobotObstacleConfiguration:
         )
         self.action = action
         self.collision_action = collision_action
+        self.manip_pose_id = manip_pose_id
 
     def __eq__(self, other):
         if isinstance(other, graph_search.HeapNode):
