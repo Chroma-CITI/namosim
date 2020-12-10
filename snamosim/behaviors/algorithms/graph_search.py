@@ -96,19 +96,17 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
     came_from = dict()
     current = None
     open_queue = PriorityQueue()
+    close_set = set()
 
     if isinstance(start, list) or isinstance(start, set):
-        close_set = set(start)
         gscore = {element: 0. for element in start}
         for element in start:
             open_queue.push(heuristic(element, goal), element)
     elif isinstance(start, dict):
-        close_set = set(start.keys())
         gscore = {element: cost for element, cost in start.items()}
         for element, cost in start.items():
             open_queue.push(heuristic(element, goal), element)
     else:
-        close_set = {start}
         gscore = {start: 0.}
         open_queue.push(heuristic(start, goal), start)
 
@@ -121,7 +119,10 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
             return True, current, came_from, close_set, gscore, open_queue
 
         # Add current to the close set to prevent unneeded future re-evaluation
-        close_set.add(current)
+        if current in close_set:
+            continue
+        else:
+            close_set.add(current)
 
         # For each neighbor of current node in the defined neighborhood
         neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set, open_queue)
