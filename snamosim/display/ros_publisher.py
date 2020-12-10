@@ -3,18 +3,24 @@ import time
 import numpy as np
 from shapely import affinity
 import copy
+import colors
+from std_msgs.msg import ColorRGBA
+
 
 try:
-    import rospy
-    from tf2_ros import StaticTransformBroadcaster
-    from visualization_msgs.msg import Marker, MarkerArray
-    from geometry_msgs.msg import PoseArray, TransformStamped, Transform, Vector3, Quaternion
-    from std_msgs.msg import Header
-    from nav_msgs.msg import Path, OccupancyGrid, MapMetaData
-    from grid_map_msgs.msg import GridMap
-    import ros_conversion as conv
     import ros_publisher_config as cfg
-    USE_ROS = True
+    if not cfg.deactivate_gui:
+        import rospy
+        from tf2_ros import StaticTransformBroadcaster
+        from visualization_msgs.msg import Marker, MarkerArray
+        from geometry_msgs.msg import PoseArray, TransformStamped, Transform, Vector3, Quaternion
+        from std_msgs.msg import Header
+        from nav_msgs.msg import Path, OccupancyGrid, MapMetaData
+        from grid_map_msgs.msg import GridMap
+        import ros_conversion as conv
+        USE_ROS = True
+    else:
+        USE_ROS = False
 except ImportError:
     USE_ROS = False
 
@@ -26,17 +32,17 @@ class NamespaceCache:
     def __init__(self):
         self.prev_robot_world_draw_data, self.prev_robot_sim_world_draw_data = {}, {}
         self.prev_a_star_close_set, self.prev_multigoal_a_star_close_set = set(), set()
-        self.prev_rch_close_set = set()
         self.a_star_close_set_start_id, self.multigoal_a_star_close_set_start_id = 1, 1
-        self.rch_close_set_start_id = 1
+        self.cell_to_marker = dict()
+        self.cell_marker_current_id = 1
 
 
 class RosPublisher(with_metaclass(Singleton)):
     def __init__(self, top_level_namespaces=('simulation', 'agent')):
-        if not USE_ROS:
-            return
-
         self.top_level_namespaces = top_level_namespaces
+
+        if not USE_ROS or cfg.deactivate_gui:
+            return
 
         # HACK: Must necessarily be invoked in the init method of this singleton and not at module-level (rospy bug...)
         if len(top_level_namespaces) > 1:
@@ -303,7 +309,7 @@ class RosPublisher(with_metaclass(Singleton)):
             # self.a_star_close_set_cube_list = conv.grid_cells_to_cube_list_markers(
             #     new_cells, res, grid_pose, cfg.unknown_obstacle_color, self.a_star_close_set_cube_list)
             marker_array, self.namespaces_caches[ns].a_star_close_set_start_id = conv.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, cfg.dark_purple, self.namespaces_caches[ns].a_star_close_set_start_id)
+                new_cells, res, grid_pose, cfg.dark_purple, 0.9, self.namespaces_caches[ns].a_star_close_set_start_id)
             self.namespaces_caches[ns].prev_a_star_close_set = copy.copy(close_set)
             # self.publish(full_topic, self.a_star_close_set_cube_list)
             self.publish(full_topic, marker_array)
@@ -349,7 +355,7 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             new_cells = close_set.difference(self.namespaces_caches[ns].prev_multigoal_a_star_close_set)
             marker_array, self.namespaces_caches[ns].multigoal_a_star_close_set_start_id = conv.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, cfg.dark_blue, self.namespaces_caches[ns].multigoal_a_star_close_set_start_id)
+                new_cells, res, grid_pose, cfg.dark_blue, 0.9, self.namespaces_caches[ns].multigoal_a_star_close_set_start_id)
             self.namespaces_caches[ns].prev_multigoal_a_star_close_set = copy.copy(close_set)
             self.publish(full_topic, marker_array)
 
@@ -362,92 +368,52 @@ class RosPublisher(with_metaclass(Singleton)):
 
     # endregion
 
-    # region STILMAN 2005 RCH OPEN QUEUE
-    def publish_rch_data(self, current, gscore, close_set, open_queue, neighbors, res, grid_pose, ns=''):
+    # region STILMAN 2005 RCH DATA
+    def publish_rch_data(self, current, gscore, close_set, open_queue, neighbors, traversed_obstacles_ids,
+                         res, grid_pose, ns=''):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             # Publish current cell
             marker = conv.grid_cells_to_cube_list_markers(
-                [current.cell], res, grid_pose, color=cfg.flashy_purple, ns="/rch_current_cell"
+                [current.cell], res, grid_pose, z_index=0.9, color=cfg.flashy_purple, ns="/rch_current_cell"
             )
             marker_array = MarkerArray(markers=[marker])
             self.publish(full_topic, marker_array)
 
             # Publish neighbors
             marker = conv.grid_cells_to_cube_list_markers(
-                [neighbor.cell for neighbor in neighbors], res, grid_pose, color=cfg.flashy_red,
+                [neighbor.cell for neighbor in neighbors], res, grid_pose, z_index=0.9, color=cfg.flashy_red,
                 ns="/rch_current_cell_neighbors"
             )
             marker_array = MarkerArray(markers=[marker])
             self.publish(full_topic, marker_array)
 
             # Publish close_set
-            new_cells = [conf.cell for conf in close_set.difference(self.namespaces_caches[ns].prev_rch_close_set)]
-            marker_array, self.namespaces_caches[ns].rch_close_set_start_id = conv.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, cfg.dark_brown, self.namespaces_caches[ns].rch_close_set_start_id, ns="/rch_close_set")
-            self.namespaces_caches[ns].prev_rch_close_set = copy.copy(close_set)
+            obstacle_id_to_color = dict(zip(
+                traversed_obstacles_ids, colors.generate_equally_spread_ros_colors(len(traversed_obstacles_ids))
+            ))
+            color = obstacle_id_to_color[current.first_obstacle_uid]
+
+            if current.cell in self.namespaces_caches[ns].cell_to_marker:
+                original_marker = self.namespaces_caches[ns].cell_to_marker[current.cell]
+                blended_color = colors.blend_colors(original_marker.color, color)
+                original_marker.color = blended_color
+                marker = original_marker
+            else:
+                _id = self.namespaces_caches[ns].cell_marker_current_id
+                marker = conv.grid_cell_to_cube_marker(
+                    current.cell, res, grid_pose, color, _id, z_index=0.8, ns="/rch_close_set"
+                )
+                self.namespaces_caches[ns].cell_to_marker[current.cell] = marker
+                self.namespaces_caches[ns].cell_marker_current_id += 1
+
+            marker_array = MarkerArray(markers=[marker])
             self.publish(full_topic, marker_array)
 
             # Publish open_heap
 
             # Publish gscore as paths between cells poses
-
-    def publish_rch_open_queue(self, open_queue, res, grid_pose, ns=''):
-        full_topic = cfg.stilman_rch_open_heap_topic if not ns else '/' + ns + cfg.stilman_rch_open_heap_topic
-        if self.is_activated(full_topic):
-            open_queue_data = []
-            for element in open_queue:
-                open_queue_data.append(element.cell)
-            open_heap_cells = conv.grid_cells_to_cube_list_markers(
-                open_queue_data, res, grid_pose, color=cfg.flashy_cyan)
-            self.publish(full_topic, open_heap_cells)
-
-    def cleanup_rch_open_queue(self, ns=''):
-        full_topic = cfg.stilman_rch_open_heap_topic if not ns else '/' + ns + cfg.stilman_rch_open_heap_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
-
-    # endregion
-
-    # region STILMAN 2005 RCH CLOSED SET
-    def publish_rch_closed_set(self, close_set, res, grid_pose, ns=''):
-        full_topic = cfg.stilman_rch_close_set_topic if not ns else '/' + ns + cfg.stilman_rch_close_set_topic
-        if self.is_activated(full_topic):
-            new_cells = close_set.difference(self.namespaces_caches[ns].prev_rch_close_set)
-            marker_array, self.namespaces_caches[ns].rch_close_set_start_id = conv.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, cfg.dark_brown, self.namespaces_caches[ns].rch_close_set_start_id)
-            self.namespaces_caches[ns].prev_rch_close_set = copy.copy(close_set)
-            self.publish(full_topic, marker_array)
-
-    def cleanup_rch_closed_set(self, ns=''):
-        full_topic = cfg.stilman_rch_close_set_topic if not ns else '/' + ns + cfg.stilman_rch_close_set_topic
-        if self.is_activated(full_topic):
-            self.namespaces_caches[ns].prev_rch_close_set = set()
-            self.namespaces_caches[ns].rch_close_set_start_id = 1
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
-
-    # endregion
-
-    # region STILMAN 2005 RCH CURRENT CELL AND CURRENT NEIGHBOR
-    def publish_current_cell(self, cell, res, grid_pose, ns=''):
-        full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
-        if self.is_activated(full_topic):
-            marker = conv.grid_cells_to_cube_list_markers([cell], res, grid_pose, color=cfg.flashy_purple)
-            marker.ns = "/alg/current_cell"
-            marker.id = 0
-            marker_array = MarkerArray(markers=[marker])
-            self.publish(full_topic, marker_array)
-
-    def publish_current_neighbor(self, cell, res, grid_pose, ns=''):
-        full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
-        if self.is_activated(full_topic):
-            marker = conv.grid_cells_to_cube_list_markers([cell], res, grid_pose, color=cfg.flashy_red)
-            marker.ns = "/alg/current_neighbor"
-            marker.id = 0
-            marker_array = MarkerArray(markers=[marker])
-            self.publish(full_topic, marker_array)
-
-    # endregion
+    #endregion
 
     # region GRID PATH
     def publish_grid_path(self, grid_path, res, grid_pose, ns=''):
