@@ -264,7 +264,9 @@ def compute_social_costmap(
     prev_set = cur_set
     while cur_set:
         if debug_display:
-            utils.matplotlib_show_grid(final_array)
+            import matplotlib.pyplot as plt
+            plt.imshow(final_array)
+            plt.show()
 
         # X, Y = np.meshgrid(range(final_array.shape[0]), range(final_array.shape[1]))
         # Z = final_array
