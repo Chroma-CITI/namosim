@@ -152,7 +152,7 @@ def costmap_to_grid_map(costmap, res, frame_id=cfg.social_gridmap_frame_id):
     return grid_map
 
 
-def grid_cells_to_cube_list_markers(grid_cells, res, grid_pose, color, cube_list=None, ns=""):
+def grid_cells_to_cube_list_markers(grid_cells, res, grid_pose, color, z_index=-0.5, cube_list=None, ns=""):
     if cube_list is None:
         cube_list = Marker(
             type=Marker.CUBE_LIST,
@@ -165,19 +165,28 @@ def grid_cells_to_cube_list_markers(grid_cells, res, grid_pose, color, cube_list
     for cell in grid_cells:
         point = Point()
         point.x, point.y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
-        point.z = -0.5
+        point.z = z_index
         cube_list.points.append(point)
     return cube_list
 
 
-def grid_cells_to_cube_markerarray(grid_cells, res, grid_pose, color, start_id=0, ns=""):
+def grid_cell_to_cube_marker(cell, res, grid_pose, color, _id, z_index, ns=""):
+    x, y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
+    z = z_index
+    cube = Marker(type=Marker.CUBE, ns=ns, id=_id,
+        header=Header(frame_id=cfg.main_frame_id, stamp=rospy.Time.now()),
+        color=color, scale=Vector3(res, res, res), pose=Pose(position=Vector3(x, y, z)))
+    return cube
+
+
+def grid_cells_to_cube_markerarray(grid_cells, res, grid_pose, color, z_index, start_id=0, ns=""):
     marker_array = MarkerArray()
     markers = []
     cur_id = start_id
     for cell in grid_cells:
         cur_id += 1
         x, y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
-        z = -0.09
+        z = z_index
         cube = Marker(type=Marker.CUBE, ns=ns, id=cur_id,
             header=Header(frame_id=cfg.main_frame_id, stamp=rospy.Time.now()),
             color=color, scale=Vector3(res, res, res), pose=Pose(position=Vector3(x, y, z)))
