@@ -262,7 +262,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def rch_get_neighbors(self, current, gscore, close_set, open_queue,
                           static_obs_grid, connected_components_grid, inflated_robot_grid,
-                          avoid_list, init_robot_component_uid, g_function, neighborhood=utils.TAXI_NEIGHBORHOOD):
+                          avoid_list, init_robot_component_uid, g_function, traversed_obstacles_ids,
+                          neighborhood=utils.TAXI_NEIGHBORHOOD):
         """
         Combined formulation from Stilman's thesis and his article. The prevlist parameter was not used because not
         in the article and a priori not helpful. Not only that, it is not properly defined, and actually does not
@@ -289,6 +290,8 @@ class Stilman2005Behavior(BaselineBehavior):
         :return:
         :rtype:
         """
+        traversed_obstacles_ids.add(current.first_obstacle_uid)
+
         neighbors, tentative_gscores = [], []
         current_gscore = gscore[current]
         path_has_traversed_first_disconnected_comp = current.first_component_uid != 0
@@ -313,6 +316,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 transition_is_valid = (
                     cur_and_neighbor_not_in_mult_obs
                     and (current_or_neighbor_in_free_space or cur_cell_obs_uid == neighbor_cell_obs_uid)
+                    and neighbor_cell_obs_uid != current.first_obstacle_uid
                 )
                 if transition_is_valid:
                     neighbor = RCHConfiguration(neighbor_cell, current.first_obstacle_uid, current.first_component_uid)
@@ -361,7 +365,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 )
 
         self._rp.publish_rch_data(
-            current, gscore, close_set, open_queue, neighbors,
+            current, gscore, close_set, open_queue, neighbors, traversed_obstacles_ids,
             inflated_robot_grid.res, inflated_robot_grid.grid_pose, ns=self._robot_name
         )
 
@@ -406,11 +410,12 @@ class Stilman2005Behavior(BaselineBehavior):
             )
             return translation_cost
 
+        traversed_obstacles_ids = utils.OrderedSet()
         def rch_get_neighbors_instance(current, gscore, close_set, open_queue):
             return self.rch_get_neighbors(
                 current, gscore, close_set, open_queue,
                 static_obs_grid, connected_components_grid, inflated_robot_grid,
-                avoid_list, init_robot_component_uid, g_function, neighborhood
+                avoid_list, init_robot_component_uid, g_function, traversed_obstacles_ids, neighborhood
             )
 
         def exit_condition(_current, _goal):
@@ -432,7 +437,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def manip_search(self, w_t, o_1, ccs_data, c_1_cells_set, r_f, check_new_local_opening_before_global=True):
         raise NotImplementedError()
 
-    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True, use_b2=True):
+    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True, use_b2=False):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
