@@ -34,8 +34,10 @@ class NamespaceCache:
         self.prev_robot_world_draw_data, self.prev_robot_sim_world_draw_data = {}, {}
         self.prev_a_star_close_set, self.prev_multigoal_a_star_close_set = set(), set()
         self.a_star_close_set_start_id, self.multigoal_a_star_close_set_start_id = 1, 1
-        self.cell_to_marker = dict()
-        self.cell_marker_current_id = 1
+        self.current_cell_to_marker = dict()
+        self.current_cell_marker_current_id = 1
+        self.cells_to_path_marker = dict()
+        self.cells_path_marker_current_id = 1
 
 
 class RosPublisher(with_metaclass(Singleton)):
@@ -374,20 +376,20 @@ class RosPublisher(with_metaclass(Singleton)):
                          res, grid_pose, ns=''):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
+            marker_array = MarkerArray(markers=[])
+
             # Publish current cell
-            marker = conv.grid_cells_to_cube_list_markers(
+            current_marker = conv.grid_cells_to_cube_list_markers(
                 [current.cell], res, grid_pose, z_index=0.9, color=cfg.flashy_purple, ns="/rch_current_cell"
             )
-            marker_array = MarkerArray(markers=[marker])
-            self.publish(full_topic, marker_array)
+            marker_array.markers.append(current_marker)
 
             # Publish neighbors
-            marker = conv.grid_cells_to_cube_list_markers(
+            neighbors_marker = conv.grid_cells_to_cube_list_markers(
                 [neighbor.cell for neighbor in neighbors], res, grid_pose, z_index=0.9, color=cfg.flashy_red,
                 ns="/rch_current_cell_neighbors"
             )
-            marker_array = MarkerArray(markers=[marker])
-            self.publish(full_topic, marker_array)
+            marker_array.markers.append(neighbors_marker)
 
             # Publish close_set
             obstacle_id_to_color = dict(zip(
@@ -395,41 +397,48 @@ class RosPublisher(with_metaclass(Singleton)):
             ))
             color = obstacle_id_to_color[current.first_obstacle_uid]
 
-            if current.cell in self.namespaces_caches[ns].cell_to_marker:
-                original_marker = self.namespaces_caches[ns].cell_to_marker[current.cell]
+            if current.cell in self.namespaces_caches[ns].current_cell_to_marker:
+                original_marker = self.namespaces_caches[ns].current_cell_to_marker[current.cell]
                 blended_color = colors.blend_colors(original_marker.color, color)
                 original_marker.color = blended_color
-                marker = original_marker
+                close_set_marker = original_marker
             else:
-                _id = self.namespaces_caches[ns].cell_marker_current_id
-                marker = conv.grid_cell_to_cube_marker(
+                _id = self.namespaces_caches[ns].current_cell_marker_current_id
+                close_set_marker = conv.grid_cell_to_cube_marker(
                     current.cell, res, grid_pose, color, _id, z_index=0.8, ns="/rch_close_set"
                 )
-                self.namespaces_caches[ns].cell_to_marker[current.cell] = marker
-                self.namespaces_caches[ns].cell_marker_current_id += 1
+                self.namespaces_caches[ns].current_cell_to_marker[current.cell] = close_set_marker
+                self.namespaces_caches[ns].current_cell_marker_current_id += 1
 
-            marker_array = MarkerArray(markers=[marker])
-            self.publish(full_topic, marker_array)
+            marker_array.markers.append(close_set_marker)
 
             # Publish open_heap
+            # TODO
 
             # Publish came_from as paths between cells poses
-            came_from_markerarray = MarkerArray()
-            came_from_markerarray.markers = []
-            path_width = res / 10.
-            p_id = 0
-            for cur_config, from_config in came_from.items():
-                cur_pose = utils.grid_to_real(cur_config.cell[0], cur_config.cell[1], res, grid_pose)
-                from_pose = utils.grid_to_real(from_config.cell[0], from_config.cell[1], res, grid_pose)
-                color = obstacle_id_to_color[cur_config.first_obstacle_uid]
-                marker = conv.real_path_to_linestrip(
-                    [cur_pose, from_pose],
-                    '/rch_came_from', p_id, cfg.main_frame_id, ColorRGBA(color.r, color.g, color.b, 1.),
-                    path_width, cfg.path_line_z_index
-                )
-                came_from_markerarray.markers.append(marker)
-                p_id += 1
-            self.publish(full_topic, came_from_markerarray)
+            if current in came_from:
+                path_color = ColorRGBA(color.r, color.g, color.b, 1.)
+                cells = (current.cell, came_from[current].cell)
+                if cells in self.namespaces_caches[ns].cells_to_path_marker:
+                    original_marker = self.namespaces_caches[ns].cells_to_path_marker[cells]
+                    blended_color = colors.blend_colors(original_marker.color, path_color)
+                    original_marker.color = blended_color
+                    came_from_marker = original_marker
+                else:
+                    _id = self.namespaces_caches[ns].cells_path_marker_current_id
+                    cur_pose = utils.grid_to_real(current.cell[0], current.cell[1], res, grid_pose)
+                    from_pose = utils.grid_to_real(came_from[current].cell[0], came_from[current].cell[1], res, grid_pose)
+                    came_from_marker = conv.real_path_to_linestrip(
+                        [cur_pose, from_pose],
+                        '/rch_came_from', _id, cfg.main_frame_id, ColorRGBA(color.r, color.g, color.b, 1.),
+                        res / 10., cfg.path_line_z_index
+                    )
+                    self.namespaces_caches[ns].cells_to_path_marker[cells] = came_from_marker
+                    self.namespaces_caches[ns].cells_path_marker_current_id += 1
+
+                marker_array.markers.append(came_from_marker)
+
+            self.publish(full_topic, marker_array)
     #endregion
 
     # region GRID PATH
@@ -644,6 +653,7 @@ class RosPublisher(with_metaclass(Singleton)):
     def cleanup_robot_sim(self, ns=''):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
+            self.namespaces_caches[ns] = NamespaceCache()
             self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
 
     # endregion
