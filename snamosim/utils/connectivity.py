@@ -84,7 +84,7 @@ def init_ccs_for_grid(grid, width, height, neighborhood=utils.TAXI_NEIGHBORHOOD)
         for cell in new_cc.visited:
             ccs_grid[cell[0]][cell[1]] = current_uid
 
-    return ccs, ccs_grid, current_uid
+    return CCSData(ccs, ccs_grid, current_uid)
 
 
 # def update_ccs_and_grid_tentive(ccs, ccs_grid, current_uid, grid, ccs_uids_to_update):
@@ -120,7 +120,7 @@ def update_ccs_and_grid(ccs, current_uid, grid, width, height, neighborhood=util
         root_cell = free_cells.pop()
 
         new_cc = bfs_init(grid, width, height, root_cell, neighborhood)
-        new_cc_is_new = True
+        new_cc_is_not_new = True
 
         for cc_uid, cc in ccs.items():
             if new_cc.visited == cc.visited:
@@ -138,7 +138,7 @@ def update_ccs_and_grid(ccs, current_uid, grid, width, height, neighborhood=util
             for cell in new_cc.visited:
                 new_ccs_grid[cell[0]][cell[1]] = current_uid
 
-    return new_ccs, new_ccs_grid, current_uid
+    return CCSData(new_ccs, new_ccs_grid, current_uid)
 
 
 
@@ -240,7 +240,7 @@ if __name__ == '__main__':
 
     width, height = grid_00.shape
 
-    ccs_00, ccs_grid_00, current_uid_00 = init_ccs_for_grid(grid_00, width, height)
+    ccs_data_00 = init_ccs_for_grid(grid_00, width, height)
 
     grid_01 = np.array([
         [0, 0, 0, 0, 0],
@@ -252,7 +252,7 @@ if __name__ == '__main__':
 
     invaded_cells = {(2,2), (2,4)}
 
-    ccs_01, cc_grid_01, current_uid_01 = init_ccs_for_grid(grid_01, width, height)
+    ccs_data_01 = init_ccs_for_grid(grid_01, width, height)
 
 
     print('')

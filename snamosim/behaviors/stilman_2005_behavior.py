@@ -223,10 +223,9 @@ class Stilman2005Behavior(BaselineBehavior):
             return Plan([simple_path_to_goal], self._q_goal, self._robot_uid)
 
         if ccs_data is None:
-            ccs_data = connectivity.CCSData(
-                *connectivity.init_ccs_for_grid(
-                    inflated_grid_by_robot.grid, inflated_grid_by_robot.d_width,
-                    inflated_grid_by_robot.d_height, neighborhood)
+            ccs_data = connectivity.init_ccs_for_grid(
+                inflated_grid_by_robot.grid, inflated_grid_by_robot.d_width,
+                inflated_grid_by_robot.d_height, neighborhood
             )
         else:
             ccs_data = connectivity.update_ccs_and_grid(

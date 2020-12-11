@@ -86,9 +86,7 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
     occ_grid = BinaryInflatedOccupancyGrid(
         polygons, world.dd.res, inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
     )
-    ccs_data = connectivity.CCSData(
-        *connectivity.init_ccs_for_grid(occ_grid.grid, occ_grid.d_width, occ_grid.d_height, occ_grid.neighborhood)
-    )
+    ccs_data = connectivity.init_ccs_for_grid(occ_grid.grid, occ_grid.d_width, occ_grid.d_height, occ_grid.neighborhood)
     connected_components = ccs_data.ccs
     connected_components_grid = ccs_data.ccs_grid
     RosPublisher().publish_connected_components_grid(connected_components_grid, world.dd, ns='simulation')
