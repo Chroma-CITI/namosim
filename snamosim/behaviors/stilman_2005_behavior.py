@@ -725,81 +725,100 @@ class Stilman2005Behavior(BaselineBehavior):
                                              inflated_grid, ordered_cells_by_cost, c_1_cells_set,
                                              init_robot_manip_poses, trans_mult, rot_mult, gscore=None, close_set=None,
                                              check_new_local_opening_before_global=True):
-        all_poses_to_d_poses = {}
+        if close_set:
+            # If all reachable configurations have been explored, index them by obstacle cell
+            obs_cell_to_reachable_configurations = {}
+            for c in close_set:
+                if c.obstacle.cell_in_grid in obs_cell_to_reachable_configurations:
+                    obs_cell_to_reachable_configurations[c.obstacle.cell_in_grid].append(c)
+                else:
+                    obs_cell_to_reachable_configurations[c.obstacle.cell_in_grid] = [c]
 
-        while ordered_cells_by_cost:
-            current = ordered_cells_by_cost[-1]
-            if isinstance(current, tuple):
-                # If current is a cell, unfold it into a dict of (robot, obstacle) poses at transfer end
-                obstacle_poses_at_transfer_end = [
-                    utils.grid_pose_to_real_pose(list(current) + [rot], inflated_grid.res, inflated_grid.grid_pose)
-                    for rot in [0.] + self._all_rot_angles
-                ]
-                poses_at_transfer_end = {
-                    obstacle_pose_at_transfer_end: [
-                        self.deduce_robot_goal_pose(
+            # Then iterate over ordered_cells_by_cost until we find a configuration that:
+            while ordered_cells_by_cost:
+                current_best_cell = ordered_cells_by_cost.pop()
+                if current_best_cell in obs_cell_to_reachable_configurations:
+                    #   1. Is reachable, ...
+                    possible_configurations = sorted(
+                        obs_cell_to_reachable_configurations[current_best_cell], key=lambda x: gscore[x]
+                    )
+                    for configuration in possible_configurations:
+                        #   2. ... allows sufficient space for the robot to release the object, ...
+                        can_walk_back = self.can_robot_walk_back_to_next_transit_pose(
+                            robot_inflation_radius, inflated_grid, configuration.robot.floating_point_pose,
+                            configuration.robot.polygon, other_entities_polygons, other_entities_aabb_tree
+                        )
+                        if can_walk_back:
+                            #   3. ... and creates a global opening to c1
+                            has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
+                                check_new_local_opening_before_global,
+                                robot_name, robot_cell,
+                                obstacle_uid, obstacle_polygon, configuration.obstacle.polygon,
+                                other_entities_polygons, other_entities_aabb_tree,
+                                inflated_grid, c_1_cells_set, robot_inflation_radius,
+                                goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                                init_blocking_areas=None, init_entity_inflated_polygon=None
+                            )
+                            if has_new_global_opening:
+                                return configuration
+        else:
+            # If we do not already have the set of reachable configurations, close_set...
+            while ordered_cells_by_cost:
+                # We iterate over the cells ordered by combined cost until we find a valid transfer end configuration
+                current_cell = ordered_cells_by_cost[-1]
+
+                # For that, we:
+                for rot in [0.] + self._all_rot_angles:
+                    # Iterate over the possible obstacle rotations in this cell
+                    obstacle_pose_at_transfer_end = utils.grid_pose_to_real_pose(
+                        list(current_cell) + [rot], inflated_grid.res, inflated_grid.grid_pose
+                    )
+
+                    # Check for static collisions of the obstacle at this pose
+                    obstacle_transfer_end_poly = utils.set_polygon_pose(
+                        obstacle_polygon, obstacle_pose, obstacle_pose_at_transfer_end
+                    )
+                    # If the obstacle collides at this pose, don't consider checking further
+                    obstacle_transfer_end_aabb = collision.polygon_to_aabb(obstacle_transfer_end_poly)
+                    obstacle_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
+                        obstacle_transfer_end_aabb)
+                    obstacle_collides = False
+                    for uid in obstacle_potential_collision_polygons_uids:
+                        if obstacle_transfer_end_poly.intersects(other_entities_polygons[uid]):
+                            obstacle_collides = True
+                            break
+                    if obstacle_collides:
+                        continue
+
+                    for init_robot_manip_pose in init_robot_manip_poses:
+                        # Iterate over the possible robot poses corresponding to each obstacle pose
+                        robot_pose_at_transfer_end = self.deduce_robot_goal_pose(
                             init_robot_manip_pose, obstacle_pose, obstacle_pose_at_transfer_end
                         )
-                        for init_robot_manip_pose in init_robot_manip_poses
-                    ]
-                    for obstacle_pose_at_transfer_end in obstacle_poses_at_transfer_end
-                }
-                ordered_cells_by_cost[-1] = poses_at_transfer_end
-            elif isinstance(current, dict):
-                # If current is the dict of poses corresponding to a cell
-                if current:
-                    # If the dict is not empty, we must pop the next (robot, obstacle) poses and check their validity
 
-                    if close_set:
-                        # If a close_set of attainable configurations has been provided,
-                        # the (robot, obstacle) pose is valid if:
-                        # - it is a member of the close_set (implies no collisions at transfer end)
-                        # - an opening is created between the intended connected components
+                        # For this (robot, obstacle) configuration, check if:
+                        #   1. there are no static collisions for robot too, ...
+                        robot_transfer_end_poly = utils.set_polygon_pose(
+                            robot_polygon, robot_pose, robot_pose_at_transfer_end
+                        )
+                        robot_transfer_end_aabb = collision.polygon_to_aabb(robot_transfer_end_poly)
+                        robot_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
+                            robot_transfer_end_aabb)
+                        robot_collides = False
+                        for uid in robot_potential_collision_polygons_uids:
+                            if robot_transfer_end_poly.intersects(other_entities_polygons[uid]):
+                                robot_collides = True
+                                break
+                        if robot_collides:
+                            continue
 
-                        # 1. Reduce list of (robot, obstacle) poses to the ones that are in close_set,
-                        #    and order them by computed manipulation cost
-
-                        pose_to_d_pose = {
-                            (robot_transfer_end_pose, obstacle_transfer_end_pose):
-                            (
-                                # utils.real_pose_to_fixed_precision_pose(
-                                #     robot_transfer_end_pose, trans_mult, rot_mult
-                                # ),
-                                # utils.real_pose_to_fixed_precision_pose(
-                                #     obstacle_transfer_end_pose, trans_mult, rot_mult
-                                # )
-                                utils.real_pose_to_grid_pose(
-                                    robot_transfer_end_pose, inflated_grid.res,
-                                    inflated_grid.grid_pose, self.rotation_unit_angle
-                                ),
-                                utils.real_pose_to_grid_pose(
-                                    obstacle_transfer_end_pose, inflated_grid.res,
-                                    inflated_grid.grid_pose, self.rotation_unit_angle
-                                )
-                            )
-                            for obstacle_transfer_end_pose, robot_transfer_end_poses in current.items()
-                            for robot_transfer_end_pose in robot_transfer_end_poses
-                        }
-
-                        all_poses_to_d_poses = dict(all_poses_to_d_poses, **pose_to_d_pose)
-
-                        poses_to_configurations = []
-                        for poses, d_pose in pose_to_d_pose.items():
-                            if d_pose in close_set:
-                                for e in close_set:
-                                    if e == d_pose:
-                                        poses_to_configurations.append(
-                                            (poses[1], e, gscore[e])
-                                        )
-                        poses_to_configurations = sorted(poses_to_configurations, key=lambda x: x[2])
-
-                        # 2. Iterate over this new list, and return as soon as one of them has a new global opening
-                        while poses_to_configurations:
-                            obstacle_transfer_end_pose, configuration, _ = poses_to_configurations.pop(0)
-
-                            obstacle_transfer_end_poly = utils.set_polygon_pose(
-                                obstacle_polygon, obstacle_pose, obstacle_transfer_end_pose
-                            )
+                        #   2. ... the configuration allows sufficient space for the robot to release the object, ...
+                        can_walk_back = self.can_robot_walk_back_to_next_transit_pose(
+                            robot_inflation_radius, inflated_grid, robot_pose_at_transfer_end,
+                            robot_transfer_end_poly, other_entities_polygons, other_entities_aabb_tree
+                        )
+                        if can_walk_back:
+                            #   3. ... and creates a global opening to c1
                             has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
                                 check_new_local_opening_before_global,
                                 robot_name, robot_cell,
@@ -809,123 +828,37 @@ class Stilman2005Behavior(BaselineBehavior):
                                 goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
                                 init_blocking_areas=None, init_entity_inflated_polygon=None
                             )
-
-                            can_walk_back = self.can_robot_walk_back_to_next_transit_pose(
-                                robot_inflation_radius, inflated_grid, configuration.robot.floating_point_pose,
-                                configuration.robot.polygon, other_entities_polygons, other_entities_aabb_tree
-                            )
-
-                            if has_new_global_opening and can_walk_back:
-                                return configuration
-
-                        # 3. If iteration has been done in full, there are no openings in the cell, so remove the entire
-                        #    list of poses from ordered_cells_by_cost
-                        ordered_cells_by_cost.pop()
-
-                    else:
-                        # Otherwise, the (robot, obstacle) pose is valid if:
-                        # - there are no static collisions at transfer end
-                        # - an opening is created between the intended connected components
-
-                        # Pop-iterate over poses from the list and return as soon as one of them is valid
-                        while current:
-                            obstacle_transfer_end_pose = next(iter(current))
-                            robot_transfer_end_poses = current[obstacle_transfer_end_pose]
-
-                            obstacle_transfer_end_poly = utils.set_polygon_pose(
-                                obstacle_polygon, obstacle_pose, obstacle_transfer_end_pose
-                            )
-                            # If the obstacle collides at this pose, don't consider checking further
-                            obstacle_transfer_end_aabb = collision.polygon_to_aabb(obstacle_transfer_end_poly)
-                            obstacle_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
-                                obstacle_transfer_end_aabb)
-                            obstacle_collides = False
-                            for uid in obstacle_potential_collision_polygons_uids:
-                                if obstacle_transfer_end_poly.intersects(other_entities_polygons[uid]):
-                                    obstacle_collides = True
-                                    break
-                            if obstacle_collides:
-                                del current[obstacle_transfer_end_pose]
-                                continue
-
-                            # Try to find a valid robot pose at transfer end
-                            robot_transfer_end_pose = None
-                            robot_transfer_end_poly = None
-                            while robot_transfer_end_poses:
-                                candidate_transfer_end_robot_pose = robot_transfer_end_poses.pop()
-                                candidate_transfer_end_robot_poly = utils.set_polygon_pose(
-                                    robot_polygon, robot_pose, candidate_transfer_end_robot_pose
-                                )
-                                robot_transfer_end_aabb = collision.polygon_to_aabb(candidate_transfer_end_robot_poly)
-                                robot_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
-                                    robot_transfer_end_aabb)
-                                robot_collides = False
-                                for uid in robot_potential_collision_polygons_uids:
-                                    if candidate_transfer_end_robot_poly .intersects(other_entities_polygons[uid]):
-                                        robot_collides = True
-                                        break
-                                if not robot_collides:
-                                    robot_transfer_end_pose = candidate_transfer_end_robot_pose
-                                    robot_transfer_end_poly = candidate_transfer_end_robot_poly
-                                    break
-
-                            # If there are no valid robot poses for the obstacle pose, don't consider checking further
-                            if not (robot_transfer_end_poses or robot_transfer_end_pose):
-                                del current[obstacle_transfer_end_pose]
-                                continue
-
-                            # Check for new global opening for this obstacle pose
-                            has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
-                                check_new_local_opening_before_global,
-                                robot_name, robot_cell,
-                                obstacle_uid, obstacle_polygon, obstacle_transfer_end_poly,
-                                other_entities_polygons, other_entities_aabb_tree,
-                                inflated_grid, c_1_cells_set, robot_inflation_radius,
-                                goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-                                init_blocking_areas=None, init_entity_inflated_polygon=None
-                            )
-
-                            can_walk_back = self.can_robot_walk_back_to_next_transit_pose(
-                                robot_inflation_radius, inflated_grid, robot_transfer_end_pose,
-                                robot_transfer_end_poly, other_entities_polygons, other_entities_aabb_tree
-                            )
-
-                            if has_new_global_opening and can_walk_back:
+                            if has_new_global_opening:
                                 return RobotObstacleConfiguration(
-                                    robot_floating_point_pose=robot_transfer_end_pose,
+                                    robot_floating_point_pose=robot_pose_at_transfer_end,
                                     robot_polygon=robot_transfer_end_poly,
                                     # robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
                                     #     robot_transfer_end_pose, trans_mult, rot_mult
                                     # ),
                                     robot_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                                        robot_transfer_end_pose, inflated_grid.res,
+                                        robot_pose_at_transfer_end, inflated_grid.res,
                                         inflated_grid.grid_pose, self.rotation_unit_angle
                                     ),
                                     robot_cell_in_grid=utils.real_to_grid(
-                                        robot_transfer_end_pose[0], robot_transfer_end_pose[1],
+                                        robot_pose_at_transfer_end[0], robot_pose_at_transfer_end[1],
                                         inflated_grid.res, inflated_grid.grid_pose
                                     ),
-                                    obstacle_floating_point_pose=obstacle_transfer_end_pose,
+                                    obstacle_floating_point_pose=obstacle_pose_at_transfer_end,
                                     obstacle_polygon=obstacle_transfer_end_poly,
                                     # obstacle_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
                                     #     obstacle_transfer_end_pose, trans_mult, rot_mult
                                     # ),
                                     obstacle_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                                        obstacle_transfer_end_pose, inflated_grid.res,
+                                        obstacle_pose_at_transfer_end, inflated_grid.res,
                                         inflated_grid.grid_pose, self.rotation_unit_angle
                                     ),
                                     obstacle_cell_in_grid=utils.real_to_grid(
-                                        obstacle_transfer_end_pose[0], obstacle_transfer_end_pose[1],
+                                        obstacle_pose_at_transfer_end[0], obstacle_pose_at_transfer_end[1],
                                         inflated_grid.res, inflated_grid.grid_pose
                                     )
                                 )
-                            else:
-                                del current[obstacle_transfer_end_pose]
-                else:
-                    # If the list is empty, we must get to the next cell
-                    ordered_cells_by_cost.pop()
-
-        return None
+                ordered_cells_by_cost.pop()
+        return None  # If no valid configuration could be found...
 
     @staticmethod
     def can_robot_walk_back_to_next_transit_pose(robot_inflation_radius, inflated_grid, robot_pose, robot_polygon,
