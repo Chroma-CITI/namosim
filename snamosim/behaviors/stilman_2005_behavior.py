@@ -260,7 +260,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return None
 
-    def rch_get_neighbors(self, current, gscore, close_set, open_queue,
+    def rch_get_neighbors(self, current, gscore, close_set, open_queue, came_from,
                           static_obs_grid, connected_components_grid, inflated_robot_grid,
                           avoid_list, init_robot_component_uid, g_function, traversed_obstacles_ids,
                           neighborhood=utils.TAXI_NEIGHBORHOOD):
@@ -290,8 +290,6 @@ class Stilman2005Behavior(BaselineBehavior):
         :return:
         :rtype:
         """
-        traversed_obstacles_ids.add(current.first_obstacle_uid)
-
         neighbors, tentative_gscores = [], []
         current_gscore = gscore[current]
         path_has_traversed_first_disconnected_comp = current.first_component_uid != 0
@@ -363,9 +361,10 @@ class Stilman2005Behavior(BaselineBehavior):
                         current, neighbor, is_transfer=inflated_robot_grid.grid[neighbor.cell[0]][neighbor.cell[1]] > 0
                     )
                 )
+                traversed_obstacles_ids.add(neighbor.first_obstacle_uid)
 
         self._rp.publish_rch_data(
-            current, gscore, close_set, open_queue, neighbors, traversed_obstacles_ids,
+            current, gscore, close_set, open_queue, came_from, neighbors, traversed_obstacles_ids,
             inflated_robot_grid.res, inflated_robot_grid.grid_pose, ns=self._robot_name
         )
 
@@ -411,9 +410,9 @@ class Stilman2005Behavior(BaselineBehavior):
             return translation_cost
 
         traversed_obstacles_ids = utils.OrderedSet()
-        def rch_get_neighbors_instance(current, gscore, close_set, open_queue):
+        def rch_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
             return self.rch_get_neighbors(
-                current, gscore, close_set, open_queue,
+                current, gscore, close_set, open_queue, came_from,
                 static_obs_grid, connected_components_grid, inflated_robot_grid,
                 avoid_list, init_robot_component_uid, g_function, traversed_obstacles_ids, neighborhood
             )
@@ -643,9 +642,9 @@ class Stilman2005Behavior(BaselineBehavior):
                                 static_collision_cache,
                                 sorted_cell_to_combined_cost, bound_quantile, b2_sim):
 
-        def get_neighbors(_current, _gscore, _close_set, _open_queue):
+        def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
             return self.manip_search_get_neighbors(
-                _current, _gscore, _close_set, _open_queue,
+                _current, _gscore, _close_set, _open_queue, _came_from,
                 robot_uid, obstacle_uid,
                 other_entities_polygons, other_entities_aabb_tree,
                 inflated_grid_by_robot, inflated_grid_by_obstacle,
@@ -1024,7 +1023,7 @@ class Stilman2005Behavior(BaselineBehavior):
             has_new_global_opening, skipped_global_opening_check = False, True
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
-    def manip_search_get_neighbors(self, current_configuration, gscore, close_set, _open_queue,
+    def manip_search_get_neighbors(self, current_configuration, gscore, close_set, _open_queue, _came_from,
                                    robot_uid, obstacle_uid,
                                    other_entities_polygons, other_entities_aabb_tree,
                                    inflated_grid_by_robot, inflated_grid_by_obstacle,

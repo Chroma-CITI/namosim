@@ -125,7 +125,7 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
             close_set.add(current)
 
         # For each neighbor of current node in the defined neighborhood
-        neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set, open_queue)
+        neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set, open_queue, came_from)
         for neighbor, tentative_g_score in zip(neighbors, tentative_g_scores):
             if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
                 # This path is the best until now. Record it!
@@ -152,7 +152,7 @@ def basic_exit_condition(current, goal):
     return current == goal
 
 
-def grid_get_neighbors_taxi(current, gscore, close_set, open_queue, grid, width, height):
+def grid_get_neighbors_taxi(current, gscore, close_set, open_queue, came_from, grid, width, height):
     neighbors, tentative_gscores = [], []
     current_gscore = gscore[current]
     for i, j in utils.TAXI_NEIGHBORHOOD:
@@ -169,8 +169,10 @@ def grid_get_neighbors_taxi(current, gscore, close_set, open_queue, grid, width,
     return neighbors, tentative_gscores
 
 
-def grid_get_neighbors_chessboard_simple(current, gscore, close_set, open_queue, grid, width, height):
-    neighbors, tentative_gscores = grid_get_neighbors_taxi(current, gscore, close_set, open_queue, grid, width, height)
+def grid_get_neighbors_chessboard_simple(current, gscore, close_set, open_queue, came_from, grid, width, height):
+    neighbors, tentative_gscores = grid_get_neighbors_taxi(
+        current, gscore, close_set, open_queue, came_from, grid, width, height
+    )
     current_gscore = gscore[current]
 
     for i, j in utils.CHESSBOARD_NEIGHBORHOOD_EXTRAS:
@@ -186,8 +188,11 @@ def grid_get_neighbors_chessboard_simple(current, gscore, close_set, open_queue,
     return neighbors, tentative_gscores
 
 
-def grid_get_neighbors_chessboard_check_diag_neighbors(current, gscore, close_set, open_queue, grid, width, height):
-    neighbors, tentative_gscores = grid_get_neighbors_taxi(current, gscore, close_set, open_queue, grid, width, height)
+def grid_get_neighbors_chessboard_check_diag_neighbors(current, gscore, close_set, open_queue, came_from,
+                                                       grid, width, height):
+    neighbors, tentative_gscores = grid_get_neighbors_taxi(
+        current, gscore, close_set, open_queue, came_from, grid, width, height
+    )
     current_gscore = gscore[current]
 
     for i, j in utils.CHESSBOARD_NEIGHBORHOOD_EXTRAS:
@@ -211,18 +216,20 @@ def grid_search_a_star(start, goal, grid, width, height, neighborhood=utils.CHES
 
     if is_chess_neighborhood:
         if check_diag_neighbors:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue):
+            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
                 return grid_get_neighbors_chessboard_check_diag_neighbors(
-                    current, gscore, close_set, open_queue, grid, width, height
+                    current, gscore, close_set, open_queue, came_from, grid, width, height
                 )
         else:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue):
-                return grid_get_neighbors_chessboard_simple(current, gscore, close_set, open_queue, grid, width, height)
+            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+                return grid_get_neighbors_chessboard_simple(
+                    current, gscore, close_set, open_queue, came_from, grid, width, height
+                )
 
         heuristic = utils.chebyshev_distance
     else:
         def grid_get_neighbors_instance(current, gscore, close_set, open_queue):
-            return grid_get_neighbors_taxi(current, gscore, close_set, open_queue, grid, width, height)
+            return grid_get_neighbors_taxi(current, gscore, close_set, open_queue, came_from, grid, width, height)
 
         heuristic = utils.manhattan_distance
 
@@ -267,7 +274,7 @@ def new_generic_dijkstra(start, goal, exit_condition, get_neighbors):
         close_set.add(current)
 
         # For each neighbor of current node in the defined neighborhood
-        neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set, open_queue)
+        neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set, open_queue, came_from)
         for neighbor, tentative_g_score in zip(neighbors, tentative_g_scores):
             if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
                 # This path is the best until now. Record it!
@@ -284,16 +291,18 @@ def grid_search_dijkstra(start, goal, grid, width, height, neighborhood=utils.CH
 
     if is_chess_neighborhood:
         if check_diag_neighbors:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue):
+            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
                 return grid_get_neighbors_chessboard_check_diag_neighbors(
-                    current, gscore, close_set, open_queue, grid, width, height
+                    current, gscore, close_set, open_queue, came_from, grid, width, height
                 )
         else:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue):
-                return grid_get_neighbors_chessboard_simple(current, gscore, close_set, open_queue, grid, width, height)
+            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+                return grid_get_neighbors_chessboard_simple(
+                    current, gscore, close_set, open_queue, came_from, grid, width, height
+                )
 
     else:
-        def grid_get_neighbors_instance(current, gscore, close_set, open_queue):
-            return grid_get_neighbors_taxi(current, gscore, close_set, open_queue, grid, width, height)
+        def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+            return grid_get_neighbors_taxi(current, gscore, close_set, open_queue, came_from, grid, width, height)
 
     return new_generic_dijkstra(start, goal, basic_exit_condition, grid_get_neighbors_instance)
