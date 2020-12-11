@@ -436,7 +436,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def manip_search(self, w_t, o_1, ccs_data, c_1_cells_set, r_f, check_new_local_opening_before_global=True):
         raise NotImplementedError()
 
-    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True, use_b2=False):
+    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True, use_b2=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
