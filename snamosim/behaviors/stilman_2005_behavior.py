@@ -452,19 +452,23 @@ class Stilman2005Behavior(BaselineBehavior):
 
         robot = w_t_plus_2.entities[self._robot.uid]
         robot_uid, robot_pose, robot_polygon, robot_name = robot.uid, robot.pose, robot.polygon, robot.name
+        robot_min_inflation_radius = utils.get_inscribed_radius(robot_polygon)
         robot_max_inflation_radius = utils.get_circumscribed_radius(robot_polygon)
 
         obstacle = w_t_plus_2.entities[o_1]
         obstacle_uid, obstacle_pose, obstacle_polygon = obstacle.uid, obstacle.pose, obstacle.polygon
         obstacle_min_inflation_radius = utils.get_inscribed_radius(obstacle_polygon)
 
-        # TODO Get inflated robot grid from select connect and reuse same params for obstacle grid
+        # CAREFUL : We inflate by inscribed radius MINUS sqrt(2)*res to make sure occupied cells are really where the
+        # entity's center should NEVER be to avoid collisions.
+        # Poses in free cells of this grid may sometimes be colliding.
         inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
-            other_entities_polygons, res, robot_max_inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+            other_entities_polygons, res, robot_min_inflation_radius - utils.SQRT_OF_2 * res,
+            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
         )
         inflated_grid_by_obstacle = BinaryInflatedOccupancyGrid(
-            other_entities_polygons, res, obstacle_min_inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-            params=inflated_grid_by_robot.params
+            other_entities_polygons, res, obstacle_min_inflation_radius - utils.SQRT_OF_2 * res,
+            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=inflated_grid_by_robot.params
         )
 
         robot_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], res, inflated_grid_by_robot.grid_pose)
