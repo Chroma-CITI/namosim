@@ -26,6 +26,7 @@ except ImportError:
 
 from snamosim.utils.singleton import Singleton
 from snamosim.worldreps.entity_based.robot import Robot
+from snamosim.utils import utils
 
 
 class NamespaceCache:
@@ -369,7 +370,7 @@ class RosPublisher(with_metaclass(Singleton)):
     # endregion
 
     # region STILMAN 2005 RCH DATA
-    def publish_rch_data(self, current, gscore, close_set, open_queue, neighbors, traversed_obstacles_ids,
+    def publish_rch_data(self, current, gscore, close_set, open_queue, came_from, neighbors, traversed_obstacles_ids,
                          res, grid_pose, ns=''):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
@@ -412,7 +413,23 @@ class RosPublisher(with_metaclass(Singleton)):
 
             # Publish open_heap
 
-            # Publish gscore as paths between cells poses
+            # Publish came_from as paths between cells poses
+            came_from_markerarray = MarkerArray()
+            came_from_markerarray.markers = []
+            path_width = res / 10.
+            p_id = 0
+            for cur_config, from_config in came_from.items():
+                cur_pose = utils.grid_to_real(cur_config.cell[0], cur_config.cell[1], res, grid_pose)
+                from_pose = utils.grid_to_real(from_config.cell[0], from_config.cell[1], res, grid_pose)
+                color = obstacle_id_to_color[cur_config.first_obstacle_uid]
+                marker = conv.real_path_to_linestrip(
+                    [cur_pose, from_pose],
+                    '/rch_came_from', p_id, cfg.main_frame_id, ColorRGBA(color.r, color.g, color.b, 1.),
+                    path_width, cfg.path_line_z_index
+                )
+                came_from_markerarray.markers.append(marker)
+                p_id += 1
+            self.publish(full_topic, came_from_markerarray)
     #endregion
 
     # region GRID PATH
