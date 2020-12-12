@@ -308,14 +308,24 @@ def polygons_to_line_strips_marker_array(polygons, namespace, frame_id, color, z
     return marker_array
 
 
-def pose_to_arrow(pose, namespace, p_id, frame_id, color, z_index, shaft_diameter, head_diameter, head_length):
-    marker = Marker(type=Marker.ARROW,
-                    ns=namespace,
-                    id=p_id,
-                    pose=Pose(Point(pose[0], pose[1], z_index), geom_quat_from_yaw(pose[2])),
-                    scale=Vector3(shaft_diameter, head_diameter, head_length),
-                    header=Header(frame_id=frame_id, stamp=rospy.Time.now()),
-                    color=color)
+def pose_to_arrow(pose, namespace, p_id, frame_id, color, z_index, arrow_length, shaft_diameter, head_diameter, head_length):
+    marker = Marker(
+        type=Marker.ARROW,
+        ns=namespace,
+        id=p_id,
+        # pose=Pose(Point(pose[0], pose[1], z_index), geom_quat_from_yaw(pose[2])),
+        points=[
+            Point(pose[0], pose[1], z_index),
+            Point(
+                pose[0] + arrow_length * math.cos(math.radians(pose[2])),
+                pose[1] + arrow_length * math.sin(math.radians(pose[2])),
+                z_index
+            )
+        ],
+        scale=Vector3(shaft_diameter, head_diameter, head_length),
+        header=Header(frame_id=frame_id, stamp=rospy.Time.now()),
+        color=color
+    )
     return marker
 
 
