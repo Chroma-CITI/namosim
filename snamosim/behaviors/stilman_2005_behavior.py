@@ -654,6 +654,7 @@ class Stilman2005Behavior(BaselineBehavior):
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
             return self.manip_search_get_neighbors(
                 _current, _gscore, _close_set, _open_queue, _came_from,
+                start,
                 robot_uid, obstacle_uid,
                 other_entities_polygons, other_entities_aabb_tree,
                 inflated_grid_by_robot, inflated_grid_by_obstacle,
@@ -967,7 +968,8 @@ class Stilman2005Behavior(BaselineBehavior):
             has_new_global_opening, skipped_global_opening_check = False, True
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
-    def manip_search_get_neighbors(self, current_configuration, gscore, close_set, _open_queue, _came_from,
+    def manip_search_get_neighbors(self, current_configuration, gscore, close_set, open_queue, came_from,
+                                   start,
                                    robot_uid, obstacle_uid,
                                    other_entities_polygons, other_entities_aabb_tree,
                                    inflated_grid_by_robot, inflated_grid_by_obstacle,
@@ -1151,6 +1153,11 @@ class Stilman2005Behavior(BaselineBehavior):
             tentative_g_scores.append(
                 gscore[current_configuration] + extra_g_cost
             )
+
+        self._rp.publish_manip_search_data(
+            current_configuration, gscore, close_set, open_queue, came_from, neighbors, start,
+            inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose, ns=self._robot_name
+        )
 
         return neighbors, tentative_g_scores
 
