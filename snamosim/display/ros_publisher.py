@@ -439,9 +439,94 @@ class RosPublisher(with_metaclass(Singleton)):
                 marker_array.markers.append(came_from_marker)
 
             self.publish(full_topic, marker_array)
-    #endregion
+    # endregion
 
-    # region GRID PATH
+    # region MANIP SEARCH
+    def publish_manip_search_data(self, current, gscore, close_set, open_queue, came_from, neighbors, start_confs,
+                                  res, grid_pose, ns=''):
+        full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
+        if self.is_activated(full_topic):
+            marker_array = MarkerArray(markers=[])
+
+            manip_poses_ids = [c.manip_pose_id for c in start_confs.keys()]
+
+            arrow_length, shaft_diameter, head_diameter, head_length = res / 2., res / 10., res / 5., res / 6.
+            manip_pose_id_to_color = dict(zip(
+                manip_poses_ids, colors.generate_equally_spread_ros_colors(len(manip_poses_ids))
+            ))
+
+            # Publish current configuration
+            current_marker = conv.pose_to_arrow(
+                pose=current.robot.floating_point_pose, namespace="/manip_search_current",
+                p_id=0, frame_id=cfg.main_frame_id, color=cfg.flashy_red,
+                z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
+                head_diameter=head_diameter, head_length=head_length
+            )
+            marker_array.markers.append(current_marker)
+
+            # Publish neighbors
+            neighbors_markers = [
+                conv.pose_to_arrow(
+                    pose=neighbor.robot.floating_point_pose, namespace="/manip_search_neighbors",
+                    p_id=p_id, frame_id=cfg.main_frame_id, color=cfg.flashy_green,
+                    z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
+                    head_diameter=head_diameter, head_length=head_length
+                )
+                for p_id, neighbor in enumerate(neighbors)
+            ]
+            marker_array.markers += neighbors_markers
+
+            # # Publish close_set
+            # obstacle_id_to_color = dict(zip(
+            #     traversed_obstacles_ids, colors.generate_equally_spread_ros_colors(len(traversed_obstacles_ids))
+            # ))
+            # color = obstacle_id_to_color[current.first_obstacle_uid]
+            #
+            # if current.cell in self.namespaces_caches[ns].current_cell_to_marker:
+            #     original_marker = self.namespaces_caches[ns].current_cell_to_marker[current.cell]
+            #     blended_color = colors.blend_colors(original_marker.color, color)
+            #     original_marker.color = blended_color
+            #     close_set_marker = original_marker
+            # else:
+            #     _id = self.namespaces_caches[ns].current_cell_marker_current_id
+            #     close_set_marker = conv.grid_cell_to_cube_marker(
+            #         current.cell, res, grid_pose, color, _id, z_index=0.8, ns="/manip_search_close_set"
+            #     )
+            #     self.namespaces_caches[ns].current_cell_to_marker[current.cell] = close_set_marker
+            #     self.namespaces_caches[ns].current_cell_marker_current_id += 1
+            #
+            # marker_array.markers.append(close_set_marker)
+            #
+            # # Publish open_heap
+            # # TODO
+            #
+            # # Publish came_from as paths between cells poses
+            # if current in came_from:
+            #     path_color = ColorRGBA(color.r, color.g, color.b, 1.)
+            #     cells = (current.cell, came_from[current].cell)
+            #     if cells in self.namespaces_caches[ns].cells_to_path_marker:
+            #         original_marker = self.namespaces_caches[ns].cells_to_path_marker[cells]
+            #         blended_color = colors.blend_colors(original_marker.color, path_color)
+            #         original_marker.color = blended_color
+            #         came_from_marker = original_marker
+            #     else:
+            #         _id = self.namespaces_caches[ns].cells_path_marker_current_id
+            #         cur_pose = utils.grid_to_real(current.cell[0], current.cell[1], res, grid_pose)
+            #         from_pose = utils.grid_to_real(came_from[current].cell[0], came_from[current].cell[1], res, grid_pose)
+            #         came_from_marker = conv.real_path_to_linestrip(
+            #             [cur_pose, from_pose],
+            #             '/manip_search_came_from', _id, cfg.main_frame_id, ColorRGBA(color.r, color.g, color.b, 1.),
+            #             res / 10., cfg.path_line_z_index
+            #         )
+            #         self.namespaces_caches[ns].cells_to_path_marker[cells] = came_from_marker
+            #         self.namespaces_caches[ns].cells_path_marker_current_id += 1
+            #
+            #     marker_array.markers.append(came_from_marker)
+
+            self.publish(full_topic, marker_array)
+    # endregion
+
+    # region GRID PATHmath.radians(pose[2]
     def publish_grid_path(self, grid_path, res, grid_pose, ns=''):
         full_topic = cfg.path_grid_cells_topic if not ns else '/' + ns + cfg.path_grid_cells_topic
         if self.is_activated(full_topic):
