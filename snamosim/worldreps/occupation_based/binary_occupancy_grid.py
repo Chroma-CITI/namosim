@@ -70,6 +70,7 @@ class BinaryOccupancyGrid:
         if removed_polygons is not None:
             for uid in removed_polygons:
                 prev_cells = self.cells_sets[uid]
+                del self.cells_sets[uid]
                 for cell in prev_cells:
                     self.grid[cell[0]][cell[1]] -= 1
 
