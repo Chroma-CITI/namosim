@@ -167,9 +167,6 @@ class Simulator:
 
         return simulation_report
 
-    def act(self, robot_uid, next_step):
-        pass
-
     def _create_robot_world_from_sim_world(self):
         entities = dict()
         for entity_uid, entity in self.ref_world.entities.items():
