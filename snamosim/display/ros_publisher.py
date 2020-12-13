@@ -38,6 +38,7 @@ class NamespaceCache:
         self.current_cell_marker_current_id = 1
         self.cells_to_path_marker = dict()
         self.cells_path_marker_current_id = 1
+        self.manip_search_neighbors_markers_p_ids = []
 
 
 class RosPublisher(with_metaclass(Singleton)):
@@ -450,19 +451,35 @@ class RosPublisher(with_metaclass(Singleton)):
 
             manip_poses_ids = [c.manip_pose_id for c in start_confs.keys()]
 
-            arrow_length, shaft_diameter, head_diameter, head_length = res / 2., res / 10., res / 5., res / 6.
+            arrow_length, shaft_diameter, head_diameter, head_length = res / 1.5, res / 5., res / 2.5, res / 5.
             manip_pose_id_to_color = dict(zip(
                 manip_poses_ids, colors.generate_equally_spread_ros_colors(len(manip_poses_ids))
             ))
 
             # Publish current configuration
-            current_marker = conv.pose_to_arrow(
-                pose=current.robot.floating_point_pose, namespace="/manip_search_current",
-                p_id=0, frame_id=cfg.main_frame_id, color=cfg.flashy_red,
+            current_robot_pose_marker = conv.pose_to_arrow(
+                pose=current.robot.floating_point_pose, namespace="/manip_search/current/robot/pose",
+                p_id=0, frame_id=cfg.main_frame_id, color=cfg.flashy_cyan,
                 z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
                 head_diameter=head_diameter, head_length=head_length
             )
-            marker_array.markers.append(current_marker)
+            current_obstacle_pose_marker = conv.pose_to_arrow(
+                pose=current.obstacle.floating_point_pose, namespace="/manip_search/current/obstacle/pose",
+                p_id=0, frame_id=cfg.main_frame_id, color=cfg.flashy_dark_cyan,
+                z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
+                head_diameter=head_diameter, head_length=head_length
+            )
+            marker_array.markers.append(current_robot_pose_marker)
+            marker_array.markers.append(current_obstacle_pose_marker)
+
+            current_robot_polygon_marker = conv.polygon_to_line_strip(
+                current.robot.polygon, "/manip_search/current/robot/polygon", 0, cfg.main_frame_id,
+                cfg.flashy_cyan, cfg.entities_z_index, cfg.border_width)
+            current_obstacle_polygon_marker = conv.polygon_to_line_strip(
+                current.obstacle.polygon, "/manip_search/current/obstacle/polygon", 0, cfg.main_frame_id,
+                cfg.flashy_dark_cyan, cfg.entities_z_index, cfg.border_width)
+            marker_array.markers.append(current_robot_polygon_marker)
+            marker_array.markers.append(current_obstacle_polygon_marker)
 
             # Publish neighbors
             neighbors_markers = [
@@ -475,6 +492,13 @@ class RosPublisher(with_metaclass(Singleton)):
                 for p_id, neighbor in enumerate(neighbors)
             ]
             marker_array.markers += neighbors_markers
+            neighbor_markers_ids = {n.id for n in neighbors_markers}
+            for p_id in self.namespaces_caches[ns].manip_search_neighbors_markers_p_ids:
+                if p_id not in neighbor_markers_ids:
+                    marker_array.markers.append(conv.make_delete_marker(
+                        frame_id=cfg.main_frame_id, namespace="/manip_search_neighbors", p_id=p_id
+                    ))
+            self.namespaces_caches[ns].manip_search_neighbors_markers_p_ids = neighbor_markers_ids
 
             # # Publish close_set
             # obstacle_id_to_color = dict(zip(

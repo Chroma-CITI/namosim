@@ -97,6 +97,11 @@ flashy_cyan = ColorRGBA(*hex_to_rgba("#ff85ffff"))
 flashy_purple = ColorRGBA(*hex_to_rgba("#ffff00ff"))
 flashy_red = ColorRGBA(*hex_to_rgba("#ffff0000"))
 
+flashy_dark_green = ColorRGBA(*hex_to_rgba("#ff007700"))
+flashy_dark_cyan = ColorRGBA(*hex_to_rgba("#ff007777"))
+# flashy_dark_purple = ColorRGBA(*hex_to_rgba("#ffff00ff"))
+# flashy_dark_red = ColorRGBA(*hex_to_rgba("#ffff0000"))
+
 dark_purple = ColorRGBA(*hex_to_rgba("#ff8e7cc3"))
 dark_brown = ColorRGBA(*hex_to_rgba("#ffc3a87c"))
 dark_blue = ColorRGBA(*hex_to_rgba("ff7ca5c3"))
