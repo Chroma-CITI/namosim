@@ -99,9 +99,7 @@ class Release(Translation):
 
 def convert_action(action, robot_pose):
     if isinstance(action, Translation):
-        translation_linestring = LineString([(0., 0.), action.translation_vector])
-        rotated_linestring = affinity.rotate(translation_linestring, robot_pose[2], origin=(0., 0.))
-        translation_vector = rotated_linestring.coords[1]
+        translation_vector = action.compute_translation_vector(robot_pose)
         return collision.Translation(translation_vector)
     elif isinstance(action, Rotation):
         return collision.Rotation(action.angle, (robot_pose[0], robot_pose[1]))
