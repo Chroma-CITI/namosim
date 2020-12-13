@@ -934,7 +934,7 @@ def accurate_rasterize_to_cells(projected_polygon, d_width, d_height, res, fill=
         # - Transform real polygon coordinates in image coordinate system
         poly_coordinates_in_image = [(x / res, y / res) for x, y in projected_poly_coords]
         # - Discretize polygon into image
-        ImageDraw.Draw(img).polygon(poly_coordinates_in_image, outline=0, fill=1)
+        ImageDraw.Draw(img).polygon(poly_coordinates_in_image, outline=1, fill=1)
         # - Transform image back into polygon coordinate system
         subgrid = np.flipud(np.rot90(np.array(img, dtype=np.uint8)))
         x_coords, y_coords = np.where(subgrid == 1)
