@@ -695,10 +695,7 @@ class Stilman2005Behavior(BaselineBehavior):
         transfer_path_start_pose = raw_path[0].robot.floating_point_pose
         init_transit_start_pose = transfer_start_to_transit_end_robot_pose[transfer_path_start_pose]
         grab_action = ba.Grab(
-            translation_vector=(
-                transfer_path_start_pose[0] - init_transit_start_pose[0],
-                transfer_path_start_pose[1] - init_transit_start_pose[1]
-            ),
+            translation_vector=(utils.euclidean_distance(transfer_path_start_pose, init_transit_start_pose), 0.),
             entity_uid=obstacle_uid
         )
         init_transit_start_configuration = Configuration(
