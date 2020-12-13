@@ -872,7 +872,7 @@ class Stilman2005Behavior(BaselineBehavior):
         release_translation = ba.Translation(
             translation_vector=(-1. * (inflated_grid_by_robot_max.inflation_radius + 1.5 * inflated_grid_by_robot_max.res), 0.)
         )
-        new_robot_pose = release_translation.predict_pose(robot_pose)
+        new_robot_pose = release_translation.predict_pose(robot_pose, robot_pose[2])
         new_cell_in_grid = utils.real_to_grid(new_robot_pose[0], new_robot_pose[1], inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose)
 
         if inflated_grid_by_robot_max.grid[new_cell_in_grid[0]][new_cell_in_grid[1]] > 0:
@@ -896,7 +896,7 @@ class Stilman2005Behavior(BaselineBehavior):
             entity_uid=obstacle_uid
         )
         new_robot_polygon = release_action.apply(robot_polygon, robot_pose)
-        new_robot_pose = release_action.predict_pose(robot_pose)
+        new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
         new_cell_in_grid = utils.real_to_grid(new_robot_pose[0], new_robot_pose[1], res, grid_pose)
         new_fixed_precision_pose = utils.real_pose_to_grid_pose(
             new_robot_pose, res, grid_pose, self.rotation_unit_angle)
@@ -1007,8 +1007,14 @@ class Stilman2005Behavior(BaselineBehavior):
                 if neighbor_action_opposes_prev_action:
                     continue
 
-                new_robot_pose = action.predict_pose(current_configuration.robot.floating_point_pose)
-                new_obstacle_pose = action.predict_pose(current_configuration.obstacle.floating_point_pose)
+                new_robot_pose = action.predict_pose(
+                    current_configuration.robot.floating_point_pose,
+                    current_configuration.robot.floating_point_pose[2]
+                )
+                new_obstacle_pose = action.predict_pose(
+                    current_configuration.obstacle.floating_point_pose,
+                    current_configuration.robot.floating_point_pose[2]
+                )
                 extra_g_cost = self.translation_unit_cost
             else:
                 raise TypeError('action must either be of type NewRotation or NewTranslation')
@@ -1095,11 +1101,6 @@ class Stilman2005Behavior(BaselineBehavior):
             # Check if obstacle is still within map bounds
             if not new_obstacle_polygon.within(inflated_grid_by_obstacle.aabb_polygon):
                 continue
-
-            self._rp.publish_sim(
-                new_robot_polygon, new_obstacle_polygon,
-                "/intermediate", ns=self._robot_name
-            )
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
             if b2_sim:

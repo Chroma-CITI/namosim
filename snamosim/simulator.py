@@ -765,7 +765,7 @@ class Simulator:
                 if isinstance(action, ba.Rotation):
                     agent.pose = action.predict_pose(agent.pose, (agent.pose[0], agent.pose[1]))
                 else:
-                    agent.pose = action.predict_pose(agent.pose)
+                    agent.pose = action.predict_pose(agent.pose, agent.pose[2])
                 trace_polygons.append(agent.polygon)
 
                 if attached_entity_uid:
@@ -775,7 +775,7 @@ class Simulator:
                     if isinstance(action, ba.Rotation):
                         attached_entity.pose = action.predict_pose(attached_entity.pose, (agent.pose[0], agent.pose[1]))
                     else:
-                        attached_entity.pose = action.predict_pose(attached_entity.pose)
+                        attached_entity.pose = action.predict_pose(attached_entity.pose, agent.pose[2])
                     trace_polygons.append(attached_entity.polygon)
 
                 if isinstance(action, ba.Grab):

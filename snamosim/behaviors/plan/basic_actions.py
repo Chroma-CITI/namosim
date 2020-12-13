@@ -76,8 +76,8 @@ class Translation:
         translation_vector = self.compute_translation_vector(pose)
         return affinity.translate(geom=polygon, xoff=translation_vector[0], yoff=translation_vector[1], zoff=0.)
 
-    def predict_pose(self, pose):
-        rotated_linestring = affinity.rotate(self.translation_linestring, pose[2], origin=(0., 0.))
+    def predict_pose(self, pose, direction_angle):
+        rotated_linestring = affinity.rotate(self.translation_linestring, direction_angle, origin=(0., 0.))
         translation_vector = rotated_linestring.coords[1]
         new_point = affinity.translate(
             geom=Point((pose[0], pose[1])), xoff=translation_vector[0], yoff=translation_vector[1], zoff=0.
