@@ -12,7 +12,7 @@ from datetime import datetime
 from shapely import affinity
 from shapely.geometry import LineString
 
-from snamosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
+# from snamosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
 # from snamosim.behaviors.wu_levihn_2014_behavior import WuLevihn2014Behavior
 from snamosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 

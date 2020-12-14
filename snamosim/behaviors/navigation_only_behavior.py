@@ -1,6 +1,4 @@
 from snamosim.behaviors.algorithms.graph_search import real_to_grid_search_a_star
-from snamosim.behaviors.plan.path import Path
-from snamosim.behaviors.plan.plan import Plan
 import numpy as np
 from plan.basic_actions import GoalFailed, GoalsFinished, GoalSuccess
 from baseline_behavior import BaselineBehavior
