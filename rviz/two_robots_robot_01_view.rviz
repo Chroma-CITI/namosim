@@ -5,10 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Simulator Knowledge1/Simulator Knowledge1/Namespaces1
-        - /robot_011
-        - /robot_011/Robot Knowledge1/Namespaces1
-        - /robot_011/Robot Simulated Actions1/Namespaces1
+        - /Markers1
       Splitter Ratio: 0.606060624
     Tree Height: 769
   - Class: rviz/Selection
@@ -55,410 +52,406 @@ Visualization Manager:
       Value: false
     - Class: rviz/Group
       Displays:
-        - Class: rviz/MarkerArray
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /simulation/knowledge
+              Name: Simulator Knowledge
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Alpha: 0.5
+              Class: rviz/Map
+              Color Scheme: costmap
+              Draw Behind: false
+              Enabled: false
+              Name: Sim Costmap
+              Topic: /simulation/costmap
+              Unreliable: false
+              Use Timestamp: false
+              Value: false
+            - Alpha: 1
+              Autocompute Intensity Bounds: false
+              Class: grid_map_rviz_plugin/GridMap
+              Color: 200; 200; 200
+              Color Layer: elevation
+              Color Transformer: IntensityLayer
+              Enabled: false
+              Height Layer: elevation
+              Height Transformer: Layer
+              History Length: 1
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Max Intensity: 1
+              Min Color: 0; 0; 0
+              Min Intensity: 0
+              Name: Social Costmap
+              Show Grid Lines: true
+              Topic: /simulation/test/gridmap
+              Unreliable: false
+              Use Rainbow: true
+              Value: false
+            - Alpha: 1
+              Autocompute Intensity Bounds: true
+              Class: grid_map_rviz_plugin/GridMap
+              Color: 200; 200; 200
+              Color Layer: elevation
+              Color Transformer: IntensityLayer
+              Enabled: false
+              Height Layer: elevation
+              Height Transformer: Flat
+              History Length: 1
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Max Intensity: 10
+              Min Color: 0; 0; 0
+              Min Intensity: 0
+              Name: Connected Components Grid
+              Show Grid Lines: true
+              Topic: /simulation/test/connected_components
+              Unreliable: false
+              Use Rainbow: true
+              Value: false
           Enabled: true
-          Marker Topic: /simulation/knowledge
           Name: Simulator Knowledge
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Alpha: 0.5
-          Class: rviz/Map
-          Color Scheme: costmap
-          Draw Behind: false
-          Enabled: false
-          Name: Sim Costmap
-          Topic: /simulation/costmap
-          Unreliable: false
-          Use Timestamp: false
-          Value: false
-        - Alpha: 1
-          Autocompute Intensity Bounds: false
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: elevation
-          Color Transformer: IntensityLayer
-          Enabled: false
-          Height Layer: elevation
-          Height Transformer: Layer
-          History Length: 1
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Max Intensity: 1
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: Social Costmap
-          Show Grid Lines: true
-          Topic: /simulation/test/gridmap
-          Unreliable: false
-          Use Rainbow: true
-          Value: false
-        - Alpha: 1
-          Autocompute Intensity Bounds: true
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: elevation
-          Color Transformer: IntensityLayer
-          Enabled: false
-          Height Layer: elevation
-          Height Transformer: Flat
-          History Length: 1
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Max Intensity: 10
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: Connected Components Grid
-          Show Grid Lines: true
-          Topic: /simulation/test/connected_components
-          Unreliable: false
-          Use Rainbow: true
-          Value: false
-      Enabled: false
-      Name: Simulator Knowledge
-    - Class: rviz/Group
-      Displays:
-        - Class: rviz/MarkerArray
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_01/knowledge
+              Name: Robot Knowledge
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /robot_01/goal
+              Name: Goal
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Alpha: 1
+              Class: rviz/Map
+              Color Scheme: costmap
+              Draw Behind: false
+              Enabled: false
+              Name: Robot Costmap
+              Topic: /robot_01/costmap
+              Unreliable: false
+              Use Timestamp: false
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /robot_01/sim
+              Name: Robot Simulated Actions
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_01/sim/world
+              Name: Robot Sim World
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
+            - Alpha: 0.699999988
+              Class: rviz/Map
+              Color Scheme: costmap
+              Draw Behind: false
+              Enabled: false
+              Name: Robot Simulated Costmap
+              Topic: /robot_01/robot_sim/costmap
+              Unreliable: false
+              Use Timestamp: false
+              Value: false
+            - Alpha: 1
+              Arrow Length: 0.300000012
+              Axes Length: 0.300000012
+              Axes Radius: 0.00999999978
+              Class: rviz/PoseArray
+              Color: 0; 0; 0
+              Enabled: true
+              Head Length: 0.140000001
+              Head Radius: 0.150000006
+              Name: Eval. Obs. Manip. Poses
+              Shaft Length: 0.230000004
+              Shaft Radius: 0.0700000003
+              Shape: Arrow (3D)
+              Topic: /robot_01/test/obs_manip_poses
+              Unreliable: false
+              Value: true
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_01/a_star/close_set_cells
+              Name: A Star Closed Set Cells
+              Namespaces:
+                {}
+              Queue Size: 1000
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_01/multi_a_star/close_set
+              Name: MultiA Star Closed Set Cells
+              Namespaces:
+                {}
+              Queue Size: 1000
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_01/stilman_rch/close_set
+              Name: RCH Closed Set Cells
+              Namespaces:
+                {}
+              Queue Size: 1000
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /robot_01/plan
+              Name: p_opt
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: false
+              Class: grid_map_rviz_plugin/GridMap
+              Color: 200; 200; 200
+              Color Layer: elevation
+              Color Transformer: IntensityLayer
+              Enabled: false
+              Height Layer: elevation
+              Height Transformer: Layer
+              History Length: 1
+              Invert Rainbow: false
+              Max Color: 255; 85; 127
+              Max Intensity: 1
+              Min Color: 255; 255; 255
+              Min Intensity: 0
+              Name: Social Costmap
+              Show Grid Lines: true
+              Topic: /robot_01/test/gridmap
+              Unreliable: false
+              Use Rainbow: true
+              Value: false
+            - Alpha: 1
+              Autocompute Intensity Bounds: false
+              Class: grid_map_rviz_plugin/GridMap
+              Color: 200; 200; 200
+              Color Layer: elevation
+              Color Transformer: IntensityLayer
+              Enabled: false
+              Height Layer: elevation
+              Height Transformer: Flat
+              History Length: 1
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Max Intensity: 1
+              Min Color: 0; 0; 0
+              Min Intensity: 0
+              Name: Combined Costmap
+              Show Grid Lines: false
+              Topic: /robot_01/combined_costmap
+              Unreliable: false
+              Use Rainbow: true
+              Value: false
+            - Alpha: 0.400000006
+              Autocompute Intensity Bounds: true
+              Class: grid_map_rviz_plugin/GridMap
+              Color: 200; 200; 200
+              Color Layer: elevation
+              Color Transformer: IntensityLayer
+              Enabled: false
+              Height Layer: elevation
+              Height Transformer: Flat
+              History Length: 1
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Max Intensity: 10
+              Min Color: 0; 0; 0
+              Min Intensity: 0
+              Name: Connected Components Grid
+              Show Grid Lines: true
+              Topic: /robot_01/test/connected_components
+              Unreliable: false
+              Use Rainbow: true
+              Value: false
           Enabled: true
-          Marker Topic: /robot_01/knowledge
-          Name: Robot Knowledge
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Class: rviz/MarkerArray
+          Name: robot_01
+        - Class: rviz/Group
+          Displays:
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_02/knowledge
+              Name: Robot Knowledge
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /robot_02/goal
+              Name: Goal
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Alpha: 1
+              Class: rviz/Map
+              Color Scheme: costmap
+              Draw Behind: false
+              Enabled: false
+              Name: Robot Costmap
+              Topic: /robot_02/costmap
+              Unreliable: false
+              Use Timestamp: false
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /robot_02/sim
+              Name: Robot Simulated Actions
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_02/sim/world
+              Name: Robot Sim World
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: false
+            - Alpha: 0.699999988
+              Class: rviz/Map
+              Color Scheme: costmap
+              Draw Behind: false
+              Enabled: false
+              Name: Robot Simulated Costmap
+              Topic: /robot_02/robot_sim/costmap
+              Unreliable: false
+              Use Timestamp: false
+              Value: false
+            - Alpha: 1
+              Arrow Length: 0.300000012
+              Axes Length: 0.300000012
+              Axes Radius: 0.00999999978
+              Class: rviz/PoseArray
+              Color: 0; 0; 0
+              Enabled: true
+              Head Length: 0.140000001
+              Head Radius: 0.150000006
+              Name: Eval. Obs. Manip. Poses
+              Shaft Length: 0.230000004
+              Shaft Radius: 0.0700000003
+              Shape: Arrow (3D)
+              Topic: /robot_02/test/obs_manip_poses
+              Unreliable: false
+              Value: true
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_02/a_star/close_set_cells
+              Name: A Star Closed Set Cells
+              Namespaces:
+                {}
+              Queue Size: 1000
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_02/multi_a_star/close_set
+              Name: MultiA Star Closed Set Cells
+              Namespaces:
+                {}
+              Queue Size: 1000
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: false
+              Marker Topic: /robot_02/stilman_rch/close_set
+              Name: RCH Closed Set Cells
+              Namespaces:
+                {}
+              Queue Size: 1000
+              Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /robot_02/plan
+              Name: p_opt
+              Namespaces:
+                {}
+              Queue Size: 100
+              Value: true
+            - Alpha: 1
+              Autocompute Intensity Bounds: false
+              Class: grid_map_rviz_plugin/GridMap
+              Color: 200; 200; 200
+              Color Layer: elevation
+              Color Transformer: IntensityLayer
+              Enabled: false
+              Height Layer: elevation
+              Height Transformer: Layer
+              History Length: 1
+              Invert Rainbow: false
+              Max Color: 255; 85; 127
+              Max Intensity: 1
+              Min Color: 255; 255; 255
+              Min Intensity: 0
+              Name: Social Costmap
+              Show Grid Lines: true
+              Topic: /robot_02/test/gridmap
+              Unreliable: false
+              Use Rainbow: true
+              Value: false
+            - Alpha: 1
+              Autocompute Intensity Bounds: false
+              Class: grid_map_rviz_plugin/GridMap
+              Color: 200; 200; 200
+              Color Layer: elevation
+              Color Transformer: IntensityLayer
+              Enabled: false
+              Height Layer: elevation
+              Height Transformer: Flat
+              History Length: 1
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Max Intensity: 1
+              Min Color: 0; 0; 0
+              Min Intensity: 0
+              Name: Combined Costmap
+              Show Grid Lines: false
+              Topic: /robot_02/combined_costmap
+              Unreliable: false
+              Use Rainbow: true
+              Value: false
+            - Alpha: 0.400000006
+              Autocompute Intensity Bounds: true
+              Class: grid_map_rviz_plugin/GridMap
+              Color: 200; 200; 200
+              Color Layer: elevation
+              Color Transformer: IntensityLayer
+              Enabled: false
+              Height Layer: elevation
+              Height Transformer: Flat
+              History Length: 1
+              Invert Rainbow: false
+              Max Color: 255; 255; 255
+              Max Intensity: 10
+              Min Color: 0; 0; 0
+              Min Intensity: 0
+              Name: Connected Components Grid
+              Show Grid Lines: true
+              Topic: /robot_02/test/connected_components
+              Unreliable: false
+              Use Rainbow: true
+              Value: false
           Enabled: true
-          Marker Topic: /robot_01/goal
-          Name: Goal
-          Namespaces:
-            /polygon: true
-          Queue Size: 100
-          Value: true
-        - Alpha: 1
-          Class: rviz/Map
-          Color Scheme: costmap
-          Draw Behind: false
-          Enabled: true
-          Name: Robot Costmap
-          Topic: /robot_01/costmap
-          Unreliable: false
-          Use Timestamp: false
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /robot_01/sim
-          Name: Robot Simulated Actions
-          Namespaces:
-            /alg/current_cell: true
-            /blocking_areas/init: true
-            /blocking_areas/target: true
-            /diameter_inflated_polygon/init: true
-            /diameter_inflated_polygon/target: true
-            /intermediate/obstacle/polygon: true
-            /intermediate/robot/polygon: true
-            /target/obstacle/polygon: true
-            /target/robot/polygon: true
-          Queue Size: 100
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: false
-          Marker Topic: /robot_01/sim/world
-          Name: Robot Sim World
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: false
-        - Alpha: 0.699999988
-          Class: rviz/Map
-          Color Scheme: costmap
-          Draw Behind: false
-          Enabled: false
-          Name: Robot Simulated Costmap
-          Topic: /robot_01/robot_sim/costmap
-          Unreliable: false
-          Use Timestamp: false
-          Value: false
-        - Alpha: 1
-          Arrow Length: 0.300000012
-          Axes Length: 0.300000012
-          Axes Radius: 0.00999999978
-          Class: rviz/PoseArray
-          Color: 0; 0; 0
-          Enabled: true
-          Head Length: 0.140000001
-          Head Radius: 0.150000006
-          Name: Eval. Obs. Manip. Poses
-          Shaft Length: 0.230000004
-          Shaft Radius: 0.0700000003
-          Shape: Arrow (3D)
-          Topic: /robot_01/test/obs_manip_poses
-          Unreliable: false
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: false
-          Marker Topic: /robot_01/a_star/close_set_cells
-          Name: A Star Closed Set Cells
-          Namespaces:
-            {}
-          Queue Size: 1000
-          Value: false
-        - Class: rviz/MarkerArray
-          Enabled: false
-          Marker Topic: /robot_01/multi_a_star/close_set
-          Name: MultiA Star Closed Set Cells
-          Namespaces:
-            {}
-          Queue Size: 1000
-          Value: false
-        - Class: rviz/MarkerArray
-          Enabled: false
-          Marker Topic: /robot_01/stilman_rch/close_set
-          Name: RCH Closed Set Cells
-          Namespaces:
-            {}
-          Queue Size: 1000
-          Value: false
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /robot_01/plan
-          Name: p_opt
-          Namespaces:
-            /plan: true
-          Queue Size: 100
-          Value: true
-        - Alpha: 1
-          Autocompute Intensity Bounds: false
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: elevation
-          Color Transformer: IntensityLayer
-          Enabled: false
-          Height Layer: elevation
-          Height Transformer: Layer
-          History Length: 1
-          Invert Rainbow: false
-          Max Color: 255; 85; 127
-          Max Intensity: 1
-          Min Color: 255; 255; 255
-          Min Intensity: 0
-          Name: Social Costmap
-          Show Grid Lines: true
-          Topic: /robot_01/test/gridmap
-          Unreliable: false
-          Use Rainbow: true
-          Value: false
-        - Alpha: 1
-          Autocompute Intensity Bounds: false
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: elevation
-          Color Transformer: IntensityLayer
-          Enabled: false
-          Height Layer: elevation
-          Height Transformer: Flat
-          History Length: 1
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Max Intensity: 1
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: Combined Costmap
-          Show Grid Lines: false
-          Topic: /robot_01/combined_costmap
-          Unreliable: false
-          Use Rainbow: true
-          Value: false
-        - Alpha: 0.400000006
-          Autocompute Intensity Bounds: true
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: elevation
-          Color Transformer: IntensityLayer
-          Enabled: false
-          Height Layer: elevation
-          Height Transformer: Flat
-          History Length: 1
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Max Intensity: 10
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: Connected Components Grid
-          Show Grid Lines: true
-          Topic: /robot_01/test/connected_components
-          Unreliable: false
-          Use Rainbow: true
-          Value: false
+          Name: robot_02
       Enabled: true
-      Name: robot_01
-    - Class: rviz/Group
-      Displays:
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /robot_02/knowledge
-          Name: Robot Knowledge
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /robot_02/goal
-          Name: Goal
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Alpha: 1
-          Class: rviz/Map
-          Color Scheme: costmap
-          Draw Behind: false
-          Enabled: false
-          Name: Robot Costmap
-          Topic: /robot_02/costmap
-          Unreliable: false
-          Use Timestamp: false
-          Value: false
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /robot_02/sim
-          Name: Robot Simulated Actions
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: false
-          Marker Topic: /robot_02/sim/world
-          Name: Robot Sim World
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: false
-        - Alpha: 0.699999988
-          Class: rviz/Map
-          Color Scheme: costmap
-          Draw Behind: false
-          Enabled: false
-          Name: Robot Simulated Costmap
-          Topic: /robot_02/robot_sim/costmap
-          Unreliable: false
-          Use Timestamp: false
-          Value: false
-        - Alpha: 1
-          Arrow Length: 0.300000012
-          Axes Length: 0.300000012
-          Axes Radius: 0.00999999978
-          Class: rviz/PoseArray
-          Color: 0; 0; 0
-          Enabled: true
-          Head Length: 0.140000001
-          Head Radius: 0.150000006
-          Name: Eval. Obs. Manip. Poses
-          Shaft Length: 0.230000004
-          Shaft Radius: 0.0700000003
-          Shape: Arrow (3D)
-          Topic: /robot_02/test/obs_manip_poses
-          Unreliable: false
-          Value: true
-        - Class: rviz/MarkerArray
-          Enabled: false
-          Marker Topic: /robot_02/a_star/close_set_cells
-          Name: A Star Closed Set Cells
-          Namespaces:
-            {}
-          Queue Size: 1000
-          Value: false
-        - Class: rviz/MarkerArray
-          Enabled: false
-          Marker Topic: /robot_02/multi_a_star/close_set
-          Name: MultiA Star Closed Set Cells
-          Namespaces:
-            {}
-          Queue Size: 1000
-          Value: false
-        - Class: rviz/MarkerArray
-          Enabled: false
-          Marker Topic: /robot_02/stilman_rch/close_set
-          Name: RCH Closed Set Cells
-          Namespaces:
-            {}
-          Queue Size: 1000
-          Value: false
-        - Class: rviz/MarkerArray
-          Enabled: true
-          Marker Topic: /robot_02/plan
-          Name: p_opt
-          Namespaces:
-            {}
-          Queue Size: 100
-          Value: true
-        - Alpha: 1
-          Autocompute Intensity Bounds: false
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: elevation
-          Color Transformer: IntensityLayer
-          Enabled: false
-          Height Layer: elevation
-          Height Transformer: Layer
-          History Length: 1
-          Invert Rainbow: false
-          Max Color: 255; 85; 127
-          Max Intensity: 1
-          Min Color: 255; 255; 255
-          Min Intensity: 0
-          Name: Social Costmap
-          Show Grid Lines: true
-          Topic: /robot_02/test/gridmap
-          Unreliable: false
-          Use Rainbow: true
-          Value: false
-        - Alpha: 1
-          Autocompute Intensity Bounds: false
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: elevation
-          Color Transformer: IntensityLayer
-          Enabled: false
-          Height Layer: elevation
-          Height Transformer: Flat
-          History Length: 1
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Max Intensity: 1
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: Combined Costmap
-          Show Grid Lines: false
-          Topic: /robot_02/combined_costmap
-          Unreliable: false
-          Use Rainbow: true
-          Value: false
-        - Alpha: 0.400000006
-          Autocompute Intensity Bounds: true
-          Class: grid_map_rviz_plugin/GridMap
-          Color: 200; 200; 200
-          Color Layer: elevation
-          Color Transformer: IntensityLayer
-          Enabled: false
-          Height Layer: elevation
-          Height Transformer: Flat
-          History Length: 1
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Max Intensity: 10
-          Min Color: 0; 0; 0
-          Min Intensity: 0
-          Name: Connected Components Grid
-          Show Grid Lines: true
-          Topic: /robot_02/test/connected_components
-          Unreliable: false
-          Use Rainbow: true
-          Value: false
-      Enabled: false
-      Name: robot_02
+      Name: Markers
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255
@@ -484,8 +477,8 @@ Visualization Manager:
   Views:
     Current:
       Centre:
-        X: 0
-        Y: 0
+        X: 0.0113636367
+        Y: -0.0454545468
         Z: 0
       Class: rviz_ortho_view_controller/Ortho
       Enable Stereo Rendering:
@@ -502,7 +495,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: none
-      Scale: 171.19519
+      Scale: 88
       Target Frame: <Fixed Frame>
       Value: Ortho (rviz_ortho_view_controller)
     Saved: ~
