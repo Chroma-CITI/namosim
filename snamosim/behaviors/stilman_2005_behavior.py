@@ -142,7 +142,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 # self._q_goal = None
                 # return ba.GoalFailed(self._q_goal)
         else:
-            # If last action was a success, check if plan is valid (at the fixed ohrizon if given)
+            # If last action was a success, check if plan is valid (at the fixed horizon if given)
             all_entities_poses = {uid: entity.pose for uid, entity in self._world.entities.items()}
             all_entities_polygons = {uid: entity.polygon for uid, entity in self._world.entities.items()}
             p_opt_is_valid = self._p_opt.is_valid(
@@ -499,22 +499,15 @@ class Stilman2005Behavior(BaselineBehavior):
             RobotObstacleConfiguration(
                 robot_floating_point_pose=manip_pose,
                 robot_polygon=utils.set_polygon_pose(robot_polygon, robot_pose, manip_pose),
-                # robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(manip_pose, trans_mult, rot_mult),
-                robot_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                    manip_pose, inflated_grid_by_robot_min.res, inflated_grid_by_robot_min.grid_pose, self.rotation_unit_angle
-                ),
+                robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(manip_pose, trans_mult, rot_mult),
                 robot_cell_in_grid=utils.real_to_grid(
                     manip_pose[0], manip_pose[1],
                     res, inflated_grid_by_robot_min.grid_pose
                 ),
                 obstacle_floating_point_pose=obstacle_pose,
                 obstacle_polygon=obstacle_polygon,
-                # obstacle_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
-                #     obstacle_pose, trans_mult, rot_mult
-                # ),
-                obstacle_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                    obstacle_pose, inflated_grid_by_obstacle.res,
-                    inflated_grid_by_obstacle.grid_pose, self.rotation_unit_angle
+                obstacle_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
+                    obstacle_pose, trans_mult, rot_mult
                 ),
                 obstacle_cell_in_grid=utils.real_to_grid(
                     obstacle_pose[0], obstacle_pose[1],
@@ -581,7 +574,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 raw_path = graph_search.reconstruct_path(came_from, transfer_end_configuration)
                 prev_transit_end_configuration, next_transit_start_configuration = self.transit_paths_end_start(
                     transfer_end_configuration, raw_path, transfer_start_to_transit_end_robot_pose,
-                    robot_polygon, robot_pose, inflated_grid_by_robot_max, obstacle_uid
+                    robot_polygon, robot_pose, inflated_grid_by_robot_max, obstacle_uid, trans_mult, rot_mult
                 )
                 tho_m_phys_cost = gscore[transfer_end_configuration] + self.g(
                     transfer_end_configuration.robot.floating_point_pose,
@@ -612,7 +605,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     raw_path = graph_search.reconstruct_path(came_from, best_transfer_end_configuration)
                     prev_transit_end_configuration, next_transit_start_configuration = self.transit_paths_end_start(
                         best_transfer_end_configuration, raw_path, transfer_start_to_transit_end_robot_pose,
-                        robot_polygon, robot_pose, inflated_grid_by_robot_max, obstacle_uid
+                        robot_polygon, robot_pose, inflated_grid_by_robot_max, obstacle_uid, trans_mult, rot_mult
                     )
                     tho_m_phys_cost = gscore[transfer_end_configuration] + self.g(
                         best_transfer_end_configuration.robot.floating_point_pose,
@@ -691,7 +684,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def transit_paths_end_start(self, transfer_end_configuration, raw_path,
                                 transfer_start_to_transit_end_robot_pose, robot_polygon,
-                                robot_pose, inflated_grid_by_robot_max, obstacle_uid):
+                                robot_pose, inflated_grid_by_robot_max, obstacle_uid, trans_mult, rot_mult):
         transfer_path_start_pose = raw_path[0].robot.floating_point_pose
         init_transit_start_pose = transfer_start_to_transit_end_robot_pose[transfer_path_start_pose]
         grab_action = ba.Grab(
@@ -716,7 +709,8 @@ class Stilman2005Behavior(BaselineBehavior):
             transfer_end_configuration.robot.floating_point_pose,
             transfer_end_configuration.robot.polygon,
             inflated_grid_by_robot_max.inflation_radius,
-            inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose, obstacle_uid
+            inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose, obstacle_uid,
+            trans_mult, rot_mult
         )
         return init_transit_start_configuration, next_transit_start_configuration
 
@@ -834,12 +828,8 @@ class Stilman2005Behavior(BaselineBehavior):
                                 return RobotObstacleConfiguration(
                                     robot_floating_point_pose=robot_pose_at_transfer_end,
                                     robot_polygon=robot_transfer_end_poly,
-                                    # robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
-                                    #     robot_transfer_end_pose, trans_mult, rot_mult
-                                    # ),
-                                    robot_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                                        robot_pose_at_transfer_end, inflated_grid_by_robot_max.res,
-                                        inflated_grid_by_robot_max.grid_pose, self.rotation_unit_angle
+                                    robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
+                                        robot_pose_at_transfer_end, trans_mult, rot_mult
                                     ),
                                     robot_cell_in_grid=utils.real_to_grid(
                                         robot_pose_at_transfer_end[0], robot_pose_at_transfer_end[1],
@@ -847,12 +837,8 @@ class Stilman2005Behavior(BaselineBehavior):
                                     ),
                                     obstacle_floating_point_pose=obstacle_pose_at_transfer_end,
                                     obstacle_polygon=obstacle_transfer_end_poly,
-                                    # obstacle_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
-                                    #     obstacle_transfer_end_pose, trans_mult, rot_mult
-                                    # ),
-                                    obstacle_fixed_precision_pose=utils.real_pose_to_grid_pose(
-                                        obstacle_pose_at_transfer_end, inflated_grid_by_robot_max.res,
-                                        inflated_grid_by_robot_max.grid_pose, self.rotation_unit_angle
+                                    obstacle_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
+                                        obstacle_pose_at_transfer_end, trans_mult, rot_mult
                                     ),
                                     obstacle_cell_in_grid=utils.real_to_grid(
                                         obstacle_pose_at_transfer_end[0], obstacle_pose_at_transfer_end[1],
@@ -887,7 +873,7 @@ class Stilman2005Behavior(BaselineBehavior):
         return not robot_dynamically_collides
 
     def get_robot_walk_back_to_next_transit_configuration(self, robot_pose, robot_polygon, robot_max_inflation_radius,
-                                                          res, grid_pose, obstacle_uid):
+                                                          res, grid_pose, obstacle_uid, trans_mult, rot_mult):
         release_action = ba.Release(
             translation_vector=(-1. * (robot_max_inflation_radius + 1.5 * res), 0.),
             entity_uid=obstacle_uid
@@ -895,8 +881,7 @@ class Stilman2005Behavior(BaselineBehavior):
         new_robot_polygon = release_action.apply(robot_polygon, robot_pose)
         new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
         new_cell_in_grid = utils.real_to_grid(new_robot_pose[0], new_robot_pose[1], res, grid_pose)
-        new_fixed_precision_pose = utils.real_pose_to_grid_pose(
-            new_robot_pose, res, grid_pose, self.rotation_unit_angle)
+        new_fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(new_robot_pose, trans_mult, rot_mult)
         return Configuration(
             new_robot_pose, new_robot_polygon, new_cell_in_grid, new_fixed_precision_pose,
             release_action, ba.convert_action(release_action, new_robot_pose)
@@ -1017,15 +1002,11 @@ class Stilman2005Behavior(BaselineBehavior):
                 raise TypeError('action must either be of type NewRotation or NewTranslation')
 
             # First, check whether the new configuration is in close set, if it is, ignore it
-            # robot_fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(
-            #     new_robot_pose, trans_mult, rot_mult)
-            # obstacle_fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(
-            #     new_obstacle_pose, trans_mult, rot_mult)
-            robot_fixed_precision_pose = utils.real_pose_to_grid_pose(
-                new_robot_pose, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose, self.rotation_unit_angle)
-            obstacle_fixed_precision_pose = utils.real_pose_to_grid_pose(
-                new_obstacle_pose, inflated_grid_by_obstacle.res,
-                inflated_grid_by_obstacle.grid_pose, self.rotation_unit_angle
+            robot_fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(
+                new_robot_pose, trans_mult, rot_mult
+            )
+            obstacle_fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(
+                new_obstacle_pose, trans_mult, rot_mult
             )
 
             if (robot_fixed_precision_pose, obstacle_fixed_precision_pose) in close_set:
