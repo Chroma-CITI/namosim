@@ -210,7 +210,22 @@ def arc_bounding_box(point_a, point_b, rot_angle, center, bb_type='minimum_rotat
             point_a[0], point_a[1], point_b[0], point_b[1], point_c[0], point_c[1])
 
         if bb_type is 'minimum_rotated_rectangle':
-            return list(MultiPoint([point_a, point_b, point_c]).minimum_rotated_rectangle.exterior.coords)[0:4]
+            x_b_min_a, y_b_min_a = (point_b[0] - point_a[0]), (point_b[1] - point_a[1])
+            m_ab = y_b_min_a / x_b_min_a
+            b_dc = point_c[1] - m_ab * point_c[0]
+            try:
+                xd = (
+                    (point_c[0] * x_b_min_a + point_c[1] * y_b_min_a - b_dc * y_b_min_a)
+                    / (x_b_min_a + m_ab * y_b_min_a)
+                )
+                yd = xd * m_ab + b_dc
+                point_d = (xd, yd)
+                xe = point_c[0] + point_c[0] - point_d[0]
+                ye = point_c[1] + point_c[1] - point_d[1]
+                point_e = (xe, ye)
+                return [point_a, point_b, point_d, point_e]
+            except Exception as e:
+                return list(MultiPoint([point_a, point_b, point_c]).minimum_rotated_rectangle.exterior.coords)[0:4]
         elif bb_type is 'aabbox':
             minx, miny, maxx, maxy = MultiPoint([point_a, point_b, point_c]).bounds
             return list(Polygon([(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]).exterior.coords)[0:4]
