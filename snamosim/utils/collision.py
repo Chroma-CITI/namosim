@@ -386,11 +386,11 @@ def csv_check_collisions(other_polygons, polygon_sequence, action_sequence, bb_t
             first_half_indexes = indexes[:len(indexes) // 2 + 1]
             second_half_indexes = indexes[len(indexes) // 2:]
             first_half_collides, collision_data, aabb_tree = csv_check_collisions(
-                other_polygons, polygon_sequence, action_sequence,
+                other_polygons, polygon_sequence, action_sequence, aabb_tree=aabb_tree,
                 indexes=first_half_indexes,
                 collision_data=collision_data, display_debug=display_debug)
             second_half_collides, collision_data, aabb_tree = csv_check_collisions(
-                other_polygons, polygon_sequence, action_sequence,
+                other_polygons, polygon_sequence, action_sequence, aabb_tree=aabb_tree,
                 indexes=second_half_indexes,
                 collision_data=collision_data, display_debug=display_debug)
             return (first_half_collides or second_half_collides), collision_data, aabb_tree
