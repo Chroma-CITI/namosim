@@ -1035,24 +1035,9 @@ class Stilman2005Behavior(BaselineBehavior):
             if inflated_grid_by_obstacle.grid[obstacle_cell_in_grid[0]][obstacle_cell_in_grid[1]] != 0:
                 continue
 
-            # Continue at static polygon level, using the aabb tree of other polygons
+            # Continue at static polygon level, check if still in map
             new_robot_polygon = action.apply(
                 current_configuration.robot.polygon, current_configuration.robot.floating_point_pose)
-            if robot_fixed_precision_pose in static_collision_cache[robot_uid]:
-                if static_collision_cache[robot_uid][robot_fixed_precision_pose]:
-                    continue
-            else:
-                new_robot_aabb = collision.polygon_to_aabb(new_robot_polygon)
-                robot_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(new_robot_aabb)
-                robot_statically_collides = False
-                for potential_collision_polygons_uid in robot_potential_collision_polygons_uids:
-                    if new_robot_polygon.intersects(other_entities_polygons[potential_collision_polygons_uid]):
-                        robot_statically_collides = True
-                        break
-                if robot_statically_collides:
-                    static_collision_cache[robot_uid][robot_fixed_precision_pose] = True
-                    continue
-                static_collision_cache[robot_uid][robot_fixed_precision_pose] = False
 
             # Check if robot is still within map bounds
             if not new_robot_polygon.within(inflated_grid_by_robot.aabb_polygon):
@@ -1060,21 +1045,6 @@ class Stilman2005Behavior(BaselineBehavior):
 
             new_obstacle_polygon = action.apply(
                 current_configuration.obstacle.polygon, current_configuration.robot.floating_point_pose)
-            if robot_fixed_precision_pose in static_collision_cache[obstacle_uid]:
-                if static_collision_cache[obstacle_uid][robot_fixed_precision_pose]:
-                    continue
-            else:
-                new_obstacle_aabb = collision.polygon_to_aabb(new_obstacle_polygon)
-                obstacle_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(new_obstacle_aabb)
-                obstacle_statically_collides = False
-                for potential_collision_polygons_uid in obstacle_potential_collision_polygons_uids:
-                    if new_obstacle_polygon.intersects(other_entities_polygons[potential_collision_polygons_uid]):
-                        obstacle_statically_collides = True
-                        break
-                if obstacle_statically_collides:
-                    static_collision_cache[obstacle_uid][robot_fixed_precision_pose] = True
-                    continue
-                static_collision_cache[obstacle_uid][robot_fixed_precision_pose] = False
 
             # Check if obstacle is still within map bounds
             if not new_obstacle_polygon.within(inflated_grid_by_obstacle.aabb_polygon):
