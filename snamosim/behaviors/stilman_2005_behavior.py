@@ -12,6 +12,7 @@ from baseline_behavior import BaselineBehavior
 from snamosim.behaviors.algorithms import graph_search
 from snamosim.utils import utils
 from snamosim.worldreps.entity_based.obstacle import Obstacle
+from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.behaviors.algorithms.new_local_opening_check import check_new_local_opening
 import plan.basic_actions as ba
 import plan.action_result as ar
@@ -88,6 +89,8 @@ class Stilman2005Behavior(BaselineBehavior):
         self.max_nb_steps_to_wait = 100
         self.wait_steps = 0
 
+        self.grabbed_obstacles = set()
+
     def are_all_goals_finished(self):
         return not self._navigation_goals and self._q_goal is None
 
@@ -100,6 +103,13 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def think(self):
         # TODO Try to rewrite this more cleanly
+        if isinstance(self._last_action_result, ar.ActionSuccess):
+            if isinstance(self._last_action_result.action, ba.Grab):
+                self.grabbed_obstacles.add(self._last_action_result.action.entity_uid)
+            elif isinstance(self._last_action_result.action, ba.Release):
+                if self._last_action_result.action.entity_uid in self.grabbed_obstacles:
+                    self.grabbed_obstacles.remove(self._last_action_result.action.entity_uid)
+
         if self.are_all_goals_finished():
             # Exit early if there are no goals for the behavior to reach
             logging.info(
@@ -155,12 +165,40 @@ class Stilman2005Behavior(BaselineBehavior):
         if replan:
             static_obs_polygons = {
                 uid: entity.polygon for uid, entity in self._world.entities.items()
-                if isinstance(entity, Obstacle) and self._robot.deduce_movability(entity.type) == "unmovable"
+                if (isinstance(entity, Robot) and entity.uid != self._robot_uid)
+                   or (isinstance(entity, Obstacle) and self._robot.deduce_movability(entity.type) == "unmovable")
             }
             robot_max_inflation_radius = utils.get_circumscribed_radius(self._robot.polygon)
             static_obs_inf_grid = BinaryInflatedOccupancyGrid(
                 static_obs_polygons, self._world.dd.res, robot_max_inflation_radius, neighborhood=self.neighborhood
             )
+
+            if self.grabbed_obstacles:
+                self._p_opt = Plan([], self._q_goal, self._robot_uid)
+
+                other_entities_polygons = {
+                    uid: e.polygon for uid, e in self._world.entities.items() if e.uid != self._robot.uid
+                }
+                other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
+                inflated_grid_by_robot_max = BinaryInflatedOccupancyGrid(
+                    other_entities_polygons, self._world.dd.res, robot_max_inflation_radius, self.neighborhood,
+                    static_obs_inf_grid.params
+                )
+
+                can_release = self.can_robot_walk_back_to_next_transit_pose(
+                    inflated_grid_by_robot_max, self._robot.pose, self._robot.polygon,
+                    other_entities_polygons, other_entities_aabb_tree
+                )
+                if can_release:
+                    obstacle_uid = self.grabbed_obstacles.pop()
+                    new_configuration = self.get_robot_walk_back_to_next_transit_configuration(
+                        self._robot.pose, self._robot.polygon, robot_max_inflation_radius,
+                        self._world.dd.res, inflated_grid_by_robot_max.grid_pose, obstacle_uid, 0.01, 1.
+                    )
+                    return new_configuration.action
+                else:
+                    return ba.GoalFailed(self._q_goal)
+
 
             if self.use_social_cost and self._social_costmap is None:
                 static_obs_grid = BinaryOccupancyGrid(
@@ -633,6 +671,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
         self._rp.cleanup_robot_sim(ns=self._robot_name)
+        self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
 
         return w_t_plus_2, tho_m
 
@@ -1448,14 +1487,16 @@ class Path:
         if self.is_empty():
             return True
 
-        if not other_entities_aabb_tree:
-            other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
-
-        if check_horizon:
+        if check_horizon is None:
+            indexes = self.indexes
+        elif check_horizon == 0:
+            return True
+        else:
             horizon_limited_indexes = self.indexes[:check_horizon]
             indexes = (horizon_limited_indexes + [horizon_limited_indexes[-1] + 1])
-        else:
-            indexes = self.indexes
+
+        if not other_entities_aabb_tree:
+            other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
 
         path_dynamically_collides, _, _ = collision.csv_check_collisions(
             other_polygons=other_entities_polygons,
@@ -1463,7 +1504,7 @@ class Path:
             action_sequence=self.collision_actions, bb_type='minimum_rotated_rectangle',
             aabb_tree=other_entities_aabb_tree,
             indexes=indexes, collision_data=self.collision_data,
-            display_debug=True
+            display_debug=False
         )
 
         return not path_dynamically_collides
@@ -1635,9 +1676,10 @@ class TransitPath:
         other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
 
         if check_horizon is not None:
-            if check_horizon:
+            if check_horizon and self.robot_path.indexes:
                 buffered_collision_polygon = self._get_buffered_collision_polygon(
-                    self.robot_path.poses[:check_horizon], self.robot_circumscribed_radius
+                    [self.robot_path.poses[index] for index in self.robot_path.indexes[:check_horizon]],
+                    self.robot_circumscribed_radius
                 )
                 buffered_collision_aabb = collision.polygon_to_aabb(buffered_collision_polygon)
                 potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(buffered_collision_aabb)
