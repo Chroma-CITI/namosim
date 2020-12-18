@@ -110,7 +110,8 @@ def init_ccs_for_grid(grid, width, height, neighborhood=utils.TAXI_NEIGHBORHOOD)
 #     return ccs, ccs_grid, current_uid
 
 
-def update_ccs_and_grid(ccs, current_uid, grid, width, height, neighborhood=utils.TAXI_NEIGHBORHOOD):
+def update_ccs_and_grid(current_ccs_data, grid, width, height, neighborhood=utils.TAXI_NEIGHBORHOOD):
+    ccs, current_uid = current_ccs_data.ccs, current_ccs_data.current_uid
     free_cells = set(zip(*np.where(grid == 0)))
 
     new_ccs = {}
@@ -120,18 +121,20 @@ def update_ccs_and_grid(ccs, current_uid, grid, width, height, neighborhood=util
         root_cell = free_cells.pop()
 
         new_cc = bfs_init(grid, width, height, root_cell, neighborhood)
-        new_cc_is_not_new = True
+        new_cc_is_actually_new = True
 
-        for cc_uid, cc in ccs.items():
+        potentially_same_ccs = {cc_uid: cc for cc_uid, cc in ccs.items() if len(cc.visited) == len(new_cc.visited)}
+
+        for cc_uid, cc in potentially_same_ccs.items():
             if new_cc.visited == cc.visited:
                 free_cells.difference_update(cc.visited)
                 new_ccs[cc_uid] = cc
                 for cell in cc.visited:
                     new_ccs_grid[cell[0]][cell[1]] = cc_uid
-                new_cc_is_not_new = False
-            break
+                new_cc_is_actually_new = False
+                break
 
-        if new_cc_is_not_new:
+        if new_cc_is_actually_new:
             current_uid += 1
             new_ccs[current_uid] = new_cc
             free_cells.difference_update(new_cc.visited)
