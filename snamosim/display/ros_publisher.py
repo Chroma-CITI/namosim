@@ -39,6 +39,8 @@ class NamespaceCache:
         self.cells_to_path_marker = dict()
         self.cells_path_marker_current_id = 1
         self.manip_search_neighbors_markers_p_ids = []
+        self.current_fixed_robot_pose_to_marker = dict()
+        self.current_fixed_robot_pose_marker_current_id = 1
 
 
 class RosPublisher(with_metaclass(Singleton)):
@@ -451,7 +453,7 @@ class RosPublisher(with_metaclass(Singleton)):
 
             manip_poses_ids = [c.manip_pose_id for c in start_confs.keys()]
 
-            arrow_length, shaft_diameter, head_diameter, head_length = res / 1.5, res / 5., res / 2.5, res / 5.
+            arrow_length, shaft_diameter, head_diameter, head_length = res / 1.5, res / 10., res / 5., res / 5.
             manip_pose_id_to_color = dict(zip(
                 manip_poses_ids, colors.generate_equally_spread_ros_colors(len(manip_poses_ids))
             ))
@@ -500,27 +502,27 @@ class RosPublisher(with_metaclass(Singleton)):
                     ))
             self.namespaces_caches[ns].manip_search_neighbors_markers_p_ids = neighbor_markers_ids
 
-            # # Publish close_set
-            # obstacle_id_to_color = dict(zip(
-            #     traversed_obstacles_ids, colors.generate_equally_spread_ros_colors(len(traversed_obstacles_ids))
-            # ))
-            # color = obstacle_id_to_color[current.first_obstacle_uid]
-            #
-            # if current.cell in self.namespaces_caches[ns].current_cell_to_marker:
-            #     original_marker = self.namespaces_caches[ns].current_cell_to_marker[current.cell]
-            #     blended_color = colors.blend_colors(original_marker.color, color)
-            #     original_marker.color = blended_color
-            #     close_set_marker = original_marker
-            # else:
-            #     _id = self.namespaces_caches[ns].current_cell_marker_current_id
-            #     close_set_marker = conv.grid_cell_to_cube_marker(
-            #         current.cell, res, grid_pose, color, _id, z_index=0.8, ns="/manip_search_close_set"
-            #     )
-            #     self.namespaces_caches[ns].current_cell_to_marker[current.cell] = close_set_marker
-            #     self.namespaces_caches[ns].current_cell_marker_current_id += 1
-            #
-            # marker_array.markers.append(close_set_marker)
-            #
+            # Publish close_set
+            color = manip_pose_id_to_color[current.manip_pose_id]
+            if current.robot.fixed_precision_pose in self.namespaces_caches[ns].current_fixed_robot_pose_to_marker:
+                original_marker = self.namespaces_caches[ns].current_fixed_robot_pose_to_marker[
+                    current.robot.fixed_precision_pose
+                ]
+                blended_color = colors.blend_colors(original_marker.color, color)
+                original_marker.color = blended_color
+                close_set_marker = original_marker
+            else:
+                _id = self.namespaces_caches[ns].current_fixed_robot_pose_marker_current_id
+                close_set_marker = copy.deepcopy(current_robot_pose_marker)
+                close_set_marker.ns = "/manip_search/close_set"
+                close_set_marker.id = _id
+                close_set_marker.color = color
+                self.namespaces_caches[ns].current_fixed_robot_pose_to_marker[
+                    current.robot.fixed_precision_pose] = close_set_marker
+                self.namespaces_caches[ns].current_fixed_robot_pose_marker_current_id += 1
+
+            marker_array.markers.append(close_set_marker)
+
             # # Publish open_heap
             # # TODO
             #
