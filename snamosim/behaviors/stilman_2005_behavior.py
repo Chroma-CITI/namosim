@@ -40,7 +40,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.transfer_coefficient = 2.  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
         self.angular_res = parameters["collision_check_angular_res"]
-        self.rotation_unit_angle = parameters["robot_rotation_unit_angle"]
+        self.rotation_unit_angle = 60. #parameters["robot_rotation_unit_angle"]
         self.translation_unit_length = parameters["robot_translation_unit_length"]
         self.forbid_rotations = parameters["forbid_rotations"]
         self.translation_factor = self.translation_unit_cost / self.translation_unit_length
@@ -229,7 +229,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
         else:
             ccs_data = connectivity.update_ccs_and_grid(
-                ccs_data.ccs, ccs_data.current_uid, inflated_grid_by_robot.grid, inflated_grid_by_robot.d_width,
+                ccs_data, inflated_grid_by_robot.grid, inflated_grid_by_robot.d_width,
                 inflated_grid_by_robot.d_height, neighborhood
             )
         connected_components_grid = ccs_data.ccs_grid
@@ -560,10 +560,11 @@ class Stilman2005Behavior(BaselineBehavior):
             # 2. If a best obstacle transfer end configuration has been found, use A Star to find a path toward it
             path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.a_star_for_manip_search(
                 transfer_start_configurations, best_transfer_end_configuration,
-                robot_uid, obstacle_uid, other_entities_polygons, other_entities_aabb_tree,
-                inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle,
+                robot_uid, robot_cell, robot_name, obstacle_uid, obstacle_polygon, other_entities_polygons, other_entities_aabb_tree,
+                inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
                 trans_mult, rot_mult, static_collision_cache,
-                sorted_cell_to_combined_cost, bound_quantile, b2_sim
+                sorted_cell_to_combined_cost, bound_quantile, b2_sim, check_new_local_opening_before_global,
+                goal_pose, goal_cell
             )
             if path_found:
                 # 3. If a path is found, return it
@@ -636,13 +637,14 @@ class Stilman2005Behavior(BaselineBehavior):
         return w_t_plus_2, tho_m
 
     def a_star_for_manip_search(self, start, goal,
-                                robot_uid, obstacle_uid,
+                                robot_uid, robot_cell, robot_name, obstacle_uid, obstacle_polygon,
                                 other_entities_polygons, other_entities_aabb_tree,
                                 inflated_grid_by_robot, inflated_grid_by_robot_max,
-                                inflated_grid_by_obstacle,
+                                inflated_grid_by_obstacle, c_1_cells_set,
                                 trans_mult, rot_mult,
                                 static_collision_cache,
-                                sorted_cell_to_combined_cost, bound_quantile, b2_sim):
+                                sorted_cell_to_combined_cost, bound_quantile, b2_sim,
+                                check_new_local_opening_before_global, overall_goal_pose, overall_goal_cell):
 
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
             return self.manip_search_get_neighbors(
@@ -671,12 +673,27 @@ class Stilman2005Behavior(BaselineBehavior):
                 return False
 
             current_cell_cc_within_bound = sorted_cell_to_combined_cost[_current.obstacle.cell_in_grid] < bound_quantile
-            can_robot_walk_back = self.can_robot_walk_back_to_next_transit_pose(
-                inflated_grid_by_robot_max,
-                _current.robot.floating_point_pose, _current.robot.polygon,
-                other_entities_polygons, other_entities_aabb_tree
-            )
-            return current_cell_cc_within_bound and can_robot_walk_back
+
+            if current_cell_cc_within_bound:
+                can_walk_back, robot_cell_after = self.can_robot_walk_back_to_next_transit_pose(
+                    inflated_grid_by_robot_max, _current.robot.floating_point_pose,
+                    _current.robot.polygon, other_entities_polygons, other_entities_aabb_tree
+                )
+                if can_walk_back:
+                    #   3. ... and creates a global opening to c1
+                    has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
+                        check_new_local_opening_before_global,
+                        robot_name, robot_cell_after,
+                        obstacle_uid, obstacle_polygon, _current.obstacle.polygon,
+                        other_entities_polygons, other_entities_aabb_tree,
+                        inflated_grid_by_robot_max, c_1_cells_set,
+                        overall_goal_pose, overall_goal_cell,
+                        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                        init_blocking_areas=None, init_entity_inflated_polygon=None
+                    )
+                    if has_new_global_opening:
+                        return True
+            return False
 
         return graph_search.new_generic_a_star(
             start, goal, exit_condition=flexible_exit_condition, get_neighbors=get_neighbors, heuristic=heuristic
@@ -740,7 +757,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     )
                     for configuration in possible_configurations:
                         #   2. ... allows sufficient space for the robot to release the object, ...
-                        can_walk_back = self.can_robot_walk_back_to_next_transit_pose(
+                        can_walk_back, robot_cell_after = self.can_robot_walk_back_to_next_transit_pose(
                             inflated_grid_by_robot_max, configuration.robot.floating_point_pose,
                             configuration.robot.polygon, other_entities_polygons, other_entities_aabb_tree
                         )
@@ -748,7 +765,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             #   3. ... and creates a global opening to c1
                             has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
                                 check_new_local_opening_before_global,
-                                robot_name, robot_cell,
+                                robot_name, robot_cell_after,
                                 obstacle_uid, obstacle_polygon, configuration.obstacle.polygon,
                                 other_entities_polygons, other_entities_aabb_tree,
                                 inflated_grid_by_robot_max, c_1_cells_set,
@@ -809,7 +826,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             continue
 
                         #   2. ... the configuration allows sufficient space for the robot to release the object, ...
-                        can_walk_back = self.can_robot_walk_back_to_next_transit_pose(
+                        can_walk_back, robot_cell_after = self.can_robot_walk_back_to_next_transit_pose(
                             inflated_grid_by_robot_max, robot_pose_at_transfer_end,
                             robot_transfer_end_poly, other_entities_polygons, other_entities_aabb_tree
                         )
@@ -817,7 +834,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             #   3. ... and creates a global opening to c1
                             has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
                                 check_new_local_opening_before_global,
-                                robot_name, robot_cell,
+                                robot_name, robot_cell_after,
                                 obstacle_uid, obstacle_polygon, obstacle_transfer_end_poly,
                                 other_entities_polygons, other_entities_aabb_tree,
                                 inflated_grid_by_robot_max, c_1_cells_set,
@@ -860,7 +877,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if inflated_grid_by_robot_max.grid[new_cell_in_grid[0]][new_cell_in_grid[1]] > 0:
             # If the robot cell after release is in an obstacle in the grid, return False
-            return False
+            return False, new_cell_in_grid
 
         new_robot_polygon = release_translation.apply(robot_polygon, robot_pose)
         robot_dynamically_collides, _, _ = collision.csv_check_collisions(
@@ -870,7 +887,7 @@ class Stilman2005Behavior(BaselineBehavior):
             aabb_tree=other_entities_aabb_tree, display_debug=False
         )
 
-        return not robot_dynamically_collides
+        return not robot_dynamically_collides, new_cell_in_grid
 
     def get_robot_walk_back_to_next_transit_configuration(self, robot_pose, robot_polygon, robot_max_inflation_radius,
                                                           res, grid_pose, obstacle_uid, trans_mult, rot_mult):
