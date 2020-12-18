@@ -1485,8 +1485,11 @@ class Path:
     def is_path_at_last(self):
         return len(self.indexes) == 1
 
-    def is_start_pose(self, pose):
-        return pose == self.poses[0]
+    # TODO Have these trans and rot precision values be passed from calling functions !
+    def is_start_pose(self, pose, trans_mult=0.01, rot_mult=1.):
+        fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(pose, trans_mult, rot_mult)
+        fixed_precision_self_pose = utils.real_pose_to_fixed_precision_pose(self.poses[0], trans_mult, rot_mult)
+        return fixed_precision_pose == fixed_precision_self_pose
 
     def get_length(self):
         return len(self.indexes)
@@ -1554,8 +1557,8 @@ class TransferPath:
     def is_empty(self):
         return self.robot_path.is_empty()
 
-    def is_valid(self, obstacle_pose, other_entities_polygons, check_horizon=None):
-        if not self.robot_path.is_path_started():
+    def is_valid(self, obstacle_pose, other_entities_polygons, check_horizon=None, check_start_pose=True):
+        if check_start_pose and not self.robot_path.is_path_started():
             obstacle_at_start_pose = self.obstacle_path.is_start_pose(obstacle_pose)
         else:
             obstacle_at_start_pose = True
@@ -1721,25 +1724,29 @@ class Plan:
 
         if check_horizon:
             shared_horizon = check_horizon
-            for path in self.path_components:
+            for counter, path in enumerate(self.path_components):
                 if shared_horizon > 0:
+                    previously_moved_entities_uids = {
+                        p.obstacle_uid for p in self.path_components[:counter] if isinstance(p, TransferPath)
+                    }
+
                     if isinstance(path, TransitPath):
-                        current_component = self.path_components[0]
-                        current_component_obstacle_uid = (
-                            None if isinstance(current_component, TransitPath) else current_component.obstacle_uid
-                        )
                         other_entities_polygons = {
                             uid: p for uid, p in all_entities_polygons.items()
-                            if uid != self.robot_uid and uid != current_component_obstacle_uid
+                            if uid != self.robot_uid and uid not in previously_moved_entities_uids
                         }
-                        valid_path = path.is_valid(other_entities_polygons, shared_horizon)
+                        valid_path = path.is_valid(other_entities_polygons, check_horizon=shared_horizon)
                     elif isinstance(path, TransferPath):
                         other_entities_polygons = {
                             uid: p for uid, p in all_entities_polygons.items()
-                            if uid != self.robot_uid and uid != path.obstacle_uid
+                            if uid != self.robot_uid and uid != path.obstacle_uid and uid not in previously_moved_entities_uids
                         }
                         obstacle_pose = all_entities_poses[path.obstacle_uid]
-                        valid_path = path.is_valid(obstacle_pose, other_entities_polygons, shared_horizon)
+                        check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
+                        valid_path = path.is_valid(
+                            obstacle_pose, other_entities_polygons,
+                            check_horizon=shared_horizon, check_start_pose=check_start_pose
+                        )
                     else:
                         raise TypeError('Expected TransitPath or TransferPath instance.')
                     if not valid_path:
@@ -1748,15 +1755,15 @@ class Plan:
                 else:
                     break
         else:
-            for path in self.path_components:
+            for counter, path in enumerate(self.path_components):
+                previously_moved_entities_uids = {
+                    p.obstacle_uid for p in self.path_components[:counter] if isinstance(p, TransferPath)
+                }
+
                 if isinstance(path, TransitPath):
-                    current_component = self.path_components[0]
-                    current_component_obstacle_uid = (
-                        None if isinstance(current_component, TransitPath) else current_component.obstacle_uid
-                    )
                     other_entities_polygons = {
                         uid: p for uid, p in all_entities_polygons.items()
-                        if uid != self.robot_uid and uid != current_component_obstacle_uid
+                        if uid != self.robot_uid and uid not in previously_moved_entities_uids
                     }
                     valid_path = path.is_valid(other_entities_polygons)
                 elif isinstance(path, TransferPath):
@@ -1765,7 +1772,10 @@ class Plan:
                         if uid != self.robot_uid or uid != path.obstacle_uid
                     }
                     obstacle_pose = all_entities_poses[path.obstacle_uid]
-                    valid_path = path.is_valid(obstacle_pose, other_entities_polygons)
+                    check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
+                    valid_path = path.is_valid(
+                        obstacle_pose, other_entities_polygons, check_start_pose=check_start_pose
+                    )
                 else:
                     raise TypeError('Expected TransitPath or TransferPath instance.')
                 if not valid_path:
