@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Markers1
+        - /Markers1/robot_011
       Splitter Ratio: 0.606060624
     Tree Height: 769
   - Class: rviz/Selection
@@ -59,7 +60,8 @@ Visualization Manager:
               Marker Topic: /simulation/knowledge
               Name: Simulator Knowledge
               Namespaces:
-                {}
+                /obstacles/polygon: true
+                /robot/polygon: true
               Queue Size: 100
               Value: true
             - Alpha: 0.5
@@ -131,7 +133,7 @@ Visualization Manager:
               Marker Topic: /robot_01/goal
               Name: Goal
               Namespaces:
-                {}
+                /polygon: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -149,7 +151,22 @@ Visualization Manager:
               Marker Topic: /robot_01/sim
               Name: Robot Simulated Actions
               Namespaces:
-                {}
+                /blocking_areas/init: true
+                /blocking_areas/target: true
+                /diameter_inflated_polygon/init: true
+                /diameter_inflated_polygon/target: true
+                /manip_search/close_set: true
+                /manip_search/current/obstacle/polygon: true
+                /manip_search/current/obstacle/pose: true
+                /manip_search/current/robot/polygon: true
+                /manip_search/current/robot/pose: true
+                /manip_search_neighbors: true
+                /rch_came_from: true
+                /rch_close_set: true
+                /rch_current_cell: true
+                /rch_current_cell_neighbors: true
+                /target/obstacle/polygon: true
+                /target/robot/polygon: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -215,7 +232,7 @@ Visualization Manager:
               Marker Topic: /robot_01/plan
               Name: p_opt
               Namespaces:
-                {}
+                /plan: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -298,7 +315,7 @@ Visualization Manager:
               Marker Topic: /robot_02/goal
               Name: Goal
               Namespaces:
-                {}
+                /polygon: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -316,7 +333,22 @@ Visualization Manager:
               Marker Topic: /robot_02/sim
               Name: Robot Simulated Actions
               Namespaces:
-                {}
+                /blocking_areas/init: true
+                /blocking_areas/target: true
+                /diameter_inflated_polygon/init: true
+                /diameter_inflated_polygon/target: true
+                /manip_search/close_set: true
+                /manip_search/current/obstacle/polygon: true
+                /manip_search/current/obstacle/pose: true
+                /manip_search/current/robot/polygon: true
+                /manip_search/current/robot/pose: true
+                /manip_search_neighbors: true
+                /rch_came_from: true
+                /rch_close_set: true
+                /rch_current_cell: true
+                /rch_current_cell_neighbors: true
+                /target/obstacle/polygon: true
+                /target/robot/polygon: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -382,7 +414,7 @@ Visualization Manager:
               Marker Topic: /robot_02/plan
               Name: p_opt
               Namespaces:
-                {}
+                /plan: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -477,8 +509,8 @@ Visualization Manager:
   Views:
     Current:
       Centre:
-        X: 0.0113636367
-        Y: -0.0454545468
+        X: -3.46103621
+        Y: -3.02323151
         Z: 0
       Class: rviz_ortho_view_controller/Ortho
       Enable Stereo Rendering:
@@ -495,7 +527,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: none
-      Scale: 88
+      Scale: 295.937653
       Target Frame: <Fixed Frame>
       Value: Ortho (rviz_ortho_view_controller)
     Saved: ~
