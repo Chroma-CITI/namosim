@@ -395,10 +395,13 @@ class RosPublisher(with_metaclass(Singleton)):
             marker_array.markers.append(neighbors_marker)
 
             # Publish close_set
-            obstacle_id_to_color = dict(zip(
-                traversed_obstacles_ids, colors.generate_equally_spread_ros_colors(len(traversed_obstacles_ids))
-            ))
-            color = obstacle_id_to_color[current.first_obstacle_uid]
+            if traversed_obstacles_ids:
+                obstacle_id_to_color = dict(zip(
+                    traversed_obstacles_ids, colors.generate_equally_spread_ros_colors(len(traversed_obstacles_ids))
+                ))
+                color = obstacle_id_to_color[current.first_obstacle_uid]
+            else:
+                color = colors.generate_equally_spread_ros_colors(1)[0]
 
             if current.cell in self.namespaces_caches[ns].current_cell_to_marker:
                 original_marker = self.namespaces_caches[ns].current_cell_to_marker[current.cell]
