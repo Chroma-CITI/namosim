@@ -105,7 +105,7 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
     elif isinstance(start, dict):
         gscore = {element: cost for element, cost in start.items()}
         for element, cost in start.items():
-            open_queue.push(heuristic(element, goal), element)
+            open_queue.push(cost + heuristic(element, goal), element)
     else:
         gscore = {start: 0.}
         open_queue.push(heuristic(start, goal), start)
@@ -255,12 +255,22 @@ def real_to_grid_search_a_star(start_pose, goal_pose, grid):
 
 
 def new_generic_dijkstra(start, goal, exit_condition, get_neighbors):
-    close_set = {start}
     came_from = dict()
-    gscore = {start: 0.}
     open_queue = PriorityQueue()
-    open_queue.push(0., start)
     current = None
+    close_set = set()
+
+    if isinstance(start, list) or isinstance(start, set):
+        gscore = {element: 0. for element in start}
+        for element in start:
+            open_queue.push(0., element)
+    elif isinstance(start, dict):
+        gscore = {element: cost for element, cost in start.items()}
+        for element, cost in start.items():
+            open_queue.push(cost, element)
+    else:
+        gscore = {start: 0.}
+        open_queue.push(0., start)
 
     while open_queue:
         # The first node in open_queue
@@ -271,7 +281,10 @@ def new_generic_dijkstra(start, goal, exit_condition, get_neighbors):
             return True, current, came_from, close_set, gscore, open_queue
 
         # Add current to the close set to prevent unneeded future re-evaluation
-        close_set.add(current)
+        if current in close_set:
+            continue
+        else:
+            close_set.add(current)
 
         # For each neighbor of current node in the defined neighborhood
         neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set, open_queue, came_from)
