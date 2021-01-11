@@ -470,8 +470,147 @@ class Stilman2005Behavior(BaselineBehavior):
         else:
             return 0, 0
 
-    def manip_search(self, w_t, o_1, ccs_data, c_1_cells_set, r_f, check_new_local_opening_before_global=True):
-        raise NotImplementedError()
+    def manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True, use_b2=True):
+        # Initialize manip search simulation world and some shortcut variables
+        w_t_plus_2 = copy.deepcopy(w_t)
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
+
+        res = w_t_plus_2.dd.res
+
+        other_entities = [entity for entity in w_t_plus_2.entities.values()
+                          if entity.uid != self._robot.uid and entity.uid != o_1]
+        other_entities_polygons = {entity.uid: entity.polygon for entity in other_entities}
+        other_entities_aabb_tree = collision.AABBTree()
+        for index, polygon in other_entities_polygons.items():
+            other_entities_aabb_tree.add(collision.polygon_to_aabb(polygon), index)
+
+        robot = w_t_plus_2.entities[self._robot.uid]
+        robot_uid, robot_pose, robot_polygon, robot_name = robot.uid, robot.pose, robot.polygon, robot.name
+        robot_min_inflation_radius = utils.get_inscribed_radius(robot_polygon)
+        robot_max_inflation_radius = utils.get_circumscribed_radius(robot_polygon)
+
+        obstacle = w_t_plus_2.entities[o_1]
+        obstacle_uid, obstacle_pose, obstacle_polygon = obstacle.uid, obstacle.pose, obstacle.polygon
+        obstacle_min_inflation_radius = utils.get_inscribed_radius(obstacle_polygon)
+
+        # CAREFUL : We inflate by inscribed radius MINUS sqrt(2)*res to make sure occupied cells are really where the
+        # entity's center should NEVER be to avoid collisions.
+        # Poses in free cells of this grid may sometimes be colliding.
+        inflated_grid_by_robot_min = BinaryInflatedOccupancyGrid(
+            other_entities_polygons, res, robot_min_inflation_radius - utils.SQRT_OF_2 * res,
+            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+        )
+        inflated_grid_by_robot_max = BinaryInflatedOccupancyGrid(
+            other_entities_polygons, res, robot_max_inflation_radius,
+            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=inflated_grid_by_robot_min.params
+        )
+        inflated_grid_by_obstacle = BinaryInflatedOccupancyGrid(
+            other_entities_polygons, res, obstacle_min_inflation_radius - utils.SQRT_OF_2 * res,
+            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=inflated_grid_by_robot_min.params
+        )
+
+        robot_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], res, inflated_grid_by_robot_min.grid_pose)
+        goal_pose, goal_cell = r_f, utils.real_to_grid(r_f[0], r_f[1], res, inflated_grid_by_robot_min.grid_pose)
+
+        trans_mult = 1. / res * 10.
+        rot_mult = 1.
+
+        static_collision_cache = {robot_uid: {}, obstacle_uid: {}}
+
+        # Get accessible sampled navigation points around obstacle and paths to them
+        transit_end_robot_poses, transfer_start_robot_poses = self.get_transit_end_and_transfer_start_poses(
+            obstacle_polygon, robot_max_inflation_radius, r_acc_cells_set, res, inflated_grid_by_robot_min.grid_pose
+        )
+
+        if not transfer_start_robot_poses:
+            # If there are no attainable manipulation configurations, exit early
+            return w_t_plus_2, None
+
+        transfer_start_to_transit_end_robot_pose = {
+            manip_pose: nav_pose for nav_pose, manip_pose in zip(transit_end_robot_poses, transfer_start_robot_poses)
+        }
+
+        transfer_start_configurations = {
+            RobotObstacleConfiguration(
+                robot_floating_point_pose=manip_pose,
+                robot_polygon=utils.set_polygon_pose(robot_polygon, robot_pose, manip_pose),
+                robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(manip_pose, trans_mult, rot_mult),
+                robot_cell_in_grid=utils.real_to_grid(
+                    manip_pose[0], manip_pose[1],
+                    res, inflated_grid_by_robot_min.grid_pose
+                ),
+                obstacle_floating_point_pose=obstacle_pose,
+                obstacle_polygon=obstacle_polygon,
+                obstacle_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
+                    obstacle_pose, trans_mult, rot_mult
+                ),
+                obstacle_cell_in_grid=utils.real_to_grid(
+                    obstacle_pose[0], obstacle_pose[1],
+                    res, inflated_grid_by_obstacle.grid_pose
+                ),
+                manip_pose_id=manip_pose_id
+            ): self.g(nav_pose, manip_pose, is_transfer=True)
+            for manip_pose_id, (manip_pose, nav_pose) in enumerate(transfer_start_to_transit_end_robot_pose.items())
+        }
+
+        if use_b2:
+            other_entities_poses = {
+                uid: entity.pose
+                for uid, entity in w_t_plus_2.entities.items() if uid != robot_uid and uid != obstacle_uid
+            }
+            robot_polygons = {c.manip_pose_id: c.robot.polygon for c in transfer_start_configurations.keys()}
+            robot_poses = {
+                c.manip_pose_id: c.robot.floating_point_pose for c in transfer_start_configurations.keys()
+            }
+            b2_sim = b2_collision.B2Sim(
+                other_entities_polygons, other_entities_poses, obstacle_polygon, obstacle_pose,
+                robot_polygons, robot_poses, robot_uid, obstacle_uid
+            )
+        else:
+            b2_sim = None
+
+        # Use Dijkstra algorithm to compute a transfer path that allows for an opening to be created
+        path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.dijkstra_for_manip_search(
+            transfer_start_configurations, robot_uid, robot_name, obstacle_uid, obstacle_polygon,
+            other_entities_polygons, other_entities_aabb_tree,
+            inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
+            trans_mult, rot_mult, static_collision_cache, b2_sim, check_new_local_opening_before_global,
+            goal_pose, goal_cell
+        )
+        if path_found:
+            self._rp.publish_sim(
+                transfer_end_configuration.robot.polygon, transfer_end_configuration.obstacle.polygon,
+                "/target", ns=self._robot_name
+            )
+            raw_path = graph_search.reconstruct_path(came_from, transfer_end_configuration)
+            prev_transit_end_configuration, next_transit_start_configuration = self.transit_paths_end_start(
+                transfer_end_configuration, raw_path, transfer_start_to_transit_end_robot_pose,
+                robot_polygon, robot_pose, inflated_grid_by_robot_max, obstacle_uid, trans_mult, rot_mult
+            )
+            tho_m_phys_cost = gscore[transfer_end_configuration] + self.g(
+                transfer_end_configuration.robot.floating_point_pose,
+                next_transit_start_configuration.floating_point_pose,
+                is_transfer=True
+            )
+            tho_m = TransferPath.from_configurations(
+                prev_transit_end_configuration, next_transit_start_configuration,
+                raw_path, obstacle_uid, tho_m_phys_cost
+            )
+        else:
+            # If after exhausting all possible configurations, none opens a path to the connected component,
+            # return None
+            tho_m = None
+
+        # Don't forget to update w_t_plus_2 with transfer end state
+        if tho_m:
+            robot.pose, robot.polygon = tho_m.robot_path.poses[-1], tho_m.robot_path.polygons[-1]
+            obstacle.pose, obstacle.polygon = tho_m.obstacle_path.poses[-1], tho_m.obstacle_path.polygons[-1]
+
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
+        self._rp.cleanup_robot_sim(ns=self._robot_name)
+        self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
+
+        return w_t_plus_2, tho_m
 
     def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True, use_b2=True):
         # Initialize manip search simulation world and some shortcut variables
@@ -674,6 +813,49 @@ class Stilman2005Behavior(BaselineBehavior):
         self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
 
         return w_t_plus_2, tho_m
+
+    def dijkstra_for_manip_search(
+            self, start, robot_uid, robot_name, obstacle_uid, obstacle_polygon,
+            other_entities_polygons, other_entities_aabb_tree,
+            inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
+            trans_mult, rot_mult, static_collision_cache, b2_sim, check_new_local_opening_before_global,
+            overall_goal_pose, overall_goal_cell):
+
+        def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
+            return self.manip_search_get_neighbors(
+                _current, _gscore, _close_set, _open_queue, _came_from,
+                start,
+                robot_uid, obstacle_uid,
+                other_entities_polygons, other_entities_aabb_tree,
+                inflated_grid_by_robot_min, inflated_grid_by_obstacle,
+                trans_mult, rot_mult,
+                static_collision_cache, b2_sim
+            )
+
+        def exit_condition(_current, _goal):
+            can_walk_back, robot_cell_after = self.can_robot_walk_back_to_next_transit_pose(
+                inflated_grid_by_robot_max, _current.robot.floating_point_pose,
+                _current.robot.polygon, other_entities_polygons, other_entities_aabb_tree
+            )
+            if can_walk_back:
+                #   3. ... and creates a global opening to c1
+                has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
+                    check_new_local_opening_before_global,
+                    robot_name, robot_cell_after,
+                    obstacle_uid, obstacle_polygon, _current.obstacle.polygon,
+                    other_entities_polygons, other_entities_aabb_tree,
+                    inflated_grid_by_robot_max, c_1_cells_set,
+                    overall_goal_pose, overall_goal_cell,
+                    neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                    init_blocking_areas=None, init_entity_inflated_polygon=None
+                )
+                if has_new_global_opening:
+                    return True
+            return False
+
+        return graph_search.new_generic_dijkstra(
+            start, goal=None, exit_condition=exit_condition, get_neighbors=get_neighbors
+        )
 
     def a_star_for_manip_search(self, start, goal,
                                 robot_uid, robot_cell, robot_name, obstacle_uid, obstacle_polygon,
