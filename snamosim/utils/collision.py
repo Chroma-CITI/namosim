@@ -56,7 +56,7 @@ def states_for_points(polygon_states):
     :return: List (ordered by states) of coordinates of each point of the polygon
     :rtype: list(list((float, float)))
     """
-    return zip(*[list(polygon.exterior.coords) for polygon in polygon_states])
+    return list(zip(*[list(polygon.exterior.coords) for polygon in polygon_states]))
 
 
 def bounding_boxes_vertices_from_states_for_points(s_for_points, actions, bb_type='minimum_rotated_rectangle'):
