@@ -114,3 +114,6 @@ tmp/
 
 # Grid maps dataset for tests from https://www.movingai.com/benchmarks/
 data/gridsearch-dataset/www.movingai.com/
+
+# RUBE Json dataset for tests
+data/rube_json_dataset/
