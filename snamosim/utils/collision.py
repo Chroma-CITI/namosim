@@ -90,6 +90,7 @@ def bounding_boxes_vertices_from_states_for_points(s_for_points, actions, bb_typ
         prev_action = action
 
     for action_subsequence, subsequence_indexes in zip(action_subsequences, subsequences_indexes):
+        action_subsequence, subsequence_indexes = list(action_subsequence), list(subsequence_indexes)
         actions_are_all_translations = (
             (isinstance(action_subsequence[0], Translation))
             or (action_subsequence[0] is None and isinstance(action_subsequence[1], Translation))
