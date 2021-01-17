@@ -3,10 +3,10 @@ import time
 import numpy as np
 from shapely import affinity
 import copy
-import colors
 
 
 try:
+    import colors
     import ros_publisher_config as cfg
     if not cfg.deactivate_gui:
         import rospy
