@@ -162,6 +162,10 @@ class Stilman2005Behavior(BaselineBehavior):
             if not p_opt_is_valid:
                 # If the plan is not valid, try replanning
                 replan = True
+                if self._p_opt.executed_only_first_step():
+                    print("Goal failure because of plan validity check incoherence.")
+                    self._q_goal = None
+                    return ba.GoalFailed(self._q_goal)
         if replan:
             static_obs_polygons = {
                 uid: entity.polygon for uid, entity in self._world.entities.items()
@@ -197,6 +201,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     )
                     return new_configuration.action
                 else:
+                    self._q_goal = None
                     return ba.GoalFailed(self._q_goal)
 
 
@@ -226,7 +231,8 @@ class Stilman2005Behavior(BaselineBehavior):
                 next_step = self._p_opt.pop_next_step()
                 return next_step
 
-    def select_connect(self, w_t, static_obs_inf_grid, r_f, ccs_data=None, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
+    def select_connect(self, w_t, static_obs_inf_grid, r_f, ccs_data=None, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                       nb_self_calls=0, nb_rch_calls=0):
         """
         High Level Planner _select_connect (SC).
         It makes use of _rch and _manip_search in a greedy heuristic search with backtracking.
@@ -238,6 +244,10 @@ class Stilman2005Behavior(BaselineBehavior):
         :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
         :return: None to backtrack, current partial plan otherwise.
         """
+        if nb_self_calls > 20 or nb_rch_calls > 20:
+            print("Too much recursion, there must be a problem, failing goal.")
+            return None
+
         robot_at_t = w_t.entities[self._robot.uid]
         r_t = robot_at_t.pose
 
@@ -273,6 +283,7 @@ class Stilman2005Behavior(BaselineBehavior):
         connected_components_grid = ccs_data.ccs_grid
         self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd, ns=self._robot_name)
 
+        nb_rch_calls += 1
         o_1, c_1 = self.rch(
             robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
             inflated_grid_by_robot, avoid_list, neighborhood
@@ -283,13 +294,19 @@ class Stilman2005Behavior(BaselineBehavior):
             w_t_plus_2, tho_m = self.manip_search_procedure(w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f)
 
             if tho_m is not None:
-                future_plan = self.select_connect(w_t_plus_2, static_obs_inf_grid, r_f, ccs_data, neighborhood)
+                future_plan = self.select_connect(w_t_plus_2, static_obs_inf_grid, r_f, ccs_data, neighborhood,
+                                                  nb_self_calls=nb_self_calls+1, nb_rch_calls=nb_rch_calls)
                 if future_plan is not None:
                     tho_n = self.find_path(r_t, tho_m.robot_path.poses[0], inflated_grid_by_robot, robot_at_t.polygon)
                     return Plan([tho_n, tho_m], self._q_goal, self._robot_uid).append(future_plan)
 
+            # Extra check for when the goal is in a movable obstacle that we could not find how to move
+            if c_1 == 0:
+                break
+
             avoid_list.add((o_1, c_1))
 
+            nb_rch_calls += 1
             o_1, c_1 = self.rch(
                 robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
                 inflated_grid_by_robot, avoid_list, neighborhood
@@ -412,13 +429,16 @@ class Stilman2005Behavior(BaselineBehavior):
             neighborhood=utils.TAXI_NEIGHBORHOOD):
 
         if inflated_robot_grid.grid[start_cell[0]][start_cell[1]] > 0:
-            raise ValueError('The robot start cell in a rch call must always be outside of any obstacles.')
+            print('The robot start cell in a rch call must always be outside of any obstacles.')
+            return 0, 0
 
         if static_obs_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
-            raise ValueError('The robot goal cell in a rch call mush always be outside of static obstacles.')
+            print('The robot goal cell in a rch call mush always be outside of static obstacles.')
+            return 0, 0
 
         if inflated_robot_grid.grid[goal_cell[0]][goal_cell[1]] > 1:
-            raise ValueError('The robot goal cell in a rch call must be at most within one movable obstacle.')
+            print('The robot goal cell in a rch call must be at most within one movable obstacle.')
+            return 0, 0
 
         # TODO Create custom exceptions for above
 
@@ -1735,6 +1755,9 @@ class TransferPath:
     @classmethod
     def from_configurations(cls, prev_transit_end_configuration, next_transit_start_configuration,
                             transfer_configurations, obstacle_uid, phys_cost=None, social_cost=0., weight=1.):
+        if not transfer_configurations:
+            return None
+
         configurations_min_start = transfer_configurations[1:]
         robot_path = Path(
             poses=(
@@ -2039,3 +2062,16 @@ class Plan:
                 return ba.Wait()
         else:
             raise TypeError('A plan can only pop steps from TransitPath or TransferPath object.')
+
+    def executed_only_first_step(self):
+        """
+        Temporary badly written function to prevent infinite looping because of incoherence between plan computation
+        validity checks (based on b2_sim) and plan verification validity checks (based on custom convex approach)
+        :return:
+        :rtype:
+        """
+        if not self.is_empty():
+            path = self.path_components[0]
+            if len(path.robot_path.poses) - 1 == len(path.robot_path.indexes):
+                return True
+        return False
