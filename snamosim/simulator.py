@@ -27,6 +27,8 @@ from snamosim.worldreps.entity_based.obstacle import Obstacle
 
 from snamosim.utils import stats_utils, utils, conversion, collision
 
+from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInflatedOccupancyGrid
+
 
 class Simulator:
     def __init__(self, simulation_file_path):
@@ -292,10 +294,23 @@ class Simulator:
         return report
 
     @staticmethod
-    def sample_poses_uniform(world, agent_uid, nb_poses=1):
+    def sample_poses_uniform(world, agent_uid, nb_poses=1, sample_in_movable=True, sample_in_agents=True):
         map_min_x, map_min_y, map_max_x, map_max_y = world.get_map_bounds()
         agent = world.entities[agent_uid]
-        other_entities = [entity for entity in world.entities if entity.uid != agent_uid]
+
+        uids_to_filter = {
+            uid for uid, entity in world.entities.items()
+            if (
+                uid == agent_uid
+                or (
+                    sample_in_movable and isinstance(entity, Obstacle)
+                    and agent.deduce_movability(entity.type) == 'movable'
+                )
+                or (sample_in_agents and isinstance(entity, Robot))
+            )
+        }
+
+        other_entities = [entity for uid, entity in world.entities.items() if uid not in uids_to_filter]
 
         generated_poses = []
 
@@ -316,13 +331,33 @@ class Simulator:
                     generated_poses.append(rand_pose)
         return generated_poses
 
-    @staticmethod
-    def sample_poses_on_grid(world, agent_uid, nb_poses):
+    def sample_poses_on_grid(self, world, agent_uid, nb_poses, sample_in_movable=True, sample_in_agents=True):
         agent = world.entities[agent_uid]
+
+        uids_to_filter = {
+            uid for uid, entity in world.entities.items()
+            if (
+                uid == agent_uid
+                or (
+                    sample_in_movable and isinstance(entity, Obstacle)
+                    and agent.deduce_movability(entity.type) == 'movable'
+                )
+                or (sample_in_agents and isinstance(entity, Robot))
+            )
+        }
+
+        other_entities_polygons = {
+            uid: entity.polygon for uid, entity in world.entities.items() if uid not in uids_to_filter
+        }
+        agent_max_inflation_radius = utils.get_circumscribed_radius(agent.polygon)
+
         bin_inf_occ_grid = BinaryInflatedOccupancyGrid(
-            world.dd.d_width, world.dd.d_height, world.dd.res,
-            world.dd.grid_pose, agent.min_inflation_radius, world.entities, entities_to_ignore=(agent_uid,))
-        grid = bin_inf_occ_grid.get_grid()
+            other_entities_polygons, world.dd.res, agent_max_inflation_radius,
+            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+        )
+
+        grid = bin_inf_occ_grid.grid
+        self.temp_att_grid = grid
         free_cells = zip(*np.where(grid == 0))
 
         generated_poses = []
@@ -332,7 +367,7 @@ class Simulator:
             free_cells.remove(random_free_cell)
             random_theta = random.uniform(0., 360.)
             rand_pose = utils.grid_pose_to_real_pose(
-                (random_free_cell[0], random_free_cell[1], random_theta), world.dd.res, world.dd.grid_pose
+                (random_free_cell[0], random_free_cell[1], random_theta), bin_inf_occ_grid.res, bin_inf_occ_grid.grid_pose
             )
             generated_poses.append(rand_pose)
         return generated_poses
@@ -399,17 +434,17 @@ class Simulator:
                 behavior_config = agent_to_behavior_config["behavior"]
                 agent_behavior_name = behavior_config["name"]
 
-                if agent_behavior_name == "navigation_only_behavior":
-                    agent_world = self._create_robot_world_from_sim_world()
-                    self.rp.cleanup_robot_world()
-                    agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
-                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
-                elif agent_behavior_name == "wu_levihn_2014_behavior":
-                    agent_world = self._create_robot_world_from_sim_world()
-                    self.rp.cleanup_robot_world()
-                    agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
-                        agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
-                elif agent_behavior_name == "stilman_2005_behavior":
+                # if agent_behavior_name == "navigation_only_behavior":
+                #     agent_world = self._create_robot_world_from_sim_world()
+                #     self.rp.cleanup_robot_world()
+                #     agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
+                #         agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
+                # elif agent_behavior_name == "wu_levihn_2014_behavior":
+                #     agent_world = self._create_robot_world_from_sim_world()
+                #     self.rp.cleanup_robot_world()
+                #     agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
+                #         agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
+                if agent_behavior_name == "stilman_2005_behavior":
                     agent_world = copy.deepcopy(self.ref_world)
                     self.rp.cleanup_robot_world()
                     agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
