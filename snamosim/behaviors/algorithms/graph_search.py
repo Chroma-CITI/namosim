@@ -22,7 +22,6 @@ Benoit Renault (benoit.renault@inria.fr)
 
 import heapq
 from snamosim.utils import utils
-from snamosim.display.ros_publisher import RosPublisher
 
 
 class PriorityQueue:
@@ -55,6 +54,9 @@ class PriorityQueue:
         return None
 
     def __nonzero__(self):
+        return bool(self.heap)
+
+    def __bool__(self):
         return bool(self.heap)
 
 
@@ -228,7 +230,7 @@ def grid_search_a_star(start, goal, grid, width, height, neighborhood=utils.CHES
 
         heuristic = utils.chebyshev_distance
     else:
-        def grid_get_neighbors_instance(current, gscore, close_set, open_queue):
+        def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
             return grid_get_neighbors_taxi(current, gscore, close_set, open_queue, came_from, grid, width, height)
 
         heuristic = utils.manhattan_distance
