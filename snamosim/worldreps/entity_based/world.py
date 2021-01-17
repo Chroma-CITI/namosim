@@ -58,7 +58,7 @@ class World:
     def load_from_yaml(cls, abs_path_to_file):
         # Import YAML world configuration file
         with open(abs_path_to_file) as f:
-            config = yaml.load(f)
+            config = yaml.load(f, Loader=yaml.SafeLoader)
 
         # Import SVG geometry file specified in YAML configuration
         geometry_file_path = config["files"]["geometry_file"]

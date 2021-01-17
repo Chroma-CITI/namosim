@@ -38,7 +38,7 @@ class Simulator:
         behavior_yaml_abs_path = os.path.abspath(simulation_file_path)
 
         with open(behavior_yaml_abs_path) as f:
-            self.config = yaml.load(f)
+            self.config = yaml.load(f, Loader=yaml.SafeLoader)
 
         # Save general simulation parameters
         self.provide_walls = self.config["provide_walls"]
