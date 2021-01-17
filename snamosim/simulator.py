@@ -360,7 +360,7 @@ class Simulator:
 
         grid = bin_inf_occ_grid.grid
         self.temp_att_grid = grid
-        free_cells = zip(*np.where(grid == 0))
+        free_cells = list(zip(*np.where(grid == 0)))
 
         generated_poses = []
 
