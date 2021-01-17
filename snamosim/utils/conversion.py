@@ -170,6 +170,7 @@ def line2pathd(l):
     )
 # endregion
 
+
 def set_all_id_attributes_as_ids(xml_doc):
     cur = [xml_doc.firstChild]
     cur_child = cur[0]
@@ -179,9 +180,16 @@ def set_all_id_attributes_as_ids(xml_doc):
         if cur_child.nodeType != minidom.Node.TEXT_NODE and cur_child.hasAttribute('id'):
             cur_child.setIdAttribute('id')
 
+
 def clean_attributes(xml_doc):
     path_elements = xml_doc.getElementsByTagName('path')
+
     for path_element in path_elements:
+        attributes_to_remove = []
+
         for attribute in path_element.attributes.keys():
             if attribute not in SVG_PATH_ATTRIBUTES_WHITELIST:
-                path_element.removeAttribute(attribute)
+                attributes_to_remove.append(attribute)
+
+        for attribute in attributes_to_remove:
+            path_element.removeAttribute(attribute)
