@@ -7,6 +7,7 @@ import mapbox_earcut as earcut
 import rospy
 from shapely.geometry import Polygon
 
+import snamosim.display.colors
 from snamosim.display import tf_replacement
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Pose, Quaternion, Point, Vector3, PoseArray, PoseStamped
@@ -67,41 +68,51 @@ def world_to_marker_array(world, robot_uid, entities_to_ignore=tuple()):
         if entity.uid not in entities_to_ignore:
             if isinstance(entity, Robot):
                 markers = markers + entity_to_markers(
-                    entity, "/robot", entity.uid, cfg.main_frame_id, cfg.robot_color, cfg.robot_border_color,
-                    cfg.text_color_on_filling, cfg.text_color_on_empty, cfg.entities_z_index,
+                    entity, "/robot", entity.uid, cfg.main_frame_id, snamosim.display.colors.robot_color,
+                    snamosim.display.colors.robot_border_color,
+                    snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty, cfg.entities_z_index,
                     cfg.border_width, cfg.text_height, add_border=False, add_text=False)
 
                 for sensor in entity.sensors:
                     if isinstance(sensor, SFOVSensor):
                         markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/s_fov", 0,
-                                                             cfg.main_frame_id, cfg.s_fov_border_color, cfg.fov_z_index,
+                                                             cfg.main_frame_id,
+                                                             snamosim.display.colors.s_fov_border_color, cfg.fov_z_index,
                                                              cfg.fov_line_width))
                     elif isinstance(sensor, GFOVSensor):
                         markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/g_fov", 0,
-                                                             cfg.main_frame_id, cfg.g_fov_border_color, cfg.fov_z_index,
+                                                             cfg.main_frame_id,
+                                                             snamosim.display.colors.g_fov_border_color, cfg.fov_z_index,
                                                              cfg.fov_line_width))
 
             if isinstance(entity, Obstacle):
                 entity_movability = robot.deduce_movability(entity.type)
                 if entity_movability == "movable":
                     markers = markers + entity_to_markers(
-                        entity, "/obstacles", entity.uid, cfg.main_frame_id, cfg.movable_obstacle_color,
-                        cfg.movable_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
+                        entity, "/obstacles", entity.uid, cfg.main_frame_id,
+                        snamosim.display.colors.movable_obstacle_color,
+                        snamosim.display.colors.movable_obstacle_border_color,
+                        snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
                 if entity_movability == "unmovable":
                     markers = markers + entity_to_markers(
-                        entity, "/obstacles", entity.uid, cfg.main_frame_id, cfg.unmovable_obstacle_color,
-                        cfg.unmovable_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
+                        entity, "/obstacles", entity.uid, cfg.main_frame_id,
+                        snamosim.display.colors.unmovable_obstacle_color,
+                        snamosim.display.colors.unmovable_obstacle_border_color,
+                        snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
                 if entity_movability == "unknown":
                     markers = markers + entity_to_markers(
-                        entity, "/obstacles", entity.uid, cfg.main_frame_id, cfg.unknown_obstacle_color,
-                        cfg.unknown_obstacle_border_color, cfg.text_color_on_filling, cfg.text_color_on_empty,
+                        entity, "/obstacles", entity.uid, cfg.main_frame_id,
+                        snamosim.display.colors.unknown_obstacle_color,
+                        snamosim.display.colors.unknown_obstacle_border_color,
+                        snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
     for taboo in world.taboo_zones.values():
         markers = markers + entity_to_markers(
-            taboo, "/taboos", taboo.uid, cfg.main_frame_id, cfg.taboo_color, cfg.taboo_border_color,
-            cfg.text_color_on_filling, cfg.text_color_on_empty, cfg.taboos_z_index,
+            taboo, "/taboos", taboo.uid, cfg.main_frame_id, snamosim.display.colors.taboo_color,
+            snamosim.display.colors.taboo_border_color,
+            snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty, cfg.taboos_z_index,
             cfg.border_width, cfg.text_height, add_border=False, add_text=False)
     marker_array.markers = markers
     return marker_array
@@ -212,9 +223,9 @@ def plan_to_markerarray(plan, frame_id):
     markers = []
     p_id = 0
     for component in plan.path_components:
-        current_color = cfg.transit_path_color
+        current_color = snamosim.display.colors.transit_path_color
         if component.is_transfer:
-            current_color = cfg.transfer_path_color
+            current_color = snamosim.display.colors.transfer_path_color
         marker = real_path_to_linestrip(
             component.robot_path.poses, '/plan', p_id, frame_id, current_color, cfg.path_line_width, cfg.path_line_z_index)
         markers.append(marker)

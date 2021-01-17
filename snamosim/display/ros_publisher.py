@@ -6,9 +6,12 @@ import copy
 
 
 try:
-    import colors
-    import ros_publisher_config as cfg
+    import snamosim.display.ros_publisher_config as cfg
+
     if not cfg.deactivate_gui:
+        import snamosim.display.colors as colors
+        import snamosim.display.ros_conversion as conv
+
         import rospy
         from tf2_ros import StaticTransformBroadcaster
         from visualization_msgs.msg import Marker, MarkerArray
@@ -16,7 +19,6 @@ try:
         from std_msgs.msg import Header
         from nav_msgs.msg import Path, OccupancyGrid, MapMetaData
         from grid_map_msgs.msg import GridMap
-        import ros_conversion as conv
         from std_msgs.msg import ColorRGBA
         USE_ROS = True
     else:
@@ -299,7 +301,7 @@ class RosPublisher(with_metaclass(Singleton)):
             for element in open_heap:
                 open_heap_data.append(element.cell)
             open_heap_cells = conv.grid_cells_to_cube_list_markers(
-                open_heap_data, res, grid_pose, color=cfg.flashy_cyan)
+                open_heap_data, res, grid_pose, color=colors.flashy_cyan)
             self.publish(full_topic, open_heap_cells)
 
     def cleanup_a_star_open_heap(self, ns=''):
@@ -317,7 +319,7 @@ class RosPublisher(with_metaclass(Singleton)):
             # self.a_star_close_set_cube_list = conv.grid_cells_to_cube_list_markers(
             #     new_cells, res, grid_pose, cfg.unknown_obstacle_color, self.a_star_close_set_cube_list)
             marker_array, self.namespaces_caches[ns].a_star_close_set_start_id = conv.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, cfg.dark_purple, 0.9, self.namespaces_caches[ns].a_star_close_set_start_id)
+                new_cells, res, grid_pose, colors.dark_purple, 0.9, self.namespaces_caches[ns].a_star_close_set_start_id)
             self.namespaces_caches[ns].prev_a_star_close_set = copy.copy(close_set)
             # self.publish(full_topic, self.a_star_close_set_cube_list)
             self.publish(full_topic, marker_array)
@@ -334,7 +336,7 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.social_cells_topic if not ns else '/' + ns + cfg.social_cells_topic
         if self.is_activated(full_topic):
             ros_cells = conv.grid_cells_to_cube_list_markers(
-                list(social_cells_set), res, grid_pose, color=cfg.flashy_purple)
+                list(social_cells_set), res, grid_pose, color=colors.flashy_purple)
             self.publish(full_topic, ros_cells)
 
     # endregion
@@ -347,7 +349,7 @@ class RosPublisher(with_metaclass(Singleton)):
             for element in open_heap:
                 open_heap_data.append(element.cell)
             open_heap_cells = conv.grid_cells_to_cube_list_markers(
-                open_heap_data, res, grid_pose, color=cfg.flashy_cyan)
+                open_heap_data, res, grid_pose, color=colors.flashy_cyan)
             self.publish(full_topic, open_heap_cells)
 
     def cleanup_multigoal_a_star_open_heap(self, ns=''):
@@ -363,7 +365,7 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             new_cells = close_set.difference(self.namespaces_caches[ns].prev_multigoal_a_star_close_set)
             marker_array, self.namespaces_caches[ns].multigoal_a_star_close_set_start_id = conv.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, cfg.dark_blue, 0.9, self.namespaces_caches[ns].multigoal_a_star_close_set_start_id)
+                new_cells, res, grid_pose, colors.dark_blue, 0.9, self.namespaces_caches[ns].multigoal_a_star_close_set_start_id)
             self.namespaces_caches[ns].prev_multigoal_a_star_close_set = copy.copy(close_set)
             self.publish(full_topic, marker_array)
 
@@ -385,13 +387,13 @@ class RosPublisher(with_metaclass(Singleton)):
 
             # Publish current cell
             current_marker = conv.grid_cells_to_cube_list_markers(
-                [current.cell], res, grid_pose, z_index=0.9, color=cfg.flashy_purple, ns="/rch_current_cell"
+                [current.cell], res, grid_pose, z_index=0.9, color=colors.flashy_purple, ns="/rch_current_cell"
             )
             marker_array.markers.append(current_marker)
 
             # Publish neighbors
             neighbors_marker = conv.grid_cells_to_cube_list_markers(
-                [neighbor.cell for neighbor in neighbors], res, grid_pose, z_index=0.9, color=cfg.flashy_red,
+                [neighbor.cell for neighbor in neighbors], res, grid_pose, z_index=0.9, color=colors.flashy_red,
                 ns="/rch_current_cell_neighbors"
             )
             marker_array.markers.append(neighbors_marker)
@@ -466,13 +468,13 @@ class RosPublisher(with_metaclass(Singleton)):
             # Publish current configuration
             current_robot_pose_marker = conv.pose_to_arrow(
                 pose=current.robot.floating_point_pose, namespace="/manip_search/current/robot/pose",
-                p_id=0, frame_id=cfg.main_frame_id, color=cfg.flashy_cyan,
+                p_id=0, frame_id=cfg.main_frame_id, color=colors.flashy_cyan,
                 z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
                 head_diameter=head_diameter, head_length=head_length
             )
             current_obstacle_pose_marker = conv.pose_to_arrow(
                 pose=current.obstacle.floating_point_pose, namespace="/manip_search/current/obstacle/pose",
-                p_id=0, frame_id=cfg.main_frame_id, color=cfg.flashy_dark_cyan,
+                p_id=0, frame_id=cfg.main_frame_id, color=colors.flashy_dark_cyan,
                 z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
                 head_diameter=head_diameter, head_length=head_length
             )
@@ -481,10 +483,10 @@ class RosPublisher(with_metaclass(Singleton)):
 
             current_robot_polygon_marker = conv.polygon_to_line_strip(
                 current.robot.polygon, "/manip_search/current/robot/polygon", 0, cfg.main_frame_id,
-                cfg.flashy_cyan, cfg.entities_z_index, cfg.border_width)
+                colors.flashy_cyan, cfg.entities_z_index, cfg.border_width)
             current_obstacle_polygon_marker = conv.polygon_to_line_strip(
                 current.obstacle.polygon, "/manip_search/current/obstacle/polygon", 0, cfg.main_frame_id,
-                cfg.flashy_dark_cyan, cfg.entities_z_index, cfg.border_width)
+                colors.flashy_dark_cyan, cfg.entities_z_index, cfg.border_width)
             marker_array.markers.append(current_robot_polygon_marker)
             marker_array.markers.append(current_obstacle_polygon_marker)
 
@@ -492,7 +494,7 @@ class RosPublisher(with_metaclass(Singleton)):
             neighbors_markers = [
                 conv.pose_to_arrow(
                     pose=neighbor.robot.floating_point_pose, namespace="/manip_search_neighbors",
-                    p_id=p_id, frame_id=cfg.main_frame_id, color=cfg.flashy_green,
+                    p_id=p_id, frame_id=cfg.main_frame_id, color=colors.flashy_green,
                     z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
                     head_diameter=head_diameter, head_length=head_length
                 )
@@ -561,7 +563,7 @@ class RosPublisher(with_metaclass(Singleton)):
     def publish_grid_path(self, grid_path, res, grid_pose, ns=''):
         full_topic = cfg.path_grid_cells_topic if not ns else '/' + ns + cfg.path_grid_cells_topic
         if self.is_activated(full_topic):
-            path_grid_cells = conv.grid_cells_to_cube_list_markers(grid_path, res, grid_pose, color=cfg.flashy_purple)
+            path_grid_cells = conv.grid_cells_to_cube_list_markers(grid_path, res, grid_pose, color=colors.flashy_purple)
             self.publish(full_topic, path_grid_cells)
 
     def cleanup_grid_path(self, ns=''):
@@ -677,8 +679,8 @@ class RosPublisher(with_metaclass(Singleton)):
     def publish_sim(self, robot_polygon, obs_polygon, namespace="/init", ns=''):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
-            robot_color = cfg.robot_border_color if namespace == "/target" else cfg.robot_color
-            obs_color = cfg.movable_obstacle_border_color if namespace == "/target" else cfg.movable_obstacle_color
+            robot_color = colors.robot_border_color if namespace == "/target" else colors.robot_color
+            obs_color = colors.movable_obstacle_border_color if namespace == "/target" else colors.movable_obstacle_color
             marker_array = MarkerArray(markers=[
                 conv.polygon_to_line_strip(
                     robot_polygon, namespace + "/robot/polygon", 0, cfg.main_frame_id, robot_color,
@@ -695,13 +697,13 @@ class RosPublisher(with_metaclass(Singleton)):
             for i in range(len(init_blocking_areas)):
                 init_blocking_areas_markers.append(conv.polygon_to_triangle_list(
                     init_blocking_areas[i], "/blocking_areas/init", i, cfg.main_frame_id,
-                    cfg.init_blocking_areas_color, cfg.entities_z_index))
+                    colors.init_blocking_areas_color, cfg.entities_z_index))
 
             target_blocking_areas_markers = []
             for i in range(len(target_blocking_areas)):
                 target_blocking_areas_markers.append(conv.polygon_to_triangle_list(
                     target_blocking_areas[i], "/blocking_areas/target", i, cfg.main_frame_id,
-                    cfg.target_blocking_areas_color, cfg.entities_z_index))
+                    colors.target_blocking_areas_color, cfg.entities_z_index))
 
             marker_array = MarkerArray(markers=init_blocking_areas_markers + target_blocking_areas_markers)
             self.publish(full_topic, marker_array)
@@ -718,10 +720,12 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             marker_array = MarkerArray(markers=[
                 conv.polygon_to_line_strip(init_entity_inflated_polygon, "/diameter_inflated_polygon/init", 0,
-                                           cfg.main_frame_id, cfg.init_diameter_inflated_polygon_color,
+                                           cfg.main_frame_id,
+                                           colors.init_diameter_inflated_polygon_color,
                                            cfg.entities_z_index, cfg.border_width / 2.),
                 conv.polygon_to_line_strip(target_entity_inflated_polygon, "/diameter_inflated_polygon/target", 0,
-                                           cfg.main_frame_id, cfg.target_diameter_inflated_polygon_color,
+                                           cfg.main_frame_id,
+                                           colors.target_diameter_inflated_polygon_color,
                                            cfg.entities_z_index, cfg.border_width / 2.)])
             self.publish(full_topic, marker_array)
 
@@ -738,10 +742,10 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             marker_array = MarkerArray(markers=[
                 conv.polygon_to_line_strip(min_inflated_polygon, "/min_inflated_polygon", 0, cfg.main_frame_id,
-                                           cfg.min_inflated_polygon_border_color,
+                                           colors.min_inflated_polygon_border_color,
                                            cfg.entities_z_index, cfg.border_width),
                 conv.polygon_to_line_strip(max_inflated_polygon, "/max_inflated_polygon", 0, cfg.main_frame_id,
-                                           cfg.max_inflated_polygon_border_color,
+                                           colors.max_inflated_polygon_border_color,
                                            cfg.entities_z_index, cfg.border_width)])
             self.publish(full_topic, marker_array)
 
@@ -751,7 +755,7 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             marker_array = conv.polygons_to_line_strips_marker_array(
-                polygons, "/debug/polygons", cfg.main_frame_id, cfg.robot_color,
+                polygons, "/debug/polygons", cfg.main_frame_id, colors.robot_color,
                 cfg.entities_z_index, cfg.border_width / 5.)
             self.publish(full_topic, marker_array)
 
@@ -778,7 +782,7 @@ class RosPublisher(with_metaclass(Singleton)):
     def publish_q_l_cells(self, cells, res, grid_pose, ns=''):
         full_topic = cfg.q_l_cells_topic if not ns else '/' + ns + cfg.q_l_cells_topic
         if self.is_activated(full_topic):
-            close_set_cells = conv.grid_cells_to_cube_list_markers(list(cells), res, grid_pose, color=cfg.flashy_cyan)
+            close_set_cells = conv.grid_cells_to_cube_list_markers(list(cells), res, grid_pose, color=colors.flashy_cyan)
             self.publish(full_topic, close_set_cells)
 
     def publish_q_l_poses(self, poses, ns=''):
@@ -806,7 +810,7 @@ class RosPublisher(with_metaclass(Singleton)):
                 # ros_pose = pose_to_ros_pose_stamped(q_goal)
                 marker_array = MarkerArray(markers=[
                     conv.polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, cfg.main_frame_id,
-                                               cfg.robot_border_color, cfg.fov_z_index, cfg.border_width)])
+                                               colors.robot_border_color, cfg.fov_z_index, cfg.border_width)])
                 # pose_to_arrow(q_goal, "/pose", 0, self.frame_id, self.robot_border_color,
                 #               self.entities_z_index, 0.5, 0.2, 0.0)])
                 self.publish(full_topic, marker_array)
