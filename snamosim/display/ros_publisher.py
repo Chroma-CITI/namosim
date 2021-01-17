@@ -172,31 +172,33 @@ class RosPublisher(with_metaclass(Singleton)):
 
     # region SIM WORLD
     def publish_sim_world(self, world, robot_uid):
-        if self.is_activated('/simulation' + cfg.sim_knowledge_topic):
-            current_world_draw_data = {
-                entity.uid: {
-                    "polygon": entity.polygon,
-                    "type": "robot" if isinstance(entity, Robot) else entity.type,
-                    "pose": entity.pose
-                } for entity in world.entities.values()}
-            entities_to_ignore = {
-                entity_uid for entity_uid, drawable_data in current_world_draw_data.items()
-                if (entity_uid in self.prev_sim_world_draw_data
-                    and drawable_data["polygon"] == self.prev_sim_world_draw_data[entity_uid]["polygon"]
-                    and drawable_data["type"] == self.prev_sim_world_draw_data[entity_uid]["type"]
-                    and drawable_data["pose"] == self.prev_sim_world_draw_data[entity_uid]["pose"])}
-            self.publish('/simulation' + cfg.sim_knowledge_topic,
-                         conv.world_to_marker_array(world, robot_uid, entities_to_ignore))
-            self.prev_sim_world_draw_data = current_world_draw_data
-        if self.is_activated('/simulation' + cfg.sim_costmap_topic):
-            self.publish('/simulation' + cfg.sim_costmap_topic, conv.world_to_costmap(world, robot_uid))
+        if not cfg.deactivate_gui:
+            if self.is_activated('/simulation' + cfg.sim_knowledge_topic):
+                current_world_draw_data = {
+                    entity.uid: {
+                        "polygon": entity.polygon,
+                        "type": "robot" if isinstance(entity, Robot) else entity.type,
+                        "pose": entity.pose
+                    } for entity in world.entities.values()}
+                entities_to_ignore = {
+                    entity_uid for entity_uid, drawable_data in current_world_draw_data.items()
+                    if (entity_uid in self.prev_sim_world_draw_data
+                        and drawable_data["polygon"] == self.prev_sim_world_draw_data[entity_uid]["polygon"]
+                        and drawable_data["type"] == self.prev_sim_world_draw_data[entity_uid]["type"]
+                        and drawable_data["pose"] == self.prev_sim_world_draw_data[entity_uid]["pose"])}
+                self.publish('/simulation' + cfg.sim_knowledge_topic,
+                             conv.world_to_marker_array(world, robot_uid, entities_to_ignore))
+                self.prev_sim_world_draw_data = current_world_draw_data
+            if self.is_activated('/simulation' + cfg.sim_costmap_topic):
+                self.publish('/simulation' + cfg.sim_costmap_topic, conv.world_to_costmap(world, robot_uid))
 
     def cleanup_sim_world(self):
-        if self.is_activated('/simulation' + cfg.sim_knowledge_topic):
-            self.publish('/simulation' + cfg.sim_knowledge_topic, conv.make_delete_all_marker(cfg.main_frame_id))
-        if self.is_activated('/simulation' + cfg.sim_costmap_topic):
-            self.publish('/simulation' + cfg.sim_costmap_topic,
-                         OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
+        if not cfg.deactivate_gui:
+            if self.is_activated('/simulation' + cfg.sim_knowledge_topic):
+                self.publish('/simulation' + cfg.sim_knowledge_topic, conv.make_delete_all_marker(cfg.main_frame_id))
+            if self.is_activated('/simulation' + cfg.sim_costmap_topic):
+                self.publish('/simulation' + cfg.sim_costmap_topic,
+                             OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
 
     # endregion
 
