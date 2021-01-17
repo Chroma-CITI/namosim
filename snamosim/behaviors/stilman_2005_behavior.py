@@ -1493,7 +1493,7 @@ class Stilman2005Behavior(BaselineBehavior):
             if self._social_costmap[cell[0]][cell[1]] == -1.:
                 del cell_to_cost[cell]
 
-        acc_cells_for_obs, distance_cost = cell_to_cost.keys(), np.array(cell_to_cost.values())
+        acc_cells_for_obs, distance_cost = list(cell_to_cost.keys()), np.array(list(cell_to_cost.values()))
 
         social_cost = np.array([
             self._social_costmap[cell[0]][cell[1]]

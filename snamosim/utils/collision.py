@@ -1,11 +1,9 @@
-import math, cmath
+import math
 from shapely.geometry import Polygon, MultiPoint, Point, LineString
 import shapely.affinity as affinity
-import matplotlib
-#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from aabbtree import AABB, AABBTree
-import snamosim.utils.utils
+import snamosim.utils.utils as utils
 
 
 class Action:
@@ -17,6 +15,7 @@ class Action:
 class Rotation(Action):
 
     def __init__(self, angle, center):
+        Action.__init__(self)
         self.angle = angle
         self.center = center
 
@@ -27,6 +26,7 @@ class Rotation(Action):
 class Translation(Action):
 
     def __init__(self, translation_vector):
+        Action.__init__(self)
         self.translation_vector = translation_vector
 
     def apply(self, polygon):
@@ -207,8 +207,6 @@ def arc_bounding_box(point_a, point_b, rot_angle, center, bb_type='minimum_rotat
         # Compute extra extremal point C and circle terms
         point_a_shapely = Point(point_a)
         point_c = affinity.rotate(point_a_shapely, rot_angle / 2., origin=center).coords[0]
-        center_x, center_y, r = utils.find_circle_terms(
-            point_a[0], point_a[1], point_b[0], point_b[1], point_c[0], point_c[1])
 
         if bb_type is 'minimum_rotated_rectangle':
             x_b_min_a, y_b_min_a = (point_b[0] - point_a[0]), (point_b[1] - point_a[1])
@@ -416,78 +414,78 @@ def csv_check_collisions(other_polygons, polygon_sequence, action_sequence, bb_t
         return False, collision_data, aabb_tree
 
 
-if __name__ == '__main__':
-    poly = Polygon([(0., 0.), (0., 1.), (1., 1.), (1., 0.75), (0.25, 0.75), (0.25, 0)])
-    action_list = ActionList([
-        LinearMovement(translation_vector=(0.4, 1.1), angle=45., center='center'),
-        LinearMovement(translation_vector=(0.6, 1.0), angle=20., center='center')
-    ])
-    polygon_states = action_list.apply(poly)
-
-    obs = Polygon([(1.45, 1.75), (1.45, 1.25), (1.95, 1.25), (1.95, 1.75)])
-    not_obs = affinity.translate(obs, 1., 1.)
-
-    _fig, _ax = plt.subplots()
-    for p in polygon_states:
-        _ax.plot(*p.exterior.xy)
-    _ax.plot(*obs.exterior.xy)
-    _ax.plot(*not_obs.exterior.xy)
-
-    _bb_vertices = bounding_boxes_vertices(polygon_states, action_list.actions, bb_type='aabbox')
-    _x, _y = zip(*[[_vertex.x, _vertex.y] for _vertex in _bb_vertices])
-    _ax.scatter(_x, _y)
-
-    csv = csv_from_bb_vertices(_bb_vertices)
-    _ax.plot(*csv.exterior.xy)
-
-    # Test circle finding method
-    poly_mi_2 = affinity.translate(affinity.rotate(poly, 22.5), 0.2, 0.55)
-    _ax.plot(*poly_mi_2.exterior.xy)
-
-    synced_coords = zip(
-        list(poly.exterior.coords),
-        list(poly_mi_2 .exterior.coords),
-        list(polygon_states[1].exterior.coords)
-    )
-
-    circles_terms = [
-        utils.find_circle_terms(
-            coords[0][0], coords[0][1],
-            coords[1][0], coords[1][1],
-            coords[2][0], coords[2][1]
-        )
-        for coords in synced_coords
-    ]
-
-    plt_circles = [plt.Circle((circle_terms[0], circle_terms[1]), circle_terms[2], fill=False) for circle_terms in circles_terms]
-
-    for circle in plt_circles:
-        _ax.add_artist(circle)
-    # _ax.add_artist(plt_circles[1])
-
-    angles = [
-        (
-            utils.points_to_angle(
-                coords[0][0], coords[0][1], circle_terms[0], circle_terms[1], coords[1][0], coords[1][1]
-            ),
-            utils.points_to_angle(
-                coords[1][0], coords[1][1], circle_terms[0], circle_terms[1], coords[2][0], coords[2][1]
-            )
-        )
-        for circle_terms, coords in zip(circles_terms, synced_coords)
-    ]
-
-    deg_angles = [math.degrees(angle_1 + angle_2) for angle_1, angle_2 in angles]
-
-    # Display everything
-    _ax.axis('equal')
-    # plt.axhline(y=0)
-    # plt.axvline(x=0)
-    _fig.show()
-
-    obs_collides, obs_collision_data, _aabb_tree = csv_check_collisions(
-        {1: obs}, polygon_states, action_list.actions, display_debug=True)
-    print(str(obs_collides))
-    not_obs_collides, not_obs_collision_data, not_obs_aabb_tree = csv_check_collisions(
-        {2: not_obs}, polygon_states, action_list.actions, display_debug=True)
-    print(str(not_obs_collides))
+# if __name__ == '__main__':
+    # poly = Polygon([(0., 0.), (0., 1.), (1., 1.), (1., 0.75), (0.25, 0.75), (0.25, 0)])
+    # action_list = ActionList([
+    #     LinearMovement(translation_vector=(0.4, 1.1), angle=45., center='center'),
+    #     LinearMovement(translation_vector=(0.6, 1.0), angle=20., center='center')
+    # ])
+    # polygon_states = action_list.apply(poly)
+    #
+    # obs = Polygon([(1.45, 1.75), (1.45, 1.25), (1.95, 1.25), (1.95, 1.75)])
+    # not_obs = affinity.translate(obs, 1., 1.)
+    #
+    # _fig, _ax = plt.subplots()
+    # for p in polygon_states:
+    #     _ax.plot(*p.exterior.xy)
+    # _ax.plot(*obs.exterior.xy)
+    # _ax.plot(*not_obs.exterior.xy)
+    #
+    # _bb_vertices = bounding_boxes_vertices(polygon_states, action_list.actions, bb_type='aabbox')
+    # _x, _y = zip(*[[_vertex.x, _vertex.y] for _vertex in _bb_vertices])
+    # _ax.scatter(_x, _y)
+    #
+    # csv = csv_from_bb_vertices(_bb_vertices)
+    # _ax.plot(*csv.exterior.xy)
+    #
+    # # Test circle finding method
+    # poly_mi_2 = affinity.translate(affinity.rotate(poly, 22.5), 0.2, 0.55)
+    # _ax.plot(*poly_mi_2.exterior.xy)
+    #
+    # synced_coords = zip(
+    #     list(poly.exterior.coords),
+    #     list(poly_mi_2 .exterior.coords),
+    #     list(polygon_states[1].exterior.coords)
+    # )
+    #
+    # circles_terms = [
+    #     utils.find_circle_terms(
+    #         coords[0][0], coords[0][1],
+    #         coords[1][0], coords[1][1],
+    #         coords[2][0], coords[2][1]
+    #     )
+    #     for coords in synced_coords
+    # ]
+    #
+    # plt_circles = [plt.Circle((circle_terms[0], circle_terms[1]), circle_terms[2], fill=False) for circle_terms in circles_terms]
+    #
+    # for circle in plt_circles:
+    #     _ax.add_artist(circle)
+    # # _ax.add_artist(plt_circles[1])
+    #
+    # angles = [
+    #     (
+    #         utils.points_to_angle(
+    #             coords[0][0], coords[0][1], circle_terms[0], circle_terms[1], coords[1][0], coords[1][1]
+    #         ),
+    #         utils.points_to_angle(
+    #             coords[1][0], coords[1][1], circle_terms[0], circle_terms[1], coords[2][0], coords[2][1]
+    #         )
+    #     )
+    #     for circle_terms, coords in zip(circles_terms, synced_coords)
+    # ]
+    #
+    # deg_angles = [math.degrees(angle_1 + angle_2) for angle_1, angle_2 in angles]
+    #
+    # # Display everything
+    # _ax.axis('equal')
+    # # plt.axhline(y=0)
+    # # plt.axvline(x=0)
+    # _fig.show()
+    #
+    # obs_collides, obs_collision_data, _aabb_tree = csv_check_collisions(
+    #     {1: obs}, polygon_states, action_list.actions, display_debug=True)
+    # print(str(obs_collides))
+    # not_obs_collides, not_obs_collision_data, not_obs_aabb_tree = csv_check_collisions(
+    #     {2: not_obs}, polygon_states, action_list.actions, display_debug=True)
+    # print(str(not_obs_collides))

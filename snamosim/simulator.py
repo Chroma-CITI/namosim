@@ -36,7 +36,9 @@ class Simulator:
         self.sim_start_timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
 
         behavior_yaml_abs_path = os.path.abspath(simulation_file_path)
-        self.config = yaml.load(open(behavior_yaml_abs_path))
+
+        with open(behavior_yaml_abs_path) as f:
+            self.config = yaml.load(f)
 
         # Save general simulation parameters
         self.provide_walls = self.config["provide_walls"]
