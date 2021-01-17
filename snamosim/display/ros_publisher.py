@@ -172,7 +172,7 @@ class RosPublisher(with_metaclass(Singleton)):
 
     # region SIM WORLD
     def publish_sim_world(self, world, robot_uid):
-        if not USE_ROS or cfg.deactivate_gui:
+        if USE_ROS or not cfg.deactivate_gui:
             if self.is_activated('/simulation' + cfg.sim_knowledge_topic):
                 current_world_draw_data = {
                     entity.uid: {
@@ -193,7 +193,7 @@ class RosPublisher(with_metaclass(Singleton)):
                 self.publish('/simulation' + cfg.sim_costmap_topic, conv.world_to_costmap(world, robot_uid))
 
     def cleanup_sim_world(self):
-        if not USE_ROS or cfg.deactivate_gui:
+        if USE_ROS or not cfg.deactivate_gui:
             if self.is_activated('/simulation' + cfg.sim_knowledge_topic):
                 self.publish('/simulation' + cfg.sim_knowledge_topic, conv.make_delete_all_marker(cfg.main_frame_id))
             if self.is_activated('/simulation' + cfg.sim_costmap_topic):
