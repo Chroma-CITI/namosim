@@ -113,7 +113,7 @@ class Simulator:
             active_agents = set(self.agent_uid_to_behavior.keys())
 
             # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!
-            agent_uid = self.agent_uid_to_behavior.keys()[0]
+            agent_uid = list(self.agent_uid_to_behavior.keys())[0]
             self.rp.publish_sim_world(self.ref_world, agent_uid)
 
             goal_counter = 0
