@@ -4,7 +4,6 @@ import numpy as np
 from shapely import affinity
 import copy
 import colors
-from std_msgs.msg import ColorRGBA
 
 
 try:
@@ -18,6 +17,7 @@ try:
         from nav_msgs.msg import Path, OccupancyGrid, MapMetaData
         from grid_map_msgs.msg import GridMap
         import ros_conversion as conv
+        from std_msgs.msg import ColorRGBA
         USE_ROS = True
     else:
         USE_ROS = False
