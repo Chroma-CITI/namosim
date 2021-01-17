@@ -8,14 +8,14 @@ from shapely import affinity
 import logging
 import random
 
-from baseline_behavior import BaselineBehavior
+from .baseline_behavior import BaselineBehavior
 from snamosim.behaviors.algorithms import graph_search
 from snamosim.utils import utils
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.behaviors.algorithms.new_local_opening_check import check_new_local_opening
-import plan.basic_actions as ba
-import plan.action_result as ar
+import snamosim.behaviors.plan.basic_actions as ba
+import snamosim.behaviors.plan.action_result as ar
 from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, BinaryInflatedOccupancyGrid
 import snamosim.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
 import snamosim.utils.collision as collision

@@ -14,13 +14,13 @@ import snamosim.utils.conversion as conversion
 from snamosim.worldreps.entity_based.custom_exceptions import EntityPlacementException
 from snamosim.worldreps.discretization_data import DiscretizationData
 from snamosim.display.ros_publisher import RosPublisher
-from obstacle import Obstacle
-from robot import Robot
-from taboo import Taboo
-from goal import Goal
-from sensors.g_fov_sensor import GFOVSensor
-from sensors.s_fov_sensor import SFOVSensor
-from sensors.omniscient_sensor import OmniscientSensor
+from snamosim.worldreps.entity_based.obstacle import Obstacle
+from snamosim.worldreps.entity_based.robot import Robot
+from snamosim.worldreps.entity_based.taboo import Taboo
+from snamosim.worldreps.entity_based.goal import Goal
+from snamosim.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
+from snamosim.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
+from snamosim.worldreps.entity_based.sensors.omniscient_sensor import OmniscientSensor
 
 
 class World:

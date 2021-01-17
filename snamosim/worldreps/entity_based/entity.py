@@ -5,7 +5,7 @@ import shapely.affinity as affinity
 from shapely.geometry import Polygon
 
 from snamosim.utils import utils
-from custom_exceptions import IntersectionError
+from .custom_exceptions import IntersectionError
 
 from PIL import Image, ImageDraw
 

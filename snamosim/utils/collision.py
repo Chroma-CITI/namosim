@@ -2,10 +2,10 @@ import math, cmath
 from shapely.geometry import Polygon, MultiPoint, Point, LineString
 import shapely.affinity as affinity
 import matplotlib
-matplotlib.use('TkAgg')
+#matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from aabbtree import AABB, AABBTree
-import utils
+import snamosim.utils.utils
 
 
 class Action:
