@@ -6,7 +6,7 @@ from snamosim.simulator import Simulator
 class BasicTest(unittest.TestCase):
 
     def setUp(self):
-        self.path_to_folder = os.path.join(os.path.abspath(__file__), "../../../../../data/simulations/s-namo_cases/01_basic/")
+        self.path_to_folder = os.path.join(__file__, "../../../../../data/simulations/s-namo_cases/01_basic/")
 
     def test_navigation_only_behavior(self):
         sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior.yaml")

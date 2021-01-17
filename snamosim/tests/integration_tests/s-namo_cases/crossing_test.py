@@ -1,11 +1,12 @@
 import unittest
+import os
 from snamosim.simulator import Simulator
 
 
 class CrossingTest(unittest.TestCase):
 
     def setUp(self):
-        self.path_to_folder = "../../../../data/simulations/s-namo_cases/03_crossing/"
+        self.path_to_folder = os.path.join(__file__, "../../../../../data/simulations/s-namo_cases/03_crossing/")
 
     def test_navigation_only_behavior(self):
         sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior.yaml")

@@ -1,11 +1,12 @@
 import unittest
+import os
 from snamosim.simulator import Simulator
 
 
 class BasicWithOpeningTest(unittest.TestCase):
 
     def setUp(self):
-        self.path_to_folder = "../../../../data/simulations/s-namo_cases/"
+        self.path_to_folder = os.path.join(__file__, "../../../../../data/simulations/s-namo_cases/")
 
     # region BASIC WITH OPENING CASE
     def test_basic_with_opening(self):

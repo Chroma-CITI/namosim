@@ -1,11 +1,12 @@
 import unittest
+import os
 from snamosim.simulator import Simulator
 
 
 class CpeThirdFloorTest(unittest.TestCase):
 
     def setUp(self):
-        self.path_to_folder = "../../../../data/simulations/s-namo_cases/05_cpe_third_floor/"
+        self.path_to_folder = os.path.join(__file__, "../../../../../data/simulations/s-namo_cases/05_cpe_third_floor/")
 
     def test_navigation_only_behavior(self):
         sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior.yaml")

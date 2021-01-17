@@ -1,11 +1,12 @@
 import unittest
+import os
 from snamosim.simulator import Simulator
 
 
 class BasicWithOpeningTest(unittest.TestCase):
 
     def setUp(self):
-        self.path_to_folder = "../../../../data/simulations/s-namo_cases/02_basic_with_opening/"
+        self.path_to_folder = os.path.join(__file__, "../../../../../data/simulations/s-namo_cases/02_basic_with_opening/")
 
     def test_navigation_only_behavior(self):
         sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior.yaml")

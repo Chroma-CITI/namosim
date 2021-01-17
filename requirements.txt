@@ -3,6 +3,7 @@ numpy >= 1.16.6 # For all matrix-based logic
 shapely >= 1.6.4 # For all geometry-based logic
 matplotlib >= 2.2.5 # For standalone display without ROS Rviz, and for debug purposes
 aabbtree >= 2.6.2 # Used to accelerate collision check detection
+Box2D >= 2.3.10 # Used for physics
 
 # LOOSELY COUPLED LIBRARIES (used just in a few instances, could be easily replaced)
 mapbox_earcut >= 0.12.7 # To triangulate polygons (required for conversion to ROS messages)
