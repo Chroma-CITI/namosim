@@ -2,6 +2,10 @@ import unittest
 from snamosim.simulator import Simulator
 import os
 from datetime import datetime
+import sys
+
+if "/home/brenault/s-namo-sim-private" not in sys.path:
+    sys.path.append("/home/brenault/s-namo-sim-private")
 
 
 class AfterTheFeastTest(unittest.TestCase):
