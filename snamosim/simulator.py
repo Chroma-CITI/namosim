@@ -131,20 +131,24 @@ class Simulator:
             attached_entity_to_robot = bidict()
 
             while active_agents:
-                # Sense loop: update each agent's knowledge of the world
-                self.sense(active_agents)
+                try:
+                    # Sense loop: update each agent's knowledge of the world
+                    self.sense(active_agents)
 
-                # Think loop: get each agent to think about their next step
-                agent_uid_to_next_action = self.think(
-                    active_agents, goal_counter, trace_polygons, exceptions_traces_met_during_run)
+                    # Think loop: get each agent to think about their next step
+                    agent_uid_to_next_action = self.think(
+                        active_agents, goal_counter, trace_polygons, exceptions_traces_met_during_run)
 
-                # Act loops: Verify that each action is doable individually, together and if so execute them
-                self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons)
+                    # Act loops: Verify that each action is doable individually, together and if so execute them
+                    self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons)
 
-                # Once the simulation reference world has been modified, display the modification
-                if not self.display_sim_knowledge_only_once:
-                    # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!
-                    self.rp.publish_sim_world(self.ref_world, agent_uid)
+                    # Once the simulation reference world has been modified, display the modification
+                    if not self.display_sim_knowledge_only_once:
+                        # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!
+                        self.rp.publish_sim_world(self.ref_world, agent_uid)
+                except Exception as e:
+                    tb = traceback.format_exc()
+                    exceptions_traces_met_during_run.append(tb)
 
             # If the simulation is set to be reset after all agents have reached their first goal,
             # and there are goals left to reach, reset the simulation world and give the agents their next goal
