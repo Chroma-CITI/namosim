@@ -63,7 +63,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # - Extra performance parameters
         self.check_new_local_opening_before_global = parameters["check_new_local_opening_before_global"]
-        self.activate_grids_logging = True  # not parameters["deactivate_grids_logging"]
+        self.activate_grids_logging = False  # not parameters["deactivate_grids_logging"]
 
         self._trans_vectors = np.array([(self.translation_unit_length, 0.), (-self.translation_unit_length, 0.)])
         if self.forbid_rotations:

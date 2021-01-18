@@ -31,9 +31,12 @@ from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInfl
 
 
 class Simulator:
-    def __init__(self, simulation_file_path, goals=None):
+    def __init__(self, simulation_file_path, goals=None, timestring=None):
         # Import YAML world configuration file
-        self.sim_start_timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
+        if timestring:
+            self.sim_start_timestring = timestring
+        else:
+            self.sim_start_timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
 
         behavior_yaml_abs_path = os.path.abspath(simulation_file_path)
 
@@ -74,9 +77,11 @@ class Simulator:
         # Associate autonomous agents with goals and behaviors
         self.goals_geometries = {goal.name: goal.pose for goal in self.init_ref_world.goals.values()}
         if goals:
-            self.agent_uid_to_goals = goals
+            self.saved_goals = goals
+            self.agent_uid_to_goals = {self.ref_world.get_entity_uid_from_name(agent_name): gls for agent_name, gls in goals.items()}
         else:
             self.agent_uid_to_goals = self.initialize_agents_goals(self.goals_geometries)
+            self.saved_goals = {self.ref_world.entities[agent_uid].name: copy.deepcopy(goals) for agent_uid, goals in self.agent_uid_to_goals.items()}
 
         if self.reset_after_first_goal:
             # Only give first goal if reset after first goal
@@ -173,7 +178,7 @@ class Simulator:
             f.write(simulation_report_json)
 
         # TODO Remove this temporary measure for a better separation between scenario generation and execution
-        simulation_report["temp_goals"] = agent_uid_to_goals
+        simulation_report["temp_goals"] = self.saved_goals
 
         return simulation_report
 
