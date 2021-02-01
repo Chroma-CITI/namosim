@@ -256,7 +256,7 @@ def plot_data(aggregated_data, nb_goals, saved_plots_path, show=True, padding_pe
         )
 
 
-if __name__ == "__main__":
+def aggregate_data_then_plot():
     nb_goals = 200
     main_dirname = os.path.join(os.path.dirname(__file__), "../../logs/04_after_the_feast/")
 
@@ -271,3 +271,86 @@ if __name__ == "__main__":
             json.dump(aggregated_data, f)
 
     plot_data(aggregated_data, nb_goals, main_dirname, show=True, padding_percentage=0.05)
+
+
+def get_problematic_scenarios_ids(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failures_max=50):
+    # Get all scenarios individual recorded data
+    namo_scenarios_ids = {
+        name for name in os.listdir(namo_logs_folder) if os.path.isdir(os.path.join(namo_logs_folder, name))
+    }
+    snamo_scenarios_ids = {
+        name for name in os.listdir(snamo_logs_folder) if os.path.isdir(os.path.join(snamo_logs_folder, name))
+    }
+
+    # Only keep scenarios for which we have both NAMO and SNAMO data
+    common_scenarios_ids = namo_scenarios_ids.union(snamo_scenarios_ids)
+
+    # For each scenario, aggregate the data of all goals so that cumulated data can be computed
+    namo_aggregated_goals_per_scenario_data = {}
+    snamo_aggregated_goals_per_scenario_data = {}
+    x = range(nb_goals)
+
+    namo_scenarios_without_results_file = []
+    snamo_scenarios_without_results_file = []
+
+    namo_scenarios_with_exceptions = []
+    snamo_scenarios_with_exceptions = []
+
+    namo_scenarios_with_more_than_50_failed_goals = []
+    snamo_scenarios_with_more_than_50_failed_goals = []
+
+    for scenario_id in common_scenarios_ids:
+        namo_path = os.path.join(namo_logs_folder, scenario_id, "sim_results.json")
+        snamo_path = os.path.join(snamo_logs_folder, scenario_id, "sim_results.json")
+
+        try:
+            with open(namo_path, "r") as namo_f:
+                namo_data = json.load(namo_f)
+
+            if "Exceptions" in namo_data:
+                namo_scenarios_with_exceptions.append(scenario_id)
+
+            nb_failure_namo = len(
+                [True for gr in namo_data["agents"][0]["goals_reports"] if gr["goal_status"] == "failure"])
+            if nb_failure_namo > nb_failures_max:
+                namo_scenarios_with_more_than_50_failed_goals.append(scenario_id)
+        except IOError as e:
+            namo_scenarios_without_results_file.append(scenario_id)
+
+        try:
+            with open(snamo_path, "r") as snamo_f:
+                snamo_data = json.load(snamo_f)
+            if "Exceptions" in snamo_data:
+                snamo_scenarios_with_exceptions.append(scenario_id)
+
+            nb_failure_snamo = len(
+                [True for gr in snamo_data["agents"][0]["goals_reports"] if gr["goal_status"] == "failure"])
+            if nb_failure_snamo > nb_failures_max:
+                snamo_scenarios_with_more_than_50_failed_goals.append(scenario_id)
+        except IOError as e:
+            snamo_scenarios_without_results_file.append(scenario_id)
+
+    return {
+        "namo_scenarios_without_results_file": namo_scenarios_without_results_file,
+        "snamo_scenarios_without_results_file": snamo_scenarios_without_results_file,
+        "namo_scenarios_with_exceptions": namo_scenarios_with_exceptions,
+        "snamo_scenarios_with_exceptions": snamo_scenarios_with_exceptions,
+        "namo_scenarios_with_more_than_50_failed_goals": namo_scenarios_with_more_than_50_failed_goals,
+        "snamo_scenarios_with_more_than_50_failed_goals": snamo_scenarios_with_more_than_50_failed_goals
+    }
+
+
+if __name__ == "__main__":
+    # aggregate_data_then_plot()
+    nb_goals = 200
+    main_dirname = os.path.join(os.path.dirname(__file__), "../../logs/04_after_the_feast/")
+
+    try:
+        with open(os.path.join(main_dirname, "problems.json"), "r") as f:
+            pb_data = json.load(f)
+    except IOError as e:
+        namo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset/")
+        snamo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset_snamo/")
+        pb_data = get_problematic_scenarios_ids(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failures_max=50)
+        with open(os.path.join(main_dirname, "problems.json"), "w") as f:
+            json.dump(pb_data, f)
