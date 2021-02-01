@@ -7,6 +7,8 @@ import mapbox_earcut as earcut
 from shapely.geometry import Polygon
 import random
 import collections
+from datetime import datetime
+
 
 # Constants
 SQRT_OF_2 = math.sqrt(2.)
@@ -82,6 +84,10 @@ DIRECTIONS = [['NW', 'N', 'NE'],
 HALF_ONE_UP_TIMES = (0.45, 0.70, 0.90, 1.20)
 
 
+def timestamp_string():
+    return datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
+
+
 class OrderedSet(collections.MutableSet):
 
     def __init__(self, iterable=None):
@@ -139,6 +145,27 @@ class OrderedSet(collections.MutableSet):
         if isinstance(other, OrderedSet):
             return len(self) == len(other) and list(self) == list(other)
         return set(self) == set(other)
+
+
+class CustomLogger(list):
+    def __init__(self, printout=True):
+        list.__init__(self)
+        self.printout = printout
+
+    def append(self, object):
+        list.append(self, object)
+        if self.printout:
+            print(object)
+
+
+class BasicLog:
+    def __init__(self, message, step, timestamp=timestamp_string()):
+        self.message = message
+        self.step = step
+        self.timestamp = timestamp
+
+    def __str__(self):
+        return "At step {}: '{}' - Timestamp: {}".format(self.step, self.message, self.timestamp)
 
 
 def euclidean_distance(a, b):

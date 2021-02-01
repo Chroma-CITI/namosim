@@ -8,7 +8,6 @@ import numpy as np
 import traceback
 import logging
 from bidict import bidict
-from datetime import datetime
 from shapely import affinity
 from shapely.geometry import LineString
 
@@ -32,16 +31,20 @@ from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInfl
 
 class Simulator:
     def __init__(self, simulation_file_path, goals=None, timestring=None):
+        self.simulation_log = utils.CustomLogger(printout=True)
+
         # Import YAML world configuration file
         if timestring:
             self.sim_start_timestring = timestring
         else:
-            self.sim_start_timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
+            self.sim_start_timestring = utils.timestamp_string()
 
-        behavior_yaml_abs_path = os.path.abspath(simulation_file_path)
+        simulation_file_abs_path = os.path.abspath(simulation_file_path)
 
-        with open(behavior_yaml_abs_path) as f:
+        with open(simulation_file_abs_path) as f:
             self.config = yaml.load(f, Loader=yaml.SafeLoader)
+
+        self.simulation_log.append(utils.BasicLog("Simulation file successfully loaded", 0))
 
         # Save general simulation parameters
         self.provide_walls = self.config["provide_walls"]
@@ -49,8 +52,8 @@ class Simulator:
         self.reset_after_first_goal = False if not "reset_after_first_goal" in self.config else self.config["reset_after_first_goal"]
         self.human_inflation_radius = 0.55/2.  # [m]
         simulation_file_parent_dirname = os.path.basename(
-            os.path.normpath(os.path.abspath(os.path.join(behavior_yaml_abs_path, '..'))))
-        self.simulation_filename = os.path.splitext(os.path.basename(behavior_yaml_abs_path))[0]
+            os.path.normpath(os.path.abspath(os.path.join(simulation_file_abs_path, '..'))))
+        self.simulation_filename = os.path.splitext(os.path.basename(simulation_file_abs_path))[0]
 
         rel_path_to_main_sim_logs_dir = os.path.join('../logs/', simulation_file_parent_dirname, self.simulation_filename)
         abs_path_to_main_sim_logs_dir = os.path.join(os.path.dirname(__file__), rel_path_to_main_sim_logs_dir)
@@ -58,16 +61,23 @@ class Simulator:
         os.makedirs(self.abs_path_to_logs_dir)
         os.makedirs(self.abs_path_to_logs_dir + "simulation/")
 
+        self.simulation_log.append(utils.BasicLog("Created log folders at:{}".format(str(self.abs_path_to_logs_dir)), 0))
+
         # Reinitialize rviz display
 
         agents_names = [a_to_b_config["agent_name"] for a_to_b_config in self.config["agents_behaviors"]]
         self.rp = RosPublisher(top_level_namespaces=['simulation'] + agents_names)
         self.rp.cleanup_all()
 
+        self.simulation_log.append(utils.BasicLog("Display backend initialized.", 0))
+
         # Create world from world description yaml file
         world_file_path = self.config["files"]["world_file"]
-        world_yaml_abs_path = os.path.join(os.path.dirname(behavior_yaml_abs_path), world_file_path)
+        world_yaml_abs_path = os.path.join(os.path.dirname(simulation_file_abs_path), world_file_path)
         self.init_ref_world = World.load_from_yaml(world_yaml_abs_path)
+
+        self.simulation_log.append(utils.BasicLog("World file successfully loaded.", 0))
+
         self.init_ref_world.save_to_files(
             json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + ".json",
             svg_filepath=self.init_ref_world.init_geometry_filename
@@ -111,7 +121,7 @@ class Simulator:
                 [uid for uid, entity in self.ref_world.entities.items() if isinstance(entity, Robot)]
             )
 
-        self.catch_exceptions = False
+        self.catch_exceptions = True
 
     def run(self):
         run_start_time = time.time()
@@ -147,8 +157,11 @@ class Simulator:
                         # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!
                         self.rp.publish_sim_world(self.ref_world, agent_uid)
                 except Exception as e:
-                    tb = traceback.format_exc()
-                    exceptions_traces_met_during_run.append(tb)
+                    if self.catch_exceptions:
+                        tb = traceback.format_exc()
+                        exceptions_traces_met_during_run.append(tb)
+                    else:
+                        raise e
 
             # If the simulation is set to be reset after all agents have reached their first goal,
             # and there are goals left to reach, reset the simulation world and give the agents their next goal
