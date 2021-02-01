@@ -187,5 +187,13 @@ class AfterTheFeastTest(unittest.TestCase):
         sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_conflict_middle.yaml")
         sim.run()
 
+    def test_stilman_2005_behavior_multi_robots_complexified_conflict_02(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_conflict_02.yaml")
+        sim.run()
+
+    def test_stilman_2005_behavior_multi_robots_complexified_4_robots(self):
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_4_robots.yaml")
+        sim.run()
+
 if __name__ == '__main__':
     unittest.main()
