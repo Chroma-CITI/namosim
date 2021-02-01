@@ -117,3 +117,10 @@ data/gridsearch-dataset/www.movingai.com/
 
 # RUBE Json dataset for tests
 data/rube_json_dataset/
+
+# Automatically generated scenarios for after_the_feast
+data/worlds/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset/
+data/worlds/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/
+
+data/simulations/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset/
+data/simulations/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/
