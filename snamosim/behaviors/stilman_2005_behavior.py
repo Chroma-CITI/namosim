@@ -1788,7 +1788,7 @@ class Path:
         if not path_dynamically_collides:
             return True
         else:
-            collision_uids = [data["colliding_polygon_uid"] for _, data in collision_data.items()]
+            collision_uids = [data["colliding_polygon_uid"] for _, data in collision_data.items() if "colliding_polygon_uid" in data]
             raise DynamicCollisionError(collision_uids)
 
     def pop_next_step(self):
