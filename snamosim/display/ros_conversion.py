@@ -21,7 +21,7 @@ from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 from snamosim.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
 from snamosim.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
-from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInflatedOccupancyGrid
+from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, BinaryInflatedOccupancyGrid
 
 def init_header():
     return Header(stamp=rospy.Time.now(), frame_id="map")
@@ -36,34 +36,41 @@ def init_ros_path():
     return Path(header=init_header(), poses=[])
 
 
-def world_to_costmap(world, robot_uid):
-    robot = world.entities[robot_uid]
+def world_to_costmap(world, robot_uid=None):
     polygons = {
         uid: entity.polygon for uid, entity in world.entities.items()
         if not isinstance(entity, Robot)
     }
-    robot_max_inflation_radius = utils.get_circumscribed_radius(robot.polygon)
-    static_obs_inf_grid = BinaryInflatedOccupancyGrid(
-        polygons, world.dd.res, robot_max_inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
-    )
+    if robot_uid:
+        robot_max_inflation_radius = utils.get_circumscribed_radius(world.entities[robot_uid].polygon)
+        grid = BinaryInflatedOccupancyGrid(
+            polygons, world.dd.res, robot_max_inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+        )
+    else:
+        grid = BinaryOccupancyGrid(
+            polygons, world.dd.res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+        )
 
     costmap = OccupancyGrid(header=init_header())
     costmap.info.map_load_time = costmap.header.stamp
-    costmap.info.resolution = static_obs_inf_grid.res
-    costmap.info.width = static_obs_inf_grid.d_width
-    costmap.info.height = static_obs_inf_grid.d_height
-    costmap.info.origin.position.x = static_obs_inf_grid.grid_pose[0]
-    costmap.info.origin.position.y = static_obs_inf_grid.grid_pose[1]
+    costmap.info.resolution = grid.res
+    costmap.info.width = grid.d_width
+    costmap.info.height = grid.d_height
+    costmap.info.origin.position.x = grid.grid_pose[0]
+    costmap.info.origin.position.y = grid.grid_pose[1]
     costmap.info.origin.position.z = -0.1
-    costmap.data = np.fliplr(np.rot90(static_obs_inf_grid.grid, 3)).flatten().astype(np.int8).tolist()
+    costmap.data = np.fliplr(np.rot90(grid.grid, 3)).flatten().astype(np.int8).tolist()
 
     return costmap
 
 
-def world_to_marker_array(world, robot_uid, entities_to_ignore=tuple()):
+def world_to_marker_array(world, robot_uid=None, entities_to_ignore=tuple()):
     marker_array = MarkerArray()
     markers = []
-    robot = world.entities[robot_uid]
+    if robot_uid:
+        robots = [world.entities[robot_uid]]
+    else:
+        robots = [entity for uid, entity in world.entities.items() if isinstance(entity, Robot)]
     for entity in world.entities.values():
         if entity.uid not in entities_to_ignore:
             if isinstance(entity, Robot):
@@ -86,22 +93,24 @@ def world_to_marker_array(world, robot_uid, entities_to_ignore=tuple()):
                                                              cfg.fov_line_width))
 
             if isinstance(entity, Obstacle):
-                entity_movability = robot.deduce_movability(entity.type)
-                if entity_movability == "movable":
+                unknown = any([robot.deduce_movability(entity.type) == "unknown" for robot in robots])
+                unmovable = any([robot.deduce_movability(entity.type) == "unmovable" for robot in robots])
+                movable = any([robot.deduce_movability(entity.type) == "movable" for robot in robots])
+                if movable:
                     markers = markers + entity_to_markers(
                         entity, "/obstacles", entity.uid, cfg.main_frame_id,
                         snamosim.display.colors.movable_obstacle_color,
                         snamosim.display.colors.movable_obstacle_border_color,
                         snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
-                if entity_movability == "unmovable":
+                elif unmovable:
                     markers = markers + entity_to_markers(
                         entity, "/obstacles", entity.uid, cfg.main_frame_id,
                         snamosim.display.colors.unmovable_obstacle_color,
                         snamosim.display.colors.unmovable_obstacle_border_color,
                         snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
-                if entity_movability == "unknown":
+                elif unknown:
                     markers = markers + entity_to_markers(
                         entity, "/obstacles", entity.uid, cfg.main_frame_id,
                         snamosim.display.colors.unknown_obstacle_color,

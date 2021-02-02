@@ -173,7 +173,7 @@ class RosPublisher(with_metaclass(Singleton)):
         return self.publishers[topic].get_num_connections() > 0
 
     # region SIM WORLD
-    def publish_sim_world(self, world, robot_uid):
+    def publish_sim_world(self, world, robot_uid=None):
         if USE_ROS:
             if self.is_activated('/simulation' + cfg.sim_knowledge_topic):
                 current_world_draw_data = {

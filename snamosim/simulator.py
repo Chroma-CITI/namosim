@@ -123,20 +123,19 @@ class Simulator:
 
         self.catch_exceptions = True
 
+        self.simulation_log.append(utils.BasicLog("Simulation successfully loaded.", 0))
+
     def run(self):
         run_start_time = time.time()
 
         run_active = True
-        exceptions_traces_met_during_run = []
+        run_exceptions_traces = []
         while run_active:
 
             active_agents = set(self.agent_uid_to_behavior.keys())
 
-            # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!
-            agent_uid = list(self.agent_uid_to_behavior.keys())[0]
-            self.rp.publish_sim_world(self.ref_world, agent_uid)
+            self.rp.publish_sim_world(self.ref_world)
 
-            goal_counter = 0
             trace_polygons = []
             attached_entity_to_robot = bidict()
 
@@ -146,20 +145,18 @@ class Simulator:
                     self.sense(active_agents)
 
                     # Think loop: get each agent to think about their next step
-                    agent_uid_to_next_action = self.think(
-                        active_agents, goal_counter, trace_polygons, exceptions_traces_met_during_run)
+                    agent_uid_to_next_action = self.think(active_agents, trace_polygons, run_exceptions_traces)
 
-                    # Act loops: Verify that each action is doable individually, together and if so execute them
+                    # Act loops: Verify that each action is doable individually and together, if so, execute them
                     self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons)
 
                     # Once the simulation reference world has been modified, display the modification
                     if not self.display_sim_knowledge_only_once:
-                        # TODO : REMOVE USE OF AGENT UID FOR SIM WORLD DISPLAY !!!
-                        self.rp.publish_sim_world(self.ref_world, agent_uid)
+                        self.rp.publish_sim_world(self.ref_world)
                 except Exception as e:
                     if self.catch_exceptions:
                         tb = traceback.format_exc()
-                        exceptions_traces_met_during_run.append(tb)
+                        run_exceptions_traces.append(tb)
                     else:
                         raise e
 
@@ -185,8 +182,8 @@ class Simulator:
         self.run_duration = time.time() - run_start_time
 
         simulation_report = self.create_simulation_report()
-        if exceptions_traces_met_during_run:
-            simulation_report['Exceptions'] = json.dumps(exceptions_traces_met_during_run)
+        if run_exceptions_traces:
+            simulation_report['Exceptions'] = json.dumps(run_exceptions_traces)
         simulation_report_json = json.dumps(simulation_report, indent=4, sort_keys=True)
 
         log_filepath = os.path.join(
@@ -552,7 +549,7 @@ class Simulator:
                                       else ar.ActionSuccess)
                 behavior.sense(self.ref_world, last_action_result)
 
-    def think(self, active_agents, goal_counter, trace_polygons, exceptions_traces_met_during_run):
+    def think(self, active_agents, trace_polygons, exceptions_traces_met_during_run):
         agent_uid_to_next_action = {}
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
@@ -564,13 +561,11 @@ class Simulator:
                         # If the agent has executed all of its goals, remove it from the active agents
                         active_agents.remove(agent_uid)
                     elif isinstance(agent_next_action, ba.GoalFailed):
-                        goal_counter += 1
                         self.save_world_snapshot(agent_uid, agent_next_action, goal_counter, trace_polygons)
                         if agent_next_action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
                             self.agent_uid_and_goal_to_action_results[agent_uid][agent_next_action.goal] = []
                     elif isinstance(agent_next_action, ba.GoalSuccess):
                         # If the agent reached its current goal
-                        goal_counter += 1
                         self.save_world_snapshot(agent_uid, agent_next_action, goal_counter, trace_polygons)
                     else:
                         # If the agent could think of a plan and its step
