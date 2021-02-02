@@ -166,7 +166,8 @@ class BasicLog:
         self.timestamp = timestamp
 
     def __str__(self):
-        return "At step {}: '{}' - Timestamp: {}".format(self.step, self.message, self.timestamp)
+        # return "At step {}: '{}' - Timestamp: {}".format(self.step, self.message, self.timestamp)
+        return "At step {}: '{}'".format(self.step, self.message)
 
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)

@@ -3,12 +3,14 @@ import copy
 from decimal import Decimal
 
 from snamosim.display.ros_publisher import RosPublisher
-
+from snamosim.utils import utils
 
 class BaselineBehavior(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir):
+        self.simulation_log = utils.CustomLogger(printout=True)
+
         self._initial_world = initial_world
         self._robot_uid = robot_uid
         self._robot_name = initial_world.entities[robot_uid].name
@@ -30,10 +32,11 @@ class BaselineBehavior(object):
 
         self._rp = RosPublisher()
 
-    def sense(self, ref_world, last_action_result):
+    def sense(self, ref_world, last_action_result, step_count):
         self._last_action_result = last_action_result
         self._robot.update_world_from_sensors(ref_world, self._world)
         self._rp.publish_robot_world(self._world, self._robot_uid, ns=self._robot_name)
+        self._step_count = step_count
 
     @abc.abstractmethod
     def think(self):

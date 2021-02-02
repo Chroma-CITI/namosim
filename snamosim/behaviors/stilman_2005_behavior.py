@@ -5,7 +5,6 @@ import time
 from collections import OrderedDict
 from shapely.geometry import LineString, Point
 from shapely import affinity
-import logging
 import random
 
 from .baseline_behavior import BaselineBehavior
@@ -85,9 +84,9 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self.check_horizon = 10
 
-        self.min_nb_steps_to_wait = 10
-        self.max_nb_steps_to_wait = 100
-        self.wait_steps = 0
+        self.min_nb_steps_to_wait = 5
+        self.max_nb_steps_to_wait = 20
+        self.wait_steps = -1
 
         self.grabbed_obstacles = set()
 
@@ -112,12 +111,14 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if self.are_all_goals_finished():
             # Exit early if there are no goals for the behavior to reach
-            logging.info(
-                "FINISH: Agent '{name}' has finished trying to reach its goals !".format(name=self._robot.name))
             return ba.GoalsFinished()
 
         if self.wait_steps > 0:
             # Exit early if the behavior must still wait
+            self.simulation_log.append(utils.BasicLog(
+                "Agent '{}' is waiting for {} steps.".format(self._robot.name, self.wait_steps),
+                self._step_count)
+            )
             self.wait_steps -= 1
             return ba.Wait()
 
@@ -128,8 +129,6 @@ class Stilman2005Behavior(BaselineBehavior):
         q_r = self._robot.pose
 
         if self.is_goal_success(q_r):
-            logging.info("SUCCESS: Agent '{name}' has successfully reached pose {nav_goal}.".format(
-                name=self._robot.name, nav_goal=str(self._q_goal)))
             action = ba.GoalSuccess(self._q_goal)
             self._q_goal = None
             return action
@@ -143,30 +142,64 @@ class Stilman2005Behavior(BaselineBehavior):
             if action_failed_because_of_other_agent:
                 self.wait_steps = random.randint(self.min_nb_steps_to_wait, self.max_nb_steps_to_wait)
                 self.wait_steps -= 1
+                self.simulation_log.append(utils.BasicLog(
+                    str(action_failed_because_of_other_agent),
+                    self._step_count)
+                )
+                self.simulation_log.append(utils.BasicLog(
+                    "Agent '{}' starts waiting for {} steps.".format(self._robot.name, self.wait_steps),
+                    self._step_count)
+                )
                 return ba.Wait()
             else:
                 replan = True
-                # OR? :
-                # logging.warning("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
-                #     name=self._robot.name, nav_goal=str(self._q_goal)))
-                # self._q_goal = None
-                # return ba.GoalFailed(self._q_goal)
         else:
             # If last action was a success, check if plan is valid (at the fixed horizon if given)
             all_entities_poses = {uid: entity.pose for uid, entity in self._world.entities.items()}
             all_entities_polygons = {uid: entity.polygon for uid, entity in self._world.entities.items()}
-            p_opt_is_valid = self._p_opt.is_valid(
-                all_entities_poses, all_entities_polygons, check_horizon=self.check_horizon
-            )
+            try:
+                p_opt_is_valid = self._p_opt.is_valid(
+                    all_entities_poses, all_entities_polygons, check_horizon=self.check_horizon
+                )
+            except PlanValidityError as e:
+                p_opt_is_valid = False
+                if isinstance(e, DynamicCollisionError):
+                    colliding_entities = [self._world.entities[uid] for uid in e.collision_data]
+                    all_colliding_entities_are_robots = all([isinstance(e, Robot) for e in colliding_entities])
+                    if all_colliding_entities_are_robots and self.wait_steps == -1:
+                            self.wait_steps = random.randint(self.min_nb_steps_to_wait, self.max_nb_steps_to_wait)
+                            self.wait_steps -= 1
+                            self.simulation_log.append(utils.BasicLog(
+                                "Plan of agent '{}' has been invalidated because collides with other agent(s) {}.".format(
+                                    self._robot.name, str([e.name for e in colliding_entities])),
+                                self._step_count)
+                            )
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent '{}' starts waiting for {} steps.".format(self._robot.name, self.wait_steps),
+                                self._step_count)
+                            )
+                            return ba.Wait()
 
             if not p_opt_is_valid:
                 # If the plan is not valid, try replanning
                 replan = True
+                self.wait_steps = -1
+                self.simulation_log.append(utils.BasicLog(
+                    "Plan of agent '{}' is invalid.".format(self._robot.name),
+                    self._step_count)
+                )
                 if self._p_opt.executed_only_first_step():
-                    print("Goal failure because of plan validity check incoherence.")
+                    self.simulation_log.append(utils.BasicLog(
+                        "Goal failure because of plan validity check incoherence.",
+                        self._step_count)
+                    )
                     self._q_goal = None
                     return ba.GoalFailed(self._q_goal)
         if replan:
+            self.simulation_log.append(utils.BasicLog(
+                "Agent '{}' tries replanning.".format(self._robot.name),
+                self._step_count)
+            )
             static_obs_polygons = {
                 uid: entity.polygon for uid, entity in self._world.entities.items()
                 if (isinstance(entity, Robot) and entity.uid != self._robot_uid)
@@ -178,6 +211,10 @@ class Stilman2005Behavior(BaselineBehavior):
             )
 
             if self.grabbed_obstacles:
+                self.simulation_log.append(utils.BasicLog(
+                    "Agent '{}' must first release obstacle before replanning.".format(self._robot.name),
+                    self._step_count)
+                )
                 self._p_opt = Plan([], self._q_goal, self._robot_uid)
 
                 other_entities_polygons = {
@@ -221,8 +258,12 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if not self._p_opt:
             # If no plan for the goal was found
-            logging.warning("FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
-                name=self._robot.name, nav_goal=str(self._q_goal)))
+            self.simulation_log.append(utils.BasicLog(
+                "FAILURE: Agent '{name}' has failed to reach pose {nav_goal}.".format(
+                    name=self._robot.name, nav_goal=str(self._q_goal)
+                ),
+                self._step_count)
+            )
             self._q_goal = None
             return ba.GoalFailed(self._q_goal)
         else:
@@ -245,7 +286,9 @@ class Stilman2005Behavior(BaselineBehavior):
         :return: None to backtrack, current partial plan otherwise.
         """
         if nb_self_calls > 20 or nb_rch_calls > 20:
-            print("Too much recursion, there must be a problem, failing goal.")
+            self.simulation_log.append(utils.BasicLog(
+                "Too much recursion, there must be a problem, failing goal.", self._step_count)
+            )
             return None
 
         robot_at_t = w_t.entities[self._robot.uid]
@@ -429,15 +472,21 @@ class Stilman2005Behavior(BaselineBehavior):
             neighborhood=utils.TAXI_NEIGHBORHOOD):
 
         if inflated_robot_grid.grid[start_cell[0]][start_cell[1]] > 0:
-            print('The robot start cell in a rch call must always be outside of any obstacles.')
+            self.simulation_log.append(utils.BasicLog(
+                'The robot start cell in a rch call must always be outside of any obstacles.', self._step_count)
+            )
             return 0, 0
 
         if static_obs_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
-            print('The robot goal cell in a rch call mush always be outside of static obstacles.')
+            self.simulation_log.append(utils.BasicLog(
+                'The robot goal cell in a rch call mush always be outside of static obstacles.', self._step_count)
+            )
             return 0, 0
 
         if inflated_robot_grid.grid[goal_cell[0]][goal_cell[1]] > 1:
-            print('The robot goal cell in a rch call must be at most within one movable obstacle.')
+            self.simulation_log.append(utils.BasicLog(
+                'The robot goal cell in a rch call must be at most within one movable obstacle.', self._step_count)
+            )
             return 0, 0
 
         # TODO Create custom exceptions for above
@@ -1671,6 +1720,33 @@ class RobotObstacleConfiguration:
         return hash((self.robot.fixed_precision_pose, self.obstacle.fixed_precision_pose))
 
 
+class PlanValidityError(Exception):
+    def __init__(self, *args):
+        Exception(args)
+
+
+class DynamicCollisionError(PlanValidityError):
+    def __init__(self, collision_data, *args):
+        self.collision_data = collision_data
+        PlanValidityError(args)
+
+
+class ObstacleNotAtStartPoseError(PlanValidityError):
+    def __init__(self, obstacle_uid, *args):
+        self.obstacle_uid = obstacle_uid
+        PlanValidityError(args)
+
+
+class HasInfiniteCostError(PlanValidityError):
+    def __init__(self, *args):
+        PlanValidityError(args)
+
+
+class HasNoPathComponents(PlanValidityError):
+    def __init__(self, *args):
+        PlanValidityError(args)
+
+
 class Path:
     def __init__(self, poses, polygons, actions, collision_actions, collision_data=None, indexes=None):
         self.poses = poses
@@ -1700,7 +1776,7 @@ class Path:
         if not other_entities_aabb_tree:
             other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
 
-        path_dynamically_collides, _, _ = collision.csv_check_collisions(
+        path_dynamically_collides, collision_data, _ = collision.csv_check_collisions(
             other_polygons=other_entities_polygons,
             polygon_sequence=self.polygons,
             action_sequence=self.collision_actions, bb_type='minimum_rotated_rectangle',
@@ -1709,7 +1785,11 @@ class Path:
             display_debug=False
         )
 
-        return not path_dynamically_collides
+        if not path_dynamically_collides:
+            return True
+        else:
+            collision_uids = [data["colliding_polygon_uid"] for _, data in collision_data.items()]
+            raise DynamicCollisionError(collision_uids)
 
     def pop_next_step(self):
         # If there are steps left to execute in self.path, pop and return the first
@@ -1729,7 +1809,7 @@ class Path:
         return len(self.indexes) == 1
 
     # TODO Have these trans and rot precision values be passed from calling functions !
-    def is_start_pose(self, pose, trans_mult=0.01, rot_mult=1.):
+    def is_start_pose(self, pose, trans_mult=100., rot_mult=1.):
         fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(pose, trans_mult, rot_mult)
         fixed_precision_self_pose = utils.real_pose_to_fixed_precision_pose(self.poses[0], trans_mult, rot_mult)
         return fixed_precision_pose == fixed_precision_self_pose
@@ -1809,11 +1889,15 @@ class TransferPath:
         else:
             obstacle_at_start_pose = True
 
+        if not obstacle_at_start_pose:
+            raise ObstacleNotAtStartPoseError(self.obstacle_uid)
+
         other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
 
         is_robot_path_valid = self.robot_path.is_valid(
             other_entities_polygons, other_entities_aabb_tree, check_horizon
         )
+
         if self.robot_path.is_path_started():
             is_obstacle_path_valid = (
                 self.obstacle_path.is_valid(other_entities_polygons, other_entities_aabb_tree, check_horizon)
@@ -1829,7 +1913,8 @@ class TransferPath:
                 )
             )
 
-        return is_robot_path_valid and is_obstacle_path_valid and obstacle_at_start_pose
+        if is_robot_path_valid and is_obstacle_path_valid and obstacle_at_start_pose:
+            return True
 
     def pop_next_step(self):
         if self.robot_path.is_path_started():
@@ -1891,8 +1976,7 @@ class TransitPath:
                 is_robot_path_valid = True
                 for uid in potential_collision_polygons_uids:
                     if other_entities_polygons[uid].intersects(buffered_collision_polygon):
-                        is_robot_path_valid = False
-                        break
+                        raise DynamicCollisionError([uid])
             else:
                 is_robot_path_valid = True
         else:
@@ -1901,8 +1985,7 @@ class TransitPath:
             is_robot_path_valid = True
             for uid in potential_collision_polygons_uids:
                 if other_entities_polygons[uid].intersects(self.overall_buffered_collision_polygon):
-                    is_robot_path_valid = False
-                    break
+                    raise DynamicCollisionError([uid])
 
         return is_robot_path_valid
 
@@ -1965,9 +2048,9 @@ class Plan:
 
     def is_valid(self, all_entities_poses, all_entities_polygons, check_horizon=None):
         if self.has_infinite_cost():
-            return False
+            raise HasInfiniteCostError()
         if not self.path_components:
-            return False
+            raise HasNoPathComponents()
 
         if check_horizon:
             shared_horizon = check_horizon
@@ -1996,8 +2079,6 @@ class Plan:
                         )
                     else:
                         raise TypeError('Expected TransitPath or TransferPath instance.')
-                    if not valid_path:
-                        return False
                     shared_horizon = 0 if path.get_length() >= shared_horizon else shared_horizon - path.get_length()
                 else:
                     break
@@ -2025,8 +2106,6 @@ class Plan:
                     )
                 else:
                     raise TypeError('Expected TransitPath or TransferPath instance.')
-                if not valid_path:
-                    return False
 
         return True
 

@@ -153,7 +153,7 @@ class Simulator:
                     step_count += 1
 
                     # Sense loop: update each agent's knowledge of the world
-                    self.sense(active_agents)
+                    self.sense(active_agents, step_count)
 
                     # Think loop: get each agent to think about their next step
                     agent_uid_to_next_action = self.think(active_agents, trace_polygons, step_count)
@@ -567,13 +567,13 @@ class Simulator:
             svg_filepath=svg_filepath
         )
 
-    def sense(self, active_agents):
+    def sense(self, active_agents, step_count):
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
                 last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
                                       if self.agent_uid_to_action_results[agent_uid]
                                       else ar.ActionSuccess)
-                behavior.sense(self.ref_world, last_action_result)
+                behavior.sense(self.ref_world, last_action_result, step_count)
 
     def think(self, active_agents, trace_polygons, step_count):
         agent_uid_to_next_action = {}
