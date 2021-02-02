@@ -8,6 +8,7 @@ from shapely.geometry import Polygon
 import random
 import collections
 from datetime import datetime
+import json
 
 
 # Constants
@@ -167,6 +168,8 @@ class BasicLog:
     def __str__(self):
         return "At step {}: '{}' - Timestamp: {}".format(self.step, self.message, self.timestamp)
 
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 def euclidean_distance(a, b):
     return math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
@@ -469,7 +472,7 @@ def polygon_collides_with_entities(polygon, entities):
 
 
 def append_suffix(filename, suffix):
-  return "{0}_{2}{1}".format(*os.path.splitext(filename) + (suffix,))
+    return "{0}_{2}{1}".format(*os.path.splitext(filename) + (suffix,))
 
 
 def shapely_polygon_to_shapely_triangles(polygon):

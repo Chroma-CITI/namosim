@@ -129,7 +129,11 @@ class Simulator:
         run_start_time = time.time()
 
         run_active = True
+
         run_exceptions_traces = []
+
+        step_count = 0
+
         while run_active:
 
             active_agents = set(self.agent_uid_to_behavior.keys())
@@ -139,13 +143,20 @@ class Simulator:
             trace_polygons = []
             attached_entity_to_robot = bidict()
 
+            step_count = 0
+
+            self.simulation_log.append(utils.BasicLog("Starting run.", step_count))
+
             while active_agents:
                 try:
+                    # Increment simulation step count
+                    step_count += 1
+
                     # Sense loop: update each agent's knowledge of the world
                     self.sense(active_agents)
 
                     # Think loop: get each agent to think about their next step
-                    agent_uid_to_next_action = self.think(active_agents, trace_polygons, run_exceptions_traces)
+                    agent_uid_to_next_action = self.think(active_agents, trace_polygons, step_count)
 
                     # Act loops: Verify that each action is doable individually and together, if so, execute them
                     self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons)
@@ -157,7 +168,9 @@ class Simulator:
                     if self.catch_exceptions:
                         tb = traceback.format_exc()
                         run_exceptions_traces.append(tb)
+                        self.simulation_log.append(utils.BasicLog(tb, step_count))
                     else:
+                        self.simulation_log.append(utils.BasicLog("MET A RUNTIME EXCEPTION, EXITING !", step_count))
                         raise e
 
             # If the simulation is set to be reset after all agents have reached their first goal,
@@ -170,6 +183,8 @@ class Simulator:
                 }
                 self.agent_uid_to_behavior = self.initialize_agents_behaviors(agent_uid_to_goals)
                 self.rp.cleanup_sim_world()
+
+                self.simulation_log.append(utils.BasicLog("Reset world and executing next goal.", step_count))
             else:
                 # Otherwise, simply leave and finish up the simulation
                 run_active = False
@@ -180,19 +195,20 @@ class Simulator:
             svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename, "_end")
         )
         self.run_duration = time.time() - run_start_time
+        self.simulation_log.append(utils.BasicLog("Saved simulation final state.", step_count))
 
         simulation_report = self.create_simulation_report()
         if run_exceptions_traces:
             simulation_report['Exceptions'] = json.dumps(run_exceptions_traces)
-        simulation_report_json = json.dumps(simulation_report, indent=4, sort_keys=True)
-
-        log_filepath = os.path.join(
-                os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
-        with open(log_filepath, 'w+') as f:
-            f.write(simulation_report_json)
 
         # TODO Remove this temporary measure for a better separation between scenario generation and execution
+        log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
         simulation_report["temp_goals"] = self.saved_goals
+        self.simulation_log.append(utils.BasicLog("Simulation report saved at: {}".format(log_filepath), step_count))
+        simulation_report["simulation_log"] = self.simulation_log
+        simulation_report_json = json.dumps(simulation_report, default=lambda o: o.__dict__, indent=4, sort_keys=True)
+        with open(log_filepath, 'w+') as f:
+            f.write(simulation_report_json)
 
         return simulation_report
 
@@ -483,18 +499,22 @@ class Simulator:
                         agent_name=agent_name, b_name=agent_behavior_name))
         return agent_uid_to_behavior
 
-    def save_world_snapshot(self, agent_uid, action, goal_counter, trace_polygons):
+    def save_world_snapshot(self, agent_uid, action, trace_polygons, step_count):
         world_snapshot = copy.deepcopy(self.ref_world)
         self.agent_uid_and_goal_to_world_snapshot[agent_uid].append({
             "goal": action.goal,
             "goal_status": str(action),
             "world_snapshot": copy.deepcopy(self.ref_world)
         })
+        goal_counter = len(self.agent_uid_and_goal_to_world_snapshot[agent_uid])
 
-        json_filepath = self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_after_goal_" + str(
-            goal_counter) + ".json"
-        svg_filepath = utils.append_suffix(self.init_ref_world.init_geometry_filename,
-                                           "_after_goal_" + str(goal_counter))
+        suffix = (
+            "at_step_" + str(step_count)
+            + "_after_goal_" + str(goal_counter)
+            + "_of_" + self.ref_world.entities[agent_uid].name
+        )
+        json_filepath = self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + suffix + ".json"
+        svg_filepath = utils.append_suffix(self.init_ref_world.init_geometry_filename, suffix)
         svg_data = world_snapshot.to_svg()
 
         # conversion.add_shapely_geometry_to_svg(
@@ -521,6 +541,11 @@ class Simulator:
         #     svg_data
         # )
 
+        new_group = svg_data.createElement('svg:g')
+        new_group.setAttribute('id', "traces"+suffix)
+        new_group.setAttribute('inkscape:groupmode', "layer")
+        new_group.setAttribute('inkscape:label', "traces"+suffix)
+        svg_data.childNodes[0].appendChild(new_group)
         for polygon in trace_polygons:
             conversion.add_shapely_geometry_to_svg(
                 polygon,
@@ -529,7 +554,8 @@ class Simulator:
                 self.ref_world.dd.height,
                 'goal_generated_' + str(goal_counter),
                 conversion.OBSTACE_TRACE_STYLE,
-                svg_data
+                svg_data,
+                new_group
             )
         del trace_polygons[:len(trace_polygons)]
 
@@ -549,31 +575,41 @@ class Simulator:
                                       else ar.ActionSuccess)
                 behavior.sense(self.ref_world, last_action_result)
 
-    def think(self, active_agents, trace_polygons, exceptions_traces_met_during_run):
+    def think(self, active_agents, trace_polygons, step_count):
         agent_uid_to_next_action = {}
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
                 planning_start_time = time.time()
-                try:
-                    agent_next_action = behavior.think()
+                agent_next_action = behavior.think()
 
-                    if isinstance(agent_next_action, ba.GoalsFinished):
-                        # If the agent has executed all of its goals, remove it from the active agents
-                        active_agents.remove(agent_uid)
-                    elif isinstance(agent_next_action, ba.GoalFailed):
-                        self.save_world_snapshot(agent_uid, agent_next_action, goal_counter, trace_polygons)
-                        if agent_next_action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                            self.agent_uid_and_goal_to_action_results[agent_uid][agent_next_action.goal] = []
-                    elif isinstance(agent_next_action, ba.GoalSuccess):
-                        # If the agent reached its current goal
-                        self.save_world_snapshot(agent_uid, agent_next_action, goal_counter, trace_polygons)
-                    else:
-                        # If the agent could think of a plan and its step
-                        agent_uid_to_next_action[agent_uid] = agent_next_action
-                except:
-                    exceptions_traces_met_during_run.append(traceback.format_exc())
-                    traceback.print_exc()
-                    continue
+                if isinstance(agent_next_action, ba.GoalsFinished):
+                    # If the agent has executed all of its goals, remove it from the active agents
+                    active_agents.remove(agent_uid)
+                    self.simulation_log.append(
+                        utils.BasicLog("{} finished executed all its goals.".format(agent_uid), step_count)
+                    )
+                elif isinstance(agent_next_action, ba.GoalFailed):
+                    self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
+                    self.simulation_log.append(
+                        utils.BasicLog(
+                            "{} failed executing goal {}.".format(agent_uid, str(agent_next_action.goal)),
+                            step_count
+                        )
+                    )
+                    if agent_next_action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                        self.agent_uid_and_goal_to_action_results[agent_uid][agent_next_action.goal] = []
+                elif isinstance(agent_next_action, ba.GoalSuccess):
+                    # If the agent reached its current goal
+                    self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
+                    self.simulation_log.append(
+                        utils.BasicLog(
+                            "{} successfully executed goal {}.".format(agent_uid, str(agent_next_action.goal)),
+                            step_count
+                        )
+                    )
+                else:
+                    # If the agent could think of a plan and its step
+                    agent_uid_to_next_action[agent_uid] = agent_next_action
                 self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
         return agent_uid_to_next_action
 

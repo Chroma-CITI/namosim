@@ -16,7 +16,7 @@ GOAL_STYLE = 'fill:none;fill-rule:evenodd;stroke:#1155cc;stroke-width:3.5999999;
 POSE_STYLE = 'fill:none;stroke:#1155cc;stroke-width:3.5999999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1'
 
 
-def add_shapely_geometry_to_svg(shapely_geometry, scaling_value, map_width, map_height, uname, style, svg_data):
+def add_shapely_geometry_to_svg(shapely_geometry, scaling_value, map_width, map_height, uname, style, svg_data, svg_group):
     projected_geometry = affinity.translate(
         shapely_geometry, map_width / 2., -map_height / 2.
     ) # TODO Take rotation into account
@@ -25,7 +25,7 @@ def add_shapely_geometry_to_svg(shapely_geometry, scaling_value, map_width, map_
     new_path.setAttribute('id', uname)
     new_path.setAttribute('d', pathd)
     new_path.setAttribute('style', style)
-    svg_data.childNodes[0].appendChild(new_path)
+    svg_group.appendChild(new_path)
 
 
 def svg_pathd_to_shapely_geometry(svg_path, scaling_value):
