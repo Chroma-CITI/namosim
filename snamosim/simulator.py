@@ -159,7 +159,7 @@ class Simulator:
                     agent_uid_to_next_action = self.think(active_agents, trace_polygons, step_count)
 
                     # Act loops: Verify that each action is doable individually and together, if so, execute them
-                    self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons)
+                    self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons, step_count)
 
                     # Once the simulation reference world has been modified, display the modification
                     if not self.display_sim_knowledge_only_once:
@@ -582,6 +582,7 @@ class Simulator:
                 planning_start_time = time.time()
                 agent_next_action = behavior.think()
 
+                # TODO Change goal coordinates for easier reading to goal name in log.
                 if isinstance(agent_next_action, ba.GoalsFinished):
                     # If the agent has executed all of its goals, remove it from the active agents
                     active_agents.remove(agent_uid)
@@ -613,7 +614,7 @@ class Simulator:
                 self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
         return agent_uid_to_next_action
 
-    def act(self, agent_uid_to_next_action, attached_entity_to_robot, trace_polygons):
+    def act(self, agent_uid_to_next_action, attached_entity_to_robot, trace_polygons, step_count):
         # TODO ADD VERIFICATION IF OBSTACLE IS STILL MANIPULABLE ?
 
         agent_uid_to_doable_action = {
@@ -659,9 +660,15 @@ class Simulator:
                         agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
                             next_action, agent_uid, uid, other_polygons[uid].intersection(collision_polygon)
                         )
-                        logging.warning('Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                            agent_uid, self.ref_world.entities[agent_uid].name, uid, self.ref_world.entities[uid].name
-                        ))
+                        self.simulation_log.append(
+                            utils.BasicLog(
+                                'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
+                                    agent_uid, self.ref_world.entities[agent_uid].name, uid,
+                                    self.ref_world.entities[uid].name
+                                ),
+                                step_count
+                            )
+                        )
                         break
                 if not agent_collides:
                     agent_uid_to_statically_doable_action[agent_uid] = next_action
@@ -679,11 +686,16 @@ class Simulator:
                         agent_collision_data[(0, 1)]['colliding_polygon_uid'],
                         agent_collision_data[(0, 1)]['intersection_polygon']
                     )
-                    logging.warning('Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                        agent_uid, self.ref_world.entities[agent_uid].name,
-                        agent_collision_data[(0,1)]['colliding_polygon_uid'],
-                        self.ref_world.entities[agent_collision_data[(0,1)]['colliding_polygon_uid']].name
-                    ))
+                    self.simulation_log.append(
+                        utils.BasicLog(
+                            'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
+                                agent_uid, self.ref_world.entities[agent_uid].name,
+                                agent_collision_data[(0,1)]['colliding_polygon_uid'],
+                                self.ref_world.entities[agent_collision_data[(0,1)]['colliding_polygon_uid']].name
+                            ),
+                            step_count
+                        )
+                    )
                 else:
                     if attached_entity_uid:
                         att_entity = self.ref_world.entities[attached_entity_uid]
@@ -699,12 +711,16 @@ class Simulator:
                                 att_entity_collision_data[(0, 1)]['colliding_polygon_uid'],
                                 att_entity_collision_data[(0, 1)]['intersection_polygon']
                             )
-                            logging.warning(
-                                'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                                    attached_entity_uid, self.ref_world.entities[attached_entity_uid].name,
-                                    att_entity_collision_data[(0, 1)]['colliding_polygon_uid'],
-                                    self.ref_world.entities[att_entity_collision_data[(0, 1)]['colliding_polygon_uid']].name
-                            ))
+                            self.simulation_log.append(
+                                utils.BasicLog(
+                                    'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
+                                        attached_entity_uid, self.ref_world.entities[attached_entity_uid].name,
+                                        att_entity_collision_data[(0, 1)]['colliding_polygon_uid'],
+                                        self.ref_world.entities[att_entity_collision_data[(0, 1)]['colliding_polygon_uid']].name
+                                    ),
+                                    step_count
+                                )
+                            )
                         else:
                             transition_polygons[agent_uid] = agent_collision_data[(0, 1)]['csv_polygon']
                             transition_polygons[attached_entity_uid] = att_entity_collision_data[(0, 1)]['csv_polygon']
@@ -743,11 +759,15 @@ class Simulator:
                         action, agent_uid, uid,
                         other_transition_polygons[uid].intersection(agent_transition_polygon)
                     )
-                    logging.warning(
-                        'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                            agent_uid, self.ref_world.entities[agent_uid].name,
-                            uid, self.ref_world.entities[uid].name
-                    ))
+                    self.simulation_log.append(
+                        utils.BasicLog(
+                            'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
+                                agent_uid, self.ref_world.entities[agent_uid].name,
+                                uid, self.ref_world.entities[uid].name
+                            ),
+                            step_count
+                        )
+                    )
                     break
 
             if not agent_transitionnally_collides:
@@ -765,11 +785,15 @@ class Simulator:
                                 action, attached_entity_uid, uid,
                                 other_transition_polygons[uid].intersection(att_entity_transition_polygon)
                             )
-                            logging.warning(
-                                'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                                    attached_entity_uid, self.ref_world.entities[attached_entity_uid].name,
-                                    uid, self.ref_world.entities[uid].name
-                            ))
+                            self.simulation_log.append(
+                                utils.BasicLog(
+                                    'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
+                                        attached_entity_uid, self.ref_world.entities[attached_entity_uid].name,
+                                        uid, self.ref_world.entities[uid].name
+                                    ),
+                                    step_count
+                                )
+                            )
                             break
                     if not att_entity_transitionnally_collides:
                         agent_uid_to_doable_action[agent_uid] = action
@@ -792,20 +816,27 @@ class Simulator:
                     agent_uid_to_impossible_action_result[agent_uid] = ar.GrabbedByOtherFailure(
                         release_action, agent_that_already_grabbed_entity
                     )
-                    logging.warning(
-                        'Entity {} ({}) could not release entity {} ({}) because grabbed by other.'.format(
-                            agent_uid, self.ref_world.entities[agent_uid].name,
-                            release_action.entity_uid, self.ref_world.entities[release_action.entity_uid].name
-                    ))
+                    self.simulation_log.append(
+                        utils.BasicLog(
+                            'Entity {} ({}) could not release entity {} ({}) because grabbed by other.'.format(
+                                agent_uid, self.ref_world.entities[agent_uid].name,
+                                release_action.entity_uid, self.ref_world.entities[release_action.entity_uid].name
+                            ),
+                            step_count
+                        )
+                    )
                     del agent_uid_to_doable_action[agent_uid]
             else:
-                agent_uid_to_impossible_action_result[agent_uid] = ar.NotGrabbedFailure(
-                    release_action)
-                logging.warning(
-                    'Entity {} ({}) could not release entity {} ({}) because not grabbed.'.format(
-                        agent_uid, self.ref_world.entities[agent_uid].name,
-                        release_action.entity_uid, self.ref_world.entities[release_action.entity_uid].name
-                    ))
+                agent_uid_to_impossible_action_result[agent_uid] = ar.NotGrabbedFailure(release_action)
+                self.simulation_log.append(
+                    utils.BasicLog(
+                        'Entity {} ({}) could not release entity {} ({}) because not grabbed.'.format(
+                            agent_uid, self.ref_world.entities[agent_uid].name,
+                            release_action.entity_uid, self.ref_world.entities[release_action.entity_uid].name
+                        ),
+                        step_count
+                    )
+                )
                 del agent_uid_to_doable_action[agent_uid]
 
         # 4. Check conceptual validity of GRAB actions
@@ -821,20 +852,28 @@ class Simulator:
                     agent_uid_to_impossible_action_result[agent_uid] = ar.AlreadyGrabbedFailure(
                         grab_action, agent_that_already_grabbed_entity
                     )
-                    logging.warning(
-                        'Entity {} ({}) could not grab entity {} ({}) because already grabbed.'.format(
-                            agent_uid, self.ref_world.entities[agent_uid].name,
-                            grab_action.entity_uid, self.ref_world.entities[grab_action.entity_uid].name
-                    ))
+                    self.simulation_log.append(
+                        utils.BasicLog(
+                            'Entity {} ({}) could not grab entity {} ({}) because already grabbed.'.format(
+                                agent_uid, self.ref_world.entities[agent_uid].name,
+                                grab_action.entity_uid, self.ref_world.entities[grab_action.entity_uid].name
+                            ),
+                            step_count
+                        )
+                    )
                     del agent_uid_to_doable_action[agent_uid]
             elif agent_uid in attached_entity_to_robot.inverse:
                 agent_uid_to_impossible_action_result[agent_uid] = ar.GrabMoreThanOneFailure(
                     grab_action)
-                logging.warning(
-                    'Entity {} ({}) could not grab entity {} ({}) because trying to grab more than one.'.format(
-                        agent_uid, self.ref_world.entities[agent_uid].name,
-                        grab_action.entity_uid, self.ref_world.entities[grab_action.entity_uid].name
-                    ))
+                self.simulation_log.append(
+                    utils.BasicLog(
+                        'Entity {} ({}) could not grab entity {} ({}) because trying to grab more than one.'.format(
+                            agent_uid, self.ref_world.entities[agent_uid].name,
+                            grab_action.entity_uid, self.ref_world.entities[grab_action.entity_uid].name
+                        ),
+                        step_count
+                    )
+                )
                 del agent_uid_to_doable_action[agent_uid]
 
         # SECOND Act loop: execute all doable actions in reference simulation world, save results
