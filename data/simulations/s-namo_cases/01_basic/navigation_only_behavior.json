@@ -1,0 +1,20 @@
+{
+    "agents_behaviors": [
+        {
+            "agent_name": "robot_01", 
+            "behavior": {
+                "name": "navigation_only_behavior", 
+                "navigation_goals": [
+                    {
+                        "name": "goal_01"
+                    }
+                ]
+            }
+        }
+    ], 
+    "display_sim_knowledge_only_once": false, 
+    "files": {
+        "world_file": "../../../worlds/s-namo_cases/01_basic/01_basic.json"
+    }, 
+    "provide_walls": true
+}

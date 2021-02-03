@@ -16,92 +16,92 @@ class AfterTheFeastTest(unittest.TestCase):
         self.path_to_folder = os.path.join(__file__, "../../../../../data/simulations/s-namo_cases/04_after_the_feast/")
 
     # def test_navigation_only_behavior(self):
-    #     sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior.yaml")
+    #     sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior.json")
     #     report = sim.run()
     #
     # def test_navigation_only_behavior_no_movables(self):
-    #     sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior_no_movables.yaml")
+    #     sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior_no_movables.json")
     #     sim.run()
     #     # Test should end up with a success
     #
     # def test_navigation_only_behavior_no_movables_multi_robots(self):
-    #     sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior_no_movables_multi_robots.yaml")
+    #     sim = Simulator(simulation_file_path=self.path_to_folder+"navigation_only_behavior_no_movables_multi_robots.json")
     #     sim.run()
     #     # Test should end up with a success
     #
     # def test_wu_levihn_2014_behavior(self):
-    #     sim = Simulator(simulation_file_path=self.path_to_folder+"wu_levihn_2014.yaml")
+    #     sim = Simulator(simulation_file_path=self.path_to_folder+"wu_levihn_2014.json")
     #     sim.run()
     #     # Test should end up with a success
     #
     # def test_wu_levihn_2014_behavior_no_movables(self):
-    #     sim = Simulator(simulation_file_path=self.path_to_folder+"wu_levihn_2014_no_movables.yaml")
+    #     sim = Simulator(simulation_file_path=self.path_to_folder+"wu_levihn_2014_no_movables.json")
     #     sim.run()
     #     # Test should end up with a success
 
     def test_stilman_2005_behavior(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior.json")
         sim.run()
         # Test should end up with a success
 
     def test_stilman_2005_behavior_no_movables(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior_no_movables.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior_no_movables.json")
         sim.run()
         # Test should end up with a success
 
     def test_stilman_2005_behavior_complexified(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified.json")
         sim.run()
 
     def test_stilman_2005_behavior_complexified_snamo(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_snamo.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_snamo.json")
         sim.run()
 
     def test_stilman_2005_behavior_complexified_snamo_r2g2(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_snamo_r2g2.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_snamo_r2g2.json")
         sim.run()
 
     # def test_stilman_2005_behavior_complexified_debug_case_after_16_goals(self):
-    #     sim = Simulator(simulation_file_path=self.path_to_folder + "/debug/after_16_goals_exception/stilman_2005_behavior_complexified_random_goal_no_reset_snamo.yaml")
+    #     sim = Simulator(simulation_file_path=self.path_to_folder + "/debug/after_16_goals_exception/stilman_2005_behavior_complexified_random_goal_no_reset_snamo.json")
     #     sim.run()
 
     def test_stilman_2005_behavior_multi_robots(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots.json")
         sim.run()
 
     def test_stilman_2005_behavior_multi_robots_complexified(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified.json")
         sim.run()
 
     def test_stilman_2005_behavior_multi_robots_snamo(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_snamo.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_snamo.json")
         sim.run()
 
     def test_stilman_2005_behavior_multi_robots_complexified_snamo(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_snamo.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_snamo.json")
         sim.run()
 
     def test_stilman_2005_behavior_complexified_random_goal_reset(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_reset.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_reset.json")
         sim.run()
 
     def test_stilman_2005_behavior_complexified_random_goal_reset_snamo(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_reset_snamo.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_reset_snamo.json")
         sim.run()
 
     def test_stilman_2005_behavior_complexified_random_goal_no_reset(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset.json")
         sim.run()
 
     def test_stilman_2005_behavior_complexified_random_goal_no_reset_snamo(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset_snamo.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset_snamo.json")
         sim.run()
 
     def test_stilman_2005_behavior_complexified_random_goal_no_reset_namo_simple_then_snamo(self):
         timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
-        sim_namo = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset.yaml", timestring=timestring)
+        sim_namo = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset.json", timestring=timestring)
         sim_namo_report = sim_namo.run()
-        sim_snamo = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset_snamo.yaml", goals=sim_namo_report["temp_goals"], timestring=timestring)
+        sim_snamo = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset_snamo.json", goals=sim_namo_report["temp_goals"], timestring=timestring)
         sim_snamo_report = sim_snamo.run()
 
     def namo_and_snamo(self):
@@ -111,11 +111,11 @@ class AfterTheFeastTest(unittest.TestCase):
 
         try:
             sim_namo = Simulator(
-                simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset.yaml",
+                simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset.json",
                 timestring=timestring)
             sim_namo_report = sim_namo.run()
             sim_snamo = Simulator(
-                simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset_snamo.yaml",
+                simulation_file_path=self.path_to_folder + "stilman_2005_behavior_complexified_random_goal_no_reset_snamo.json",
                 goals=sim_namo_report["temp_goals"], timestring=timestring)
             sim_snamo_report = sim_snamo.run()
         except Exception as e:
@@ -168,32 +168,35 @@ class AfterTheFeastTest(unittest.TestCase):
         os.system("pkill -9 python3")
 
     def test_stilman_2005_behavior_multi_robots_complexified_random_goal_reset(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_reset.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_reset.json")
         sim.run()
 
     def test_stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset.json")
         sim.run()
 
     def test_stilman_2005_behavior_multi_robots_complexified_random_goal_reset_snamo(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_reset_snamo.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_reset_snamo.json")
         sim.run()
 
     def test_stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset_snamo(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset_snamo.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_random_goal_no_reset_snamo.json")
         sim.run()
 
     def test_stilman_2005_behavior_multi_robots_complexified_conflict_middle(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_conflict_middle.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_conflict_middle.json")
         sim.run()
 
     def test_stilman_2005_behavior_multi_robots_complexified_conflict_02(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_conflict_02.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_conflict_02.json")
         sim.run()
 
     def test_stilman_2005_behavior_multi_robots_complexified_4_robots(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_4_robots.yaml")
+        sim = Simulator(simulation_file_path=self.path_to_folder + "stilman_2005_behavior_multi_robots_complexified_4_robots.json")
         sim.run()
+
+    def test_stilman_2005_behavior_replay_complexified_random(self):
+        pass
 
 if __name__ == '__main__':
     unittest.main()

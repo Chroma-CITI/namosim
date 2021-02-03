@@ -1,12 +1,10 @@
 import time
 import copy
-import yaml
 import json
 import os
 import random
 import numpy as np
 import traceback
-import logging
 from bidict import bidict
 from shapely import affinity
 from shapely.geometry import LineString
@@ -42,7 +40,7 @@ class Simulator:
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
 
         with open(simulation_file_abs_path) as f:
-            self.config = yaml.load(f, Loader=yaml.SafeLoader)
+            self.config = json.load(f)
 
         self.simulation_log.append(utils.BasicLog("Simulation file successfully loaded", 0))
 
@@ -71,10 +69,10 @@ class Simulator:
 
         self.simulation_log.append(utils.BasicLog("Display backend initialized.", 0))
 
-        # Create world from world description yaml file
+        # Create world from world description json file
         world_file_path = self.config["files"]["world_file"]
-        world_yaml_abs_path = os.path.join(os.path.dirname(simulation_file_abs_path), world_file_path)
-        self.init_ref_world = World.load_from_yaml(world_yaml_abs_path)
+        world_abs_path = os.path.join(os.path.dirname(simulation_file_abs_path), world_file_path)
+        self.init_ref_world = World.load_from_json(world_abs_path)
 
         self.simulation_log.append(utils.BasicLog("World file successfully loaded.", 0))
 

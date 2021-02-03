@@ -1,0 +1,124 @@
+{
+    "discretization_data": {
+        "cost_circumscribed": 20, 
+        "cost_inscribed": 50, 
+        "cost_lethal": 100, 
+        "cost_possibly_nonfree": 10, 
+        "inflation_radius": 0.0, 
+        "res": 0.05
+    }, 
+    "files": {
+        "geometry_file": "./01_two_rooms_corridor.svg"
+    }, 
+    "geometry_scale": 0.1, 
+    "things": {
+        "entities": [
+            {
+                "force_pushes_only": true, 
+                "geometry": {
+                    "from": "file", 
+                    "id": "robot_01", 
+                    "orientation_id": "robot_01_dir"
+                }, 
+                "movable_whitelist": [
+                    "box"
+                ], 
+                "name": "robot_01", 
+                "push_only_list": [
+                    "box"
+                ], 
+                "sensors": [
+                    {
+                        "max_radius": 2.4, 
+                        "min_radius": 0.0, 
+                        "opening_angle": 180.0, 
+                        "type": "perfect_g_fov"
+                    }, 
+                    {
+                        "max_radius": 2.4, 
+                        "min_radius": 0.0, 
+                        "opening_angle": 180.0, 
+                        "type": "perfect_s_fov"
+                    }
+                ], 
+                "type": "robot"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_ext_top"
+                }, 
+                "name": "wall_ext_top", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_ext_bottom"
+                }, 
+                "name": "wall_ext_bottom", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_ext_left"
+                }, 
+                "name": "wall_ext_left", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_ext_right"
+                }, 
+                "name": "wall_ext_right", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_mid_top_left"
+                }, 
+                "name": "wall_mid_top_left", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_mid_top_right"
+                }, 
+                "name": "wall_mid_top_right", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_mid_bottom_left"
+                }, 
+                "name": "wall_mid_bottom_left", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_mid_bottom_right"
+                }, 
+                "name": "wall_mid_bottom_right", 
+                "type": "wall"
+            }
+        ], 
+        "zones": {
+            "goals": [
+                {
+                    "geometry": {
+                        "from": "file", 
+                        "id": "goal_01", 
+                        "orientation_id": "goal_01_dir"
+                    }, 
+                    "name": "goal_01"
+                }
+            ]
+        }
+    }
+}

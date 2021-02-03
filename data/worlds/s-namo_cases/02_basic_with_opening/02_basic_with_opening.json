@@ -1,0 +1,92 @@
+{
+    "discretization_data": {
+        "cost_circumscribed": 20, 
+        "cost_inscribed": 50, 
+        "cost_lethal": 100, 
+        "cost_possibly_nonfree": 10, 
+        "inflation_radius": 0.0, 
+        "res": 0.1
+    }, 
+    "files": {
+        "geometry_file": "./02_basic_with_opening.svg"
+    }, 
+    "geometry_scale": 0.1, 
+    "things": {
+        "entities": [
+            {
+                "force_pushes_only": true, 
+                "geometry": {
+                    "from": "file", 
+                    "id": "robot_01", 
+                    "orientation_id": "robot_01_dir"
+                }, 
+                "movable_whitelist": [
+                    "box"
+                ], 
+                "name": "robot_01", 
+                "push_only_list": [
+                    "box"
+                ], 
+                "sensors": [
+                    {
+                        "max_radius": 2.4, 
+                        "min_radius": 0.0, 
+                        "opening_angle": 180.0, 
+                        "type": "perfect_g_fov"
+                    }, 
+                    {
+                        "max_radius": 2.4, 
+                        "min_radius": 0.0, 
+                        "opening_angle": 180.0, 
+                        "type": "perfect_s_fov"
+                    }
+                ], 
+                "type": "robot"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_top_left"
+                }, 
+                "name": "wall_top_left", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_top_right"
+                }, 
+                "name": "wall_top_right", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_bottom"
+                }, 
+                "name": "wall_bottom", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "movable_box"
+                }, 
+                "name": "movable_box", 
+                "type": "box"
+            }
+        ], 
+        "zones": {
+            "goals": [
+                {
+                    "geometry": {
+                        "from": "file", 
+                        "id": "goal_01", 
+                        "orientation_id": "goal_01_dir"
+                    }, 
+                    "name": "goal_01"
+                }
+            ]
+        }
+    }
+}

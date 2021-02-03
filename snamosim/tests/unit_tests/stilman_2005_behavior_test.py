@@ -8,7 +8,7 @@ import copy
 class Stilman2005BehaviorTest(unittest.TestCase):
 
     def setUp(self):
-        self.sim = Simulator("../../../data/simulations/first_level/01_two_rooms_corridor/stilman_2005_behavior.yaml")
+        self.sim = Simulator("../../../data/simulations/first_level/01_two_rooms_corridor/stilman_2005_behavior.json")
         self.robot_uid, self.behavior = next(iter(self.sim.agent_uid_to_behavior.items()))
         self._robot_name = self.behavior._robot_name
         self._rp = RosPublisher()

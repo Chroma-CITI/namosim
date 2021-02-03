@@ -1,0 +1,31 @@
+{
+    "agents_behaviors": [
+        {
+            "agent_name": "robot_01", 
+            "behavior": {
+                "name": "navigation_only_behavior", 
+                "navigation_goals": [
+                    {
+                        "name": "goal_01"
+                    }
+                ]
+            }
+        }, 
+        {
+            "agent_name": "robot_02", 
+            "behavior": {
+                "name": "navigation_only_behavior", 
+                "navigation_goals": [
+                    {
+                        "name": "goal_02"
+                    }
+                ]
+            }
+        }
+    ], 
+    "display_sim_knowledge_only_once": false, 
+    "files": {
+        "world_file": "../../../worlds/s-namo_cases/04_after_the_feast/04_after_the_feast_no_movables_omniscient_multi_robots.json"
+    }, 
+    "provide_walls": true
+}

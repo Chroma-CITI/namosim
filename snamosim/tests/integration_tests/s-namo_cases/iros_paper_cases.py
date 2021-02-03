@@ -10,13 +10,13 @@ class BasicWithOpeningTest(unittest.TestCase):
 
     # region BASIC WITH OPENING CASE
     def test_basic_with_opening(self):
-        filename = "02_basic_with_opening/stilman_2005_behavior.yaml"
+        filename = "02_basic_with_opening/stilman_2005_behavior.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
         # Test should end up with a success
 
     def test_basic_with_opening_focused_snamo(self):
-        filename = "02_basic_with_opening/stilman_2005_behavior_focused_snamo.yaml"
+        filename = "02_basic_with_opening/stilman_2005_behavior_focused_snamo.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
         # Test should end up with a success
@@ -24,49 +24,49 @@ class BasicWithOpeningTest(unittest.TestCase):
 
     # region CITI CASE
     def test_citi(self):
-        filename = "05_citi_second_floor/stilman_2005_behavior.yaml"
+        filename = "05_citi_second_floor/stilman_2005_behavior.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
 
     def test_citi_focused_snamo(self):
-        filename = "05_citi_second_floor/stilman_2005_behavior_focused_snamo.yaml"
+        filename = "05_citi_second_floor/stilman_2005_behavior_focused_snamo.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
     # endregion
 
     # region CROSSING CASE
     def test_crossing_simple(self):
-        filename = "03_crossing/stilman_2005_behavior.yaml"
+        filename = "03_crossing/stilman_2005_behavior.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
         # Test should end up with a success
 
     def test_crossing_simple_focused_snamo(self):
-        filename = "03_crossing/stilman_2005_behavior_focused_snamo.yaml"
+        filename = "03_crossing/stilman_2005_behavior_focused_snamo.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
         # Test should end up with a success
 
     def test_crossing_multigoal_once(self):
-        filename = "03_crossing/stilman_2005_behavior_multigoal.yaml"
+        filename = "03_crossing/stilman_2005_behavior_multigoal.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
         # Test should end up with a success
 
     def test_crossing_multigoal_once_focused_snamo(self):
-        filename = "03_crossing/stilman_2005_behavior_multigoal_focused_snamo.yaml"
+        filename = "03_crossing/stilman_2005_behavior_multigoal_focused_snamo.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
         # Test should end up with a success
 
     # def test_crossing_multigoal_random(self):
-    #     filename = "03_crossing/stilman_2005_behavior_multigoal_random.yaml"
+    #     filename = "03_crossing/stilman_2005_behavior_multigoal_random.json"
     #     sim = Simulator(simulation_file_path=self.path_to_folder + filename)
     #     sim.run()
     #     # Test should end up with a success
 
     # def test_crossing_multigoal_random_focused_snamo(self):
-    #     filename = "03_crossing/stilman_2005_behavior_multigoal_random_focused_snamo.yaml"
+    #     filename = "03_crossing/stilman_2005_behavior_multigoal_random_focused_snamo.json"
     #     sim = Simulator(simulation_file_path=self.path_to_folder + filename)
     #     sim.run()
     #     # Test should end up with a success
@@ -74,13 +74,13 @@ class BasicWithOpeningTest(unittest.TestCase):
 
     # region AFTER THE FEAST CASE
     def test_after_the_feast(self):
-        filename = "04_after_the_feast/stilman_2005_behavior.yaml"
+        filename = "04_after_the_feast/stilman_2005_behavior.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
         # Test should end up with a success
 
     def test_after_the_feast_focused_snamo(self):
-        filename = "04_after_the_feast/stilman_2005_behavior_focused_snamo.yaml"
+        filename = "04_after_the_feast/stilman_2005_behavior_focused_snamo.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
         # Test should end up with a success
@@ -89,35 +89,35 @@ class BasicWithOpeningTest(unittest.TestCase):
 
     def test_multiple_times(self, nb_times=1):
         for i in range(nb_times):
-            filename = "02_basic_with_opening/stilman_2005_behavior.yaml"
+            filename = "02_basic_with_opening/stilman_2005_behavior.json"
             sim = Simulator(simulation_file_path=self.path_to_folder + filename)
             sim.run()
 
-            filename = "02_basic_with_opening/stilman_2005_behavior_focused_snamo.yaml"
+            filename = "02_basic_with_opening/stilman_2005_behavior_focused_snamo.json"
             sim = Simulator(simulation_file_path=self.path_to_folder + filename)
             sim.run()
 
-            filename = "05_citi_second_floor/stilman_2005_behavior.yaml"
+            filename = "05_citi_second_floor/stilman_2005_behavior.json"
             sim = Simulator(simulation_file_path=self.path_to_folder + filename)
             sim.run()
 
-            filename = "05_citi_second_floor/stilman_2005_behavior_focused_snamo.yaml"
+            filename = "05_citi_second_floor/stilman_2005_behavior_focused_snamo.json"
             sim = Simulator(simulation_file_path=self.path_to_folder + filename)
             sim.run()
 
-            filename = "03_crossing/stilman_2005_behavior_multigoal.yaml"
+            filename = "03_crossing/stilman_2005_behavior_multigoal.json"
             sim = Simulator(simulation_file_path=self.path_to_folder + filename)
             sim.run()
 
-            filename = "03_crossing/stilman_2005_behavior_multigoal_focused_snamo.yaml"
+            filename = "03_crossing/stilman_2005_behavior_multigoal_focused_snamo.json"
             sim = Simulator(simulation_file_path=self.path_to_folder + filename)
             sim.run()
 
-            filename = "04_after_the_feast/stilman_2005_behavior.yaml"
+            filename = "04_after_the_feast/stilman_2005_behavior.json"
             sim = Simulator(simulation_file_path=self.path_to_folder + filename)
             sim.run()
 
-            filename = "04_after_the_feast/stilman_2005_behavior_focused_snamo.yaml"
+            filename = "04_after_the_feast/stilman_2005_behavior_focused_snamo.json"
             sim = Simulator(simulation_file_path=self.path_to_folder + filename)
             sim.run()
 

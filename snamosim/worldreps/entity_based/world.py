@@ -5,7 +5,6 @@ import json
 import numpy as np
 
 import shapely.affinity as affinity
-import yaml
 from shapely.geometry import Polygon, Point, box, LineString
 from shapely.ops import cascaded_union
 
@@ -55,17 +54,17 @@ class World:
 
     # Constructor
     @classmethod
-    def load_from_yaml(cls, abs_path_to_file):
+    def load_from_json(cls, abs_path_to_file):
         # Import YAML world configuration file
         with open(abs_path_to_file) as f:
-            config = yaml.load(f, Loader=yaml.SafeLoader)
+            config = json.load(f)
 
         # Import SVG geometry file specified in YAML configuration
         geometry_file_path = config["files"]["geometry_file"]
         abs_geometry_file_path = geometry_file_path
         if not os.path.isabs(geometry_file_path):
-            yaml_working_directory = os.path.dirname(abs_path_to_file)
-            abs_geometry_file_path = os.path.join(yaml_working_directory, geometry_file_path)
+            working_directory = os.path.dirname(abs_path_to_file)
+            abs_geometry_file_path = os.path.join(working_directory, geometry_file_path)
         init_geometry_filename = os.path.basename(abs_geometry_file_path)
         init_geometry_file = minidom.parse(abs_geometry_file_path)
         svg_paths = {path.getAttribute("id"): path.getAttribute('d')

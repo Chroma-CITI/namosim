@@ -1,0 +1,89 @@
+{
+    "discretization_data": {
+        "cost_circumscribed": 20, 
+        "cost_inscribed": 50, 
+        "cost_lethal": 100, 
+        "cost_possibly_nonfree": 10, 
+        "inflation_radius": 0.0, 
+        "res": 0.05
+    }, 
+    "files": {
+        "geometry_file": "./01.svg"
+    }, 
+    "geometry_scale": 0.2, 
+    "things": {
+        "entities": [
+            {
+                "force_pushes_only": true, 
+                "geometry": {
+                    "from": "file", 
+                    "id": "robot_01"
+                }, 
+                "movable_whitelist": [
+                    "table"
+                ], 
+                "name": "robot_01", 
+                "push_only_list": [
+                    "table"
+                ], 
+                "sensors": [
+                    {
+                        "type": "omniscient"
+                    }
+                ], 
+                "type": "robot"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_01"
+                }, 
+                "name": "Border wall", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_02"
+                }, 
+                "name": "Top pillar", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "wall_03"
+                }, 
+                "name": "Bottom pillar", 
+                "type": "wall"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "table_01"
+                }, 
+                "name": "Top table", 
+                "type": "table"
+            }, 
+            {
+                "geometry": {
+                    "from": "file", 
+                    "id": "table_02"
+                }, 
+                "name": "Bottom table", 
+                "type": "table"
+            }
+        ], 
+        "zones": {
+            "goals": [
+                {
+                    "geometry": {
+                        "from": "file", 
+                        "id": "goal_01"
+                    }, 
+                    "name": "goal_01"
+                }
+            ]
+        }
+    }
+}

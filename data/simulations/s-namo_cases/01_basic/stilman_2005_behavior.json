@@ -1,0 +1,25 @@
+{
+    "agents_behaviors": [
+        {
+            "agent_name": "robot_01", 
+            "behavior": {
+                "name": "stilman_2005_behavior", 
+                "navigation_goals": [
+                    {
+                        "name": "goal_01"
+                    }
+                ], 
+                "parameters": {
+                    "social_movability_evaluation_activated": false, 
+                    "social_placement_choice_activated": false, 
+                    "use_social_layer": false
+                }
+            }
+        }
+    ], 
+    "display_sim_knowledge_only_once": false, 
+    "files": {
+        "world_file": "../../../worlds/s-namo_cases/01_basic/01_basic_omniscient.json"
+    }, 
+    "provide_walls": true
+}

@@ -26,39 +26,39 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         self._rp.publish_grid_map(social_costmap.get_grid(), world.dd.res, ns=robot.name)
 
     def test_two_rooms_corridor(self):
-        world = World.load_from_yaml("../../../data/worlds/first_level/01_two_rooms_corridor/01_two_rooms_corridor.yaml")
+        world = World.load_from_json("../../../data/worlds/first_level/01_two_rooms_corridor/01_two_rooms_corridor.json")
         self.compute_and_display_costmap(world)
 
     def test_big_crossing(self):
-        world = World.load_from_yaml("../../../data/worlds/first_level/03_big_crossing/03_big_crossing.yaml")
+        world = World.load_from_json("../../../data/worlds/first_level/03_big_crossing/03_big_crossing.json")
         self.compute_and_display_costmap(world)
 
     def test_moghaddam_01(self):
-        world = World.load_from_yaml("../../../data/worlds/moghaddam_planning_2016_benchmark/01/01.yaml")
+        world = World.load_from_json("../../../data/worlds/moghaddam_planning_2016_benchmark/01/01.json")
         self.compute_and_display_costmap(world)
 
     def test_chen_difficult_problem(self):
-        world = World.load_from_yaml("../../../data/worlds/stilman_2005_thesis/04_chen_difficult_problem/04_chen_difficult_problem.yaml")
+        world = World.load_from_json("../../../data/worlds/stilman_2005_thesis/04_chen_difficult_problem/04_chen_difficult_problem.json")
         self.compute_and_display_costmap(world)
 
     def test_basic(self):
-        world = World.load_from_yaml("../../../data/worlds/s-namo_cases/01_basic/01_basic.yaml")
+        world = World.load_from_json("../../../data/worlds/s-namo_cases/01_basic/01_basic.json")
         self.compute_and_display_costmap(world)
 
     def test_basic_with_opening(self):
-        world = World.load_from_yaml("../../../data/worlds/s-namo_cases/02_basic_with_opening/02_basic_with_opening.yaml")
+        world = World.load_from_json("../../../data/worlds/s-namo_cases/02_basic_with_opening/02_basic_with_opening.json")
         self.compute_and_display_costmap(world)
 
     def test_crossing(self):
-        world = World.load_from_yaml("../../../data/worlds/s-namo_cases/03_crossing/03_crossing.yaml")
+        world = World.load_from_json("../../../data/worlds/s-namo_cases/03_crossing/03_crossing.json")
         self.compute_and_display_costmap(world)
 
     def test_after_the_feast(self):
-        world = World.load_from_yaml("../../../data/worlds/s-namo_cases/04_after_the_feast/04_after_the_feast.yaml")
+        world = World.load_from_json("../../../data/worlds/s-namo_cases/04_after_the_feast/04_after_the_feast.json")
         self.compute_and_display_costmap(world)
 
     def test_citi_second_floor(self):
-        world = World.load_from_yaml("../../../data/worlds/s-namo_cases/05_citi_second_floor/05_citi_second_floor.yaml")
+        world = World.load_from_json("../../../data/worlds/s-namo_cases/05_citi_second_floor/05_citi_second_floor.json")
         self.compute_and_display_costmap(world)
 
 
