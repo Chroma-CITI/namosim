@@ -332,11 +332,23 @@ class Stilman2005Behavior(BaselineBehavior):
             inflated_grid_by_robot, avoid_list, neighborhood
         )
         while o_1 != 0:
+            self.simulation_log.append(utils.BasicLog(
+                "Agent {} selected entity {} for manipulation search to reach component {}.".format(
+                    self._robot_name, w_t.entities[o_1].name, c_1
+                ),
+                self._step_count)
+            )
             r_acc_cells_set = ccs_data.ccs[ccs_data.ccs_grid[robot_cell[0]][robot_cell[1]]].visited
             c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
             w_t_plus_2, tho_m = self.manip_search_procedure(w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f)
 
             if tho_m is not None:
+                self.simulation_log.append(utils.BasicLog(
+                    "Agent {} found partial plan manipulating entity {} to reach component {}.".format(
+                        self._robot_name, w_t.entities[o_1].name, c_1
+                    ),
+                    self._step_count)
+                )
                 future_plan = self.select_connect(w_t_plus_2, static_obs_inf_grid, r_f, ccs_data, neighborhood,
                                                   nb_self_calls=nb_self_calls+1, nb_rch_calls=nb_rch_calls)
                 if future_plan is not None:
@@ -345,6 +357,12 @@ class Stilman2005Behavior(BaselineBehavior):
 
             # Extra check for when the goal is in a movable obstacle that we could not find how to move
             if c_1 == 0:
+                self.simulation_log.append(utils.BasicLog(
+                    "Agent {} did not find a reachable component if manipulating {}.".format(
+                        self._robot_name, w_t.entities[o_1].name
+                    ),
+                    self._step_count)
+                )
                 break
 
             avoid_list.add((o_1, c_1))
@@ -1788,8 +1806,11 @@ class Path:
         if not path_dynamically_collides:
             return True
         else:
-            collision_uids = [data["colliding_polygon_uid"] for _, data in collision_data.items() if "colliding_polygon_uid" in data]
+            collision_uids = []
+            if collision_data:
+                collision_uids = [data["colliding_polygon_uid"] for _, data in collision_data.items() if "colliding_polygon_uid" in data]
             raise DynamicCollisionError(collision_uids)
+
 
     def pop_next_step(self):
         # If there are steps left to execute in self.path, pop and return the first
