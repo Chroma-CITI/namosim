@@ -105,6 +105,8 @@ class World:
             dd=dd
         )
 
+        first_robot = None
+
         # Get all things
         for entity_data in config["things"]["entities"]:
             # Pose of object definition
@@ -157,6 +159,8 @@ class World:
                                   push_only_list=entity_data["push_only_list"],
                                   force_pushes_only=entity_data["force_pushes_only"],
                                   movable_whitelist=entity_data["movable_whitelist"])
+                if not first_robot:
+                    first_robot = new_robot
 
                 # Prevent specified inflation radius to be smaller than actual polygon
 
@@ -179,20 +183,30 @@ class World:
                     and isinstance(config["things"]["zones"]["goals"], list)):
                 for goal_data in config["things"]["zones"]["goals"]:
                     try:
-                        goal_polygon = shapely_geoms[goal_data["geometry"]["id"]]
-                        pose = [goal_polygon.centroid.coords[0][0], goal_polygon.centroid.coords[0][1], 0.0]
+                        if "from" in goal_data and goal_data["from"] == "file":
+                            goal_polygon = shapely_geoms[goal_data["geometry"]["id"]]
+                            pose = [goal_polygon.centroid.coords[0][0], goal_polygon.centroid.coords[0][1], 0.0]
 
-                        if "orientation_id" in goal_data["geometry"]:
-                            # If a drawn vector in the SVG is defined as orientation, use it
-                            orientation_geom = list(shapely_geoms[goal_data["geometry"]["orientation_id"]].coords)
-                            orientation_vector = [orientation_geom[1][0] - orientation_geom[0][0],
-                                                  orientation_geom[1][1] - orientation_geom[0][1]]
-                            pose[2] = utils.yaw_from_direction(orientation_vector)
-                        else:
-                            raise NotImplementedError("You can't define a geometry in the json file manually for now.")
-                        goal = Goal(polygon=goal_polygon, name=goal_data["name"], pose=tuple(pose))
-                        world.goals[goal.uid] = goal
-                    except Exception:
+                            if "orientation_id" in goal_data["geometry"]:
+                                # If a drawn vector in the SVG is defined as orientation, use it
+                                orientation_geom = list(shapely_geoms[goal_data["geometry"]["orientation_id"]].coords)
+                                orientation_vector = [orientation_geom[1][0] - orientation_geom[0][0],
+                                                      orientation_geom[1][1] - orientation_geom[0][1]]
+                                pose[2] = utils.yaw_from_direction(orientation_vector)
+                            else:
+                                raise NotImplementedError("You can't define a geometry in the json file manually for now.")
+                            goal = Goal(polygon=goal_polygon, name=goal_data["name"], pose=tuple(pose))
+                            world.goals[goal.uid] = goal
+                        elif "pose" in goal_data:
+                            pose = tuple(goal_data["pose"])
+                            # TODO: Change goal polygon to an arrow
+                            if first_robot:
+                                goal_polygon = utils.set_polygon_pose(first_robot.polygon, first_robot.pose, pose)
+                            else:
+                                goal_polygon = None
+                            goal = Goal(polygon=goal_polygon, name=goal_data["name"], pose=tuple(pose))
+                            world.goals[goal.uid] = goal
+                    except KeyError:
                         print("No goal named... {}".format(goal_data['geometry']['id']))
             if ("taboos" in config["things"]["zones"]
                     and isinstance(config["things"]["zones"]["taboos"], list)):
