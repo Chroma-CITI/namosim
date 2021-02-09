@@ -199,6 +199,10 @@ class Simulator:
         if run_exceptions_traces:
             simulation_report['Exceptions'] = json.dumps(run_exceptions_traces)
 
+        simulation_report["agents_logs"] = {}
+        for uid, behavior in self.agent_uid_to_behavior.items():
+            simulation_report["agents_logs"][self.ref_world.entities[uid].name] = behavior.simulation_log
+
         # TODO Remove this temporary measure for a better separation between scenario generation and execution
         log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
         simulation_report["temp_goals"] = self.saved_goals
@@ -602,7 +606,7 @@ class Simulator:
                     self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
                     self.simulation_log.append(
                         utils.BasicLog(
-                            "{} successfully executed goal {}.".format(agent_uid, str(agent_next_action.goal)),
+                            "{} successfully executed goal {}.".format(self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)),
                             step_count
                         )
                     )

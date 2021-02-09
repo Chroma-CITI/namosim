@@ -1807,8 +1807,10 @@ class Path:
             return True
         else:
             collision_uids = []
-            if collision_data:
+            try:
                 collision_uids = [data["colliding_polygon_uid"] for _, data in collision_data.items() if "colliding_polygon_uid" in data]
+            except Exception:
+                pass
             raise DynamicCollisionError(collision_uids)
 
 

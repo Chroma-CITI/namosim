@@ -183,7 +183,7 @@ class World:
                     and isinstance(config["things"]["zones"]["goals"], list)):
                 for goal_data in config["things"]["zones"]["goals"]:
                     try:
-                        if "from" in goal_data and goal_data["from"] == "file":
+                        if "geometry" in goal_data:
                             goal_polygon = shapely_geoms[goal_data["geometry"]["id"]]
                             pose = [goal_polygon.centroid.coords[0][0], goal_polygon.centroid.coords[0][1], 0.0]
 
