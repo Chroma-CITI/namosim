@@ -59,8 +59,14 @@ def scenarios_from_simulation_results(scenario_original_filepath, scenario_logs_
                     scenario_data["agents_behaviors"][agent_index]["behavior"]["navigation_goals"].append({"name": goal_name})
 
             # TODO Udpate filepath data for world svg in world json, and world json in simulation json
-            scenario_data["files"]["world_file"] = os.path.relpath(world_json_filepath, simulation_filepath)
-            world_data["files"]["geometry_file"] = os.path.relpath(world_svg_filepath, world_json_filepath)
+            scenario_data["files"]["world_file"] = os.path.join(
+                os.path.relpath(os.path.dirname(world_json_filepath), os.path.dirname(simulation_filepath)),
+                os.path.basename(world_json_filepath)
+            )
+            world_data["files"]["geometry_file"] = os.path.join(
+                os.path.relpath(os.path.dirname(world_svg_filepath), os.path.dirname(world_json_filepath)),
+                os.path.basename(world_svg_filepath)
+            )
 
             if not os.path.exists(os.path.dirname(simulation_filepath)):
                 os.makedirs(os.path.dirname(simulation_filepath))
