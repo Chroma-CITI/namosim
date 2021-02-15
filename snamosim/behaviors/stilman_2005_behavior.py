@@ -193,8 +193,9 @@ class Stilman2005Behavior(BaselineBehavior):
                         "Goal failure because of plan validity check incoherence.",
                         self._step_count)
                     )
+                    gf_action = ba.GoalFailed(self._q_goal)
                     self._q_goal = None
-                    return ba.GoalFailed(self._q_goal)
+                    return gf_action
         if replan:
             self.simulation_log.append(utils.BasicLog(
                 "Agent '{}' tries replanning.".format(self._robot.name),
@@ -238,8 +239,9 @@ class Stilman2005Behavior(BaselineBehavior):
                     )
                     return new_configuration.action
                 else:
+                    gf_action = ba.GoalFailed(self._q_goal)
                     self._q_goal = None
-                    return ba.GoalFailed(self._q_goal)
+                    return gf_action
 
 
             if self.use_social_cost and self._social_costmap is None:
@@ -264,8 +266,9 @@ class Stilman2005Behavior(BaselineBehavior):
                 ),
                 self._step_count)
             )
+            gf_action = ba.GoalFailed(self._q_goal)
             self._q_goal = None
-            return ba.GoalFailed(self._q_goal)
+            return gf_action
         else:
             plan_has_steps_left = not self._p_opt.is_empty()
             if plan_has_steps_left:
