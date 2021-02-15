@@ -124,3 +124,6 @@ data/worlds/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_com
 
 data/simulations/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset/
 data/simulations/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/
+
+# Problems file
+data/problems.json
