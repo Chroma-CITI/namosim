@@ -124,6 +124,11 @@ class Simulator:
         self.simulation_log.append(utils.BasicLog("Simulation successfully loaded.", 0))
 
     def run(self):
+        self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
+        simulation_report = {"temp_goals": self.saved_goals}
+        with open(self.log_filepath, 'w+') as f:
+            json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
+
         run_start_time = time.time()
 
         run_active = True
@@ -204,12 +209,11 @@ class Simulator:
             simulation_report["agents_logs"][self.ref_world.entities[uid].name] = behavior.simulation_log
 
         # TODO Remove this temporary measure for a better separation between scenario generation and execution
-        log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
         simulation_report["temp_goals"] = self.saved_goals
         self.simulation_log.append(utils.BasicLog("Simulation report saved at: {}".format(log_filepath), step_count))
         simulation_report["simulation_log"] = self.simulation_log
         simulation_report_json = json.dumps(simulation_report, default=lambda o: o.__dict__, indent=4, sort_keys=True)
-        with open(log_filepath, 'w+') as f:
+        with open(self.log_filepath, 'w+') as f:
             f.write(simulation_report_json)
 
         return simulation_report
@@ -595,7 +599,7 @@ class Simulator:
                     self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
                     self.simulation_log.append(
                         utils.BasicLog(
-                            "{} failed executing goal {}.".format(agent_uid, str(agent_next_action.goal)),
+                            "{} failed executing goal {}.".format(self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)),
                             step_count
                         )
                     )
@@ -610,6 +614,9 @@ class Simulator:
                             step_count
                         )
                     )
+                    simulation_report = {"temp_goals": self.saved_goals, "simulation_log": self.simulation_log}
+                    with open(self.log_filepath, 'w+') as f:
+                        json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
                 else:
                     # If the agent could think of a plan and its step
                     agent_uid_to_next_action[agent_uid] = agent_next_action
