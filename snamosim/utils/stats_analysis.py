@@ -80,27 +80,38 @@ def aggregate_scenarios(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failur
     for scenario_id in common_scenarios_ids:
         try:
             namo_path = os.path.join(namo_logs_folder, scenario_id, "sim_results.json")
-            snamo_path = os.path.join(snamo_logs_folder, scenario_id, "sim_results.json")
 
             with open(namo_path, "r") as namo_f:
                 namo_data = json.load(namo_f)
-            with open(snamo_path, "r") as snamo_f:
-                snamo_data = json.load(snamo_f)
 
-            if "Exceptions" in namo_data or "Exceptions" in snamo_data:
+            if "Exceptions" in namo_data:
                 continue
 
             nb_failure_namo = len(
                 [True for gr in namo_data["agents"][0]["goals_reports"] if gr["goal_status"] == "failure"])
             if nb_failure_namo > nb_failures_max:
                 continue
+        except Exception as e:
+            if isinstance(e, ValueError):
+                print("")
+            continue
+
+        try:
+            snamo_path = os.path.join(snamo_logs_folder, scenario_id, "sim_results.json")
+
+            with open(snamo_path, "r") as snamo_f:
+                snamo_data = json.load(snamo_f)
+
+            if "Exceptions" in snamo_data:
+                continue
 
             nb_failure_snamo = len(
                 [True for gr in snamo_data["agents"][0]["goals_reports"] if gr["goal_status"] == "failure"])
             if nb_failure_snamo > nb_failures_max:
                 continue
-
-        except IOError as e:
+        except Exception as e:
+            if isinstance(e, ValueError):
+                print("")
             continue
 
         namo_aggregated_goals_per_scenario_data[scenario_id] = aggregate_goals(namo_data)
@@ -136,46 +147,48 @@ def plot_criterion(namo_data, snamo_data, criterion_id, criterion_name, nb_goals
     # Compute x-axis values
     x = range(nb_goals)
 
-    # Compute min and max y values
-    min_y = min([min(namo_data[criterion_id][i]) for i in x] + [min(snamo_data[criterion_id][i]) for i in x])
-    max_y = max([max(namo_data[criterion_id][i]) for i in x] + [max(snamo_data[criterion_id][i]) for i in x])
+    # Compute min and max y values for distributions
+    min_distribution_y = min([min(namo_data[criterion_id][i]) for i in x] + [min(snamo_data[criterion_id][i]) for i in x])
+    max_distribution_y = max([max(namo_data[criterion_id][i]) for i in x] + [max(snamo_data[criterion_id][i]) for i in x])
 
     # Compute distribution boxes
-    absolute_social_cost_boxes_namo = [
+    criterion_boxes_namo = [
         go.Box(y=namo_data[criterion_id][i], name=str(i), marker_color="blue", boxmean='sd', boxpoints=False)
         for i in x
     ]
-    absolute_social_cost_boxes_snamo = [
+    criterion_boxes_snamo = [
         go.Box(y=snamo_data[criterion_id][i], name=str(i), marker_color="green", boxmean='sd', boxpoints=False)
         for i in x
     ]
 
-    # Compute median scatter plots
-    absolute_social_cost_median_namo = [np.median(namo_data[criterion_id][i]) for i in x]
-    absolute_social_cost_median_scatter_namo = go.Scatter(
-        x=x, y=absolute_social_cost_median_namo, mode='lines+markers',
+    # Compute median and mean scatter plots
+    criterion_median_namo = [np.median(namo_data[criterion_id][i]) for i in x]
+    criterion_median_snamo = [np.median(snamo_data[criterion_id][i]) for i in x]
+    criterion_mean_namo = [np.mean(namo_data[criterion_id][i]) for i in x]
+    criterion_mean_snamo = [np.median(snamo_data[criterion_id][i]) for i in x]
+    stats_data = criterion_median_namo + criterion_median_snamo + criterion_mean_namo + criterion_mean_snamo
+    min_mean_median_y = min(stats_data)
+    max_mean_median_y = max(stats_data)
+
+    criterion_median_scatter_namo = go.Scatter(
+        x=x, y=criterion_median_namo, mode='lines+markers',
         name=criterion_name + ' - Median of all scenarios - NAMO', marker_color="blue"
     )
-    absolute_social_cost_median_snamo = [np.median(snamo_data[criterion_id][i]) for i in x]
-    absolute_social_cost_median_scatter_snamo = go.Scatter(
-        x=x, y=absolute_social_cost_median_snamo, mode='lines+markers',
+    criterion_median_scatter_snamo = go.Scatter(
+        x=x, y=criterion_median_snamo, mode='lines+markers',
         name=criterion_name + ' - Median of all scenarios - SNAMO', marker_color="green"
     )
-
-    # Compute mean scatter plots
-    absolute_social_cost_mean_namo = [np.mean(namo_data[criterion_id][i]) for i in x]
-    absolute_social_cost_mean_scatter_namo = go.Scatter(
-        x=x, y=absolute_social_cost_mean_namo, mode='lines+markers',
+    criterion_mean_scatter_namo = go.Scatter(
+        x=x, y=criterion_mean_namo, mode='lines+markers',
         name=criterion_name + ' - Mean of all scenarios - NAMO', marker_color="blue"
     )
-    absolute_social_cost_mean_snamo = [np.median(snamo_data[criterion_id][i]) for i in x]
-    absolute_social_cost_mean_scatter_snamo = go.Scatter(
-        x=x, y=absolute_social_cost_mean_snamo, mode='lines+markers',
+    criterion_mean_scatter_snamo = go.Scatter(
+        x=x, y=criterion_mean_snamo, mode='lines+markers',
         name=criterion_name + ' - Mean of all scenarios - SNAMO', marker_color="green"
     )
 
     # Create figure with 4 subplots in a grid
-    fig_social_cost = sp.make_subplots(
+    fig_criterion = sp.make_subplots(
         rows=2, cols=2,
         subplot_titles=(
             "Distribution accross draws for NAMO", "Distribution accross draws for S-NAMO",
@@ -185,45 +198,45 @@ def plot_criterion(namo_data, snamo_data, criterion_id, criterion_name, nb_goals
     )
 
     # Add distribution of values for NAMO (top-left subfig)
-    for asc_box_namo in absolute_social_cost_boxes_namo:
-        fig_social_cost.add_trace(asc_box_namo, 1, 1)
+    for asc_box_namo in criterion_boxes_namo:
+        fig_criterion.add_trace(asc_box_namo, 1, 1)
 
     # Add distribution of values for SNAMO (top-right subfig)
-    for asc_box_snamo in absolute_social_cost_boxes_snamo:
-        fig_social_cost.add_trace(asc_box_snamo, 1, 2)
+    for asc_box_snamo in criterion_boxes_snamo:
+        fig_criterion.add_trace(asc_box_snamo, 1, 2)
 
     # Add median scatter plot (bottom-left subfig)
-    fig_social_cost.add_trace(absolute_social_cost_median_scatter_namo, 2, 1)
-    fig_social_cost.add_trace(absolute_social_cost_median_scatter_snamo, 2, 1)
+    fig_criterion.add_trace(criterion_median_scatter_namo, 2, 1)
+    fig_criterion.add_trace(criterion_median_scatter_snamo, 2, 1)
 
     # Add median scatter plot (bottom-right subfig)
-    fig_social_cost.add_trace(absolute_social_cost_mean_scatter_namo, 2, 2)
-    fig_social_cost.add_trace(absolute_social_cost_mean_scatter_snamo, 2, 2)
+    fig_criterion.add_trace(criterion_mean_scatter_namo, 2, 2)
+    fig_criterion.add_trace(criterion_mean_scatter_snamo, 2, 2)
 
     # Update xaxis properties
-    fig_social_cost.update_xaxes(title_text="Goal index", range=[0, nb_goals], row=1, col=1)
-    fig_social_cost.update_xaxes(title_text="Goal index", range=[0, nb_goals], row=1, col=2)
-    fig_social_cost.update_xaxes(title_text="Goal index", range=[0, nb_goals], row=2, col=1)
-    fig_social_cost.update_xaxes(title_text="Goal index", range=[0, nb_goals], row=2, col=2)
+    fig_criterion.update_xaxes(title_text="Goal index", range=[0, nb_goals], row=1, col=1)
+    fig_criterion.update_xaxes(title_text="Goal index", range=[0, nb_goals], row=1, col=2)
+    fig_criterion.update_xaxes(title_text="Goal index", range=[0, nb_goals], row=2, col=1)
+    fig_criterion.update_xaxes(title_text="Goal index", range=[0, nb_goals], row=2, col=2)
 
     # Update yaxis properties
     min_mult, max_mult = 1. - padding_percentage, 1. + padding_percentage
-    fig_social_cost.update_yaxes(title_text=criterion_name, range=[min_y * min_mult, max_y * max_mult], row=1, col=1)
-    fig_social_cost.update_yaxes(title_text=criterion_name, range=[min_y * min_mult, max_y * max_mult], row=1, col=2)
-    fig_social_cost.update_yaxes(title_text=criterion_name, range=[min_y * min_mult, max_y * max_mult], row=2, col=1)
-    fig_social_cost.update_yaxes(title_text=criterion_name, range=[min_y * min_mult, max_y * max_mult], row=2, col=2)
+    fig_criterion.update_yaxes(title_text=criterion_name, range=[min_distribution_y * min_mult, max_distribution_y * max_mult], row=1, col=1)
+    fig_criterion.update_yaxes(title_text=criterion_name, range=[min_distribution_y * min_mult, max_distribution_y * max_mult], row=1, col=2)
+    fig_criterion.update_yaxes(title_text=criterion_name, range=[min_mean_median_y * min_mult, max_mean_median_y * max_mult], row=2, col=1)
+    fig_criterion.update_yaxes(title_text=criterion_name, range=[min_mean_median_y * min_mult, max_mean_median_y * max_mult], row=2, col=2)
 
     # Set title and display
-    fig_social_cost.update_layout(
+    fig_criterion.update_layout(
         showlegend=False,
         title_text=criterion_name + " accross multiple draws of 200 random goals",
         title_x=0.5
     )
 
     if show:
-        fig_social_cost.show()
+        fig_criterion.show()
     if save_filepath:
-        fig_social_cost.write_html(save_filepath)
+        fig_criterion.write_html(save_filepath)
 
 
 def plot_data(aggregated_data, nb_goals, saved_plots_path, show=True, padding_percentage=0.05):
@@ -266,7 +279,7 @@ def aggregate_data_then_plot():
     except IOError as e:
         namo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset/")
         snamo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset_snamo/")
-        aggregated_data = aggregate_scenarios(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failures_max=250)
+        aggregated_data = aggregate_scenarios(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failures_max=50)
         with open(os.path.join(main_dirname, "synthesis.json"), "w") as f:
             json.dump(aggregated_data, f)
 
@@ -293,6 +306,9 @@ def get_problematic_scenarios_ids(nb_goals, namo_logs_folder, snamo_logs_folder,
     namo_scenarios_without_results_file = []
     snamo_scenarios_without_results_file = []
 
+    namo_scenarios_with_empty_results_file = []
+    snamo_scenarios_with_empty_results_file = []
+
     namo_scenarios_with_exceptions = []
     snamo_scenarios_with_exceptions = []
 
@@ -314,8 +330,11 @@ def get_problematic_scenarios_ids(nb_goals, namo_logs_folder, snamo_logs_folder,
                 [True for gr in namo_data["agents"][0]["goals_reports"] if gr["goal_status"] == "failure"])
             if nb_failure_namo > nb_failures_max:
                 namo_scenarios_with_more_than_50_failed_goals.append(scenario_id)
-        except IOError as e:
-            namo_scenarios_without_results_file.append(scenario_id)
+        except Exception as e:
+            if isinstance(e, IOError):
+                namo_scenarios_without_results_file.append(scenario_id)
+            if isinstance(e, ValueError):
+                namo_scenarios_with_empty_results_file.append(scenario_id)
 
         try:
             with open(snamo_path, "r") as snamo_f:
@@ -327,8 +346,11 @@ def get_problematic_scenarios_ids(nb_goals, namo_logs_folder, snamo_logs_folder,
                 [True for gr in snamo_data["agents"][0]["goals_reports"] if gr["goal_status"] == "failure"])
             if nb_failure_snamo > nb_failures_max:
                 snamo_scenarios_with_more_than_50_failed_goals.append(scenario_id)
-        except IOError as e:
-            snamo_scenarios_without_results_file.append(scenario_id)
+        except Exception as e:
+            if isinstance(e, IOError):
+                snamo_scenarios_without_results_file.append(scenario_id)
+            if isinstance(e, ValueError):
+                snamo_scenarios_with_empty_results_file.append(scenario_id)
 
     return {
         "namo_scenarios_without_results_file": namo_scenarios_without_results_file,
