@@ -774,6 +774,7 @@ class Simulator:
 
             if not agent_transitionnally_collides:
                 if attached_entity_uid:
+                    # TODO Fix Exception happening at line below (KeyError) surely caused by bad management of grabbed obstacles
                     att_entity_transition_polygon = transition_polygons[attached_entity_uid]
                     att_entity_transition_aabb = collision.polygon_to_aabb(att_entity_transition_polygon)
 
