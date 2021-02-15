@@ -196,7 +196,9 @@ class AfterTheFeastTest(unittest.TestCase):
         sim.run()
 
     def test_stilman_2005_behavior_replay_complexified_random(self):
-        pass
+        sim = Simulator(
+            simulation_file_path=self.path_to_folder + "variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/2021-02-09-23h17m30s_143832/stilman_2005_behavior_complexified_random_goal_no_reset_snamo.json")
+        sim.run()
 
 if __name__ == '__main__':
     unittest.main()
