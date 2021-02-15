@@ -1,5 +1,4 @@
 import json
-import yaml
 import os
 from xml.dom import minidom
 
@@ -8,11 +7,11 @@ def scenarios_from_simulation_results(scenario_original_filepath, scenario_logs_
                                       temp_simulations_dir_filepath, temp_worlds_dir_filepath):
     # Get data from original files
     with open(scenario_original_filepath) as f:
-        scenario_data = yaml.load(f, Loader=yaml.SafeLoader)
+        scenario_data = json.load(f)
 
     world_file_path = os.path.join(os.path.dirname(scenario_original_filepath), scenario_data["files"]["world_file"])
     with open(world_file_path) as f:
-        world_data = yaml.load(f, Loader=yaml.SafeLoader)
+        world_data = json.load(f)
 
     geometry_file_path = os.path.join(os.path.dirname(world_file_path), world_data["files"]["geometry_file"])
     with open(geometry_file_path) as f:
@@ -74,7 +73,7 @@ def scenarios_from_simulation_results(scenario_original_filepath, scenario_logs_
                 json.dump(world_data, f)
             with open(world_svg_filepath, "w") as f:
                 geometry_data.writexml(f)
-        except IOError as e:
+        except (IOError, ValueError) as e:
             continue
 
 
@@ -82,7 +81,7 @@ if __name__ == '__main__':
     scenarios_from_simulation_results(
         scenario_original_filepath=os.path.join(
             os.path.dirname(__file__),
-            "../data/simulations/s-namo_cases/04_after_the_feast/stilman_2005_behavior_complexified_random_goal_no_reset.yaml"
+            "../data/simulations/s-namo_cases/04_after_the_feast/stilman_2005_behavior_complexified_random_goal_no_reset.json"
         ),
         scenario_logs_dir_filepath=os.path.join(
             os.path.dirname(__file__),
@@ -100,7 +99,7 @@ if __name__ == '__main__':
     scenarios_from_simulation_results(
         scenario_original_filepath=os.path.join(
             os.path.dirname(__file__),
-            "../data/simulations/s-namo_cases/04_after_the_feast/stilman_2005_behavior_complexified_random_goal_no_reset_snamo.yaml"
+            "../data/simulations/s-namo_cases/04_after_the_feast/stilman_2005_behavior_complexified_random_goal_no_reset_snamo.json"
         ),
         scenario_logs_dir_filepath=os.path.join(
             os.path.dirname(__file__),
