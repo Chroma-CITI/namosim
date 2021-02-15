@@ -135,7 +135,7 @@ class AfterTheFeastTest(unittest.TestCase):
         use_computer = True
 
         while (now_time - start_time) < (8. * 60. * 60.):
-            if use_computer and len(current_processes) < nb_cpu - 3:
+            if use_computer and len(current_processes) < nb_cpu - 1:
                 process = multiprocessing.Process(target=self.namo_and_snamo)
                 current_processes.append(process)
                 process.start()
