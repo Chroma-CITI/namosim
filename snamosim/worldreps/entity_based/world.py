@@ -198,6 +198,8 @@ class World:
                             goal = Goal(polygon=goal_polygon, name=goal_data["name"], pose=tuple(pose))
                             world.goals[goal.uid] = goal
                         elif "pose" in goal_data:
+                            if not goal_data["pose"]:
+                                raise KeyError
                             pose = tuple(goal_data["pose"])
                             # TODO: Change goal polygon to an arrow
                             if first_robot:
@@ -207,7 +209,7 @@ class World:
                             goal = Goal(polygon=goal_polygon, name=goal_data["name"], pose=tuple(pose))
                             world.goals[goal.uid] = goal
                     except KeyError:
-                        print("No goal named... {}".format(goal_data['geometry']['id']))
+                        print("No goal named in geometry data... {}".format(goal_data["name"]))
             if ("taboos" in config["things"]["zones"]
                     and isinstance(config["things"]["zones"]["taboos"], list)):
                 for thing_data in config["things"]["zones"]["taboos"]:
