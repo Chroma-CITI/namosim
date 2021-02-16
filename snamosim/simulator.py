@@ -210,7 +210,7 @@ class Simulator:
 
         # TODO Remove this temporary measure for a better separation between scenario generation and execution
         simulation_report["temp_goals"] = self.saved_goals
-        self.simulation_log.append(utils.BasicLog("Simulation report saved at: {}".format(log_filepath), step_count))
+        self.simulation_log.append(utils.BasicLog("Simulation report saved at: {}".format(self.log_filepath), step_count))
         simulation_report["simulation_log"] = self.simulation_log
         simulation_report_json = json.dumps(simulation_report, default=lambda o: o.__dict__, indent=4, sort_keys=True)
         with open(self.log_filepath, 'w+') as f:
