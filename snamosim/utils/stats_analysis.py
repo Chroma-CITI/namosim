@@ -239,7 +239,55 @@ def plot_criterion(namo_data, snamo_data, criterion_id, criterion_name, nb_goals
         fig_criterion.write_html(save_filepath)
 
 
-def plot_data(aggregated_data, nb_goals, saved_plots_path, show=True, padding_percentage=0.05):
+def plot_relevant_criteria(namo_data, snamo_data, criterion_id_to_criterion_name, nb_goals,
+                           save_filepath=None, show=True, padding_percentage=0.05):
+    # Plot most relevant criteria into a single plot
+    most_relevant_criteria_to_fig_pose = [
+        "absolute_social_cost",  # (1,1)
+        "biggest_free_component_size",  # (1,2)
+        "free_space_size",
+        "number_of_connected_components",
+        "space_fragmentation_percentage",
+        "cumulated_transit_path_length",
+        "cumulated_total_path_length",
+        "cumulated_number_of_transferred_obstacles"
+        # ,"cumulated_number_of_failed_goals"
+    ]
+    x = range(nb_goals)  # Compute x-axis values
+    rows, cols = 4, 2
+    fig_criteria = sp.make_subplots(
+        rows=rows, cols=cols,
+        subplot_titles=[criterion_id_to_criterion_name[criterion_id] for criterion_id in most_relevant_criteria_to_fig_pose]
+    )
+    for index, criterion_id in enumerate(most_relevant_criteria_to_fig_pose):
+        criterion_name = criterion_id_to_criterion_name[criterion_id]
+
+        criterion_median_namo = [np.median(namo_data[criterion_id][i]) for i in x]
+        criterion_median_snamo = [np.median(snamo_data[criterion_id][i]) for i in x]
+
+        stats_data = criterion_median_namo + criterion_median_snamo
+        min_median_y = min(stats_data)
+        max_median_y = max(stats_data)
+
+        criterion_median_scatter_namo = go.Scatter(x=x, y=criterion_median_namo, mode='lines', marker_color="blue")
+        criterion_median_scatter_snamo = go.Scatter(x=x, y=criterion_median_snamo, mode='lines', marker_color="green")
+
+        row, col = (index // cols + 1, index % cols + 1)
+        fig_criteria.add_trace(criterion_median_scatter_namo, row, col)
+        fig_criteria.add_trace(criterion_median_scatter_snamo, row, col)
+        fig_criteria.update_xaxes(range=[0, nb_goals], row=row, col=col)
+        min_mult, max_mult = 1. - padding_percentage, 1. + padding_percentage
+        fig_criteria.update_yaxes(range=[min_median_y * min_mult, max_median_y * max_mult], row=row, col=col)
+
+    # Set title and display
+    fig_criteria.update_layout(showlegend=False)
+    if show:
+        fig_criteria.show()
+    if save_filepath:
+        fig_criteria.write_html(save_filepath)
+
+
+def plot_data(aggregated_data, saved_plots_path, nb_goals=50, show=True, padding_percentage=0.05, plot_relevant_only=True):
     namo_data = aggregated_data["namo_aggregated_scenarios_data"]
     snamo_data = aggregated_data["snamo_aggregated_scenarios_data"]
 
@@ -261,29 +309,21 @@ def plot_data(aggregated_data, nb_goals, saved_plots_path, show=True, padding_pe
         "cumulated_number_of_failed_goals": "Cumulated Number of Failed Goals"
     }
 
-    for criterion_id, criterion_name in criterion_id_to_criterion_name.items():
-        plot_criterion(
-            namo_data, snamo_data, criterion_id, criterion_name,
-            nb_goals, save_filepath=os.path.join(saved_plots_path, criterion_id+".html"),
-            show=show, padding_percentage=padding_percentage
-        )
+    if not plot_relevant_only:
+        # Plot each criterion individually
+        for criterion_id, criterion_name in criterion_id_to_criterion_name.items():
+            plot_criterion(
+                namo_data, snamo_data, criterion_id, criterion_name,
+                nb_goals, save_filepath=os.path.join(saved_plots_path, criterion_id+".html"),
+                show=show, padding_percentage=padding_percentage
+            )
 
-
-def aggregate_data_then_plot():
-    nb_goals = 200
-    main_dirname = os.path.join(os.path.dirname(__file__), "../../logs/04_after_the_feast/")
-
-    try:
-        with open(os.path.join(main_dirname, "synthesis.json"), "r") as f:
-            aggregated_data = json.load(f)
-    except IOError as e:
-        namo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset/")
-        snamo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset_snamo/")
-        aggregated_data = aggregate_scenarios(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failures_max=50)
-        with open(os.path.join(main_dirname, "synthesis.json"), "w") as f:
-            json.dump(aggregated_data, f)
-
-    plot_data(aggregated_data, nb_goals, main_dirname, show=True, padding_percentage=0.05)
+    # Plot relevant criteria into single figure
+    plot_relevant_criteria(
+        namo_data, snamo_data, criterion_id_to_criterion_name, nb_goals=nb_goals,
+        save_filepath=os.path.join(saved_plots_path, "all_criteria.html"),
+        show=show, padding_percentage=padding_percentage
+    )
 
 
 def get_problematic_scenarios_ids(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failures_max=50):
@@ -363,10 +403,23 @@ def get_problematic_scenarios_ids(nb_goals, namo_logs_folder, snamo_logs_folder,
 
 
 if __name__ == "__main__":
-    # aggregate_data_then_plot()
     nb_goals = 200
     main_dirname = os.path.join(os.path.dirname(__file__), "../../logs/04_after_the_feast/")
 
+    # Aggregate and plot data
+    try:
+        with open(os.path.join(main_dirname, "synthesis.json"), "r") as f:
+            aggregated_data = json.load(f)
+    except IOError as e:
+        namo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset/")
+        snamo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset_snamo/")
+        aggregated_data = aggregate_scenarios(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failures_max=50)
+        with open(os.path.join(main_dirname, "synthesis.json"), "w") as f:
+            json.dump(aggregated_data, f)
+
+    plot_data(aggregated_data, main_dirname, nb_goals=50, show=False, padding_percentage=0.05, plot_relevant_only=True)
+
+    # Extract problems in data
     try:
         with open(os.path.join(main_dirname, "problems.json"), "r") as f:
             pb_data = json.load(f)
