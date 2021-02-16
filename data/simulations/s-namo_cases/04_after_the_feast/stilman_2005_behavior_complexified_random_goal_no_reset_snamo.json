@@ -1,37 +1,37 @@
 {
     "agents_behaviors": [
         {
-            "agent_name": "robot_01", 
+            "agent_name": "robot_01",
             "behavior": {
-                "name": "stilman_2005_behavior", 
+                "name": "stilman_2005_behavior",
                 "parameters": {
-                    "alpha_for_obstacle_choice_heur": 0.5, 
-                    "basic_rotation_moment": 2.0, 
-                    "basic_translation_force": 2.0, 
-                    "check_new_local_opening_before_global": true, 
-                    "collision_check_angular_res": 5.0, 
-                    "deactivate_grids_logging": true, 
-                    "forbid_rotations": false, 
-                    "heuristic_cost_for_traversing_obstacle_in_choice_heur": 2.0, 
-                    "manipulation_search_procedure": "DFS", 
-                    "neighborhood_for_obstacle_choice_heur": "TAXI", 
-                    "robot_rotation_unit_angle": 30.0, 
-                    "robot_translation_unit_length": 0.1, 
-                    "solution_interval_bound_percentage": 0.01, 
+                    "alpha_for_obstacle_choice_heur": 0.5,
+                    "basic_rotation_moment": 2.0,
+                    "basic_translation_force": 2.0,
+                    "check_new_local_opening_before_global": true,
+                    "collision_check_angular_res": 5.0,
+                    "deactivate_grids_logging": true,
+                    "forbid_rotations": false,
+                    "heuristic_cost_for_traversing_obstacle_in_choice_heur": 2.0,
+                    "manipulation_search_procedure": "DFS",
+                    "neighborhood_for_obstacle_choice_heur": "TAXI",
+                    "robot_rotation_unit_angle": 30.0,
+                    "robot_translation_unit_length": 0.1,
+                    "solution_interval_bound_percentage": 0.01,
                     "use_social_cost": true
-                }, 
+                },
                 "randomization": {
-                    "generate_random_goals": true, 
-                    "nb_goals_to_generate": 200, 
+                    "generate_random_goals": true,
+                    "nb_goals_to_generate": 50, 
                     "randomization_type": "discrete"
                 }
             }
         }
-    ], 
-    "display_sim_knowledge_only_once": false, 
+    ],
+    "display_sim_knowledge_only_once": false,
     "files": {
         "world_file": "../../../worlds/s-namo_cases/04_after_the_feast/04_after_the_feast_omniscient_complexified.json"
-    }, 
-    "provide_walls": true, 
+    },
+    "provide_walls": true,
     "reset_after_goal_01": false
 }
