@@ -1,16 +1,17 @@
-from snamosim.utils import utils
 import math
 import copy
 import Box2D
-import snamosim.behaviors.plan.basic_actions as ba
 
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon
 
+import snamosim.behaviors.plan.basic_actions as ba
+from snamosim.utils import utils
+
 
 class MyContactListener(Box2D.b2ContactListener):
     def __init__(self, **kwargs):
-        Box2D.b2ContactListener.__init__(**kwargs)
+        Box2D.b2ContactListener.__init__(self, **kwargs)
         self._collision_pairs = []
 
     def BeginContact(self, contact):
