@@ -304,19 +304,6 @@ class World:
         for entity_uid in entities_uids:
             self.remove_entity(entity_uid)
 
-    def translate_entity(self, entity_uid, translation):
-        entity = self.entities[entity_uid]
-        entity.translate(translation[0], translation[1], self.dd.res)
-
-    def rotate_entity(self, entity_uid, rotation, rot_center='centroid'):
-        entity = self.entities[entity_uid]
-        entity.rotate(rotation, rot_center)
-
-    def set_entity_polygon(self, entity_uid, polygon, full_geometry_acquired=False):
-        entity = self.entities[entity_uid]
-        entity.set_polygon(polygon)
-        entity.full_geometry_acquired = full_geometry_acquired
-
     def get_map_bounds(self):
         if len(self.entities) == 0:
             raise ValueError("There are no entities to populate the grid, it can't be created !")

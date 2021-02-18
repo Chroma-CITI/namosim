@@ -38,13 +38,6 @@ class Robot(Entity):
         return self
 
     def update_world_from_sensors(self, reference_world, target_world):
-        # Update robot pose in target world
-        ref_robot = reference_world.entities[self.uid]
-        trans = [ref_robot.pose[0] - self.pose[0], ref_robot.pose[1] - self.pose[1]]
-        rot = (ref_robot.pose[2] - self.pose[2]) % 360.
-        target_world.translate_entity(self.uid, trans)
-        target_world.rotate_entity(self.uid, rot)
-
         # Update other entities in target world
         for sensor in self.sensors:
             sensor.update_from_fov(reference_world, target_world)

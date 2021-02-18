@@ -22,7 +22,7 @@ class Entity:
             self.uid = uid
         self.name = name
         self.polygon = polygon
-        self.pose = pose
+        self.pose = tuple(pose)
         self.full_geometry_acquired = full_geometry_acquired
         self.is_being_manipulated = False
         self.movability = movability
@@ -131,7 +131,7 @@ class Entity:
     def to_json(self):
         return {
             "name": self.name,
-            "type": self.get_type(),
+            "type": self.type,
             "geometry": {
                 "from": "file",
                 "id": self.name
