@@ -38,9 +38,17 @@ class Robot(Entity):
         return self
 
     def update_world_from_sensors(self, reference_world, target_world):
-        # Update other entities in target world
+        added_uids, updated_uids, removed_uids = set(), set(), set()
+
         for sensor in self.sensors:
-            sensor.update_from_fov(reference_world, target_world)
+            s_uids_to_add, s_uids_to_update, s_uids_to_remove = sensor.update_from_fov(reference_world, target_world)
+
+            # Might need a better update policy if sensors disagree about what happened, but irrelevant for now
+            added_uids.update(s_uids_to_add)
+            updated_uids.update(s_uids_to_update)
+            removed_uids.update(s_uids_to_remove)
+
+        return added_uids, updated_uids, removed_uids
 
     def deduce_movability(self, obstacle_type):
         if obstacle_type == "unknown":

@@ -300,10 +300,6 @@ class World:
         else:
             raise KeyError("Warning, you tried to remove an entity that is not registered in this world !")
 
-    def remove_entities(self, entities_uids):
-        for entity_uid in entities_uids:
-            self.remove_entity(entity_uid)
-
     def get_map_bounds(self):
         if len(self.entities) == 0:
             raise ValueError("There are no entities to populate the grid, it can't be created !")

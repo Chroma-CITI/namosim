@@ -103,7 +103,9 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def sense(self, ref_world, last_action_result, step_count):
         BaselineBehavior.sense(self, ref_world, last_action_result, step_count)
-        # self.b2_sim.
+        self.b2_sim.add_entities({uid: e for uid, e in self._world.entities if uid in self._added_uids})
+        self.b2_sim.update_entities({uid: e for uid, e in self._world.entities if uid in self._updated_uids})
+        self.b2_sim.remove_entities(self._removed_uids)
 
     def think(self):
         # TODO Try to rewrite this more cleanly

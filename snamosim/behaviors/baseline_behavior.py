@@ -30,11 +30,13 @@ class BaselineBehavior(object):
         self.__q_goal = None
         self.__p_opt = None
 
+        self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
+
         self._rp = RosPublisher()
 
     def sense(self, ref_world, last_action_result, step_count):
         self._last_action_result = last_action_result
-        self._robot.update_world_from_sensors(ref_world, self._world)
+        self._added_uids, self._updated_uids, self._removed_uids = self._robot.update_world_from_sensors(ref_world, self._world)
         self._rp.publish_robot_world(self._world, self._robot_uid, ns=self._robot_name)
         self._step_count = step_count
 

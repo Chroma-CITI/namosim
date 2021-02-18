@@ -40,6 +40,16 @@ class B2Sim:
         self.ghost_entities = {}
 
         # Convert entities into appropriate box2D world bodies
+        self.add_entities(entities)
+
+    def add_entities(self, entities):
+        """
+        Add new entities to Box2D world
+        :param entities: Dictionnary of entities with their associated uid
+        :type entities: dict(int: Entity)
+        """
+
+        # Convert entities into appropriate box2D world bodies
         for uid, entity in entities.items():
             local_polygon = utils.shapely_geom_to_local(entity.polygon, entity.pose)
             convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_polygon)
@@ -61,12 +71,27 @@ class B2Sim:
             # Differentiate static obstacles from the rest for performance reasons
             if entity.movability == "static" or entity.movability == "unmovable":
                 self.b2_entities[uid] = self.b2_world.CreateStaticBody(
-                    fixtures=fixtures, position=(entity.pose[0], entity.pose[1]), angle=entity.pose[2]
+                    fixtures=fixtures, position=(entity.pose[0], entity.pose[1]), angle=math.radians(entity.pose[2])
                 )
             else:
                 self.b2_entities[uid] = self.b2_world.CreateDynamicBody(
-                    fixtures=fixtures, position=(entity.pose[0], entity.pose[1]), angle=entity.pose[2]
+                    fixtures=fixtures, position=(entity.pose[0], entity.pose[1]), angle=math.radians(entity.pose[2])
                 )
+
+    def remove_entities(self, entities_uids):
+        for uid in entities_uids:
+            self.b2_world.DestroyBody(self.b2_entities[uid])
+            del self.b2_entities[uid]
+
+        # For the moment, just in case, we clean ghost entities just in case
+        for key, body in self.ghost_entities:
+            self.b2_world.DestroyBody(body)
+        self.b2_entities = {}
+
+    def update_entities(self, entities):
+        for uid, entity in entities.items():
+            self.b2_entities[uid].position = (entity.pose[0], entity.pose[1])
+            self.b2_entities[uid].angle = math.radians(entity.pose[2])
 
     def create_ghost_entity(self, key, entities_polygons, main_pose):
         if key in self.ghost_entities:
