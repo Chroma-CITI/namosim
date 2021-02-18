@@ -89,6 +89,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self.grabbed_obstacles = set()
 
+        self.b2_sim = b2_collision.B2Sim(self._world.entities)
+
     def are_all_goals_finished(self):
         return not self._navigation_goals and self._q_goal is None
 
@@ -98,6 +100,10 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def get_current_goal(self):
         return self._q_goal
+
+    def sense(self, ref_world, last_action_result, step_count):
+        BaselineBehavior.sense(self, ref_world, last_action_result, step_count)
+        # self.b2_sim.
 
     def think(self):
         # TODO Try to rewrite this more cleanly
@@ -559,7 +565,7 @@ class Stilman2005Behavior(BaselineBehavior):
         else:
             return 0, 0
 
-    def manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True, use_b2=True):
+    def manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
@@ -642,21 +648,18 @@ class Stilman2005Behavior(BaselineBehavior):
             for manip_pose_id, (manip_pose, nav_pose) in enumerate(transfer_start_to_transit_end_robot_pose.items())
         }
 
-        if use_b2:
-            other_entities_poses = {
-                uid: entity.pose
-                for uid, entity in w_t_plus_2.entities.items() if uid != robot_uid and uid != obstacle_uid
-            }
-            robot_polygons = {c.manip_pose_id: c.robot.polygon for c in transfer_start_configurations.keys()}
-            robot_poses = {
-                c.manip_pose_id: c.robot.floating_point_pose for c in transfer_start_configurations.keys()
-            }
-            b2_sim = b2_collision.B2Sim(
-                other_entities_polygons, other_entities_poses, obstacle_polygon, obstacle_pose,
-                robot_polygons, robot_poses, robot_uid, obstacle_uid
-            )
-        else:
-            b2_sim = None
+        other_entities_poses = {
+            uid: entity.pose
+            for uid, entity in w_t_plus_2.entities.items() if uid != robot_uid and uid != obstacle_uid
+        }
+        robot_polygons = {c.manip_pose_id: c.robot.polygon for c in transfer_start_configurations.keys()}
+        robot_poses = {
+            c.manip_pose_id: c.robot.floating_point_pose for c in transfer_start_configurations.keys()
+        }
+        b2_sim = b2_collision.B2Sim(
+            other_entities_polygons, other_entities_poses, obstacle_polygon, obstacle_pose,
+            robot_polygons, robot_poses, robot_uid, obstacle_uid
+        )
 
         # Use Dijkstra algorithm to compute a transfer path that allows for an opening to be created
         path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.dijkstra_for_manip_search(
