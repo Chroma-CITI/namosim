@@ -1,5 +1,6 @@
 from snamosim.utils import utils
 import math
+import copy
 import Box2D
 import snamosim.behaviors.plan.basic_actions as ba
 
@@ -8,79 +9,130 @@ from shapely.geometry import Polygon
 
 
 class MyContactListener(Box2D.b2ContactListener):
-    def BeginContact(self, contact):
-        # TODO save collision pairs because there can be several of these
-        self._collision_detected = True
-        # self.fix_a_uid = contact.fixtureA.userData['uid']
-        # self.fix_b_uid = contact.fixtureB.userData['uid']
+    def __init__(self, **kwargs):
+        Box2D.b2ContactListener.__init__(**kwargs)
+        self._collision_pairs = []
 
-    def is_collision_detected(self):
-        return_value = hasattr(self, '_collision_detected') and self._collision_detected
-        self._collision_detected = False
+    def BeginContact(self, contact):
+        self._collision_pairs.append((contact.fixtureA.userData['uid'], contact.fixtureB.userData['uid']))
+
+    def get_collision_pairs(self):
+        return_value = copy.copy(self._collision_pairs)
+        self._collision_pairs = []
         return return_value
 
 
 class B2Sim:
-    def __init__(self, other_entities_polygons, other_entities_poses, obstacle_polygon, obstacle_pose,
-                 robot_polygons, robot_poses, robot_uid, obstacle_uid):
-
-        # Save initial parameters
-        self._other_entities_polygons, self._other_entities_poses = other_entities_polygons, other_entities_poses
-        self._obstacle_polygon, self._obstacle_pose = obstacle_polygon, obstacle_pose
-        self._robot_polygons, self._robot_poses = robot_polygons, robot_poses
-        self._robot_uid, self._obstacle_uid = robot_uid, obstacle_uid
+    def __init__(self, entities, gravity=(0., 0.)):
+        """
+        Initialize Box2D world using entities physics data and contact listener.
+        :param entities: Dictionnary of entities with their associated uid
+        :type entities: dict(int: Entity)
+        :param gravity: Optional argument, in case we ever want a side-view simulation, not a top view one.
+        :type gravity: tuple(float, float)
+        """
 
         # Initialize box2d world
         self.contact_listener = MyContactListener()
-        self.box2d_world = Box2D.b2World(gravity=(0., 0.), contactListener=self.contact_listener)
+        self.b2_world = Box2D.b2World(gravity=gravity, contactListener=self.contact_listener)
+        self.b2_entities = {}
+        self.ghost_entities = {}
 
-        # Init static obstacles as static bodies
-        self.b2_bodies = {}
-        for uid, polygon in other_entities_polygons.items():
-            local_polygon = utils.shapely_geom_to_local(polygon, other_entities_poses[uid])
+        # Convert entities into appropriate box2D world bodies
+        for uid, entity in entities.items():
+            local_polygon = utils.shapely_geom_to_local(entity.polygon, entity.pose)
             convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_polygon)
             fixtures = []
             for counter, coords in enumerate(convex_polygons_coords):
                 try:
-                    fixture = Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': uid})
+                    fixture = Box2D.b2FixtureDef(
+                        shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': uid}, isSensor=True
+                    )
                     fixtures.append(fixture)
                 except Exception as e:
+                    # Catch exceptions caused by fixture coordinates too close to make a triangle Polygon in Box2D's
+                    # opinion. Simply ignore the fixture.
                     # TODO: Either improve convexity verification to recognize after the feast tables as convex
                     #  or fix after the feast case to stop using rounded corners that are probably causing the problem
                     #  when svg is read and simplified to polygon.
                     pass
 
-            self.b2_bodies[uid] = self.box2d_world.CreateStaticBody(
-                fixtures=fixtures,
-                position=(other_entities_poses[uid][0], other_entities_poses[uid][1]),
-                angle=other_entities_poses[uid][2]
-            )
+            # Differentiate static obstacles from the rest for performance reasons
+            if entity.movability == "static" or entity.movability == "unmovable":
+                self.b2_entities[uid] = self.b2_world.CreateStaticBody(
+                    fixtures=fixtures, position=(entity.pose[0], entity.pose[1]), angle=entity.pose[2]
+                )
+            else:
+                self.b2_entities[uid] = self.b2_world.CreateDynamicBody(
+                    fixtures=fixtures, position=(entity.pose[0], entity.pose[1]), angle=entity.pose[2]
+                )
 
-        # Init robot and moved obstacle as a single dynamic body, for each manipulation pose
-        self.manip_pose_id_to_welded_body = {}
-        for manip_pose_id, robot_polygon in robot_polygons.items():
-            robot_pose = robot_poses[manip_pose_id]
+    def create_ghost_entity(self, key, entities_polygons, main_pose):
+        if key in self.ghost_entities:
+            return
 
-            local_robot_polygon = utils.shapely_geom_to_local(robot_polygon, robot_pose)
-            robot_convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_robot_polygon)
-            robot_fixtures_defs = [
-                Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': robot_uid})
-                for coords in robot_convex_polygons_coords
-            ]
+        ghost_fixtures_defs = []
+        local_centroids = {}
+        for uid, p in entities_polygons.items():
+            local_polygon = utils.shapely_geom_to_local(p, main_pose)
+            ghost_fixtures_defs.append(Box2D.b2FixtureDef(shape=local_polygon, userData={'uid': uid}, isSensor=True))
+            self.b2_entities[uid].active = False
 
-            local_obstacle_polygon = utils.shapely_geom_to_local(obstacle_polygon, robot_pose)
-            obstacle_convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_obstacle_polygon)
-            obstacle_fixtures_defs = [
-                Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': obstacle_uid})
-                for coords in obstacle_convex_polygons_coords
-            ]
+        self.ghost_entities[key] = self.b2_world.CreateDynamicBody(
+            fixtures=ghost_fixtures_defs[0], position=(main_pose[0], main_pose[1]),
+            angle=math.radians(main_pose[2]), bullet=True, userData={'local_centroids': local_centroids},
+            active=False  # Start out as non-active (only active when used). Note: 'active' -> 'enabled' in v2.4.x
+        )
 
-            self.manip_pose_id_to_welded_body[manip_pose_id] = self.box2d_world.CreateDynamicBody(
-                fixtures=robot_fixtures_defs + obstacle_fixtures_defs, position=(robot_pose[0], robot_pose[1]),
-                angle=math.radians(robot_pose[2]), bullet=True,
-                userData={'obstacle_local_centroid': local_obstacle_polygon.centroid},
-                active=False  # Start out as non-enabled (only enabled when used). Note: 'enabled' in v2.4.x
-            )
+    def check_action_with_ghost(self, key, entities_polygons, action, main_pose, debug_init=False, debug_after=False):
+        if key not in self.ghost_entities:
+            self.create_ghost_entity(key, entities_polygons, main_pose)
+
+        ghost = self.ghost_entities[key]
+        ghost.active = True
+        ghost.position, ghost.angle = (main_pose[0], main_pose[1]), math.radians(main_pose[2])
+        if isinstance(action, ba.Translation):
+            ghost.linearVelocity, ghost.angularVelocity = action.compute_translation_vector(main_pose), 0.
+        if isinstance(action, ba.Rotation):
+            ghost.linearVelocity, ghost.angularVelocity = (0., 0.), math.radians(action.angle)
+
+        if debug_init:
+            self.display_b2world()
+
+        # Have Box2D simulate the action
+        self.b2_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
+
+        if debug_after:
+            self.display_b2world()
+
+        ghost.active = False
+
+        collision_pairs = self.contact_listener.get_collision_pairs()
+
+        return collision_pairs
+
+    def check_teleportation_with_ghost(self, key, entities_polygons, main_pose, debug_init=False, debug_after=False):
+        if key not in self.ghost_entities:
+            self.create_ghost_entity(key, entities_polygons, main_pose)
+
+        ghost = self.ghost_entities[key]
+        ghost.active = True
+        ghost.position, ghost.angle = (main_pose[0], main_pose[1]), math.radians(main_pose[2])
+
+        if debug_init:
+            self.display_b2world()
+
+        # Have Box2D simulate the action
+        self.b2_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
+
+        if debug_after:
+            self.display_b2world()
+
+        ghost.active = False
+
+        collision_pairs = self.contact_listener.get_collision_pairs()
+
+        return collision_pairs
 
     def display_b2world(self):
         polygons_xy = [
@@ -88,7 +140,7 @@ class B2Sim:
                 local_geom=Polygon(fixture.shape.vertices),
                 local_cs_pose_in_global=(body.position[0], body.position[1], math.degrees(body.angle))
             ).exterior.xy
-            for body in self.box2d_world.bodies for fixture in body.fixtures
+            for body in self.b2_world.bodies for fixture in body.fixtures
             if body.active
         ]
         fig, ax = plt.subplots()
@@ -96,62 +148,3 @@ class B2Sim:
             ax.plot(*polygon_xy, color='black')
         ax.axis('equal')
         fig.show()
-
-    def check_action_collides(self, robot_pose, manip_pose_id, action, debug_init=False, debug_after=False):
-        # Setup velocities according to action
-        welded_body = self.manip_pose_id_to_welded_body[manip_pose_id]
-        welded_body.active = True
-        welded_body.position, welded_body.angle = (robot_pose[0], robot_pose[1]), math.radians(robot_pose[2])
-        if isinstance(action, ba.Translation):
-            welded_body.linearVelocity, welded_body.angularVelocity = action.compute_translation_vector(robot_pose), 0.
-        if isinstance(action, ba.Rotation):
-            welded_body.linearVelocity, welded_body.angularVelocity = (0., 0.), math.radians(action.angle)
-
-        if debug_init:
-            self.display_b2world()
-
-        # Have Box2D simulate the action
-        self.box2d_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
-
-        if debug_after:
-            self.display_b2world()
-
-        welded_body.active = False
-
-        collides = self.contact_listener.is_collision_detected()
-
-        return collides
-
-    def get_polygons_after_action(self, robot_pose, manip_pose_id, action):
-        # Setup velocities according to action
-        welded_body = self.manip_pose_id_to_welded_body[manip_pose_id]
-        welded_body.active = True
-        welded_body.position, welded_body.angle = (robot_pose[0], robot_pose[1]), math.radians(robot_pose[2])
-        if isinstance(action, ba.Translation):
-            welded_body.linearVelocity, welded_body.angularVelocity = action.compute_translation_vector(robot_pose), 0.
-        if isinstance(action, ba.Rotation):
-            welded_body.linearVelocity, welded_body.angularVelocity = (0., 0.), math.radians(action.angle)
-
-        self.box2d_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
-
-        welded_body.active = False
-
-        new_robot_pose = (
-            welded_body.position[0], welded_body.position[1],
-            utils.angle_to_360_interval(math.degrees(welded_body.angle))
-        )
-        new_robot_polygon = utils.set_polygon_pose(
-            self._robot_polygons[manip_pose_id], self._robot_poses[manip_pose_id], new_robot_pose)
-
-        new_obstacle_centroid_coords = utils.shapely_geom_to_global(
-            welded_body.userData['obstacle_local_centroid'], new_robot_pose
-        ).coords[0]
-        new_obstacle_pose = (
-            new_obstacle_centroid_coords[0], new_obstacle_centroid_coords[1],
-            utils.angle_to_360_interval(
-                self._obstacle_pose[2] + new_robot_pose[2] - self._robot_poses[manip_pose_id][2]
-            )
-        )
-        new_obstacle_polygon = utils.set_polygon_pose(self._obstacle_polygon, self._obstacle_pose, new_obstacle_pose)
-
-        return new_robot_polygon, new_obstacle_polygon
