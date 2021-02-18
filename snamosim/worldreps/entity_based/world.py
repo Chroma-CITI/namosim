@@ -46,12 +46,6 @@ class World:
         self.taboo_zones = taboo_zones if taboo_zones is not None else dict()
         self.goals = goals if goals is not None else dict()
 
-        self._probabilist_occupancy_grids = probabilist_occupancy_grids if probabilist_occupancy_grids is not None else dict()
-        self._binary_occupancy_grids = binary_occupancy_grids if binary_occupancy_grids is not None else dict()
-        self._binary_inflated_occupancy_grids = binary_inflated_occupancy_grids if binary_inflated_occupancy_grids is not None else dict()
-        self._social_topological_occupation_cost_grids = social_topological_occupation_cost_grids if social_topological_occupation_cost_grids is not None else dict()
-        self._connected_components_grids = connected_components_grids if connected_components_grids is not None else dict()
-
     # Constructor
     @classmethod
     def load_from_json(cls, abs_path_to_file):
@@ -301,7 +295,6 @@ class World:
         self.entities[new_entity.uid] = new_entity
 
     def remove_entity(self, entity_uid):
-        removed_entity = self.entities[entity_uid]
         if entity_uid in self.entities:
             del self.entities[entity_uid]
         else:
@@ -354,32 +347,12 @@ class World:
         if new_hash != self.dd.saved_hash:
             self.dd.saved_hash = new_hash
 
-    @staticmethod
-    def _has_not_ignored_entity_changed(entities_to_ignore, prev_entities, next_entities):
-        for entity_uid, entity in prev_entities.items():
-            if entity_uid not in entities_to_ignore:
-                return True
-        for entity_uid, entity in next_entities.items():
-            if entity_uid not in entities_to_ignore:
-                return True
-        return False
-
     # TO DEPRECATE
     def get_entity_uid_from_name(self, name):
         for entity_uid, entity in self.entities.items():
             if entity.name == name:
                 return entity_uid
         raise LookupError("Could not find an entity in this world with name : {name}.".format(name=name))
-
-    # TO DEPRECATE
-    def agg_grid_cost_for_entities(self, entities_uids, grid, aggregation_function=sum):
-        entities_cells = set()
-        for entity_uid in entities_uids:
-            entities_cells = entities_cells.union(self.entities[entity_uid].get_discrete_cells_set(
-                self.dd.inflation_radius, self.dd.res, self.dd.grid_pose, self.dd.d_width, self.dd.d_height))
-        RosPublisher().publish_social_cells(entities_cells, self.dd.res, self.dd.grid_pose)
-        cells_values = [grid[cell[0]][cell[1]] for cell in entities_cells]
-        return aggregation_function(cells_values)
 
     def get_current_geometries_ids_and_polygon(self):
         current_geometries_ids_and_polygons = {}

@@ -22,9 +22,7 @@ class Robot(Entity):
         self.force_pushes_only = force_pushes_only
         self.movable_whitelist = movable_whitelist
         self.type = 'robot'
-
         self.min_inflation_radius = self.compute_inflation_radius()
-        self.dist_between_robot_front_and_center = self.compute_dist_between_robot_front_and_center()
 
     def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5., ignore_collisions=False):
         Entity.rotate(self, angle, rot_center, other_entities, angular_res, ignore_collisions)
@@ -68,28 +66,6 @@ class Robot(Entity):
     def compute_inflation_radius(self):
         return utils.get_circumscribed_radius(self.polygon)
 
-    def compute_dist_between_robot_front_and_center(self):
-        """
-        Computes and returns the distance between the robot's center and its front-facing side. For that, we look for
-        the intersection between the ray starting from its center with the same direction as its yaw, and finally
-        compute the norm between this intersection and the center.
-        :return: the distance between the robot's center and its front-facing side.
-        :rtype: float
-        """
-        direction = np.array(utils.direction_from_yaw(self.pose[2]))
-        bounds = self.polygon.bounds
-        englobing_circle_diameter = sqrt((bounds[2] - bounds[0]) ** 2 + (bounds[3] - bounds[1]) ** 2)
-        center = np.array([self.pose[0], self.pose[1]])
-        direction_line = LineString([center,
-                                     center + direction * englobing_circle_diameter])
-
-        # DEBUG Lines to help you understand why the world hates you
-        # import matplotlib.pyplot as plt; plt.plot(*self.polygon.exterior.xy);
-        # plt.plot(*direction_line.xy); plt.axis('equal'); plt.show()
-
-        side_intersection = direction_line.intersection(self.polygon).coords[1]
-        return sqrt((side_intersection[0] - center[0]) ** 2 + (side_intersection[1] - center[1]) ** 2)
-
     def light_copy(self):
         return Robot(name=self.name,
                      polygon=copy.deepcopy(self.polygon),
@@ -100,9 +76,6 @@ class Robot(Entity):
                      force_pushes_only=self.force_pushes_only,
                      movable_whitelist=copy.copy(self.movable_whitelist),
                      uid=self.uid)
-
-    def get_type(self):
-        return "robot"
 
     def to_json(self):
         json_data = Entity.to_json(self)
