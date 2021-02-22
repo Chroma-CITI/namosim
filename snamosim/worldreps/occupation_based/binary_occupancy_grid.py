@@ -93,6 +93,9 @@ class BinaryOccupancyGrid:
                     return uid
             raise RuntimeError('It should be impossible for an occupied cell of the grid to not be in any cells set.')
 
+    def obstacles_uids_in_cell(self, cell):
+        return {uid for uid, cell_set in self.cells_sets.items() if cell in cell_set}
+
 
 class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
     def __init__(self, polygons, res, inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
