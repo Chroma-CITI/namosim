@@ -205,10 +205,9 @@ class Stilman2005Behavior(BaselineBehavior):
         else:
             # If last action was a success, check if plan is valid (at the fixed horizon if given)
             all_entities_poses = {uid: entity.pose for uid, entity in self._world.entities.items()}
-            all_entities_polygons = {uid: entity.polygon for uid, entity in self._world.entities.items()}
             try:
                 p_opt_is_valid = self._p_opt.is_valid(
-                    all_entities_poses, all_entities_polygons, self.b2_sim, self.inflated_grid_by_robot, check_horizon=self.check_horizon
+                    all_entities_poses, self.b2_sim, self.inflated_grid_by_robot, check_horizon=self.check_horizon
                 )
             except PlanValidityError as e:
                 p_opt_is_valid = False
@@ -1875,7 +1874,7 @@ class TransferPath:
     def is_empty(self):
         return self.robot_path.is_empty()
 
-    def is_valid(self, obstacle_pose, other_entities_polygons, b2_sim, check_horizon=None, check_start_pose=True):
+    def is_valid(self, obstacle_pose, b2_sim, check_horizon=None, check_start_pose=True):
         if check_start_pose and not self.robot_path.is_path_started():
             obstacle_at_start_pose = self.obstacle_path.is_start_pose(obstacle_pose)
         else:
@@ -1884,25 +1883,16 @@ class TransferPath:
         if not obstacle_at_start_pose:
             raise ObstacleNotAtStartPoseError(self.obstacle_uid)
 
-        other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
-
-        is_robot_path_valid = self.robot_path.is_valid(
-            other_entities_polygons, other_entities_aabb_tree, check_horizon
-        )
+        is_robot_path_valid = self.robot_path.is_valid(b2_sim, check_horizon)
 
         if self.robot_path.is_path_started():
-            is_obstacle_path_valid = (
-                self.obstacle_path.is_valid(other_entities_polygons, other_entities_aabb_tree, check_horizon)
-            )
+            is_obstacle_path_valid = (self.obstacle_path.is_valid(b2_sim, check_horizon))
         else:
             # If the robot path is not started, it means the transition from the last transit path end configuration to
             # this transfer path start configuration has not yet passed, therefore the obstacle's path should be checked
             # for horizon - 1 and not horizon.
             is_obstacle_path_valid = (
-                self.obstacle_path.is_valid(
-                    other_entities_polygons, other_entities_aabb_tree,
-                    check_horizon - 1 if check_horizon - 1 >= 0 else 0
-                )
+                self.obstacle_path.is_valid(b2_sim, check_horizon - 1 if check_horizon - 1 >= 0 else 0)
             )
 
         if is_robot_path_valid and is_obstacle_path_valid and obstacle_at_start_pose:
@@ -1962,7 +1952,7 @@ class TransitPath:
             else:
                 poses_to_check = []
         else:
-            poses_to_check = self.robot_path.poses
+            poses_to_check = [self.robot_path.poses[index] for index in self.robot_path.indexes]
 
         for pose in poses_to_check:
             cell = utils.real_to_grid(
@@ -2030,7 +2020,7 @@ class Plan:
         else:
             return True
 
-    def is_valid(self, all_entities_poses, all_entities_polygons, b2_sim, inflated_grid_by_robot, check_horizon=None):
+    def is_valid(self, all_entities_poses, b2_sim, inflated_grid_by_robot, check_horizon=None):
         if self.has_infinite_cost():
             raise HasInfiniteCostError()
         if not self.path_components:
@@ -2045,21 +2035,12 @@ class Plan:
                     }
 
                     if isinstance(path, TransitPath):
-                        other_entities_polygons = {
-                            uid: p for uid, p in all_entities_polygons.items()
-                            if uid != self.robot_uid and uid not in previously_moved_entities_uids
-                        }
-                        valid_path = path.is_valid(inflated_grid_by_robot, check_horizon=shared_horizon)
+                        path.is_valid(inflated_grid_by_robot, check_horizon=shared_horizon)
                     elif isinstance(path, TransferPath):
-                        other_entities_polygons = {
-                            uid: p for uid, p in all_entities_polygons.items()
-                            if uid != self.robot_uid and uid != path.obstacle_uid and uid not in previously_moved_entities_uids
-                        }
                         obstacle_pose = all_entities_poses[path.obstacle_uid]
                         check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
-                        valid_path = path.is_valid(
-                            obstacle_pose, other_entities_polygons, b2_sim,
-                            check_horizon=shared_horizon, check_start_pose=check_start_pose
+                        path.is_valid(
+                            obstacle_pose, b2_sim, check_horizon=shared_horizon, check_start_pose=check_start_pose
                         )
                     else:
                         raise TypeError('Expected TransitPath or TransferPath instance.')
@@ -2073,21 +2054,11 @@ class Plan:
                 }
 
                 if isinstance(path, TransitPath):
-                    other_entities_polygons = {
-                        uid: p for uid, p in all_entities_polygons.items()
-                        if uid != self.robot_uid and uid not in previously_moved_entities_uids
-                    }
-                    valid_path = path.is_valid(inflated_grid_by_robot)
+                    path.is_valid(inflated_grid_by_robot)
                 elif isinstance(path, TransferPath):
-                    other_entities_polygons = {
-                        uid: p for uid, p in all_entities_polygons.items()
-                        if uid != self.robot_uid or uid != path.obstacle_uid
-                    }
                     obstacle_pose = all_entities_poses[path.obstacle_uid]
                     check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
-                    valid_path = path.is_valid(
-                        obstacle_pose, other_entities_polygons, b2_sim, check_start_pose=check_start_pose
-                    )
+                    path.is_valid(obstacle_pose, b2_sim, check_start_pose=check_start_pose)
                 else:
                     raise TypeError('Expected TransitPath or TransferPath instance.')
 
