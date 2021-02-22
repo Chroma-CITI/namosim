@@ -918,7 +918,7 @@ class Stilman2005Behavior(BaselineBehavior):
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
             return self.manip_search_get_neighbors(
                 _current, _gscore, _close_set, _open_queue, _came_from,
-                start, inflated_grid_by_robot_min, inflated_grid_by_obstacle,
+                start, inflated_grid_by_robot_min, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
                 trans_mult, rot_mult, b2_sim
             )
 
@@ -960,7 +960,7 @@ class Stilman2005Behavior(BaselineBehavior):
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
             return self.manip_search_get_neighbors(
                 _current, _gscore, _close_set, _open_queue, _came_from,
-                start, inflated_grid_by_robot, inflated_grid_by_obstacle,
+                start, inflated_grid_by_robot, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
                 trans_mult, rot_mult, b2_sim
             )
 
@@ -1275,7 +1275,7 @@ class Stilman2005Behavior(BaselineBehavior):
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
     def manip_search_get_neighbors(self, current_configuration, gscore, close_set, open_queue, came_from,
-                                   start, inflated_grid_by_robot, inflated_grid_by_obstacle,
+                                   start, inflated_grid_by_robot, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
                                    trans_mult, rot_mult, b2_sim):
         """
         Creates list of neighbors that are not in close set, do not collide dynamically nor statically
@@ -1343,10 +1343,10 @@ class Stilman2005Behavior(BaselineBehavior):
             )
 
             is_no_longer_in_grid = not (
-                utils.is_in_matrix(
-                    robot_cell_in_grid, inflated_grid_by_robot.d_width, inflated_grid_by_robot.d_height)
-                and utils.is_in_matrix(
-                    obstacle_cell_in_grid, inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
+                    utils.is_in_matrix(
+                        robot_cell_in_grid, inflated_grid_by_robot.d_width, inflated_grid_by_robot.d_height)
+                    and utils.is_in_matrix(
+                obstacle_cell_in_grid, inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
             )
             if is_no_longer_in_grid:
                 continue
