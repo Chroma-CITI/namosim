@@ -2018,52 +2018,45 @@ class Plan:
             return True
 
     def is_valid(self, all_entities_poses, b2_sim, inflated_grid_by_robot, check_horizon=None):
+        # Basic checks
         if self.has_infinite_cost():
             raise HasInfiniteCostError()
         if not self.path_components:
             raise HasNoPathComponents()
 
-        if check_horizon:
-            shared_horizon = check_horizon
-            previously_moved_entities_uids = set()
-            for counter, path in enumerate(self.path_components):
-                if shared_horizon > 0:
-                    if isinstance(path, TransitPath):
-                        path.is_valid(inflated_grid_by_robot, check_horizon=shared_horizon)
-                    elif isinstance(path, TransferPath):
-                        previously_moved_entities_uids.add(path.obstacle_uid)
-                        inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
-                        b2_sim.deactivate_entities([path.obstacle_uid])
-
-                        obstacle_pose = all_entities_poses[path.obstacle_uid]
-                        check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
-                        path.is_valid(
-                            obstacle_pose, b2_sim, check_horizon=shared_horizon, check_start_pose=check_start_pose
-                        )
-                    else:
-                        raise TypeError('Expected TransitPath or TransferPath instance.')
-                    shared_horizon = 0 if path.get_length() >= shared_horizon else shared_horizon - path.get_length()
-                else:
-                    inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
-                    b2_sim.activate_entities(previously_moved_entities_uids)
-        else:
-            previously_moved_entities_uids = set()
-            for counter, path in enumerate(self.path_components):
+        # Check validity of each component
+        shared_horizon = check_horizon
+        previously_moved_entities_uids = set()
+        for counter, path in enumerate(self.path_components):
+            if shared_horizon is None or shared_horizon > 0:
                 if isinstance(path, TransitPath):
-                    path.is_valid(inflated_grid_by_robot)
+                    path.is_valid(inflated_grid_by_robot, check_horizon=shared_horizon)
                 elif isinstance(path, TransferPath):
+                    # If the previously checked path components are valid, we assume it leaves any manipulated
+                    # obstacles in the right place so we don't check again:
+                    # - We simply deactivate collisions with them from the world representation
+                    # - or if another path component needs to move them (check_start_pose)
                     previously_moved_entities_uids.add(path.obstacle_uid)
                     inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
                     b2_sim.deactivate_entities([path.obstacle_uid])
+                    check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
 
                     obstacle_pose = all_entities_poses[path.obstacle_uid]
-                    check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
-                    path.is_valid(obstacle_pose, b2_sim, check_start_pose=check_start_pose)
+                    path.is_valid(
+                        obstacle_pose, b2_sim, check_horizon=shared_horizon, check_start_pose=check_start_pose
+                    )
                 else:
                     raise TypeError('Expected TransitPath or TransferPath instance.')
+                
+                if shared_horizon:
+                    shared_horizon = 0 if path.get_length() >= shared_horizon else shared_horizon - path.get_length()
+            else:
+                if shared_horizon <= 0:
+                    break
 
-            inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
-            b2_sim.activate_entities(previously_moved_entities_uids)
+        # Reactivate entities that had been deactivated during checks
+        inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
+        b2_sim.activate_entities(previously_moved_entities_uids)
 
         return True
 
