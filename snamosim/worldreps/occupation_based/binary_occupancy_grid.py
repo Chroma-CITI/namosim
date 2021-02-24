@@ -45,6 +45,8 @@ class BinaryOccupancyGrid:
         self.cells_sets = dict()
         self.grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
 
+        self.deactivated_entities_cells_sets = {}
+
         self.update(new_polygons=polygons, fill=fill)
 
     def update(self, new_polygons=None, removed_polygons=None, fill=True):
@@ -73,6 +75,22 @@ class BinaryOccupancyGrid:
                 del self.cells_sets[uid]
                 for cell in prev_cells:
                     self.grid[cell[0]][cell[1]] -= 1
+
+    def deactivate_entities(self, uids):
+        for uid in uids:
+            if uid not in self.deactivated_entities_cells_sets:
+                self.deactivated_entities_cells_sets[uid] = self.cells_sets[uid]
+                for cell in self.cells_sets[uid]:
+                    self.grid[cell[0]][cell[1]] -= 1
+                del self.cells_sets[uid]
+
+    def activate_entities(self, uids):
+        for uid in uids:
+            if uid in self.deactivated_entities_cells_sets:
+                self.cells_sets[uid] = self.deactivated_entities_cells_sets[uid]
+                del self.deactivated_entities_cells_sets[uid]
+                for cell in self.cells_sets[uid]:
+                    self.grid[cell[0]][cell[1]] += 1
 
     def only_obstacle_uid_in_cell(self, cell):
         """

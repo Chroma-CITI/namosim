@@ -175,6 +175,16 @@ class B2Sim:
 
         return collision_pairs
 
+    def deactivate_entities(self, uids):
+        for uid in uids:
+            if uid in self.b2_entities:
+                self.b2_entities[uid].active = False
+
+    def activate_entities(self, uids):
+        for uid in uids:
+            if uid in self.b2_entities:
+                self.b2_entities[uid].active = True
+
     def display_b2world(self):
         polygons_xy = [
             utils.shapely_geom_to_global(
