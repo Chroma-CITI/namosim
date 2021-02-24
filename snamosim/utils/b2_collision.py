@@ -110,32 +110,47 @@ class B2Sim:
             active=False  # Start out as non-active (only active when used). Note: 'active' -> 'enabled' in v2.4.x
         )
 
-    def check_action_with_ghost(self, key, entities_polygons, action, main_pose, debug_init=False, debug_after=False):
+    def check_actions_with_ghost(self, key, entities_polygons, actions, main_pose, debug_init=False, debug_after=False):
+        # If the ghost body does not already exist, create it
         if key not in self.ghost_entities:
             self.create_ghost_entity(key, entities_polygons, main_pose)
-
         ghost = self.ghost_entities[key]
+
+        # Activate ghost and deactivate bodies associated with the entities we made a ghost for
         ghost.active = True
+        for uid in entities_polygons.keys():
+            self.b2_entities[uid].active = False
+
+        # Set the initial position of the ghost before executing the action sequence
         ghost.position, ghost.angle = (main_pose[0], main_pose[1]), math.radians(main_pose[2])
-        if isinstance(action, ba.Translation):
-            ghost.linearVelocity, ghost.angularVelocity = action.compute_translation_vector(main_pose), 0.
-        if isinstance(action, ba.Rotation):
-            ghost.linearVelocity, ghost.angularVelocity = (0., 0.), math.radians(action.angle)
 
-        if debug_init:
-            self.display_b2world()
+        #  Try to apply the action sequence, exit as soon as we encounter the first collision
+        for action in actions:
+            if isinstance(action, ba.Translation):
+                ghost.linearVelocity, ghost.angularVelocity = action.compute_translation_vector(main_pose), 0.
+            if isinstance(action, ba.Rotation):
+                ghost.linearVelocity, ghost.angularVelocity = (0., 0.), math.radians(action.angle)
 
-        # Have Box2D simulate the action
-        self.b2_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
+            if debug_init:
+                self.display_b2world()
 
-        if debug_after:
-            self.display_b2world()
+            # Have Box2D simulate the action
+            self.b2_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
 
+            if debug_after:
+                self.display_b2world()
+
+            collision_pairs = self.contact_listener.get_collision_pairs()
+
+            if collision_pairs:
+                return collision_pairs
+
+        # Deactivate ghost and reactivate the original entities
         ghost.active = False
+        for uid in entities_polygons.keys():
+            self.b2_entities[uid].active = True
 
-        collision_pairs = self.contact_listener.get_collision_pairs()
-
-        return collision_pairs
+        return []
 
     def check_teleportation_with_ghost(self, key, entities_polygons, main_pose, debug_init=False, debug_after=False):
         if key not in self.ghost_entities:
