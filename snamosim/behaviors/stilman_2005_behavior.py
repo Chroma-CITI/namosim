@@ -1192,12 +1192,12 @@ class Stilman2005Behavior(BaselineBehavior):
             return False, new_cell_in_grid
 
         # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-        robot_dynamically_collides = b2_sim.check_actions_with_ghost(
+        collision_pairs = b2_sim.check_actions_with_ghost(
             key=(robot_uid,), entities_polygons={robot_uid: robot_polygon},
             actions=[release_translation], main_pose=robot_pose
         )
 
-        return not robot_dynamically_collides, new_cell_in_grid
+        return not collision_pairs, new_cell_in_grid
 
     def get_robot_walk_back_to_next_transit_configuration(self, robot_pose, robot_polygon, robot_max_inflation_radius,
                                                           res, grid_pose, obstacle_uid, trans_mult, rot_mult):
@@ -1374,7 +1374,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 continue
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            dyn_collides = b2_sim.check_actions_with_ghost(
+            collision_pairs = b2_sim.check_actions_with_ghost(
                 key=(robot_uid, obstacle_uid, current_configuration.manip_pose_id),
                 entities_polygons={
                     robot_uid: current_configuration.robot.polygon,
@@ -1382,8 +1382,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 },
                 actions=[action], main_pose=current_configuration.robot.floating_point_pose
             )
-
-            if dyn_collides:
+            if collision_pairs:
                 continue
 
             # TODO: REMOVE THIS, IT SHOULD NOT BE NECESSARY
@@ -1839,61 +1838,35 @@ class TransferPath:
     def is_empty(self):
         return self.robot_path.is_empty()
 
-    def is_valid(self, obstacle_pose, b2_sim, check_horizon=None, check_start_pose=True):
+    def is_valid(self, obstacle_pose, robot_uid, b2_sim, check_horizon=None, check_start_pose=True):
+        # Check that the obstacle that is to transferred is actually in its initial place
+        # (only relevant if this transfer path has not already be started)
+        if check_start_pose and not self.robot_path.is_path_started():
+            obstacle_at_start_pose = self.obstacle_path.is_start_pose(obstacle_pose)
+            if not obstacle_at_start_pose:
+                raise ObstacleNotAtStartPoseError(self.obstacle_uid)
 
-
-
-        # if check_start_pose and not self.robot_path.is_path_started():
-        #     obstacle_at_start_pose = self.obstacle_path.is_start_pose(obstacle_pose)
-        # else:
-        #     obstacle_at_start_pose = True
-        #
-        # if not obstacle_at_start_pose:
-        #     raise ObstacleNotAtStartPoseError(self.obstacle_uid)
-
-
-
-        # is_robot_path_valid = self.robot_path.is_valid(b2_sim, check_horizon)
-        #
-        # if self.robot_path.is_path_started():
-        #     is_obstacle_path_valid = (self.obstacle_path.is_valid(b2_sim, check_horizon))
-        # else:
-        #     # If the robot path is not started, it means the transition from the last transit path end configuration to
-        #     # this transfer path start configuration has not yet passed, therefore the obstacle's path should be checked
-        #     # for horizon - 1 and not horizon.
-        #     is_obstacle_path_valid = (
-        #         self.obstacle_path.is_valid(b2_sim, check_horizon - 1 if check_horizon - 1 >= 0 else 0)
-        #     )
-
-        # def path_is_valid(self, b2_sim, check_horizon=None):
-        #     if self.is_empty():
-        #         return True
-        #
-        #     if check_horizon is None:
-        #         actions_to_check = [self.actions[index] for index in self.indexes]
-        #     elif check_horizon == 0:
-        #         return True
-        #     else:
-        #         actions_to_check = [self.actions[index] for index in self.indexes[:check_horizon]]
-        #
-        #     path_dynamically_collides = b2_sim.check_actions_with_ghost(
-        #         key=(entity_uid,),
-        #         entities_polygons={entity_uid: current_configuration.robot.polygon},
-        #         actions=actions_to_check, main_pose=current_configuration.robot.floating_point_pose
-        #     )
-        #     if path_dynamically_collides:
-        #         collision_uids = []
-        #         try:
-        #             collision_uids = [data["colliding_polygon_uid"] for _, data in collision_data.items() if
-        #                               "colliding_polygon_uid" in data]
-        #         except Exception:
-        #             pass
-        #         raise DynamicCollisionError(collision_uids)
-        #
-        #     return True
-
-        if is_robot_path_valid and is_obstacle_path_valid and obstacle_at_start_pose:
+        # If the path is fully executed, it's valid
+        if self.robot_path.is_empty() and self.obstacle_path.is_empty():
             return True
+
+        # Check potential collisions caused by actions within horizon if one is specified
+        if check_horizon is None:
+            actions_to_check = [self.robot_path.actions[index] for index in self.robot_path.indexes]
+        elif check_horizon == 0:
+            return True
+        else:
+            actions_to_check = [self.robot_path.actions[index] for index in self.robot_path.indexes[:check_horizon]]
+
+        collision_pairs = b2_sim.check_actions_with_ghost(
+            key=(robot_uid, self.obstacle_uid, self.manip_pose_id),
+            entities_polygons={robot_uid: robot_polygon, self.obstacle_uid: obstacle_polygon},
+            actions=actions_to_check, main_pose=robot_pose
+        )
+        if collision_pairs:
+            raise DynamicCollisionError(collision_pairs)
+        
+        return True
 
     def pop_next_step(self):
         if self.robot_path.is_path_started():
@@ -2043,11 +2016,11 @@ class Plan:
 
                     obstacle_pose = all_entities_poses[path.obstacle_uid]
                     path.is_valid(
-                        obstacle_pose, b2_sim, check_horizon=shared_horizon, check_start_pose=check_start_pose
+                        obstacle_pose, self.robot_uid, b2_sim, shared_horizon, check_start_pose
                     )
                 else:
                     raise TypeError('Expected TransitPath or TransferPath instance.')
-                
+
                 if shared_horizon:
                     shared_horizon = 0 if path.get_length() >= shared_horizon else shared_horizon - path.get_length()
             else:
