@@ -39,7 +39,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.transfer_coefficient = 2.  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
         self.angular_res = parameters["collision_check_angular_res"]
-        self.rotation_unit_angle = 60. #parameters["robot_rotation_unit_angle"]
+        self.rotation_unit_angle = 60.  # parameters["robot_rotation_unit_angle"]
         self.translation_unit_length = parameters["robot_translation_unit_length"]
         self.forbid_rotations = parameters["forbid_rotations"]
         self.translation_factor = self.translation_unit_cost / self.translation_unit_length
@@ -95,8 +95,10 @@ class Stilman2005Behavior(BaselineBehavior):
         # Initialize static obstacles occupation grid, since it is not supposed to change
         static_obs_polygons = {
             uid: entity.polygon for uid, entity in self._world.entities.items()
-            if (isinstance(entity, Robot) and entity.uid != self._robot_uid)
-               or (isinstance(entity, Obstacle) and self._robot.deduce_movability(entity.type) == "unmovable")
+            if (
+                (isinstance(entity, Robot) and entity.uid != self._robot_uid)
+                or (isinstance(entity, Obstacle) and self._robot.deduce_movability(entity.type) == "unmovable")
+            )
         }
         robot_max_inflation_radius = utils.get_circumscribed_radius(self._robot.polygon)
         self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
@@ -115,7 +117,9 @@ class Stilman2005Behavior(BaselineBehavior):
             self._rp.publish_grid_map(self._social_costmap, self._world.dd.res, ns=self._robot_name)
 
         # Initialize robot max radius inflated costmap used to check for transit path validity
-        other_entities_polygons = {uid: e.polygon for uid, e in self._world.entities.items() if e.uid != self._robot.uid}
+        other_entities_polygons = {
+            uid: e.polygon for uid, e in self._world.entities.items() if e.uid != self._robot.uid
+        }
         self.inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
             other_entities_polygons, self._world.dd.res, robot_max_inflation_radius, neighborhood=self.neighborhood,
             params=self.static_obs_inf_grid.params
@@ -215,18 +219,18 @@ class Stilman2005Behavior(BaselineBehavior):
                     colliding_entities = [self._world.entities[uid] for uid in e.colliding_entities]
                     all_colliding_entities_are_robots = all([isinstance(e, Robot) for e in colliding_entities])
                     if all_colliding_entities_are_robots and self.wait_steps == -1:
-                            self.wait_steps = random.randint(self.min_nb_steps_to_wait, self.max_nb_steps_to_wait)
-                            self.wait_steps -= 1
-                            self.simulation_log.append(utils.BasicLog(
-                                "Plan of agent '{}' has been invalidated because collides with other agent(s) {}.".format(
-                                    self._robot.name, str([e.name for e in colliding_entities])),
-                                self._step_count)
-                            )
-                            self.simulation_log.append(utils.BasicLog(
-                                "Agent '{}' starts waiting for {} steps.".format(self._robot.name, self.wait_steps),
-                                self._step_count)
-                            )
-                            return ba.Wait()
+                        self.wait_steps = random.randint(self.min_nb_steps_to_wait, self.max_nb_steps_to_wait)
+                        self.wait_steps -= 1
+                        self.simulation_log.append(utils.BasicLog(
+                            "Plan of agent '{}' has been invalidated because collides with other agent(s) {}.".format(
+                                self._robot.name, str([e.name for e in colliding_entities])),
+                            self._step_count)
+                        )
+                        self.simulation_log.append(utils.BasicLog(
+                            "Agent '{}' starts waiting for {} steps.".format(self._robot.name, self.wait_steps),
+                            self._step_count)
+                        )
+                        return ba.Wait()
 
             if not p_opt_is_valid:
                 # If the plan is not valid, try replanning
@@ -281,7 +285,8 @@ class Stilman2005Behavior(BaselineBehavior):
                     return gf_action
 
             self._p_opt = self.select_connect(
-                self._world, self.static_obs_inf_grid, self.inflated_grid_by_robot, self.b2_sim, self._q_goal, neighborhood=self.neighborhood
+                self._world, self.static_obs_inf_grid, self.inflated_grid_by_robot, self.b2_sim, self._q_goal,
+                neighborhood=self.neighborhood
             )
 
         if not self._p_opt:
@@ -306,13 +311,13 @@ class Stilman2005Behavior(BaselineBehavior):
         """
         High Level Planner _select_connect (SC).
         It makes use of _rch and _manip_search in a greedy heuristic search with backtracking.
-        It backtracks locally when the object selected by _rch cannot be moved to merge the selected c_1 \in c_free.
+        It backtracks locally when the object selected by _rch cannot be moved to merge the selected c_1 in c_free.
         It backtracks globally when all the paths identified by _rch from c_1 are unsuccessful.
         SC calls _find_path to determine a transit path from r_t to a contact point, r_t_plus_1 . The existence of the
         path is guaranteed by the choice of contacts in Manip-Search.
-        :param w_t: state of the world at time t
-        :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
-        :return: None to backtrack, current partial plan otherwise.
+        # :param w_t: state of the world at time t
+        # :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
+        # :return: None to backtrack, current partial plan otherwise.
         """
         if nb_self_calls > 20 or nb_rch_calls > 20:
             self.simulation_log.append(utils.BasicLog(
@@ -371,8 +376,10 @@ class Stilman2005Behavior(BaselineBehavior):
                     ),
                     self._step_count)
                 )
-                future_plan = self.select_connect(w_t_plus_2, static_obs_inf_grid, inflated_grid_by_robot, self.b2_sim, r_f, ccs_data, neighborhood,
-                                                  nb_self_calls=nb_self_calls+1, nb_rch_calls=nb_rch_calls)
+                future_plan = self.select_connect(
+                    w_t_plus_2, static_obs_inf_grid, inflated_grid_by_robot, self.b2_sim, r_f, ccs_data, neighborhood,
+                    nb_self_calls=nb_self_calls+1, nb_rch_calls=nb_rch_calls
+                )
                 if future_plan is not None:
                     tho_n = self.find_path(r_t, tho_m.robot_path.poses[0], inflated_grid_by_robot, robot_at_t.polygon)
                     return Plan([tho_n, tho_m], self._q_goal, self._robot_uid).append(future_plan)
@@ -406,26 +413,6 @@ class Stilman2005Behavior(BaselineBehavior):
         in the article and a priori not helpful. Not only that, it is not properly defined, and actually does not
         algorithmically make sense, because the C1 component gets merged with the robot accessible space as the robot
         moves obstacles around.
-        :param current:
-        :type current:
-        :param gscore:
-        :type gscore:
-        :param close_set:
-        :type close_set:
-        :param static_obs_grid:
-        :type static_obs_grid:
-        :param connected_components_grid:
-        :type connected_components_grid:
-        :param inflated_robot_grid:
-        :type inflated_robot_grid:
-        :param avoid_list:
-        :type avoid_list:
-        :param init_robot_component_uid:
-        :type init_robot_component_uid:
-        :param neighborhood:
-        :type neighborhood:
-        :return:
-        :rtype:
         """
         neighbors, tentative_gscores = [], []
         current_gscore = gscore[current]
@@ -556,6 +543,7 @@ class Stilman2005Behavior(BaselineBehavior):
             return translation_cost
 
         traversed_obstacles_ids = utils.OrderedSet()
+
         def rch_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
             return self.rch_get_neighbors(
                 current, gscore, close_set, open_queue, came_from,
@@ -579,7 +567,8 @@ class Stilman2005Behavior(BaselineBehavior):
         else:
             return 0, 0
 
-    def manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim, check_new_local_opening_before_global=True):
+    def manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim,
+                     check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
@@ -618,13 +607,10 @@ class Stilman2005Behavior(BaselineBehavior):
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=inflated_grid_by_robot_min.params
         )
 
-        robot_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], res, inflated_grid_by_robot_min.grid_pose)
         goal_pose, goal_cell = r_f, utils.real_to_grid(r_f[0], r_f[1], res, inflated_grid_by_robot_min.grid_pose)
 
         trans_mult = 1. / res * 10.
         rot_mult = 1.
-
-        static_collision_cache = {robot_uid: {}, obstacle_uid: {}}
 
         # Get accessible sampled navigation points around obstacle and paths to them
         transit_end_robot_poses, transfer_start_robot_poses = self.get_transit_end_and_transfer_start_poses(
@@ -662,25 +648,12 @@ class Stilman2005Behavior(BaselineBehavior):
             for manip_pose_id, (manip_pose, nav_pose) in enumerate(transfer_start_to_transit_end_robot_pose.items())
         }
 
-        other_entities_poses = {
-            uid: entity.pose
-            for uid, entity in w_t_plus_2.entities.items() if uid != robot_uid and uid != obstacle_uid
-        }
-        robot_polygons = {c.manip_pose_id: c.robot.polygon for c in transfer_start_configurations.keys()}
-        robot_poses = {
-            c.manip_pose_id: c.robot.floating_point_pose for c in transfer_start_configurations.keys()
-        }
-        b2_sim = b2_collision.B2Sim(
-            other_entities_polygons, other_entities_poses, obstacle_polygon, obstacle_pose,
-            robot_polygons, robot_poses, robot_uid, obstacle_uid
-        )
-
         # Use Dijkstra algorithm to compute a transfer path that allows for an opening to be created
         path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.dijkstra_for_manip_search(
             transfer_start_configurations, robot_uid, robot_name, obstacle_uid, obstacle_polygon,
             other_entities_polygons, other_entities_aabb_tree,
             inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
-            trans_mult, rot_mult, static_collision_cache, b2_sim, check_new_local_opening_before_global,
+            trans_mult, rot_mult, b2_sim, check_new_local_opening_before_global,
             goal_pose, goal_cell
         )
         if path_found:
@@ -718,7 +691,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return w_t_plus_2, tho_m
 
-    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim, check_new_local_opening_before_global=True):
+    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim,
+                             check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
@@ -757,13 +731,10 @@ class Stilman2005Behavior(BaselineBehavior):
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=inflated_grid_by_robot_min.params
         )
 
-        robot_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], res, inflated_grid_by_robot_min.grid_pose)
         goal_pose, goal_cell = r_f, utils.real_to_grid(r_f[0], r_f[1], res, inflated_grid_by_robot_min.grid_pose)
 
         trans_mult = 1. / res * 10.
         rot_mult = 1.
-
-        static_collision_cache = {robot_uid: {}, obstacle_uid: {}}
 
         # Get accessible sampled navigation points around obstacle and paths to them
         transit_end_robot_poses, transfer_start_robot_poses = self.get_transit_end_and_transfer_start_poses(
@@ -827,9 +798,10 @@ class Stilman2005Behavior(BaselineBehavior):
             # 2. If a best obstacle transfer end configuration has been found, use A Star to find a path toward it
             path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.a_star_for_manip_search(
                 transfer_start_configurations, best_transfer_end_configuration,
-                robot_uid, robot_cell, robot_name, obstacle_uid, obstacle_polygon, other_entities_polygons, other_entities_aabb_tree,
+                robot_uid, robot_name, obstacle_uid, obstacle_polygon,
+                other_entities_polygons, other_entities_aabb_tree,
                 inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
-                trans_mult, rot_mult, static_collision_cache,
+                trans_mult, rot_mult,
                 sorted_cell_to_combined_cost, bound_quantile, b2_sim, check_new_local_opening_before_global,
                 goal_pose, goal_cell
             )
@@ -861,8 +833,8 @@ class Stilman2005Behavior(BaselineBehavior):
                     robot_pose, robot_polygon, robot_name, robot_uid,
                     obstacle_uid, obstacle_pose, obstacle_polygon,
                     goal_pose, goal_cell, other_entities_polygons, other_entities_aabb_tree, b2_sim,
-                    inflated_grid_by_robot_max, cells_sorted_by_combined_cost, c_1_cells_set, transfer_start_robot_poses,
-                    trans_mult, rot_mult, gscore=gscore, close_set=close_set,
+                    inflated_grid_by_robot_max, cells_sorted_by_combined_cost, c_1_cells_set,
+                    transfer_start_robot_poses, trans_mult, rot_mult, gscore=gscore, close_set=close_set,
                     check_new_local_opening_before_global=check_new_local_opening_before_global
                 )
                 if best_transfer_end_configuration is not None:
@@ -908,7 +880,7 @@ class Stilman2005Behavior(BaselineBehavior):
             self, start, robot_uid, robot_name, obstacle_uid, obstacle_polygon,
             other_entities_polygons, other_entities_aabb_tree,
             inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
-            trans_mult, rot_mult, static_collision_cache, b2_sim, check_new_local_opening_before_global,
+            trans_mult, rot_mult, b2_sim, check_new_local_opening_before_global,
             overall_goal_pose, overall_goal_cell):
 
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
@@ -944,12 +916,11 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
     def a_star_for_manip_search(self, start, goal,
-                                robot_uid, robot_cell, robot_name, obstacle_uid, obstacle_polygon,
+                                robot_uid, robot_name, obstacle_uid, obstacle_polygon,
                                 other_entities_polygons, other_entities_aabb_tree,
                                 inflated_grid_by_robot, inflated_grid_by_robot_max,
                                 inflated_grid_by_obstacle, c_1_cells_set,
                                 trans_mult, rot_mult,
-                                static_collision_cache,
                                 sorted_cell_to_combined_cost, bound_quantile, b2_sim,
                                 check_new_local_opening_before_global, overall_goal_pose, overall_goal_cell):
 
@@ -962,9 +933,6 @@ class Stilman2005Behavior(BaselineBehavior):
 
         def heuristic(_neighbor, _goal):
             return self.h(_neighbor.robot.floating_point_pose, _goal.robot.floating_point_pose)
-
-        def exit_condition(_current, _goal):
-            return _current.obstacle.cell_in_grid == _goal.obstacle.cell_in_grid
 
         def flexible_exit_condition(_current, _goal):
             goal_cell_reached = _current.obstacle.cell_in_grid == _goal.obstacle.cell_in_grid
@@ -1820,7 +1788,7 @@ class TransferPath:
             polygons=[configuration.obstacle.polygon for configuration in transfer_configurations],
             actions=[configuration.action for configuration in configurations_min_start]
         )
-        manip_pose_id = prev_transit_end_configuration.manip_pose_id
+        manip_pose_id = transfer_configurations[0].manip_pose_id
         return cls(robot_path, obstacle_path, obstacle_uid, manip_pose_id, phys_cost, social_cost, weight)
 
     def has_infinite_cost(self):
