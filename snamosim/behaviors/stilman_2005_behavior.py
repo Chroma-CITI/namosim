@@ -1058,20 +1058,11 @@ class Stilman2005Behavior(BaselineBehavior):
                         list(current_cell) + [rot], inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose
                     )
 
-                    # Check for static collisions of the obstacle at this pose
-                    obstacle_transfer_end_poly = utils.set_polygon_pose(
-                        obstacle_polygon, obstacle_pose, obstacle_pose_at_transfer_end
-                    )
                     # If the obstacle collides at this pose, don't consider checking further
-                    obstacle_transfer_end_aabb = collision.polygon_to_aabb(obstacle_transfer_end_poly)
-                    obstacle_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
-                        obstacle_transfer_end_aabb)
-                    obstacle_collides = False
-                    for uid in obstacle_potential_collision_polygons_uids:
-                        if obstacle_transfer_end_poly.intersects(other_entities_polygons[uid]):
-                            obstacle_collides = True
-                            break
-                    if obstacle_collides:
+                    obstacle_collision_pairs = b2_sim.check_teleportation_with_ghost(
+                        obstacle_uid, {obstacle_uid: obstacle_polygon}, obstacle_pose_at_transfer_end
+                    )
+                    if obstacle_collision_pairs:
                         continue
 
                     for init_robot_manip_pose in init_robot_manip_poses:
@@ -1082,27 +1073,25 @@ class Stilman2005Behavior(BaselineBehavior):
 
                         # For this (robot, obstacle) configuration, check if:
                         #   1. there are no static collisions for robot too, ...
-                        robot_transfer_end_poly = utils.set_polygon_pose(
-                            robot_polygon, robot_pose, robot_pose_at_transfer_end
+                        robot_collision_pairs = b2_sim.check_teleportation_with_ghost(
+                            robot_uid, {robot_uid: robot_polygon}, robot_pose_at_transfer_end
                         )
-                        robot_transfer_end_aabb = collision.polygon_to_aabb(robot_transfer_end_poly)
-                        robot_potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
-                            robot_transfer_end_aabb)
-                        robot_collides = False
-                        for uid in robot_potential_collision_polygons_uids:
-                            if robot_transfer_end_poly.intersects(other_entities_polygons[uid]):
-                                robot_collides = True
-                                break
-                        if robot_collides:
+                        if robot_collision_pairs:
                             continue
 
                         #   2. ... the configuration allows sufficient space for the robot to release the object, ...
+                        robot_transfer_end_poly = utils.set_polygon_pose(
+                            robot_polygon, robot_pose, robot_pose_at_transfer_end
+                        )
                         can_walk_back, robot_cell_after = self.can_robot_walk_back_to_next_transit_pose(
                             inflated_grid_by_robot_max, robot_pose_at_transfer_end,
                             robot_transfer_end_poly, robot_uid, b2_sim,
                         )
                         if can_walk_back:
                             #   3. ... and creates a global opening to c1
+                            obstacle_transfer_end_poly = utils.set_polygon_pose(
+                                obstacle_polygon, obstacle_pose, obstacle_pose_at_transfer_end
+                            )
                             has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
                                 check_new_local_opening_before_global,
                                 robot_name, robot_cell_after,
@@ -1161,7 +1150,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # Finally, we check dynamic collisions (between init configuration and after-action configuration)
         collision_pairs = b2_sim.check_actions_with_ghost(
-            key=(robot_uid,), entities_polygons={robot_uid: robot_polygon},
+            key=robot_uid, entities_polygons={robot_uid: robot_polygon},
             actions=[release_translation], main_pose=robot_pose
         )
 
