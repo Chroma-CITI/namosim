@@ -153,13 +153,20 @@ class B2Sim:
         return []
 
     def check_teleportation_with_ghost(self, key, entities_polygons, main_pose, debug_init=False, debug_after=False):
+        # If the ghost body does not already exist, create it
         if key not in self.ghost_entities:
             self.create_ghost_entity(key, entities_polygons, main_pose)
-
         ghost = self.ghost_entities[key]
+
+        # Activate ghost and deactivate bodies associated with the entities we made a ghost for
         ghost.active = True
+        for uid in entities_polygons.keys():
+            self.b2_entities[uid].active = False
+
+        # Set the initial position of the ghost before executing the action sequence
         ghost.position, ghost.angle = (main_pose[0], main_pose[1]), math.radians(main_pose[2])
 
+        #  Apply teleportation
         if debug_init:
             self.display_b2world()
 
@@ -169,9 +176,12 @@ class B2Sim:
         if debug_after:
             self.display_b2world()
 
-        ghost.active = False
-
         collision_pairs = self.contact_listener.get_collision_pairs()
+
+        # Deactivate ghost and reactivate the original entities
+        ghost.active = False
+        for uid in entities_polygons.keys():
+            self.b2_entities[uid].active = True
 
         return collision_pairs
 
