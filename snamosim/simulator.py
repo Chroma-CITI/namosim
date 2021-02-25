@@ -30,6 +30,7 @@ from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInfl
 class Simulator:
     def __init__(self, simulation_file_path, goals=None, timestring=None):
         self.simulation_log = utils.CustomLogger(printout=True)
+        self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
 
         # Import YAML world configuration file
         if timestring:
@@ -47,19 +48,23 @@ class Simulator:
         # Save general simulation parameters
         self.provide_walls = self.config["provide_walls"]
         self.display_sim_knowledge_only_once = self.config["display_sim_knowledge_only_once"]
-        self.reset_after_first_goal = False if not "reset_after_first_goal" in self.config else self.config["reset_after_first_goal"]
+        self.reset_after_first_goal = (
+            False if "reset_after_first_goal" not in self.config else self.config["reset_after_first_goal"]
+        )
         self.human_inflation_radius = 0.55/2.  # [m]
-        simulation_file_parent_dirname = os.path.basename(
+        sim_file_parent_dirname = os.path.basename(
             os.path.normpath(os.path.abspath(os.path.join(simulation_file_abs_path, '..'))))
         self.simulation_filename = os.path.splitext(os.path.basename(simulation_file_abs_path))[0]
 
-        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', simulation_file_parent_dirname, self.simulation_filename)
+        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', sim_file_parent_dirname, self.simulation_filename)
         abs_path_to_main_sim_logs_dir = os.path.join(os.path.dirname(__file__), rel_path_to_main_sim_logs_dir)
         self.abs_path_to_logs_dir = os.path.join(abs_path_to_main_sim_logs_dir, self.sim_start_timestring + "/")
         os.makedirs(self.abs_path_to_logs_dir)
         os.makedirs(self.abs_path_to_logs_dir + "simulation/")
 
-        self.simulation_log.append(utils.BasicLog("Created log folders at:{}".format(str(self.abs_path_to_logs_dir)), 0))
+        self.simulation_log.append(
+            utils.BasicLog("Created log folders at:{}".format(str(self.abs_path_to_logs_dir)), 0)
+        )
 
         # Reinitialize rviz display
 
@@ -86,10 +91,15 @@ class Simulator:
         self.goals_geometries = {goal.name: goal.pose for goal in self.init_ref_world.goals.values()}
         if goals:
             self.saved_goals = goals
-            self.agent_uid_to_goals = {self.ref_world.get_entity_uid_from_name(agent_name): gls for agent_name, gls in goals.items()}
+            self.agent_uid_to_goals = {
+                self.ref_world.get_entity_uid_from_name(agent_name): gls for agent_name, gls in goals.items()
+            }
         else:
             self.agent_uid_to_goals = self.initialize_agents_goals(self.goals_geometries)
-            self.saved_goals = {self.ref_world.entities[agent_uid].name: copy.deepcopy(goals) for agent_uid, goals in self.agent_uid_to_goals.items()}
+            self.saved_goals = {
+                self.ref_world.entities[agent_uid].name: copy.deepcopy(goals)
+                for agent_uid, goals in self.agent_uid_to_goals.items()
+            }
 
         if self.reset_after_first_goal:
             # Only give first goal if reset after first goal
@@ -124,7 +134,6 @@ class Simulator:
         self.simulation_log.append(utils.BasicLog("Simulation successfully loaded.", 0))
 
     def run(self):
-        self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
         simulation_report = {"temp_goals": self.saved_goals}
         with open(self.log_filepath, 'w+') as f:
             json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
@@ -210,7 +219,9 @@ class Simulator:
 
         # TODO Remove this temporary measure for a better separation between scenario generation and execution
         simulation_report["temp_goals"] = self.saved_goals
-        self.simulation_log.append(utils.BasicLog("Simulation report saved at: {}".format(self.log_filepath), step_count))
+        self.simulation_log.append(
+            utils.BasicLog("Simulation report saved at: {}".format(self.log_filepath), step_count)
+        )
         simulation_report["simulation_log"] = self.simulation_log
         simulation_report_json = json.dumps(simulation_report, default=lambda o: o.__dict__, indent=4, sort_keys=True)
         with open(self.log_filepath, 'w+') as f:
@@ -264,15 +275,9 @@ class Simulator:
                 actions_results_to_goal = self.agent_uid_and_goal_to_action_results[agent_uid][goal]
                 transit_path_length, transfer_path_length = stats_utils.get_total_path_lengths(actions_results_to_goal)
 
-                # world_snapshot.save_to_files(
-                #     json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_after_goal_" + str(
-                #         goal_counter) + ".json",
-                #     svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename,
-                #                                      "_after_goal_" + str(goal_counter))
-                # )
                 goal_counter += 1
 
-                end_nb_cc, end_biggest_cc_size, end_all_cc_sum_size, end_frag_percentage = stats_utils.get_connectivity_stats(
+                end_nb_cc, end_biggest_cc_size, end_all_cc_sum_size, end_frag = stats_utils.get_connectivity_stats(
                     world_snapshot, self.human_inflation_radius,
                     [uid for uid, entity in world_snapshot.entities.items() if isinstance(entity, Robot)]
                 )
@@ -286,7 +291,9 @@ class Simulator:
                 goal_report = {
                     "goal": goal,
                     "goal_status": goal_status,
-                    "number_of_transferred_obstacles": stats_utils.get_nb_transferred_obstacles(actions_results_to_goal),
+                    "number_of_transferred_obstacles": stats_utils.get_nb_transferred_obstacles(
+                        actions_results_to_goal
+                    ),
                     "number_of_reallocated_obstacles": nb_reallocated_obstacles,
                     "total_path_length": total_path_length,
                     "transit_path_length": transit_path_length,
@@ -298,7 +305,7 @@ class Simulator:
                     "number_of_connected_components_after_goal": end_nb_cc,
                     "biggest_free_component_size_after_goal": end_biggest_cc_size,
                     "free_space_size_after_goal": end_all_cc_sum_size,
-                    "space_fragmentation_percentage_after_goal": end_frag_percentage,
+                    "space_fragmentation_percentage_after_goal": end_frag,
                     "absolute_social_cost_after_goal": end_abs_social_cost,
                     "number_of_connected_components_relative_change": stats_utils.relative_change(
                         self.init_nb_cc, end_nb_cc),
@@ -307,7 +314,7 @@ class Simulator:
                     "free_space_size_relative_change": stats_utils.relative_change(
                         self.init_all_cc_sum_size, end_all_cc_sum_size),
                     "space_fragmentation_percentage_relative_change": stats_utils.relative_change(
-                        self.init_frag_percentage, end_frag_percentage, False) * 100.,
+                        self.init_frag_percentage, end_frag, False) * 100.,
                     "absolute_social_cost_relative_change": stats_utils.relative_change(
                         init_abs_social_cost, end_abs_social_cost)
                 }
@@ -380,7 +387,8 @@ class Simulator:
                     generated_poses.append(rand_pose)
         return generated_poses
 
-    def sample_poses_on_grid(self, world, agent_uid, nb_poses, sample_in_movable=True, sample_in_agents=True):
+    @staticmethod
+    def sample_poses_on_grid(world, agent_uid, nb_poses, sample_in_movable=True, sample_in_agents=True):
         agent = world.entities[agent_uid]
 
         uids_to_filter = {
@@ -406,7 +414,6 @@ class Simulator:
         )
 
         grid = bin_inf_occ_grid.grid
-        self.temp_att_grid = grid
         free_cells = list(zip(*np.where(grid == 0)))
 
         generated_poses = []
@@ -416,7 +423,8 @@ class Simulator:
             free_cells.remove(random_free_cell)
             random_theta = random.uniform(0., 360.)
             rand_pose = utils.grid_pose_to_real_pose(
-                (random_free_cell[0], random_free_cell[1], random_theta), bin_inf_occ_grid.res, bin_inf_occ_grid.grid_pose
+                (random_free_cell[0], random_free_cell[1], random_theta),
+                bin_inf_occ_grid.res, bin_inf_occ_grid.grid_pose
             )
             generated_poses.append(rand_pose)
         return generated_poses
@@ -499,10 +507,12 @@ class Simulator:
                     agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
                         agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
                 else:
-                    raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
-                                              "'{b_name}' that is not implemented yet."
-                                              "Maybe you mispelled something ?".format(
-                        agent_name=agent_name, b_name=agent_behavior_name))
+                    raise NotImplementedError(
+                        "You tried to associate entity '{agent_name}' with a behavior named"
+                        "'{b_name}' that is not implemented yet."
+                        "Maybe you mispelled something ?".format(
+                            agent_name=agent_name, b_name=agent_behavior_name)
+                    )
         return agent_uid_to_behavior
 
     def save_world_snapshot(self, agent_uid, action, trace_polygons, step_count):
@@ -599,7 +609,9 @@ class Simulator:
                     self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
                     self.simulation_log.append(
                         utils.BasicLog(
-                            "{} failed executing goal {}.".format(self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)),
+                            "{} failed executing goal {}.".format(
+                                self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)
+                            ),
                             step_count
                         )
                     )
@@ -610,7 +622,9 @@ class Simulator:
                     self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
                     self.simulation_log.append(
                         utils.BasicLog(
-                            "{} successfully executed goal {}.".format(self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)),
+                            "{} successfully executed goal {}.".format(
+                                self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)
+                            ),
                             step_count
                         )
                     )
@@ -699,8 +713,8 @@ class Simulator:
                         utils.BasicLog(
                             'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
                                 agent_uid, self.ref_world.entities[agent_uid].name,
-                                agent_collision_data[(0,1)]['colliding_polygon_uid'],
-                                self.ref_world.entities[agent_collision_data[(0,1)]['colliding_polygon_uid']].name
+                                agent_collision_data[(0, 1)]['colliding_polygon_uid'],
+                                self.ref_world.entities[agent_collision_data[(0, 1)]['colliding_polygon_uid']].name
                             ),
                             step_count
                         )
@@ -710,29 +724,29 @@ class Simulator:
                         att_entity = self.ref_world.entities[attached_entity_uid]
                         att_entity_polygon_sequence = [
                             att_entity.polygon, converted_action.apply(att_entity.polygon)]
-                        att_entity_collides, att_entity_collision_data, _ = collision.csv_check_collisions(
+                        att_entity_collides, att_entity_c_data, _ = collision.csv_check_collisions(
                             other_polygons, att_entity_polygon_sequence, [converted_action],
                             'minimum_rotated_rectangle', other_entities_aabb_tree, [0, 1]
                         )
                         if att_entity_collides:
                             agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
                                 next_action, attached_entity_uid,
-                                att_entity_collision_data[(0, 1)]['colliding_polygon_uid'],
-                                att_entity_collision_data[(0, 1)]['intersection_polygon']
+                                att_entity_c_data[(0, 1)]['colliding_polygon_uid'],
+                                att_entity_c_data[(0, 1)]['intersection_polygon']
                             )
                             self.simulation_log.append(
                                 utils.BasicLog(
                                     'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
                                         attached_entity_uid, self.ref_world.entities[attached_entity_uid].name,
-                                        att_entity_collision_data[(0, 1)]['colliding_polygon_uid'],
-                                        self.ref_world.entities[att_entity_collision_data[(0, 1)]['colliding_polygon_uid']].name
+                                        att_entity_c_data[(0, 1)]['colliding_polygon_uid'],
+                                        self.ref_world.entities[att_entity_c_data[(0, 1)]['colliding_polygon_uid']].name
                                     ),
                                     step_count
                                 )
                             )
                         else:
                             transition_polygons[agent_uid] = agent_collision_data[(0, 1)]['csv_polygon']
-                            transition_polygons[attached_entity_uid] = att_entity_collision_data[(0, 1)]['csv_polygon']
+                            transition_polygons[attached_entity_uid] = att_entity_c_data[(0, 1)]['csv_polygon']
                             agent_uid_to_statically_doable_action[agent_uid] = next_action
                     else:
                         transition_polygons[agent_uid] = agent_collision_data[(0, 1)]['csv_polygon']
@@ -781,9 +795,9 @@ class Simulator:
 
             if not agent_transitionnally_collides:
                 if attached_entity_uid:
-                    # TODO Fix Exception happening at line below (KeyError) surely caused by bad management of grabbed obstacles
+                    # TODO Fix Exception happening at line below (KeyError) surely
+                    #  caused by bad management of grabbed obstacles
                     att_entity_transition_polygon = transition_polygons[attached_entity_uid]
-                    att_entity_transition_aabb = collision.polygon_to_aabb(att_entity_transition_polygon)
 
                     att_entity_potential_collision_uids = other_transitions_aabb_tree.overlap_values(
                         agent_transition_aabb)
