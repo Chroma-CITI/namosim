@@ -1022,7 +1022,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 init_transit_start_pose, inflated_grid_by_robot_max.res,
                 inflated_grid_by_robot_max.grid_pose, self.rotation_unit_angle
             ),
-            grab_action, ba.convert_action(grab_action, init_transit_start_pose)
+            grab_action
         )
 
         next_transit_start_configuration = self.get_robot_walk_back_to_next_transit_configuration(
@@ -1199,7 +1199,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return not collision_pairs, new_cell_in_grid
 
-    def get_robot_walk_back_to_next_transit_configuration(self, robot_pose, robot_polygon, robot_max_inflation_radius,
+    @staticmethod
+    def get_robot_walk_back_to_next_transit_configuration(robot_pose, robot_polygon, robot_max_inflation_radius,
                                                           res, grid_pose, obstacle_uid, trans_mult, rot_mult):
         release_action = ba.Release(
             translation_vector=(-1. * (robot_max_inflation_radius + 1.5 * res), 0.),
@@ -1211,7 +1212,7 @@ class Stilman2005Behavior(BaselineBehavior):
         new_fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(new_robot_pose, trans_mult, rot_mult)
         return Configuration(
             new_robot_pose, new_robot_polygon, new_cell_in_grid, new_fixed_precision_pose,
-            release_action, ba.convert_action(release_action, new_robot_pose)
+            release_action
         )
 
     def is_there_opening_to_c_1(self, check_new_local_opening_before_global,
@@ -1347,9 +1348,11 @@ class Stilman2005Behavior(BaselineBehavior):
 
             is_no_longer_in_grid = not (
                     utils.is_in_matrix(
-                        robot_cell_in_grid, inflated_grid_by_robot.d_width, inflated_grid_by_robot.d_height)
+                        robot_cell_in_grid, inflated_grid_by_robot.d_width, inflated_grid_by_robot.d_height
+                    )
                     and utils.is_in_matrix(
-                obstacle_cell_in_grid, inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
+                        obstacle_cell_in_grid, inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height
+                    )
             )
             if is_no_longer_in_grid:
                 continue
@@ -1773,10 +1776,12 @@ class Path:
 
 
 class TransferPath:
-    def __init__(self, robot_path, obstacle_path, obstacle_uid, phys_cost=None, social_cost=0., weight=1.):
+    def __init__(self, robot_path, obstacle_path, obstacle_uid, manip_pose_id,
+                 phys_cost=None, social_cost=0., weight=1.):
         self.robot_path = robot_path
         self.obstacle_path = obstacle_path
         self.obstacle_uid = obstacle_uid
+        self.manip_pose_id = manip_pose_id
         self.phys_cost = (
             phys_cost if phys_cost is not None
             else utils.sum_of_euclidean_distances(self.robot_path.poses) * weight
@@ -1815,7 +1820,8 @@ class TransferPath:
             polygons=[configuration.obstacle.polygon for configuration in transfer_configurations],
             actions=[configuration.action for configuration in configurations_min_start]
         )
-        return cls(robot_path, obstacle_path, obstacle_uid, phys_cost, social_cost, weight)
+        manip_pose_id = prev_transit_end_configuration.manip_pose_id
+        return cls(robot_path, obstacle_path, obstacle_uid, manip_pose_id, phys_cost, social_cost, weight)
 
     def has_infinite_cost(self):
         return True if self.total_cost == float("inf") else False
@@ -1823,7 +1829,9 @@ class TransferPath:
     def is_empty(self):
         return self.robot_path.is_empty()
 
-    def is_valid(self, obstacle_pose, robot_uid, b2_sim, check_horizon=None, check_start_pose=True):
+    def is_valid(self, all_entities_poses, robot_uid, b2_sim, check_horizon=None, check_start_pose=True):
+        obstacle_pose, robot_pose = all_entities_poses[self.obstacle_uid], all_entities_poses[robot_uid]
+
         # Check that the obstacle that is to transferred is actually in its initial place
         # (only relevant if this transfer path has not already be started)
         if check_start_pose and not self.robot_path.is_path_started():
@@ -1845,7 +1853,10 @@ class TransferPath:
 
         collision_pairs = b2_sim.check_actions_with_ghost(
             key=(robot_uid, self.obstacle_uid, self.manip_pose_id),
-            entities_polygons={robot_uid: robot_polygon, self.obstacle_uid: obstacle_polygon},
+            entities_polygons={
+                robot_uid: self.robot_path.polygons[1],
+                self.obstacle_uid: self.obstacle_path.polygons[1]
+            },
             actions=actions_to_check, main_pose=robot_pose
         )
         if collision_pairs:
@@ -1890,7 +1901,7 @@ class TransitPath:
     @classmethod
     def from_poses(cls, poses, robot_polygon, robot_pose, phys_cost=None, social_cost=0., weight=1.):
         polygons = [utils.set_polygon_pose(robot_polygon, robot_pose, pose) for pose in poses]
-        robot_path = Path(poses, polygons, [], [], indexes=[i for i in range(len(poses))])
+        robot_path = Path(poses, polygons, [], indexes=[i for i in range(len(poses))])
         return cls(robot_path, phys_cost, social_cost, weight)
 
     def has_infinite_cost(self):
@@ -1999,9 +2010,8 @@ class Plan:
                     b2_sim.deactivate_entities([path.obstacle_uid])
                     check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
 
-                    obstacle_pose = all_entities_poses[path.obstacle_uid]
                     path.is_valid(
-                        obstacle_pose, self.robot_uid, b2_sim, shared_horizon, check_start_pose
+                        all_entities_poses, self.robot_uid, b2_sim, shared_horizon, check_start_pose
                     )
                 else:
                     raise TypeError('Expected TransitPath or TransferPath instance.')
