@@ -3,7 +3,7 @@ import heapq
 import numpy as np
 import time
 from collections import OrderedDict
-from shapely.geometry import LineString, Point
+from shapely.geometry import Point
 from shapely import affinity
 import random
 
@@ -578,9 +578,6 @@ class Stilman2005Behavior(BaselineBehavior):
         other_entities = [entity for entity in w_t_plus_2.entities.values()
                           if entity.uid != self._robot.uid and entity.uid != o_1]
         other_entities_polygons = {entity.uid: entity.polygon for entity in other_entities}
-        other_entities_aabb_tree = collision.AABBTree()
-        for index, polygon in other_entities_polygons.items():
-            other_entities_aabb_tree.add(collision.polygon_to_aabb(polygon), index)
 
         robot = w_t_plus_2.entities[self._robot.uid]
         robot_uid, robot_pose, robot_polygon, robot_name = robot.uid, robot.pose, robot.polygon, robot.name
@@ -651,10 +648,8 @@ class Stilman2005Behavior(BaselineBehavior):
         # Use Dijkstra algorithm to compute a transfer path that allows for an opening to be created
         path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.dijkstra_for_manip_search(
             transfer_start_configurations, robot_uid, robot_name, obstacle_uid, obstacle_polygon,
-            other_entities_polygons, other_entities_aabb_tree,
-            inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
-            trans_mult, rot_mult, b2_sim, check_new_local_opening_before_global,
-            goal_pose, goal_cell
+            other_entities_polygons, inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle,
+            c_1_cells_set, trans_mult, rot_mult, b2_sim, check_new_local_opening_before_global, goal_pose, goal_cell
         )
         if path_found:
             self._rp.publish_sim(
@@ -702,9 +697,6 @@ class Stilman2005Behavior(BaselineBehavior):
         other_entities = [entity for entity in w_t_plus_2.entities.values()
                           if entity.uid != self._robot.uid and entity.uid != o_1]
         other_entities_polygons = {entity.uid: entity.polygon for entity in other_entities}
-        other_entities_aabb_tree = collision.AABBTree()
-        for index, polygon in other_entities_polygons.items():
-            other_entities_aabb_tree.add(collision.polygon_to_aabb(polygon), index)
 
         robot = w_t_plus_2.entities[self._robot.uid]
         robot_uid, robot_pose, robot_polygon, robot_name = robot.uid, robot.pose, robot.polygon, robot.name
@@ -784,7 +776,7 @@ class Stilman2005Behavior(BaselineBehavior):
         best_transfer_end_configuration = self.find_best_transfer_end_configuration(
             robot_pose, robot_polygon, robot_name, robot_uid,
             obstacle_uid, obstacle_pose, obstacle_polygon,
-            goal_pose, goal_cell, other_entities_polygons, other_entities_aabb_tree, b2_sim,
+            goal_pose, goal_cell, other_entities_polygons, b2_sim,
             inflated_grid_by_robot_max, cells_sorted_by_combined_cost, c_1_cells_set, transfer_start_robot_poses,
             trans_mult, rot_mult, gscore=None, close_set=None,
             check_new_local_opening_before_global=check_new_local_opening_before_global
@@ -799,7 +791,7 @@ class Stilman2005Behavior(BaselineBehavior):
             path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.a_star_for_manip_search(
                 transfer_start_configurations, best_transfer_end_configuration,
                 robot_uid, robot_name, obstacle_uid, obstacle_polygon,
-                other_entities_polygons, other_entities_aabb_tree,
+                other_entities_polygons,
                 inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
                 trans_mult, rot_mult,
                 sorted_cell_to_combined_cost, bound_quantile, b2_sim, check_new_local_opening_before_global,
@@ -832,7 +824,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 best_transfer_end_configuration = self.find_best_transfer_end_configuration(
                     robot_pose, robot_polygon, robot_name, robot_uid,
                     obstacle_uid, obstacle_pose, obstacle_polygon,
-                    goal_pose, goal_cell, other_entities_polygons, other_entities_aabb_tree, b2_sim,
+                    goal_pose, goal_cell, other_entities_polygons, b2_sim,
                     inflated_grid_by_robot_max, cells_sorted_by_combined_cost, c_1_cells_set,
                     transfer_start_robot_poses, trans_mult, rot_mult, gscore=gscore, close_set=close_set,
                     check_new_local_opening_before_global=check_new_local_opening_before_global
@@ -878,7 +870,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def dijkstra_for_manip_search(
             self, start, robot_uid, robot_name, obstacle_uid, obstacle_polygon,
-            other_entities_polygons, other_entities_aabb_tree,
+            other_entities_polygons,
             inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
             trans_mult, rot_mult, b2_sim, check_new_local_opening_before_global,
             overall_goal_pose, overall_goal_cell):
@@ -901,7 +893,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     check_new_local_opening_before_global,
                     robot_name, robot_cell_after,
                     obstacle_uid, obstacle_polygon, _current.obstacle.polygon,
-                    other_entities_polygons, other_entities_aabb_tree,
+                    other_entities_polygons, b2_sim,
                     inflated_grid_by_robot_max, c_1_cells_set,
                     overall_goal_pose, overall_goal_cell,
                     neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -917,7 +909,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def a_star_for_manip_search(self, start, goal,
                                 robot_uid, robot_name, obstacle_uid, obstacle_polygon,
-                                other_entities_polygons, other_entities_aabb_tree,
+                                other_entities_polygons,
                                 inflated_grid_by_robot, inflated_grid_by_robot_max,
                                 inflated_grid_by_obstacle, c_1_cells_set,
                                 trans_mult, rot_mult,
@@ -956,7 +948,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         check_new_local_opening_before_global,
                         robot_name, robot_cell_after,
                         obstacle_uid, obstacle_polygon, _current.obstacle.polygon,
-                        other_entities_polygons, other_entities_aabb_tree,
+                        other_entities_polygons, b2_sim,
                         inflated_grid_by_robot_max, c_1_cells_set,
                         overall_goal_pose, overall_goal_cell,
                         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -1005,7 +997,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def find_best_transfer_end_configuration(self, robot_pose, robot_polygon, robot_name, robot_uid,
                                              obstacle_uid, obstacle_pose, obstacle_polygon,
                                              goal_pose, goal_cell,
-                                             other_entities_polygons, other_entities_aabb_tree, b2_sim,
+                                             other_entities_polygons, b2_sim,
                                              inflated_grid_by_robot_max, ordered_cells_by_cost, c_1_cells_set,
                                              init_robot_manip_poses, trans_mult, rot_mult, gscore=None, close_set=None,
                                              check_new_local_opening_before_global=True):
@@ -1038,7 +1030,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 check_new_local_opening_before_global,
                                 robot_name, robot_cell_after,
                                 obstacle_uid, obstacle_polygon, configuration.obstacle.polygon,
-                                other_entities_polygons, other_entities_aabb_tree,
+                                other_entities_polygons, b2_sim,
                                 inflated_grid_by_robot_max, c_1_cells_set,
                                 goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
                                 init_blocking_areas=None, init_entity_inflated_polygon=None
@@ -1096,7 +1088,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 check_new_local_opening_before_global,
                                 robot_name, robot_cell_after,
                                 obstacle_uid, obstacle_polygon, obstacle_transfer_end_poly,
-                                other_entities_polygons, other_entities_aabb_tree,
+                                other_entities_polygons, b2_sim,
                                 inflated_grid_by_robot_max, c_1_cells_set,
                                 goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
                                 init_blocking_areas=None, init_entity_inflated_polygon=None
@@ -1175,7 +1167,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def is_there_opening_to_c_1(self, check_new_local_opening_before_global,
                                 robot_name, robot_cell,
                                 obstacle_uid, old_obstacle_polygon, new_obstacle_polygon,
-                                other_entities_polygons, other_entities_aabb_tree,
+                                other_entities_polygons, b2_sim,
                                 inflated_grid_by_robot_max, c_1_cells_set,
                                 goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
                                 init_blocking_areas=None, init_entity_inflated_polygon=None):
@@ -1188,7 +1180,7 @@ class Stilman2005Behavior(BaselineBehavior):
         if check_new_local_opening_before_global:
             has_new_local_opening, init_blocking_areas, init_entity_inflated_polygon = check_new_local_opening(
                 old_obstacle_polygon, new_obstacle_polygon,
-                other_entities_polygons, other_entities_aabb_tree,
+                other_entities_polygons, b2_sim,
                 inflated_grid_by_robot_max.inflation_radius, goal_pose,
                 init_blocking_areas, init_entity_inflated_polygon, robot_name
             )
