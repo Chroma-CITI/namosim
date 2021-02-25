@@ -912,7 +912,7 @@ class Stilman2005Behavior(BaselineBehavior):
             overall_goal_pose, overall_goal_cell):
 
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
-            return self.manip_search_get_neighbors(
+            return self.get_neighbors(
                 _current, _gscore, _close_set, _open_queue, _came_from,
                 start, inflated_grid_by_robot_min, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
                 trans_mult, rot_mult, b2_sim
@@ -954,7 +954,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 check_new_local_opening_before_global, overall_goal_pose, overall_goal_cell):
 
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
-            return self.manip_search_get_neighbors(
+            return self.get_neighbors(
                 _current, _gscore, _close_set, _open_queue, _came_from,
                 start, inflated_grid_by_robot, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
                 trans_mult, rot_mult, b2_sim
@@ -1277,9 +1277,9 @@ class Stilman2005Behavior(BaselineBehavior):
             has_new_global_opening, skipped_global_opening_check = False, True
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
-    def manip_search_get_neighbors(self, current_configuration, gscore, close_set, open_queue, came_from,
-                                   start, inflated_grid_by_robot, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
-                                   trans_mult, rot_mult, b2_sim):
+    def get_neighbors(self, current_configuration, gscore, close_set, open_queue, came_from,
+                      start, inflated_grid_by_robot, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
+                      trans_mult, rot_mult, b2_sim):
         """
         Creates list of neighbors that are not in close set, do not collide dynamically nor statically
         """
@@ -1385,19 +1385,13 @@ class Stilman2005Behavior(BaselineBehavior):
             if collision_pairs:
                 continue
 
-            # TODO: REMOVE THIS, IT SHOULD NOT BE NECESSARY
-            converted_action = ba.convert_action(
-                action,
-                current_configuration.robot.floating_point_pose
-            )  # So that csv lib can properly do collision detection
-
             # If we are here, then this newly computed neighbor configuration is valid and we must save it
             neighbor_configuration = RobotObstacleConfiguration(
                 robot_floating_point_pose=new_robot_pose, robot_polygon=new_robot_polygon,
                 robot_fixed_precision_pose=robot_fixed_precision_pose, robot_cell_in_grid=robot_cell_in_grid,
                 obstacle_floating_point_pose=new_obstacle_pose, obstacle_polygon=new_obstacle_polygon,
                 obstacle_fixed_precision_pose=obstacle_fixed_precision_pose,
-                obstacle_cell_in_grid=obstacle_cell_in_grid, action=action, collision_action=converted_action,
+                obstacle_cell_in_grid=obstacle_cell_in_grid, action=action,
                 manip_pose_id=current_configuration.manip_pose_id
             )
 
@@ -1657,13 +1651,12 @@ class RCHConfiguration:
 
 class Configuration:
     def __init__(self, floating_point_pose, polygon, cell_in_grid, fixed_precision_pose,
-                 action, collision_action):
+                 action):
         self.floating_point_pose = floating_point_pose
         self.polygon = polygon
         self.cell_in_grid = cell_in_grid
         self.fixed_precision_pose = fixed_precision_pose
         self.action = action
-        self.collision_action = collision_action
 
     def __eq__(self, other):
         if isinstance(other, graph_search.HeapNode):
@@ -1680,17 +1673,16 @@ class Configuration:
 class RobotObstacleConfiguration:
     def __init__(self, robot_floating_point_pose, robot_polygon, robot_cell_in_grid, robot_fixed_precision_pose,
                  obstacle_floating_point_pose, obstacle_polygon, obstacle_cell_in_grid, obstacle_fixed_precision_pose,
-                 action=None, collision_action=None, manip_pose_id=None):
+                 action=None, manip_pose_id=None):
         self.robot = Configuration(
             robot_floating_point_pose, robot_polygon, robot_cell_in_grid, robot_fixed_precision_pose,
-            action=action, collision_action=collision_action
+            action=action
         )
         self.obstacle = Configuration(
             obstacle_floating_point_pose, obstacle_polygon, obstacle_cell_in_grid, obstacle_fixed_precision_pose,
-            action=action, collision_action=collision_action
+            action=action
         )
         self.action = action
-        self.collision_action = collision_action
         self.manip_pose_id = manip_pose_id
 
     def __eq__(self, other):
@@ -1742,11 +1734,10 @@ class HasNoPathComponents(PlanValidityError):
 
 
 class Path:
-    def __init__(self, poses, polygons, actions, collision_actions, indexes=None):
+    def __init__(self, poses, polygons, actions, indexes=None):
         self.poses = poses
         self.polygons = polygons
         self.actions = actions
-        self.collision_actions = collision_actions
         self.indexes = indexes
         if self.indexes is None:
             self.reset_indexes()
@@ -1817,18 +1808,12 @@ class TransferPath:
                 [prev_transit_end_configuration.action]
                 + [configuration.action for configuration in configurations_min_start]
                 + [next_transit_start_configuration.action]
-            ),
-            collision_actions=(
-                [prev_transit_end_configuration.collision_action]
-                + [configuration.collision_action for configuration in configurations_min_start]
-                + [next_transit_start_configuration.collision_action]
             )
         )
         obstacle_path = Path(
             poses=[configuration.obstacle.floating_point_pose for configuration in transfer_configurations],
             polygons=[configuration.obstacle.polygon for configuration in transfer_configurations],
-            actions=[configuration.action for configuration in configurations_min_start],
-            collision_actions=[configuration.collision_action for configuration in configurations_min_start]
+            actions=[configuration.action for configuration in configurations_min_start]
         )
         return cls(robot_path, obstacle_path, obstacle_uid, phys_cost, social_cost, weight)
 
@@ -1865,7 +1850,7 @@ class TransferPath:
         )
         if collision_pairs:
             raise DynamicCollisionError(collision_pairs)
-        
+
         return True
 
     def pop_next_step(self):
