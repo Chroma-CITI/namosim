@@ -1,20 +1,19 @@
 from shapely.geometry import Polygon, Point, MultiPolygon
 from snamosim.display.ros_publisher import RosPublisher
-import snamosim.utils.collision as collision
 
 
 def check_new_local_opening(init_entity_polygon, target_entity_polygon,
-                            other_entities_polygons, other_entities_aabb_tree,
+                            other_entities_polygons, b2_sim,
                             inflation_radius, goal_pose,
                             init_blocking_areas=None, init_entity_inflated_polygon=None, ns=''):
     # Build inflated polygons
     if not init_entity_inflated_polygon:
-        init_entity_inflated_polygon = init_entity_polygon.buffer(2. * inflation_radius)
+        init_entity_inflated_polygon = init_entity_polygon.buffer(2. * inflation_radius, join_style=2)
         if init_entity_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
             # Exit early if goal in init_entity_inflated_polygon
             return True, init_blocking_areas, init_entity_inflated_polygon
-    target_entity_inflated_polygon = target_entity_polygon.buffer(2. * inflation_radius)
-    target_entity_radius_inflated_polygon = target_entity_polygon.buffer(inflation_radius)
+    target_entity_inflated_polygon = target_entity_polygon.buffer(2. * inflation_radius, join_style=2)
+    target_entity_radius_inflated_polygon = target_entity_polygon.buffer(inflation_radius, join_style=2)
     if target_entity_radius_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
         return False, init_blocking_areas, init_entity_inflated_polygon
 
@@ -25,8 +24,7 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon,
     if not init_blocking_areas:
         init_blocking_areas = []
 
-        init_entity_inflated_polygon_aabb = collision.polygon_to_aabb(init_entity_inflated_polygon)
-        potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(init_entity_inflated_polygon_aabb)
+        potential_collision_polygons_uids = b2_sim.query_aabb_overlapping_uids(init_entity_inflated_polygon)
 
         for uid in potential_collision_polygons_uids :
             intersection_geometry = init_entity_inflated_polygon.intersection(other_entities_polygons[uid])
@@ -43,8 +41,7 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon,
 
     target_blocking_areas = []
 
-    target_entity_inflated_polygon_aabb = collision.polygon_to_aabb(target_entity_inflated_polygon)
-    potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(target_entity_inflated_polygon_aabb)
+    potential_collision_polygons_uids = b2_sim.query_aabb_overlapping_uids(target_entity_inflated_polygon)
 
     for uid in potential_collision_polygons_uids:
         intersection_geometry = target_entity_inflated_polygon.intersection(other_entities_polygons[uid])

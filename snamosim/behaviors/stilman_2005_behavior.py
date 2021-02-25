@@ -1849,12 +1849,6 @@ class TransitPath:
         # TODO Remove this attribute that is currentlty kept to avoid circular dependency with ros_conversion.py
         self.is_transfer = False
 
-        # Parameters to accelerate collision checking by buffered collision polygon
-        self.robot_circumscribed_radius = utils.get_circumscribed_radius(self.robot_path.polygons[0])
-        self.overall_buffered_collision_polygon = self._get_buffered_collision_polygon(
-            self.robot_path.poses, self.robot_circumscribed_radius
-        )
-
     @classmethod
     def from_poses(cls, poses, robot_polygon, robot_pose, phys_cost=None, social_cost=0., weight=1.):
         polygons = [utils.set_polygon_pose(robot_polygon, robot_pose, pose) for pose in poses]
@@ -1896,14 +1890,6 @@ class TransitPath:
 
     def get_length(self):
         return self.robot_path.get_length()
-
-    @staticmethod
-    def _get_buffered_collision_polygon(poses, inflation_radius):
-        if len(poses) == 1:
-            buffered_collision_polygon = Point((poses[0][0], poses[0][1])).buffer(inflation_radius)
-        else:
-            buffered_collision_polygon = LineString([(pose[0], pose[1]) for pose in poses]).buffer(inflation_radius)
-        return buffered_collision_polygon
 
 
 class Plan:
