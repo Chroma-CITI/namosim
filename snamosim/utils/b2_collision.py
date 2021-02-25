@@ -9,7 +9,7 @@ import snamosim.behaviors.plan.basic_actions as ba
 from snamosim.utils import utils
 
 
-class MyContactListener(Box2D.b2ContactListener):
+class CollisionPairsContactListener(Box2D.b2ContactListener):
     def __init__(self, **kwargs):
         Box2D.b2ContactListener.__init__(self, **kwargs)
         self._collision_pairs = []
@@ -23,6 +23,16 @@ class MyContactListener(Box2D.b2ContactListener):
         return return_value
 
 
+class OverlappingEntitiesUidsQueryCallback(Box2D.b2QueryCallback):
+    def __init__(self):
+        Box2D.b2QueryCallback.__init__(self)
+        self.overlapping_uids = set()
+
+    def ReportFixture(self, fixture):
+        self.overlapping_uids.add(fixture.userData['uid'])
+        return True # Continue the query by returning True
+
+
 class B2Sim:
     def __init__(self, entities, gravity=(0., 0.)):
         """
@@ -34,7 +44,7 @@ class B2Sim:
         """
 
         # Initialize box2d world
-        self.contact_listener = MyContactListener()
+        self.contact_listener = CollisionPairsContactListener()
         self.b2_world = Box2D.b2World(gravity=gravity, contactListener=self.contact_listener)
         self.b2_entities = {}
         self.ghost_entities = {}
@@ -194,6 +204,13 @@ class B2Sim:
         for uid in uids:
             if uid in self.b2_entities:
                 self.b2_entities[uid].active = True
+
+    def query_aabb_overlapping_uids(self, polygon):
+        xmin, ymin, xmax, ymax = polygon.bounds
+        aabb = Box2D.b2AABB(lowerBound=(xmin, ymin), upperBound=(xmax, ymax))
+        query = OverlappingEntitiesUidsQueryCallback()
+        self.b2_world.QueryAABB(query, aabb)
+        return query.overlapping_uids
 
     def display_b2world(self):
         polygons_xy = [
