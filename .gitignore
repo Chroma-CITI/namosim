@@ -130,4 +130,8 @@ data/problems_first_series.json
 data/problems_second_series.json
 
 # Do not upload IROS 2021 Data for now
-data/simulations/iros_2021/
+data/simulations/iros_2021/after_the_feast/2_robots
+data/simulations/iros_2021/basic_with_opening
+data/simulations/iros_2021/citi
+data/simulations/iros_2021/cpe_third_floor
+data/simulations/iros_2021/crossing
