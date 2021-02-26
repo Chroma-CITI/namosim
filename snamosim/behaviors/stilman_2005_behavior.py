@@ -1497,14 +1497,11 @@ class Stilman2005Behavior(BaselineBehavior):
 
     @staticmethod
     def deduce_robot_goal_pose(robot_manip_pose, obs_init_pose, obs_goal_pose):
-        translation = (obs_goal_pose[0] - obs_init_pose[0], obs_goal_pose[1] - obs_init_pose[1])
-        rotation = (obs_goal_pose[2] - obs_init_pose[2]) % 360.
-        rotation = rotation if rotation >= 0. else rotation + 360.
-        robot_goal_point = list(affinity.translate(
-            affinity.rotate(
-                Point((robot_manip_pose[0], robot_manip_pose[1])),
-                rotation, origin=(obs_init_pose[0], obs_init_pose[1])),
-            translation[0], translation[1]).coords[0])
+        translation, rotation = utils.get_translation_and_rotation(obs_goal_pose, obs_init_pose)
+        robot_goal_point = list(utils.translate_then_rotate_polygon(
+                Point((robot_manip_pose[0], robot_manip_pose[1])), translation, rotation,
+                (obs_init_pose[0], obs_init_pose[1])
+            ).coords[0])
         orientation = (robot_manip_pose[2] + rotation) % 360.
         orientation = orientation if orientation >= 0. else orientation + 360.
         return robot_goal_point[0], robot_goal_point[1], orientation

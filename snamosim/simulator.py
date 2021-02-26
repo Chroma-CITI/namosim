@@ -553,7 +553,7 @@ class Simulator:
         new_group.setAttribute('inkscape:label', "traces"+suffix)
         svg_data.childNodes[0].appendChild(new_group)
         for polygon in trace_polygons:
-            conversion.add_shapely_geometry_to_svg(
+            conversion.add_shapely_geometry_to_svg_with_projection(
                 polygon,
                 self.ref_world.scaling_value,
                 self.ref_world.dd.width,

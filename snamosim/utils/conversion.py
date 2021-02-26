@@ -16,7 +16,20 @@ GOAL_STYLE = 'fill:none;fill-rule:evenodd;stroke:#1155cc;stroke-width:3.5999999;
 POSE_STYLE = 'fill:none;stroke:#1155cc;stroke-width:3.5999999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1'
 
 
-def add_shapely_geometry_to_svg(shapely_geometry, scaling_value, map_width, map_height, uname, style, svg_data, svg_group):
+def add_group(svg_data, group_id, parent=None, is_layer=True):
+    new_group = svg_data.createElement('svg:g')
+    new_group.setAttribute('id', group_id)
+    if is_layer:
+        new_group.setAttribute('inkscape:groupmode', "layer")
+    # new_group.setAttribute('inkscape:label', group_id)
+    if parent:
+        parent.appendChild(new_group)
+    else:
+        svg_data.childNodes[0].appendChild(new_group)
+    return new_group
+
+
+def add_shapely_geometry_to_svg_with_projection(shapely_geometry, scaling_value, map_width, map_height, uname, style, svg_data, svg_group):
     projected_geometry = affinity.translate(
         shapely_geometry, map_width / 2., -map_height / 2.
     ) # TODO Take rotation into account
@@ -28,7 +41,16 @@ def add_shapely_geometry_to_svg(shapely_geometry, scaling_value, map_width, map_
     svg_group.appendChild(new_path)
 
 
-def svg_pathd_to_shapely_geometry(svg_path, scaling_value):
+def add_shapely_geometry_to_svg(shapely_geometry, uname, style, svg_data, svg_group, scale=1.):
+    pathd = shapely_geometry_to_svg_pathd(shapely_geometry, scale)
+    new_path = svg_data.createElement('svg:path')
+    new_path.setAttribute('id', uname)
+    new_path.setAttribute('d', pathd)
+    new_path.setAttribute('style', style)
+    svg_group.appendChild(new_path)
+
+
+def svg_pathd_to_shapely_geometry(svg_path, scaling_value=1.):
     parse_result = parse_path(svg_path)
     geom_pts = parse_result.vertices * scaling_value
     geom_pts[:, 1] = -geom_pts[:, 1]  # Mirror

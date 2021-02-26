@@ -70,7 +70,11 @@ class World:
         svg_paths = {path.getAttribute("id"): path.getAttribute('d')
                      for path in init_geometry_file.getElementsByTagName('path')}
         shapely_geoms = dict()
-        scaling_value = World.SCALING_CONSTANT * config["geometry_scale"]
+        if "no_scaling_workaround" in config and config["no_scaling_workaround"]:
+            scaling_value = config["geometry_scale"]
+        else:
+            # TODO Remove the scaling constant once all the worlds SVGs have been fixed
+            scaling_value = World.SCALING_CONSTANT * config["geometry_scale"]
         # Convert imported geometry to shapely polygons
         for svg_id, svg_path in svg_paths.items():
             try:
