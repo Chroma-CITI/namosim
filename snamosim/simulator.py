@@ -29,7 +29,7 @@ from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInfl
 
 class Simulator:
     def __init__(self, simulation_file_path, goals=None, timestring=None):
-        self.simulation_log = utils.CustomLogger(printout=True)
+        self.simulation_log = utils.CustomLogger(printout=False)
 
         # Import YAML world configuration file
         if timestring:
@@ -122,9 +122,9 @@ class Simulator:
         self.catch_exceptions = True
 
         self.simulation_log.append(utils.BasicLog("Simulation successfully loaded.", 0))
+        self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
 
     def run(self):
-        self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
         simulation_report = {"temp_goals": self.saved_goals}
         with open(self.log_filepath, 'w+') as f:
             json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
@@ -603,6 +603,13 @@ class Simulator:
                             step_count
                         )
                     )
+                    simulation_report = {"temp_goals": self.saved_goals, "simulation_log": self.simulation_log}
+                    simulation_report["agents_logs"] = {}
+                    for uid, behavior in self.agent_uid_to_behavior.items():
+                        simulation_report["agents_logs"][
+                            self.ref_world.entities[uid].name] = behavior.simulation_log
+                    with open(self.log_filepath, 'w+') as f:
+                        json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
                     if agent_next_action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
                         self.agent_uid_and_goal_to_action_results[agent_uid][agent_next_action.goal] = []
                 elif isinstance(agent_next_action, ba.GoalSuccess):
@@ -615,6 +622,10 @@ class Simulator:
                         )
                     )
                     simulation_report = {"temp_goals": self.saved_goals, "simulation_log": self.simulation_log}
+                    simulation_report["agents_logs"] = {}
+                    for uid, behavior in self.agent_uid_to_behavior.items():
+                        simulation_report["agents_logs"][
+                            self.ref_world.entities[uid].name] = behavior.simulation_log
                     with open(self.log_filepath, 'w+') as f:
                         json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
                 else:

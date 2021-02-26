@@ -72,7 +72,7 @@ class B2Sim:
             obstacle_convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_obstacle_polygon)
             obstacle_fixtures_defs = [
                 Box2D.b2FixtureDef(shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': obstacle_uid})
-                for coords in obstacle_convex_polygons_coords
+                for coords in obstacle_convex_polygons_coords if len(coords) > 3 # TODO This extra verification should not be necessary but whatever
             ]
 
             self.manip_pose_id_to_welded_body[manip_pose_id] = self.box2d_world.CreateDynamicBody(

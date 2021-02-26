@@ -35,7 +35,7 @@ class World:
         self.dd = dd
 
         self.geometry_scale = geometry_scale
-        self.scaling_value = self.geometry_scale * World.SCALING_CONSTANT
+        self.scaling_value = self.geometry_scale
 
         self.init_geometry_file = init_geometry_file
         if init_geometry_file:
@@ -103,7 +103,7 @@ class World:
         )
 
         world = cls(
-            geometry_scale=config["geometry_scale"],
+            geometry_scale=scaling_value,
             init_geometry_filename=init_geometry_filename,
             init_geometry_file=init_geometry_file,
             dd=dd
@@ -225,6 +225,9 @@ class World:
                         print("No taboo zone named... {}".format(thing_data['geometry']['id']))
 
         world.update_dd()
+
+        goals_node = init_geometry_file.getElementById("goals")
+        goals_node.parentNode.removeChild(goals_node)
 
         return world
 
