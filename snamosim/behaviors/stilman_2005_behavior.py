@@ -4,7 +4,6 @@ import numpy as np
 import time
 from collections import OrderedDict
 from shapely.geometry import LineString, Point
-from shapely import affinity
 import random
 
 from .baseline_behavior import BaselineBehavior
@@ -90,6 +89,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self.grabbed_obstacles = set()
 
+        self.replan_count = 10
+
     def are_all_goals_finished(self):
         return not self._navigation_goals and self._q_goal is None
 
@@ -111,6 +112,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if self.are_all_goals_finished():
             # Exit early if there are no goals for the behavior to reach
+            self.replan_count = 0
             return ba.GoalsFinished()
 
         if self.wait_steps > 0:
@@ -123,12 +125,14 @@ class Stilman2005Behavior(BaselineBehavior):
             return ba.Wait()
 
         if self._q_goal is None:
+            self.replan_count = 0
             self._q_goal = self._navigation_goals.pop(0)
             self._p_opt = Plan([], self._q_goal, self._robot_uid)
 
         q_r = self._robot.pose
 
         if self.is_goal_success(q_r):
+            self.replan_count = 0
             action = ba.GoalSuccess(self._q_goal)
             self._q_goal = None
             return action
@@ -194,6 +198,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         self._step_count)
                     )
                     gf_action = ba.GoalFailed(self._q_goal)
+                    self.replan_count = 0
                     self._q_goal = None
                     return gf_action
         if replan:
@@ -240,6 +245,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     return new_configuration.action
                 else:
                     gf_action = ba.GoalFailed(self._q_goal)
+                    self.replan_count = 0
                     self._q_goal = None
                     return gf_action
 
@@ -257,6 +263,7 @@ class Stilman2005Behavior(BaselineBehavior):
             self._p_opt = self.select_connect(
                 self._world, static_obs_inf_grid, self._q_goal, neighborhood=self.neighborhood
             )
+            self.replan_count += 1
 
         if not self._p_opt:
             # If no plan for the goal was found
@@ -267,6 +274,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._step_count)
             )
             gf_action = ba.GoalFailed(self._q_goal)
+            self.replan_count = 0
             self._q_goal = None
             return gf_action
         else:
