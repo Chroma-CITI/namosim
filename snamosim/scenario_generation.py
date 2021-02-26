@@ -193,7 +193,7 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
                         "force_pushes_only": True,
                         "geometry": {
                             "from": "file",
-                            "id": "robot_" + str(c_robot),
+                            "id": "robot_" + str(c_robot) + "_shape",
                             "orientation_id": "robot_" + str(c_robot) + "_direction"
                         },
                         "movable_whitelist": [
@@ -284,15 +284,15 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
         }
 
         for behavior in simulation_json_data["agents_behaviors"]:
-            behavior["use_social_cost"] = True
-            behavior["manipulation_search_procedure"] = "DFS"
+            behavior["behavior"]["parameters"]["use_social_cost"] = True
+            behavior["behavior"]["parameters"]["manipulation_search_procedure"] = "DFS"
         scenario_json_filename = "sim_snamo_" + scenario_id + ".json"
         with open(os.path.join(scenario_dirpath, scenario_json_filename), "w+") as f:
             json.dump(simulation_json_data, f)
 
         for behavior in simulation_json_data["agents_behaviors"]:
-            behavior["use_social_cost"] = False
-            behavior["manipulation_search_procedure"] = "BFS"
+            behavior["behavior"]["parameters"]["use_social_cost"] = False
+            behavior["behavior"]["parameters"]["manipulation_search_procedure"] = "BFS"
         scenario_json_filename = "sim_namo_" + scenario_id + ".json"
         with open(os.path.join(scenario_dirpath, scenario_json_filename), "w+") as f:
             json.dump(simulation_json_data, f)
@@ -300,6 +300,6 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
 
 if __name__ == "__main__":
     generate_scenarios_alternatives(
-        base_svg_filepath="../data/simulations/iros_2021/after_the_feast/after_the_feast_base.svg",
-        nb_robots=2, nb_goals_per_robot=50, grid_res=0.1, nb_scenarios=10
+        base_svg_filepath="../data/simulations/iros_2021/citi/citi_base.svg",
+        nb_robots=2, nb_goals_per_robot=50, grid_res=0.1, nb_scenarios=1000
     )

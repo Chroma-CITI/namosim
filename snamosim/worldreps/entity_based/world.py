@@ -68,7 +68,7 @@ class World:
         init_geometry_filename = os.path.basename(abs_geometry_file_path)
         init_geometry_file = minidom.parse(abs_geometry_file_path)
         svg_paths = {path.getAttribute("id"): path.getAttribute('d')
-                     for path in init_geometry_file.getElementsByTagName('path')}
+                     for path in init_geometry_file.getElementsByTagName('path') + init_geometry_file.getElementsByTagName('svg:path')}
         shapely_geoms = dict()
         if "no_scaling_workaround" in config and config["no_scaling_workaround"]:
             scaling_value = config["geometry_scale"]

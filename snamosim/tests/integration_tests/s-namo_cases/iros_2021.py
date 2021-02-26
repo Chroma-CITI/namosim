@@ -15,10 +15,9 @@ class IROS2021Tests(unittest.TestCase):
     def setUp(self):
         self.path_to_folder = os.path.join(__file__, "../../../../../data/simulations/iros_2021/")
 
-    def test_stilman_2005_behavior(self):
-        sim = Simulator(simulation_file_path=self.path_to_folder+"stilman_2005_behavior.json")
+    def test_single_generated_scenario(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "after_the_feast/", "2_robots/", "50_goals/", "00/", "sim_namo_0000.json"))
         sim.run()
-        # Test should end up with a success
 
     def test_stilman_2005_behavior_complexified_random_goal_no_reset_namo_simple_then_snamo(self):
         timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
