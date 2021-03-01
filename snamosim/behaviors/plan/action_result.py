@@ -69,6 +69,17 @@ class GrabMoreThanOneFailure(ActionFailure):
         return "Action failed because the agent is already grabbing something."
 
 
+class SimultaneousGrabFailure(ActionFailure):
+    def __init__(self, action, other_agents_uids):
+        ActionFailure.__init__(self, action)
+        self.other_agents_uids = other_agents_uids
+
+    def __str__(self):
+        return "Action failed because several agents {} tried to grab the same entity in the same time step.".format(
+            self.other_agents_uids
+        )
+
+
 class StaticCollisionFailure(ActionFailure):
     def __init__(self, action, obstacle_in_collision_1, obstacle_in_collision_2, intersection_polygon):
         ActionFailure.__init__(self, action)
