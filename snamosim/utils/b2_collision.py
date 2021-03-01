@@ -34,13 +34,21 @@ class OverlappingEntitiesUidsQueryCallback(Box2D.b2QueryCallback):
 
 
 class B2Sim:
-    def __init__(self, entities, gravity=(0., 0.)):
+    def __init__(self, entities, gravity=(0., 0.), time_step=1, velocity_iterations=1, position_iterations=1):
         """
         Initialize Box2D world using entities physics data and contact listener.
         :param entities: Dictionnary of entities with their associated uid
         :type entities: dict(int: Entity)
         :param gravity: Optional argument, in case we ever want a side-view simulation, not a top view one.
         :type gravity: tuple(float, float)
+        :param time_step: Duration of a simulation time step (seconds in simulation time, not in run time)
+        :type time_step: int
+        :param velocity_iterations: Number of iterations to compute velocity changes on contact of dynamic obstacles
+            Set to 1 by default because we don't want reactions.
+        :type velocity_iterations: int
+        :param position_iterations: Number of iterations to compute position changes on contact of dynamic obstacles
+            Set to 1 by default because we don't want reactions.
+        :type position_iterations: int
         """
 
         # Initialize box2d world
@@ -48,6 +56,11 @@ class B2Sim:
         self.b2_world = Box2D.b2World(gravity=gravity, contactListener=self.contact_listener)
         self.b2_entities = {}
         self.ghost_entities = {}
+
+        # Initialize stepping parameters
+        self.time_step = time_step
+        self.velocity_iterations= velocity_iterations
+        self.position_iterations= position_iterations
 
         # Convert entities into appropriate box2D world bodies
         self.add_entities(entities)
@@ -98,10 +111,23 @@ class B2Sim:
             self.b2_world.DestroyBody(body)
         self.b2_entities = {}
 
-    def update_entities(self, entities):
+    def update_entities(self, entities, debug_init=False, debug_after=False):
+        if debug_init:
+            self.display_b2world()
+
         for uid, entity in entities.items():
             self.b2_entities[uid].position = (entity.pose[0], entity.pose[1])
             self.b2_entities[uid].angle = math.radians(entity.pose[2])
+
+        # Have Box2D do one step to ensure aabbtree is updated
+        self.b2_world.Step(
+            timeStep=self.time_step,
+            velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
+        )
+
+        if debug_after:
+            self.display_b2world()
+
 
     def create_ghost_entity(self, key, entities_polygons, main_pose):
         if key in self.ghost_entities:
@@ -145,7 +171,10 @@ class B2Sim:
                 self.display_b2world()
 
             # Have Box2D simulate the action
-            self.b2_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
+            self.b2_world.Step(
+                timeStep=self.time_step,
+                velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
+            )
 
             if debug_after:
                 self.display_b2world()
@@ -181,7 +210,10 @@ class B2Sim:
             self.display_b2world()
 
         # Have Box2D simulate the action
-        self.b2_world.Step(timeStep=1, velocityIterations=1, positionIterations=1)
+        self.b2_world.Step(
+            timeStep=self.time_step,
+            velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
+        )
 
         if debug_after:
             self.display_b2world()
