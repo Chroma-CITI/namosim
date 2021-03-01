@@ -134,7 +134,7 @@ class Simulator:
         self.b2_sim = b2_collision.B2Sim(self.ref_world.entities)
 
     def run(self):
-        simulation_report = {"temp_goals": self.saved_goals}
+        simulation_report = {}
         with open(self.log_filepath, 'w+') as f:
             json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
 
@@ -349,86 +349,6 @@ class Simulator:
 
         return report
 
-    @staticmethod
-    def sample_poses_uniform(world, agent_uid, nb_poses=1, sample_in_movable=True, sample_in_agents=True):
-        map_min_x, map_min_y, map_max_x, map_max_y = world.get_map_bounds()
-        agent = world.entities[agent_uid]
-
-        uids_to_filter = {
-            uid for uid, entity in world.entities.items()
-            if (
-                uid == agent_uid
-                or (
-                    sample_in_movable and isinstance(entity, Obstacle)
-                    and agent.deduce_movability(entity.type) == 'movable'
-                )
-                or (sample_in_agents and isinstance(entity, Robot))
-            )
-        }
-
-        other_entities = [entity for uid, entity in world.entities.items() if uid not in uids_to_filter]
-
-        generated_poses = []
-
-        while len(generated_poses) < nb_poses:
-            pose_collides = True
-            while pose_collides:
-                rand_pose = (
-                    random.uniform(map_min_x, map_max_x),
-                    random.uniform(map_min_y, map_max_y),
-                    random.uniform(0., 360.)
-                )
-                translation, rotation = utils.get_translation_and_rotation(agent.pose, rand_pose)
-                expected_polygon = affinity.rotate(
-                        affinity.translate(agent.polygon, translation[0], translation[1]), rotation
-                )
-                pose_collides = utils.polygon_collides_with_entities(expected_polygon, other_entities)
-                if not pose_collides:
-                    generated_poses.append(rand_pose)
-        return generated_poses
-
-    @staticmethod
-    def sample_poses_on_grid(world, agent_uid, nb_poses, sample_in_movable=True, sample_in_agents=True):
-        agent = world.entities[agent_uid]
-
-        uids_to_filter = {
-            uid for uid, entity in world.entities.items()
-            if (
-                uid == agent_uid
-                or (
-                    sample_in_movable and isinstance(entity, Obstacle)
-                    and agent.deduce_movability(entity.type) == 'movable'
-                )
-                or (sample_in_agents and isinstance(entity, Robot))
-            )
-        }
-
-        other_entities_polygons = {
-            uid: entity.polygon for uid, entity in world.entities.items() if uid not in uids_to_filter
-        }
-        agent_max_inflation_radius = utils.get_circumscribed_radius(agent.polygon)
-
-        bin_inf_occ_grid = BinaryInflatedOccupancyGrid(
-            other_entities_polygons, world.dd.res, agent_max_inflation_radius,
-            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
-        )
-
-        grid = bin_inf_occ_grid.grid
-        free_cells = list(zip(*np.where(grid == 0)))
-
-        generated_poses = []
-
-        while free_cells and len(generated_poses) < nb_poses:
-            random_free_cell = random.choice(free_cells)
-            free_cells.remove(random_free_cell)
-            random_theta = random.uniform(0., 360.)
-            rand_pose = utils.grid_pose_to_real_pose(
-                (random_free_cell[0], random_free_cell[1], random_theta),
-                bin_inf_occ_grid.res, bin_inf_occ_grid.grid_pose
-            )
-            generated_poses.append(rand_pose)
-        return generated_poses
-
     def initialize_agents_goals(self, goals_geometries):
         agent_uid_to_goals = {}
         for agent_to_behavior_config in self.config["agents_behaviors"]:
@@ -446,31 +366,6 @@ class Simulator:
                     for config_goal in behavior_config["navigation_goals"]:
                         if config_goal["name"] in goals_geometries:
                             agent_navigation_goals.append(goals_geometries[config_goal["name"]])
-
-                if "randomization" in behavior_config:
-                    randomization_config = behavior_config["randomization"]
-                    if "randomize_existing_navigation_goals" in randomization_config:
-                        if "goal_multiplier" in randomization_config:
-                            agent_navigation_goals *= randomization_config["goal_multiplier"]
-                        random.shuffle(agent_navigation_goals)
-                    elif "generate_random_goals" in randomization_config:
-                        nb_goals_to_generate = 1
-                        if "nb_goals_to_generate" in randomization_config:
-                            nb_goals_to_generate = randomization_config["nb_goals_to_generate"]
-
-                        randomization_types = ["discrete", "uniform"]
-                        sampling_function = self.sample_poses_on_grid
-                        if "randomization_type" in randomization_config:
-                            randomization_type = randomization_config["randomization_type"]
-                            if randomization_type not in randomization_types:
-                                raise ValueError("Randomization can only be one of : {}".format(randomization_types))
-                            if randomization_type == "discrete":
-                                sampling_function = self.sample_poses_on_grid
-                            elif randomization_type == "uniform":
-                                sampling_function = self.sample_poses_uniform
-
-                        agent_navigation_goals = sampling_function(self.ref_world, agent_uid, nb_goals_to_generate)
-                        # TODO: Add the generated goals to world !
 
                 agent_uid_to_goals[agent_uid] = agent_navigation_goals
 
