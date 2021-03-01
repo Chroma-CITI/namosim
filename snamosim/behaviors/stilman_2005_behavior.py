@@ -4,7 +4,6 @@ import numpy as np
 import time
 from collections import OrderedDict
 from shapely.geometry import Point
-from shapely import affinity
 import random
 
 from .baseline_behavior import BaselineBehavior
@@ -125,6 +124,8 @@ class Stilman2005Behavior(BaselineBehavior):
             params=self.static_obs_inf_grid.params
         )
 
+        self.replan_count = 10
+
     def are_all_goals_finished(self):
         return not self._navigation_goals and self._q_goal is None
 
@@ -164,6 +165,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if self.are_all_goals_finished():
             # Exit early if there are no goals for the behavior to reach
+            self.replan_count = 0
             return ba.GoalsFinished()
 
         if self.wait_steps > 0:
@@ -176,12 +178,14 @@ class Stilman2005Behavior(BaselineBehavior):
             return ba.Wait()
 
         if self._q_goal is None:
+            self.replan_count = 0
             self._q_goal = self._navigation_goals.pop(0)
             self._p_opt = Plan([], self._q_goal, self._robot_uid)
 
         q_r = self._robot.pose
 
         if self.is_goal_success(q_r):
+            self.replan_count = 0
             action = ba.GoalSuccess(self._q_goal)
             self._q_goal = None
             return action
@@ -246,6 +250,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         self._step_count)
                     )
                     gf_action = ba.GoalFailed(self._q_goal)
+                    self.replan_count = 0
                     self._q_goal = None
                     return gf_action
         if replan:
@@ -281,6 +286,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     return new_configuration.action
                 else:
                     gf_action = ba.GoalFailed(self._q_goal)
+                    self.replan_count = 0
                     self._q_goal = None
                     return gf_action
 
@@ -288,6 +294,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._world, self.static_obs_inf_grid, self.inflated_grid_by_robot, self.b2_sim, self._q_goal,
                 neighborhood=self.neighborhood
             )
+            self.replan_count += 1
 
         if not self._p_opt:
             # If no plan for the goal was found
@@ -298,6 +305,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._step_count)
             )
             gf_action = ba.GoalFailed(self._q_goal)
+            self.replan_count = 0
             self._q_goal = None
             return gf_action
         else:
@@ -1418,14 +1426,11 @@ class Stilman2005Behavior(BaselineBehavior):
 
     @staticmethod
     def deduce_robot_goal_pose(robot_manip_pose, obs_init_pose, obs_goal_pose):
-        translation = (obs_goal_pose[0] - obs_init_pose[0], obs_goal_pose[1] - obs_init_pose[1])
-        rotation = (obs_goal_pose[2] - obs_init_pose[2]) % 360.
-        rotation = rotation if rotation >= 0. else rotation + 360.
-        robot_goal_point = list(affinity.translate(
-            affinity.rotate(
-                Point((robot_manip_pose[0], robot_manip_pose[1])),
-                rotation, origin=(obs_init_pose[0], obs_init_pose[1])),
-            translation[0], translation[1]).coords[0])
+        translation, rotation = utils.get_translation_and_rotation(obs_goal_pose, obs_init_pose)
+        robot_goal_point = list(utils.translate_then_rotate_polygon(
+                Point((robot_manip_pose[0], robot_manip_pose[1])), translation, rotation,
+                (obs_init_pose[0], obs_init_pose[1])
+            ).coords[0])
         orientation = (robot_manip_pose[2] + rotation) % 360.
         orientation = orientation if orientation >= 0. else orientation + 360.
         return robot_goal_point[0], robot_goal_point[1], orientation

@@ -35,7 +35,7 @@ class World:
         self.dd = dd
 
         self.geometry_scale = geometry_scale
-        self.scaling_value = self.geometry_scale * World.SCALING_CONSTANT
+        self.scaling_value = self.geometry_scale
 
         self.init_geometry_file = init_geometry_file
         if init_geometry_file:
@@ -62,9 +62,13 @@ class World:
         init_geometry_filename = os.path.basename(abs_geometry_file_path)
         init_geometry_file = minidom.parse(abs_geometry_file_path)
         svg_paths = {path.getAttribute("id"): path.getAttribute('d')
-                     for path in init_geometry_file.getElementsByTagName('path')}
+                     for path in init_geometry_file.getElementsByTagName('path') + init_geometry_file.getElementsByTagName('svg:path')}
         shapely_geoms = dict()
-        scaling_value = World.SCALING_CONSTANT * config["geometry_scale"]
+        if "no_scaling_workaround" in config and config["no_scaling_workaround"]:
+            scaling_value = config["geometry_scale"]
+        else:
+            # TODO Remove the scaling constant once all the worlds SVGs have been fixed
+            scaling_value = World.SCALING_CONSTANT * config["geometry_scale"]
         # Convert imported geometry to shapely polygons
         for svg_id, svg_path in svg_paths.items():
             try:
@@ -93,7 +97,7 @@ class World:
         )
 
         world = cls(
-            geometry_scale=config["geometry_scale"],
+            geometry_scale=scaling_value,
             init_geometry_filename=init_geometry_filename,
             init_geometry_file=init_geometry_file,
             dd=dd
@@ -215,6 +219,9 @@ class World:
                         print("No taboo zone named... {}".format(thing_data['geometry']['id']))
 
         world.update_dd()
+
+        goals_node = init_geometry_file.getElementById("goals")
+        goals_node.parentNode.removeChild(goals_node)
 
         return world
 

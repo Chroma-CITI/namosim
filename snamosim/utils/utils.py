@@ -451,7 +451,9 @@ def get_translation(start_pose, end_pose):
 
 
 def get_rotation(start_pose, end_pose):
-    return end_pose[2] - start_pose[2]
+    rotation = (end_pose[2] - start_pose[2]) % 360.
+    rotation = rotation if rotation >= 0. else rotation + 360.
+    return rotation
 
 
 def get_translation_and_rotation(start_pose, end_pose):
@@ -462,10 +464,14 @@ def get_translation_and_rotation(start_pose, end_pose):
 
 def set_polygon_pose(polygon, init_polygon_pose, end_polygon_pose, rotation_center='center'):
     translation, rotation = get_translation_and_rotation(init_polygon_pose, end_polygon_pose)
-    return affinity.rotate(affinity.translate(polygon,*translation), rotation, origin=rotation_center)
+    return translate_then_rotate_polygon(polygon, translation, rotation, rotation_center)
 
 
-def polygon_collides_with_entities(polygon, entities):
+def translate_then_rotate_polygon(polygon, translation, rotation, rotation_center='center'):
+    return affinity.rotate(affinity.translate(polygon, *translation), rotation, origin=rotation_center)
+
+
+def polygon_collides_with_entities(polygon, entities, aabb_tree=None):
     for entity in entities:
         if entity.polygon.intersects(polygon):
             return True
