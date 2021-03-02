@@ -451,9 +451,7 @@ def get_translation(start_pose, end_pose):
 
 
 def get_rotation(start_pose, end_pose):
-    rotation = (end_pose[2] - start_pose[2]) % 360.
-    rotation = rotation if rotation >= 0. else rotation + 360.
-    return rotation
+    return angle_to_360_interval(end_pose[2] - start_pose[2])
 
 
 def get_translation_and_rotation(start_pose, end_pose):
