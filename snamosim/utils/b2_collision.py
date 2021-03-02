@@ -120,7 +120,7 @@ class B2Sim:
             del self.b2_entities[uid]
 
         # For the moment, just in case, we clean ghost entities just in case
-        for key, body in self.ghost_entities:
+        for key, body in self.ghost_entities.items():
             self.b2_world.DestroyBody(body)
         self.ghost_entities = {}
 
@@ -230,7 +230,7 @@ class B2Sim:
                     # If the entities associated with the ghost do not collide, apply action result to actual body
                     ghost = self.ghost_entities[ghost_data.key]
                     ghost_pose = (ghost.position[0], ghost.position[1], math.degrees(ghost.angle))
-                    for uid, local_pose in ghost.userData["local_poses"]:
+                    for uid, local_pose in ghost.userData["local_poses"].items():
                         global_centroid = utils.shapely_geom_to_global(Point(local_pose[0], local_pose[1]), ghost_pose)
                         self.b2_entities[uid].position = tuple(global_centroid.coords[0])
                         self.b2_entities[uid].angle = math.radians(utils.angle_to_360_interval(

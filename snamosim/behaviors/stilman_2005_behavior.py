@@ -224,7 +224,10 @@ class Stilman2005Behavior(BaselineBehavior):
             except PlanValidityError as e:
                 p_opt_is_valid = False
                 if isinstance(e, DynamicCollisionError):
-                    colliding_entities = [self._world.entities[uid] for uid in e.colliding_entities]
+                    colliding_entities = []
+                    for uid_1, uid_2 in e.colliding_entities:
+                        colliding_entities.append(self._world.entities[uid_1])
+                        colliding_entities.append(self._world.entities[uid_2])
                     all_colliding_entities_are_robots = all([isinstance(e, Robot) for e in colliding_entities])
                     if all_colliding_entities_are_robots and self.wait_steps == -1:
                         self.wait_steps = random.randint(self.min_nb_steps_to_wait, self.max_nb_steps_to_wait)

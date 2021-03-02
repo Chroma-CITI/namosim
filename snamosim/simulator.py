@@ -515,8 +515,8 @@ class Simulator:
 
         # Check if released entity is already grabbed by the right agent
         for agent_uid, action in agent_uid_to_next_action.items():
-            entity_uid = action.entity_uid
             if isinstance(action, ba.Release):
+                entity_uid = action.entity_uid
                 if agent_uid not in entity_to_agent.inverse or entity_uid not in entity_to_agent:
                     failed[agent_uid] = ar.NotGrabbedFailure(action)
                 else:
