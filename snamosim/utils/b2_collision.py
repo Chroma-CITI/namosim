@@ -3,7 +3,7 @@ import copy
 import Box2D
 
 import matplotlib.pyplot as plt
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
 import snamosim.behaviors.plan.basic_actions as ba
 from snamosim.utils import utils
@@ -31,6 +31,14 @@ class OverlappingEntitiesUidsQueryCallback(Box2D.b2QueryCallback):
     def ReportFixture(self, fixture):
         self.overlapping_uids.add(fixture.userData['uid'])
         return True # Continue the query by returning True
+
+
+class GhostData:
+    def __init__(self, key, entities_polygons, actions, main_pose):
+        self.key = key
+        self.entities_polygons = entities_polygons
+        self.actions = actions
+        self.main_pose = main_pose
 
 
 class B2Sim:
@@ -128,28 +136,111 @@ class B2Sim:
         if debug_after:
             self.display_b2world()
 
-
-    def create_ghost_entity(self, key, entities_polygons, main_pose):
+    def create_ghost_entity(self, key, entities_polygons, entities_poses, main_pose):
         if key in self.ghost_entities:
             return
 
         ghost_fixtures_defs = []
-        local_centroids = {}
+        local_poses = {}
         for uid, p in entities_polygons.items():
             local_polygon = utils.shapely_geom_to_local(p, main_pose)
             ghost_fixtures_defs.append(Box2D.b2FixtureDef(shape=local_polygon, userData={'uid': uid}, isSensor=True))
-            self.b2_entities[uid].active = False
+            local_centroid = local_polygon.centroid.coords[0]
+            local_angle = utils.angle_to_360_interval(entities_poses[uid][2] - main_pose[2])
+            local_poses[uid] = (local_centroid[0], local_centroid[1], local_angle)
 
         self.ghost_entities[key] = self.b2_world.CreateDynamicBody(
             fixtures=ghost_fixtures_defs[0], position=(main_pose[0], main_pose[1]),
-            angle=math.radians(main_pose[2]), bullet=True, userData={'local_centroids': local_centroids},
+            angle=math.radians(main_pose[2]), bullet=True, userData={'local_poses': local_poses},
             active=False  # Start out as non-active (only active when used). Note: 'active' -> 'enabled' in v2.4.x
         )
 
-    def check_actions_with_ghost(self, key, entities_polygons, actions, main_pose, debug_init=False, debug_after=False):
+    def simulate_multiple(self, ghosts_datas, stop_on_collision=True, apply=True, debug_init=False, debug_after=False):
+        # Initialize world state
+        actions_len = 0
+        for ghost_data in ghosts_datas:
+            # If the ghost body does not already exist, create it
+            if ghost_data.key not in self.ghost_entities:
+                self.create_ghost_entity(ghost_data.key, ghost_data.entities_polygons, ghost_data.entities_poses, ghost_data.main_pose)
+            ghost = self.ghost_entities[ghost_data.key]
+
+            # Activate ghost and deactivate bodies associated with the entities we made a ghost for
+            ghost.active = True
+            for uid in ghost_data.entities_polygons.keys():
+                self.b2_entities[uid].active = False
+
+            # Set the initial position of the ghost before executing the action sequence
+            ghost.position = (ghost_data.main_pose[0], ghost_data.main_pose[1])
+            ghost.angle = math.radians(ghost_data.main_pose[2])
+
+            actions_len = max(actions_len, len(ghost_data.actions))
+
+        collision_pairs = []
+        for action_counter in range(actions_len):
+            for ghost_data in ghosts_datas:
+                try:
+                    action = ghost_data.actions[action_counter]
+                except IndexError:
+                    continue
+
+                ghost = self.ghost_entities[ghost_data.key]
+
+                #  Try to apply the action sequence, exit as soon as we encounter the first collision
+                if isinstance(action, ba.Translation):
+                    ghost.linearVelocity, ghost.angularVelocity = action.compute_translation_vector(math.degrees(ghost.angle)), 0.
+                if isinstance(action, ba.Rotation):
+                    ghost.linearVelocity, ghost.angularVelocity = (0., 0.), math.radians(action.angle)
+
+            if debug_init:
+                self.display_b2world()
+
+            # Have Box2D simulate the action
+            self.b2_world.Step(
+                timeStep=self.time_step,
+                velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
+            )
+
+            if debug_after:
+                self.display_b2world()
+
+            collision_pairs += self.contact_listener.get_collision_pairs()
+
+            if stop_on_collision and collision_pairs:
+                break
+
+        # Deactivate ghost and reactivate the original entities
+        for ghost_data in ghosts_datas:
+            ghost = self.ghost_entities[ghost_data.key]
+            ghost.active = False
+            for uid in ghost_data.entities_polygons.keys():
+                self.b2_entities[uid].active = True
+
+        if apply:
+            collision_uids = set()
+            for uid_1, uid_2 in collision_pairs:
+                collision_uids.add(uid_1)
+                collision_uids.add(uid_2)
+            for ghost_data in ghosts_datas:
+                if not set(ghost_data.entities_polygons.keys()).intersection(collision_uids):
+                    # If the entities associated with the ghost do not collide, apply action result to actual body
+                    ghost = self.ghost_entities[ghost_data.key]
+                    ghost_pose = (ghost.position[0], ghost.position[1], math.degrees(ghost.angle))
+                    for uid, local_pose in ghost.userData["local_poses"]:
+                        global_centroid = utils.shapely_geom_to_global(Point(local_pose[0], local_pose[1]), ghost_pose)
+                        self.b2_entities[uid].position = tuple(global_centroid.coords[0])
+                        self.b2_entities[uid].angle = math.radians(utils.angle_to_360_interval(
+                            local_pose[2] + math.degrees(ghost.angle)
+                        ))
+
+        if debug_after:
+            self.display_b2world()
+
+        return collision_pairs
+
+    def check_actions_with_ghost(self, key, entities_polygons, entities_poses, actions, main_pose, debug_init=False, debug_after=False):
         # If the ghost body does not already exist, create it
         if key not in self.ghost_entities:
-            self.create_ghost_entity(key, entities_polygons, main_pose)
+            self.create_ghost_entity(key, entities_polygons, entities_poses, main_pose)
         ghost = self.ghost_entities[key]
 
         # Activate ghost and deactivate bodies associated with the entities we made a ghost for
@@ -161,9 +252,10 @@ class B2Sim:
         ghost.position, ghost.angle = (main_pose[0], main_pose[1]), math.radians(main_pose[2])
 
         #  Try to apply the action sequence, exit as soon as we encounter the first collision
+        collision_pairs = []
         for action in actions:
             if isinstance(action, ba.Translation):
-                ghost.linearVelocity, ghost.angularVelocity = action.compute_translation_vector(main_pose), 0.
+                ghost.linearVelocity, ghost.angularVelocity = action.compute_translation_vector(math.degrees(ghost.angle)), 0.
             if isinstance(action, ba.Rotation):
                 ghost.linearVelocity, ghost.angularVelocity = (0., 0.), math.radians(action.angle)
 
@@ -179,22 +271,22 @@ class B2Sim:
             if debug_after:
                 self.display_b2world()
 
-            collision_pairs = self.contact_listener.get_collision_pairs()
+            collision_pairs += self.contact_listener.get_collision_pairs()
 
             if collision_pairs:
-                return collision_pairs
+                break
 
         # Deactivate ghost and reactivate the original entities
         ghost.active = False
         for uid in entities_polygons.keys():
             self.b2_entities[uid].active = True
 
-        return []
+        return collision_pairs
 
-    def check_teleportation_with_ghost(self, key, entities_polygons, main_pose, debug_init=False, debug_after=False):
+    def check_teleportation_with_ghost(self, key, entities_polygons, entities_poses, main_pose, debug_init=False, debug_after=False):
         # If the ghost body does not already exist, create it
         if key not in self.ghost_entities:
-            self.create_ghost_entity(key, entities_polygons, main_pose)
+            self.create_ghost_entity(key, entities_polygons, entities_poses, main_pose)
         ghost = self.ghost_entities[key]
 
         # Activate ghost and deactivate bodies associated with the entities we made a ghost for
