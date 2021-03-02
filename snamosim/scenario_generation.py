@@ -136,7 +136,7 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
             )
             # Add robot direction shape
             conversion.add_shapely_geometry_to_svg(
-                utils.translate_then_rotate_polygon(
+                utils.rotate_then_translate_polygon(
                     base_robot_orientation_polygon,
                     *utils.get_translation_and_rotation(base_robot_pose, initial_robot_poses[i]),
                     rotation_center=(initial_robot_poses[i][0], initial_robot_poses[i][1])
@@ -155,7 +155,7 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
                 )
                 # Add goal direction shape
                 conversion.add_shapely_geometry_to_svg(
-                    utils.translate_then_rotate_polygon(
+                    utils.rotate_then_translate_polygon(
                         base_robot_orientation_polygon,
                         *utils.get_translation_and_rotation(base_robot_pose, goal_pose),
                         rotation_center=(goal_pose[0], goal_pose[1])

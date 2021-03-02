@@ -21,19 +21,25 @@ from snamosim.utils import stats_utils, utils, conversion, b2_collision
 
 class Simulator:
     def __init__(self, simulation_file_path, goals=None, timestring=None):
-        self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
-        self.simulation_log = utils.CustomLogger(printout=False)
-
-        # Import YAML world configuration file
+        # Load simulation file and initialize logs
         if timestring:
             self.sim_start_timestring = timestring
         else:
             self.sim_start_timestring = utils.timestamp_string()
-
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
-
         with open(simulation_file_abs_path) as f:
             self.config = json.load(f)
+        sim_file_parent_dirname = os.path.basename(
+            os.path.normpath(os.path.abspath(os.path.join(simulation_file_abs_path, '..'))))
+        self.simulation_filename = os.path.splitext(os.path.basename(simulation_file_abs_path))[0]
+
+        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', sim_file_parent_dirname, self.simulation_filename)
+        abs_path_to_main_sim_logs_dir = os.path.join(os.path.dirname(__file__), rel_path_to_main_sim_logs_dir)
+        self.abs_path_to_logs_dir = os.path.join(abs_path_to_main_sim_logs_dir, self.sim_start_timestring + "/")
+        os.makedirs(self.abs_path_to_logs_dir)
+        os.makedirs(self.abs_path_to_logs_dir + "simulation/")
+        self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
+        self.simulation_log = utils.CustomLogger(printout=True)
 
         self.simulation_log.append(utils.BasicLog("Simulation file successfully loaded", 0))
 
@@ -44,15 +50,6 @@ class Simulator:
             False if "reset_after_first_goal" not in self.config else self.config["reset_after_first_goal"]
         )
         self.human_inflation_radius = 0.55/2.  # [m]
-        sim_file_parent_dirname = os.path.basename(
-            os.path.normpath(os.path.abspath(os.path.join(simulation_file_abs_path, '..'))))
-        self.simulation_filename = os.path.splitext(os.path.basename(simulation_file_abs_path))[0]
-
-        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', sim_file_parent_dirname, self.simulation_filename)
-        abs_path_to_main_sim_logs_dir = os.path.join(os.path.dirname(__file__), rel_path_to_main_sim_logs_dir)
-        self.abs_path_to_logs_dir = os.path.join(abs_path_to_main_sim_logs_dir, self.sim_start_timestring + "/")
-        os.makedirs(self.abs_path_to_logs_dir)
-        os.makedirs(self.abs_path_to_logs_dir + "simulation/")
 
         self.simulation_log.append(
             utils.BasicLog("Created log folders at:{}".format(str(self.abs_path_to_logs_dir)), 0)
@@ -121,7 +118,7 @@ class Simulator:
                 [uid for uid, entity in self.ref_world.entities.items() if isinstance(entity, Robot)]
             )
 
-        self.catch_exceptions = True
+        self.catch_exceptions = False
 
         self.simulation_log.append(utils.BasicLog("Simulation successfully loaded.", 0))
         self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
@@ -155,30 +152,30 @@ class Simulator:
             self.simulation_log.append(utils.BasicLog("Starting run.", step_count))
 
             while active_agents:
-                try:
-                    # Increment simulation step count
-                    step_count += 1
+                # try:
+                # Increment simulation step count
+                step_count += 1
 
-                    # Sense loop: update each agent's knowledge of the world
-                    self.sense(active_agents, step_count)
+                # Sense loop: update each agent's knowledge of the world
+                self.sense(active_agents, step_count)
 
-                    # Think loop: get each agent to think about their next step
-                    agent_uid_to_next_action = self.think(active_agents, trace_polygons, step_count)
+                # Think loop: get each agent to think about their next step
+                agent_uid_to_next_action = self.think(active_agents, trace_polygons, step_count)
 
-                    # Act loops: Verify that each action is doable individually and together, if so, execute them
-                    self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons, step_count)
+                # Act loops: Verify that each action is doable individually and together, if so, execute them
+                self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons, step_count)
 
-                    # Once the simulation reference world has been modified, display the modification
-                    if not self.display_sim_knowledge_only_once:
-                        self.rp.publish_sim_world(self.ref_world)
-                except Exception as e:
-                    if self.catch_exceptions:
-                        tb = traceback.format_exc()
-                        run_exceptions_traces.append(tb)
-                        self.simulation_log.append(utils.BasicLog(tb, step_count))
-                    else:
-                        self.simulation_log.append(utils.BasicLog("MET A RUNTIME EXCEPTION, EXITING !", step_count))
-                        raise e
+                # Once the simulation reference world has been modified, display the modification
+                if not self.display_sim_knowledge_only_once:
+                    self.rp.publish_sim_world(self.ref_world)
+                # except Exception as e:
+                #     if self.catch_exceptions:
+                #         tb = traceback.format_exc()
+                #         run_exceptions_traces.append(tb)
+                #         self.simulation_log.append(utils.BasicLog(tb, step_count))
+                #     else:
+                #         self.simulation_log.append(utils.BasicLog("MET A RUNTIME EXCEPTION, EXITING !", step_count))
+                #         raise e
 
             # If the simulation is set to be reset after all agents have reached their first goal,
             # and there are goals left to reach, reset the simulation world and give the agents their next goal

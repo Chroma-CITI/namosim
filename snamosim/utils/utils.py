@@ -462,11 +462,11 @@ def get_translation_and_rotation(start_pose, end_pose):
 
 def set_polygon_pose(polygon, init_polygon_pose, end_polygon_pose, rotation_center='center'):
     translation, rotation = get_translation_and_rotation(init_polygon_pose, end_polygon_pose)
-    return translate_then_rotate_polygon(polygon, translation, rotation, rotation_center)
+    return rotate_then_translate_polygon(polygon, translation, rotation, rotation_center)
 
 
-def translate_then_rotate_polygon(polygon, translation, rotation, rotation_center='center'):
-    return affinity.rotate(affinity.translate(polygon, *translation), rotation, origin=rotation_center)
+def rotate_then_translate_polygon(polygon, translation, rotation, rotation_center='center'):
+    return affinity.translate(affinity.rotate(polygon, rotation, origin=rotation_center), *translation)
 
 
 def polygon_collides_with_entities(polygon, entities, aabb_tree=None):

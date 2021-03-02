@@ -1130,27 +1130,28 @@ class Stilman2005Behavior(BaselineBehavior):
         return None  # If no valid configuration could be found...
 
     @staticmethod
-    def can_robot_walk_back_to_next_transit_pose(inflated_grid_by_robot_max,
-                                                 robot_pose, robot_polygon, robot_uid, b2_sim):
+    def can_robot_walk_back_to_next_transit_pose(grid, robot_pose, robot_polygon, robot_uid, b2_sim):
         release_translation = ba.Translation(
             translation_vector=(
-                -1. * (inflated_grid_by_robot_max.inflation_radius + 1.5 * inflated_grid_by_robot_max.res), 0.
+                -1. * (grid.inflation_radius + 1.5 * grid.res), 0.
             )
         )
         new_robot_pose = release_translation.predict_pose(robot_pose, robot_pose[2])
-        new_cell_in_grid = utils.real_to_grid(
-            new_robot_pose[0], new_robot_pose[1], inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose
-        )
+        cell = utils.real_to_grid(new_robot_pose[0], new_robot_pose[1], grid.res, grid.grid_pose)
 
-        if inflated_grid_by_robot_max.grid[new_cell_in_grid[0]][new_cell_in_grid[1]] > 0:
-            # If the robot cell after release is in an obstacle in the grid, return False
-            return False, new_cell_in_grid
+        if utils.is_in_matrix(cell, grid.d_width, grid.d_height):
+            if grid.grid[cell[0]][cell[1]] > 0:
+                # If the robot cell after release is in an obstacle in the grid, return False
+                return False, cell
+        else:
+            # If robot cell outside of grid, return False
+            return False, cell
 
         new_robot_polygon = release_translation.apply(robot_polygon, robot_pose)
 
         # Check if robot is still within map bounds
-        if not new_robot_polygon.within(inflated_grid_by_robot_max.aabb_polygon):
-            return False, new_cell_in_grid
+        if not new_robot_polygon.within(grid.aabb_polygon):
+            return False, cell
 
         # Finally, we check dynamic collisions (between init configuration and after-action configuration)
         collision_pairs = b2_sim.check_actions_with_ghost(
@@ -1158,7 +1159,7 @@ class Stilman2005Behavior(BaselineBehavior):
             actions=[release_translation], main_pose=robot_pose
         )
 
-        return not collision_pairs, new_cell_in_grid
+        return not collision_pairs, cell
 
     @staticmethod
     def get_robot_walk_back_to_next_transit_configuration(robot_pose, robot_polygon, robot_max_inflation_radius,
@@ -1434,8 +1435,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
     @staticmethod
     def deduce_robot_goal_pose(robot_manip_pose, obs_init_pose, obs_goal_pose):
-        translation, rotation = utils.get_translation_and_rotation(obs_goal_pose, obs_init_pose)
-        robot_goal_point = list(utils.translate_then_rotate_polygon(
+        translation, rotation = utils.get_translation_and_rotation(obs_init_pose, obs_goal_pose)
+        robot_goal_point = list(utils.rotate_then_translate_polygon(
                 Point((robot_manip_pose[0], robot_manip_pose[1])), translation, rotation,
                 (obs_init_pose[0], obs_init_pose[1])
             ).coords[0])

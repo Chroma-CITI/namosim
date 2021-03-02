@@ -454,7 +454,7 @@ Visualization Manager:
           Displays:
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_03/knowledge
+              Marker Topic: /robot_01/knowledge
               Name: Robot Knowledge
               Namespaces:
                 {}
@@ -462,7 +462,7 @@ Visualization Manager:
               Value: false
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /robot_03/goal
+              Marker Topic: /robot_01/goal
               Name: Goal
               Namespaces:
                 {}
@@ -474,13 +474,13 @@ Visualization Manager:
               Draw Behind: false
               Enabled: false
               Name: Robot Costmap
-              Topic: /robot_03/costmap
+              Topic: /robot_01/costmap
               Unreliable: false
               Use Timestamp: false
               Value: false
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /robot_03/sim
+              Marker Topic: /robot_01/sim
               Name: Robot Simulated Actions
               Namespaces:
                 {}
@@ -488,7 +488,7 @@ Visualization Manager:
               Value: true
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_03/sim/world
+              Marker Topic: /robot_01/sim/world
               Name: Robot Sim World
               Namespaces:
                 {}
@@ -500,7 +500,7 @@ Visualization Manager:
               Draw Behind: false
               Enabled: false
               Name: Robot Simulated Costmap
-              Topic: /robot_03/robot_sim/costmap
+              Topic: /robot_01/robot_sim/costmap
               Unreliable: false
               Use Timestamp: false
               Value: false
@@ -517,12 +517,12 @@ Visualization Manager:
               Shaft Length: 0.230000004
               Shaft Radius: 0.0700000003
               Shape: Arrow (3D)
-              Topic: /robot_03/test/obs_manip_poses
+              Topic: /robot_01/test/obs_manip_poses
               Unreliable: false
               Value: true
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_03/a_star/close_set_cells
+              Marker Topic: /robot_01/a_star/close_set_cells
               Name: A Star Closed Set Cells
               Namespaces:
                 {}
@@ -530,7 +530,7 @@ Visualization Manager:
               Value: false
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_03/multi_a_star/close_set
+              Marker Topic: /robot_01/multi_a_star/close_set
               Name: MultiA Star Closed Set Cells
               Namespaces:
                 {}
@@ -538,7 +538,7 @@ Visualization Manager:
               Value: false
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_03/stilman_rch/close_set
+              Marker Topic: /robot_01/stilman_rch/close_set
               Name: RCH Closed Set Cells
               Namespaces:
                 {}
@@ -546,7 +546,7 @@ Visualization Manager:
               Value: false
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /robot_03/plan
+              Marker Topic: /robot_01/plan
               Name: p_opt
               Namespaces:
                 {}
@@ -569,7 +569,7 @@ Visualization Manager:
               Min Intensity: 0
               Name: Social Costmap
               Show Grid Lines: true
-              Topic: /robot_03/test/gridmap
+              Topic: /robot_01/test/gridmap
               Unreliable: false
               Use Rainbow: true
               Value: false
@@ -590,7 +590,7 @@ Visualization Manager:
               Min Intensity: 0
               Name: Combined Costmap
               Show Grid Lines: false
-              Topic: /robot_03/combined_costmap
+              Topic: /robot_01/combined_costmap
               Unreliable: false
               Use Rainbow: true
               Value: false
@@ -611,17 +611,17 @@ Visualization Manager:
               Min Intensity: 0
               Name: Connected Components Grid
               Show Grid Lines: true
-              Topic: /robot_03/test/connected_components
+              Topic: /robot_01/test/connected_components
               Unreliable: false
               Use Rainbow: true
               Value: false
           Enabled: true
-          Name: robot_03
+          Name: robot_01
         - Class: rviz/Group
           Displays:
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_04/knowledge
+              Marker Topic: /robot_02/knowledge
               Name: Robot Knowledge
               Namespaces:
                 {}
@@ -629,7 +629,7 @@ Visualization Manager:
               Value: false
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /robot_04/goal
+              Marker Topic: /robot_02/goal
               Name: Goal
               Namespaces:
                 {}
@@ -641,13 +641,13 @@ Visualization Manager:
               Draw Behind: false
               Enabled: false
               Name: Robot Costmap
-              Topic: /robot_04/costmap
+              Topic: /robot_02/costmap
               Unreliable: false
               Use Timestamp: false
               Value: false
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /robot_04/sim
+              Marker Topic: /robot_02/sim
               Name: Robot Simulated Actions
               Namespaces:
                 {}
@@ -655,7 +655,7 @@ Visualization Manager:
               Value: true
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_04/sim/world
+              Marker Topic: /robot_02/sim/world
               Name: Robot Sim World
               Namespaces:
                 {}
@@ -667,7 +667,7 @@ Visualization Manager:
               Draw Behind: false
               Enabled: false
               Name: Robot Simulated Costmap
-              Topic: /robot_04/robot_sim/costmap
+              Topic: /robot_02/robot_sim/costmap
               Unreliable: false
               Use Timestamp: false
               Value: false
@@ -684,12 +684,12 @@ Visualization Manager:
               Shaft Length: 0.230000004
               Shaft Radius: 0.0700000003
               Shape: Arrow (3D)
-              Topic: /robot_04/test/obs_manip_poses
+              Topic: /robot_02/test/obs_manip_poses
               Unreliable: false
               Value: true
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_04/a_star/close_set_cells
+              Marker Topic: /robot_02/a_star/close_set_cells
               Name: A Star Closed Set Cells
               Namespaces:
                 {}
@@ -697,7 +697,7 @@ Visualization Manager:
               Value: false
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_04/multi_a_star/close_set
+              Marker Topic: /robot_02/multi_a_star/close_set
               Name: MultiA Star Closed Set Cells
               Namespaces:
                 {}
@@ -705,7 +705,7 @@ Visualization Manager:
               Value: false
             - Class: rviz/MarkerArray
               Enabled: false
-              Marker Topic: /robot_04/stilman_rch/close_set
+              Marker Topic: /robot_02/stilman_rch/close_set
               Name: RCH Closed Set Cells
               Namespaces:
                 {}
@@ -713,7 +713,7 @@ Visualization Manager:
               Value: false
             - Class: rviz/MarkerArray
               Enabled: true
-              Marker Topic: /robot_04/plan
+              Marker Topic: /robot_02/plan
               Name: p_opt
               Namespaces:
                 {}
@@ -736,7 +736,7 @@ Visualization Manager:
               Min Intensity: 0
               Name: Social Costmap
               Show Grid Lines: true
-              Topic: /robot_04/test/gridmap
+              Topic: /robot_02/test/gridmap
               Unreliable: false
               Use Rainbow: true
               Value: false
@@ -757,7 +757,7 @@ Visualization Manager:
               Min Intensity: 0
               Name: Combined Costmap
               Show Grid Lines: false
-              Topic: /robot_04/combined_costmap
+              Topic: /robot_02/combined_costmap
               Unreliable: false
               Use Rainbow: true
               Value: false
@@ -778,12 +778,12 @@ Visualization Manager:
               Min Intensity: 0
               Name: Connected Components Grid
               Show Grid Lines: true
-              Topic: /robot_04/test/connected_components
+              Topic: /robot_02/test/connected_components
               Unreliable: false
               Use Rainbow: true
               Value: false
           Enabled: true
-          Name: robot_04
+          Name: robot_02
       Enabled: true
       Name: Group
   Enabled: true

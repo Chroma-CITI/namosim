@@ -23,8 +23,9 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon,
     # Note: Intersection geometry can be either Point, LineString or Polygon
     if not init_blocking_areas:
         init_blocking_areas = []
-
-        potential_collision_polygons_uids = b2_sim.query_aabb_overlapping_uids(init_entity_inflated_polygon)
+        other_entities_polygons_uids = set(other_entities_polygons.keys())
+        potential_collision_polygons_uids = b2_sim.query_aabb_overlapping_uids(
+            init_entity_inflated_polygon).intersection(other_entities_polygons_uids)
 
         for uid in potential_collision_polygons_uids :
             intersection_geometry = init_entity_inflated_polygon.intersection(other_entities_polygons[uid])

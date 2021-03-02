@@ -226,7 +226,8 @@ class World:
         world.update_dd()
 
         goals_node = init_geometry_file.getElementById("goals")
-        goals_node.parentNode.removeChild(goals_node)
+        if goals_node:
+            goals_node.parentNode.removeChild(goals_node)
 
         return world
 

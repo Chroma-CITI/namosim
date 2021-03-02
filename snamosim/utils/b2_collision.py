@@ -74,6 +74,25 @@ class B2Sim:
         # Convert entities into appropriate box2D world bodies
         self.add_entities(entities)
 
+    def polygon_to_fixtures_defs(self, polygon, pose, uid):
+        local_polygon = utils.shapely_geom_to_local(polygon, pose)
+        convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_polygon)
+        fixtures = []
+        for counter, coords in enumerate(convex_polygons_coords):
+            try:
+                fixture = Box2D.b2FixtureDef(
+                    shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': uid}, isSensor=True
+                )
+                fixtures.append(fixture)
+            except Exception as e:
+                # Catch exceptions caused by fixture coordinates too close to make a triangle Polygon in Box2D's
+                # opinion. Simply ignore the fixture.
+                # TODO: Either improve convexity verification to recognize after the feast tables as convex
+                #  or fix after the feast case to stop using rounded corners that are probably causing the problem
+                #  when svg is read and simplified to polygon.
+                pass
+        return fixtures, local_polygon
+
     def add_entities(self, entities):
         """
         Add new entities to Box2D world
@@ -83,22 +102,7 @@ class B2Sim:
 
         # Convert entities into appropriate box2D world bodies
         for uid, entity in entities.items():
-            local_polygon = utils.shapely_geom_to_local(entity.polygon, entity.pose)
-            convex_polygons_coords = utils.convert_to_convex_polygons_coordinates_list(local_polygon)
-            fixtures = []
-            for counter, coords in enumerate(convex_polygons_coords):
-                try:
-                    fixture = Box2D.b2FixtureDef(
-                        shape=Box2D.b2PolygonShape(vertices=coords), userData={'uid': uid}, isSensor=True
-                    )
-                    fixtures.append(fixture)
-                except Exception as e:
-                    # Catch exceptions caused by fixture coordinates too close to make a triangle Polygon in Box2D's
-                    # opinion. Simply ignore the fixture.
-                    # TODO: Either improve convexity verification to recognize after the feast tables as convex
-                    #  or fix after the feast case to stop using rounded corners that are probably causing the problem
-                    #  when svg is read and simplified to polygon.
-                    pass
+            fixtures, _ = self.polygon_to_fixtures_defs(entity.polygon, entity.pose, uid)
 
             # Differentiate static obstacles from the rest for performance reasons
             if entity.movability == "static" or entity.movability == "unmovable":
@@ -118,7 +122,7 @@ class B2Sim:
         # For the moment, just in case, we clean ghost entities just in case
         for key, body in self.ghost_entities:
             self.b2_world.DestroyBody(body)
-        self.b2_entities = {}
+        self.ghost_entities = {}
 
     def update_entities(self, entities, debug_init=False, debug_after=False):
         if debug_init:
@@ -144,8 +148,8 @@ class B2Sim:
         ghost_fixtures_defs = []
         local_poses = {}
         for uid, p in entities_polygons.items():
-            local_polygon = utils.shapely_geom_to_local(p, main_pose)
-            ghost_fixtures_defs.append(Box2D.b2FixtureDef(shape=local_polygon, userData={'uid': uid}, isSensor=True))
+            fixtures, local_polygon = self.polygon_to_fixtures_defs(p, main_pose, uid)
+            ghost_fixtures_defs += fixtures
             local_centroid = local_polygon.centroid.coords[0]
             local_angle = utils.angle_to_360_interval(entities_poses[uid][2] - main_pose[2])
             local_poses[uid] = (local_centroid[0], local_centroid[1], local_angle)
