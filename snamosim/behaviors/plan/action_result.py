@@ -80,29 +80,10 @@ class SimultaneousGrabFailure(ActionFailure):
         )
 
 
-class StaticCollisionFailure(ActionFailure):
-    def __init__(self, action, obstacle_in_collision_1, obstacle_in_collision_2, intersection_polygon):
-        ActionFailure.__init__(self, action)
-        self.obstacle_in_collision_1 = obstacle_in_collision_1
-        self.obstacle_in_collision_2 = obstacle_in_collision_2
-        self.intersection_polygon = intersection_polygon
-
-    def __str__(self):
-        return "Action failed," \
-               "because of collision between {coll_obs_1} and {coll_obs_2}".format(
-                    coll_obs_1=self.obstacle_in_collision_1,
-                    coll_obs_2=self.obstacle_in_collision_2)
-
-
 class DynamicCollisionFailure(ActionFailure):
-    def __init__(self, action, obstacle_in_collision_1, obstacle_in_collision_2, intersection_polygon):
+    def __init__(self, action, colliding_entities_uids):
         ActionFailure.__init__(self, action)
-        self.obstacle_in_collision_1 = obstacle_in_collision_1
-        self.obstacle_in_collision_2 = obstacle_in_collision_2
-        self.intersection_polygon = intersection_polygon
+        self.colliding_entities_uids = colliding_entities_uids
 
     def __str__(self):
-        return "Action failed," \
-               "because of collision between {coll_obs_1} and {coll_obs_2} when they were both moving".format(
-                    coll_obs_1=self.obstacle_in_collision_1,
-                    coll_obs_2=self.obstacle_in_collision_2)
+        return "Action failed, because of collision between {}.".format(self.colliding_entities_uids)

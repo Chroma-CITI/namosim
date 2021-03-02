@@ -34,9 +34,10 @@ class OverlappingEntitiesUidsQueryCallback(Box2D.b2QueryCallback):
 
 
 class GhostData:
-    def __init__(self, key, entities_polygons, actions, main_pose):
+    def __init__(self, key, entities_polygons, entities_poses, actions, main_pose):
         self.key = key
         self.entities_polygons = entities_polygons
+        self.entities_poses = entities_poses
         self.actions = actions
         self.main_pose = main_pose
 
@@ -328,6 +329,10 @@ class B2Sim:
         for uid in uids:
             if uid in self.b2_entities:
                 self.b2_entities[uid].active = True
+
+    def get_entity_pose(self, uid):
+        entity_body = self.b2_entities[uid]
+        return entity_body.position[0], entity_body.position[1], math.degrees(entity_body.angle)
 
     def query_aabb_overlapping_uids(self, polygon):
         xmin, ymin, xmax, ymax = polygon.bounds

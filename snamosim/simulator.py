@@ -517,7 +517,7 @@ class Simulator:
         }
         failed = {}
         succeeded = {
-            uid: ar.ActionSuccess(a, self.ref_world[uid].pose)
+            uid: ar.ActionSuccess(a, self.ref_world.entities[uid].pose)
             for uid, a in agent_uid_to_next_action.items() if isinstance(a, ba.Wait)
         }
 
@@ -561,24 +561,85 @@ class Simulator:
                 to_check[agent_uid] = action
 
         # Check actions regarding dynamic collisions and apply the valid ones using Box2D
+        ghosts_datas = []
+        for agent_uid, action in to_check.items():
+            agent = self.ref_world.entities[agent_uid]
+            if not isinstance(action, ba.Release) and agent_uid in entity_to_agent.inverse:
+                entity_uid = entity_to_agent.inverse[agent_uid]
+                entity = self.ref_world.entities[entity_uid]
+                key = (agent_uid, entity_uid)
+                entities_polygons = {agent_uid: agent.polygon, entity_uid: entity.polygon}
+                entities_poses = {agent_uid: agent.pose, entity_uid: entity.pose}
+            else:
+                key = (agent_uid,)
+                entities_polygons = {agent_uid: agent.polygon}
+                entities_poses = {agent_uid: agent.pose}
+            ghost_data = b2_collision.GhostData(key, entities_polygons, entities_poses, [action], agent.pose)
+            ghosts_datas.append(ghost_data)
+        collision_pairs = self.b2_sim.simulate_multiple(ghosts_datas)
 
-        # Update reference world state with data from Box2D world
+        # Finish separating succeeded and failed actions, and apply result to world state on success
+        collides_with = {}
+        for uid_1, uid_2 in collision_pairs:
+            if uid_1 in collides_with:
+                collides_with[uid_1].add(uid_2)
+            else:
+                collides_with[uid_1] = {uid_2}
+            if uid_2 in collides_with:
+                collides_with[uid_2].add(uid_1)
+            else:
+                collides_with[uid_2] = {uid_1}
+        for agent_uid, action in to_check.items():
+            action_dynamically_collides = (
+                    agent_uid in collides_with
+                    or (
+                        agent_uid in entity_to_agent.inverse
+                        and entity_to_agent.inverse[agent_uid] in collides_with
+                        and not isinstance(action, ba.Release)
+                    )
+            )
+            if action_dynamically_collides:
+                if agent_uid in entity_to_agent.inverse and not isinstance(action, ba.Release):
+                    colliding = collides_with[agent_uid].union(collides_with[entity_to_agent.inverse[agent_uid]])
+                else:
+                    colliding = collides_with[agent_uid]
+                failed[agent_uid] = ar.DynamicCollisionFailure(action, colliding)
+            else:
+                # SUCCESS
+                # If Grab or Release, first update entity_to_agent
+                if isinstance(action, ba.Grab):
+                    entity_to_agent[action.entity_uid] = agent_uid
+                if isinstance(action, ba.Release):
+                    del entity_to_agent[action.entity_uid]
 
-        # # Save Action Result in action result history
-        # self.agent_uid_to_action_results[agent_uid].append(action_result)
-        #
-        # agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
-        # if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-        #     self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
-        # else:
-        #     self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
-        #
-        # # Third Act loop: Save results of impossible actions
-        # for agent_uid, action_result in agent_uid_to_impossible_action_result.items():
-        #     self.agent_uid_to_action_results[agent_uid].append(action_result)
-        #
-        #     agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
-        #     if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-        #         self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
-        #     else:
-        #         self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
+                # Then apply to world
+                agent = self.ref_world.entities[agent_uid]
+                agent_new_pose = self.b2_sim.get_entity_pose(agent_uid)
+                agent_new_polygon = utils.set_polygon_pose(agent.polygon, agent.pose, agent_new_pose)
+                agent.pose, agent.polygon = agent_new_pose, agent_new_polygon
+                if agent_uid in entity_to_agent:
+                    entity_uid = entity_to_agent.inverse[agent_uid]
+                    entity = self.ref_world.entities[entity_uid]
+                    entity_new_pose = self.b2_sim.get_entity_pose(entity_uid)
+                    entity_new_polygon = utils.set_polygon_pose(entity.polygon, entity.pose, entity_new_pose)
+                    entity.pose, entity.polygon = entity_new_pose, entity_new_polygon
+
+                succeeded[agent_uid] = ar.ActionSuccess(action, agent_new_pose)
+
+        # Save Action Result in action result history
+        for agent_uid, action_result in succeeded.items():
+            self.agent_uid_to_action_results[agent_uid].append(action_result)
+
+            agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
+            if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
+            else:
+                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
+        for agent_uid, action_result in failed.items():
+            self.agent_uid_to_action_results[agent_uid].append(action_result)
+
+            agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
+            if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
+                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
+            else:
+                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]

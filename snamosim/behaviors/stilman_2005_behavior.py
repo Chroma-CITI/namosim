@@ -194,7 +194,7 @@ class Stilman2005Behavior(BaselineBehavior):
         if isinstance(self._last_action_result, ar.ActionFailure):
             action_failed_because_of_other_agent = isinstance(
                 self._last_action_result,
-                (ar.StaticCollisionFailure, ar.DynamicCollisionFailure, ar.GrabbedByOtherFailure)
+                (ar.SimultaneousGrabFailure, ar.DynamicCollisionFailure, ar.GrabbedByOtherFailure)
             )
             if action_failed_because_of_other_agent:
                 self.wait_steps = random.randint(self.min_nb_steps_to_wait, self.max_nb_steps_to_wait)
