@@ -67,13 +67,14 @@ class Translation:
         self.translation_length = utils.euclidean_distance((0., 0.), translation_vector)
         self.translation_linestring = LineString([(0., 0.), self.translation_vector])
 
-    def compute_translation_vector(self, pose):
-        rotated_linestring = affinity.rotate(self.translation_linestring, pose[2], origin=(0., 0.))
+    def compute_translation_vector(self, angle):
+        # TODO Replace by call to utils.direction_from_yaw(angle) multiplying self.translation_vector ?
+        rotated_linestring = affinity.rotate(self.translation_linestring, angle, origin=(0., 0.))
         translation_vector = rotated_linestring.coords[1]
         return translation_vector
 
     def apply(self, polygon, pose):
-        translation_vector = self.compute_translation_vector(pose)
+        translation_vector = self.compute_translation_vector(pose[2])
         return affinity.translate(geom=polygon, xoff=translation_vector[0], yoff=translation_vector[1], zoff=0.)
 
     def predict_pose(self, pose, direction_angle):
@@ -99,7 +100,7 @@ class Release(Translation):
 
 def convert_action(action, robot_pose):
     if isinstance(action, Translation):
-        translation_vector = action.compute_translation_vector(robot_pose)
+        translation_vector = action.compute_translation_vector(robot_pose[2])
         return collision.Translation(translation_vector)
     elif isinstance(action, Rotation):
         return collision.Rotation(action.angle, (robot_pose[0], robot_pose[1]))
