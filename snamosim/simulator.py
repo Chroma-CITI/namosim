@@ -2,11 +2,8 @@ import time
 import copy
 import json
 import os
-import random
-import numpy as np
 import traceback
 from bidict import bidict
-from shapely import affinity
 
 from snamosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 
@@ -20,8 +17,6 @@ from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 
 from snamosim.utils import stats_utils, utils, conversion, b2_collision
-
-from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 
 
 class Simulator:

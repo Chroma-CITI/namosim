@@ -149,14 +149,16 @@ class World:
                     elif sensor_data["type"] == "omniscient":
                         sensors.append(OmniscientSensor())
 
-                new_robot = Robot(name=entity_data["name"],
-                                  full_geometry_acquired=True,
-                                  polygon=polygon,
-                                  pose=tuple(pose),
-                                  sensors=sensors,
-                                  push_only_list=entity_data["push_only_list"],
-                                  force_pushes_only=entity_data["force_pushes_only"],
-                                  movable_whitelist=entity_data["movable_whitelist"])
+                new_robot = Robot(
+                    name=entity_data["name"],
+                    full_geometry_acquired=True,
+                    polygon=polygon,
+                    pose=tuple(pose),
+                    sensors=sensors,
+                    push_only_list=entity_data["push_only_list"],
+                    force_pushes_only=entity_data["force_pushes_only"],
+                    movable_whitelist=entity_data["movable_whitelist"]
+                )
                 if not first_robot:
                     first_robot = new_robot
 
@@ -167,11 +169,14 @@ class World:
 
                 world.add_entity(new_robot)
             else:
-                new_object = Obstacle(name=entity_data["name"],
-                                      polygon=polygon,
-                                      pose=pose,
-                                      type_in=entity_data["type"],
-                                      full_geometry_acquired=True)
+                new_object = Obstacle(
+                    name=entity_data["name"],
+                    polygon=polygon,
+                    pose=pose,
+                    type_in=entity_data["type"],
+                    full_geometry_acquired=True,
+                    movability="static" if entity_data["type"] in ["wall", "pillar", "table"] else "unknown"
+                )
 
                 world.add_entity(new_object)
 

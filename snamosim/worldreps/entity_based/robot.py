@@ -1,18 +1,15 @@
 from snamosim.worldreps.entity_based.entity import Entity
 from snamosim.utils import utils
 
-from math import sqrt
-import numpy as np
 import copy
-from shapely.geometry import LineString
 
 
 class Robot(Entity):
 
     def __init__(self, name, full_geometry_acquired, polygon, pose, sensors,
-                 push_only_list, force_pushes_only, movable_whitelist, uid=0):
+                 push_only_list, force_pushes_only, movable_whitelist, movability="unknown", uid=0):
         polygon = polygon
-        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, uid=uid)
+        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, movability=movability, uid=uid)
 
         self.sensors = sensors
         for sensor in sensors:
@@ -23,19 +20,6 @@ class Robot(Entity):
         self.movable_whitelist = movable_whitelist
         self.type = 'robot'
         self.min_inflation_radius = self.compute_inflation_radius()
-
-    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5., ignore_collisions=False):
-        Entity.rotate(self, angle, rot_center, other_entities, angular_res, ignore_collisions)
-        for sensor in self.sensors:
-            pass
-            sensor.rotate(angle, rot_center=(self.pose[0], self.pose[1]))
-        return self
-
-    def translate(self, xoff, yoff, res=0.05, other_entities=None, ignore_collisions=False):
-        Entity.translate(self, xoff, yoff, res, other_entities, ignore_collisions)
-        for sensor in self.sensors:
-            sensor.translate(xoff, yoff)
-        return self
 
     def update_world_from_sensors(self, reference_world, target_world):
         added_uids, updated_uids, removed_uids = set(), set(), set()

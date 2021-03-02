@@ -88,6 +88,10 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self.grabbed_obstacles = set()
 
+        # Initialize movability status of obstacles
+        for entity in self._world.entities.values():
+            entity.movability = self._robot.deduce_movability(entity.type)
+
         # Initialize overall Box2D world simulation
         self.b2_sim = b2_collision.B2Sim(self._world.entities)
 

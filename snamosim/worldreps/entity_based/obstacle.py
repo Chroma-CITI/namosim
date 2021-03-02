@@ -10,8 +10,8 @@ from shapely.geometry import Point
 
 class Obstacle(Entity):
 
-    def __init__(self, name, polygon, pose, full_geometry_acquired, type_in, uid=0):
-        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, uid=uid)
+    def __init__(self, name, polygon, pose, full_geometry_acquired, type_in, movability="unknown", uid=0):
+        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, movability=movability, uid=uid)
         self.type = type_in
 
         self.actions = dict()
@@ -19,11 +19,6 @@ class Obstacle(Entity):
 
         self.q_l = []
         self._is_q_l_valid = False
-
-    def set_polygon(self, polygon):
-        Entity.set_polygon(self, polygon)
-        self._is_actions_valid = False
-        return self
 
     def get_actions(self, inflation_radius, res, pushes_only):
         if not self._is_actions_valid:
@@ -36,16 +31,6 @@ class Obstacle(Entity):
             self.q_l = self._compute_q_l(world, ns=ns)
             self._is_q_l_valid = True
         return self.q_l
-
-    def translate(self, xoff, yoff, res=0.05, other_entities=None, ignore_collisions=False):
-        Entity.translate(self, xoff, yoff, res, other_entities, ignore_collisions)
-        self._is_actions_valid = False
-        return self
-
-    def rotate(self, angle, rot_center='centroid', other_entities=None, angular_res=5., ignore_collisions=False):
-        Entity.rotate(self, angle, rot_center, other_entities, angular_res, ignore_collisions)
-        self._is_actions_valid = False
-        return self
 
     @staticmethod
     def _isclose(a, b, abs_tol=1e-06):
