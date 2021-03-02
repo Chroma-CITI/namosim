@@ -560,9 +560,9 @@ class Simulator:
                         continue
                 to_check[agent_uid] = action
 
-        # Check dynamic collisions between any entities with Box2D
+        # Check actions regarding dynamic collisions and apply the valid ones using Box2D
 
-        # Apply actions that respect the simulation rules to the world state
+        # Update reference world state with data from Box2D world
 
         # # Save Action Result in action result history
         # self.agent_uid_to_action_results[agent_uid].append(action_result)

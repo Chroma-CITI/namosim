@@ -1060,7 +1060,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
                     # If the obstacle collides at this pose, don't consider checking further
                     obstacle_collision_pairs = b2_sim.check_teleportation_with_ghost(
-                        obstacle_uid, {obstacle_uid: obstacle_polygon}, obstacle_pose_at_transfer_end
+                        obstacle_uid, {obstacle_uid: obstacle_polygon}, {obstacle_uid: obstacle_pose}, obstacle_pose_at_transfer_end
                     )
                     if obstacle_collision_pairs:
                         continue
@@ -1074,7 +1074,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         # For this (robot, obstacle) configuration, check if:
                         #   1. there are no static collisions for robot too, ...
                         robot_collision_pairs = b2_sim.check_teleportation_with_ghost(
-                            robot_uid, {robot_uid: robot_polygon}, robot_pose_at_transfer_end
+                            robot_uid, {robot_uid: robot_polygon}, {robot_uid: robot_pose}, robot_pose_at_transfer_end
                         )
                         if robot_collision_pairs:
                             continue
@@ -1150,7 +1150,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # Finally, we check dynamic collisions (between init configuration and after-action configuration)
         collision_pairs = b2_sim.check_actions_with_ghost(
-            key=robot_uid, entities_polygons={robot_uid: robot_polygon},
+            key=robot_uid, entities_polygons={robot_uid: robot_polygon}, entities_poses={robot_uid: robot_pose},
             actions=[release_translation], main_pose=robot_pose
         )
 
@@ -1339,6 +1339,10 @@ class Stilman2005Behavior(BaselineBehavior):
                 entities_polygons={
                     robot_uid: current_configuration.robot.polygon,
                     obstacle_uid: current_configuration.obstacle.polygon
+                },
+                entities_poses={
+                    robot_uid: current_configuration.robot.floating_point_pose,
+                    obstacle_uid: current_configuration.obstacle.floating_point_pose
                 },
                 actions=[action], main_pose=current_configuration.robot.floating_point_pose
             )
@@ -1810,6 +1814,10 @@ class TransferPath:
             entities_polygons={
                 robot_uid: self.robot_path.polygons[1],
                 self.obstacle_uid: self.obstacle_path.polygons[1]
+            },
+            entities_poses={
+                robot_uid: self.robot_path.poses[1],
+                self.obstacle_uid: self.obstacle_path.poses[1]
             },
             actions=actions_to_check, main_pose=robot_pose
         )
