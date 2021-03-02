@@ -160,7 +160,10 @@ class B2Sim:
             active=False  # Start out as non-active (only active when used). Note: 'active' -> 'enabled' in v2.4.x
         )
 
-    def simulate_multiple(self, ghosts_datas, stop_on_collision=True, apply=True, debug_init=False, debug_after=False):
+    def simulate_multiple(self, ghosts_datas, stop_on_collision=True, apply=True, debug_init=True, debug_after=True):
+        if debug_init:
+            self.display_b2world()
+
         # Initialize world state
         actions_len = 0
         for ghost_data in ghosts_datas:
@@ -193,20 +196,18 @@ class B2Sim:
                 #  Try to apply the action sequence, exit as soon as we encounter the first collision
                 if isinstance(action, ba.Translation):
                     ghost.linearVelocity, ghost.angularVelocity = action.compute_translation_vector(math.degrees(ghost.angle)), 0.
-                if isinstance(action, ba.Rotation):
+                elif isinstance(action, ba.Rotation):
                     ghost.linearVelocity, ghost.angularVelocity = (0., 0.), math.radians(action.angle)
-
-            if debug_init:
-                self.display_b2world()
+                else:
+                    raise TypeError(
+                        "b2_collision.py simulate_multiple method only simulates Rotations and Translations."
+                    )
 
             # Have Box2D simulate the action
             self.b2_world.Step(
                 timeStep=self.time_step,
                 velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
             )
-
-            if debug_after:
-                self.display_b2world()
 
             collision_pairs += self.contact_listener.get_collision_pairs()
 
@@ -216,6 +217,7 @@ class B2Sim:
         # Deactivate ghost and reactivate the original entities
         for ghost_data in ghosts_datas:
             ghost = self.ghost_entities[ghost_data.key]
+            ghost.linearVelocity, ghost.angularVelocity = (0., 0.), 0.
             ghost.active = False
             for uid in ghost_data.entities_polygons.keys():
                 self.b2_entities[uid].active = True

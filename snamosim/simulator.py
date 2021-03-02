@@ -609,7 +609,7 @@ class Simulator:
                 agent_new_pose = self.b2_sim.get_entity_pose(agent_uid)
                 agent_new_polygon = utils.set_polygon_pose(agent.polygon, agent.pose, agent_new_pose)
                 agent.pose, agent.polygon = agent_new_pose, agent_new_polygon
-                if agent_uid in entity_to_agent:
+                if agent_uid in entity_to_agent.inverse:
                     entity_uid = entity_to_agent.inverse[agent_uid]
                     entity = self.ref_world.entities[entity_uid]
                     entity_new_pose = self.b2_sim.get_entity_pose(entity_uid)
