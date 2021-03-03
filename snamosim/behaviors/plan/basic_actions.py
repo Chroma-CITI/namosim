@@ -30,11 +30,6 @@ class GoalFailed(GoalResult):
         return "failure"
 
 
-class GoToPose:
-    def __init__(self, pose):
-        self.pose = pose
-
-
 class Wait:
     def __init__(self):
         pass

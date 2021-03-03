@@ -1,5 +1,5 @@
 import math
-import copy
+import numpy
 import Box2D
 
 import matplotlib.pyplot as plt
@@ -12,15 +12,21 @@ from snamosim.utils import utils
 class CollisionPairsContactListener(Box2D.b2ContactListener):
     def __init__(self, **kwargs):
         Box2D.b2ContactListener.__init__(self, **kwargs)
-        self._collision_pairs = []
+        self._contacts = {}
 
     def BeginContact(self, contact):
-        self._collision_pairs.append((contact.fixtureA.userData['uid'], contact.fixtureB.userData['uid']))
+        self._contacts[(contact.fixtureA.userData['uid'], contact.fixtureB.userData['uid'])] = contact
+        print(self.get_collision_pairs())
+
+    def EndContact(self, contact):
+        try:
+            del self._contacts[(contact.fixtureA.userData['uid'], contact.fixtureB.userData['uid'])]
+        except KeyError:
+            pass
+        print(self.get_collision_pairs())
 
     def get_collision_pairs(self):
-        return_value = copy.copy(self._collision_pairs)
-        self._collision_pairs = []
-        return return_value
+        return list(self._contacts.keys())
 
 
 class OverlappingEntitiesUidsQueryCallback(Box2D.b2QueryCallback):
@@ -155,12 +161,12 @@ class B2Sim:
             local_poses[uid] = (local_centroid[0], local_centroid[1], local_angle)
 
         self.ghost_entities[key] = self.b2_world.CreateDynamicBody(
-            fixtures=ghost_fixtures_defs[0], position=(main_pose[0], main_pose[1]),
+            fixtures=ghost_fixtures_defs, position=(main_pose[0], main_pose[1]),
             angle=math.radians(main_pose[2]), bullet=True, userData={'local_poses': local_poses},
             active=False  # Start out as non-active (only active when used). Note: 'active' -> 'enabled' in v2.4.x
         )
 
-    def simulate_multiple(self, ghosts_datas, stop_on_collision=True, apply=True, debug_init=True, debug_after=True):
+    def simulate_multiple(self, ghosts_datas, stop_on_collision=True, apply=True, debug_init=False, debug_after=False):
         if debug_init:
             self.display_b2world()
 
@@ -245,6 +251,10 @@ class B2Sim:
         return collision_pairs
 
     def check_actions_with_ghost(self, key, entities_polygons, entities_poses, actions, main_pose, debug_init=False, debug_after=False):
+        if debug_init:
+            self.display_b2world(name="Before activating ghosts")
+            pass
+
         # If the ghost body does not already exist, create it
         if key not in self.ghost_entities:
             self.create_ghost_entity(key, entities_polygons, entities_poses, main_pose)
@@ -258,6 +268,10 @@ class B2Sim:
         # Set the initial position of the ghost before executing the action sequence
         ghost.position, ghost.angle = (main_pose[0], main_pose[1]), math.radians(main_pose[2])
 
+        if debug_after:
+            self.display_b2world(name="After activating ghosts")
+            pass
+
         #  Try to apply the action sequence, exit as soon as we encounter the first collision
         collision_pairs = []
         for action in actions:
@@ -266,9 +280,6 @@ class B2Sim:
             if isinstance(action, ba.Rotation):
                 ghost.linearVelocity, ghost.angularVelocity = (0., 0.), math.radians(action.angle)
 
-            if debug_init:
-                self.display_b2world()
-
             # Have Box2D simulate the action
             self.b2_world.Step(
                 timeStep=self.time_step,
@@ -276,7 +287,8 @@ class B2Sim:
             )
 
             if debug_after:
-                self.display_b2world()
+                self.display_b2world(name="After stepping")
+                pass
 
             collision_pairs += self.contact_listener.get_collision_pairs()
 
@@ -347,17 +359,23 @@ class B2Sim:
         self.b2_world.QueryAABB(query, aabb)
         return query.overlapping_uids
 
-    def display_b2world(self):
+    def display_b2world(self, name=""):
         polygons_xy = [
-            utils.shapely_geom_to_global(
-                local_geom=Polygon(fixture.shape.vertices),
-                local_cs_pose_in_global=(body.position[0], body.position[1], math.degrees(body.angle))
-            ).exterior.xy
-            for body in self.b2_world.bodies for fixture in body.fixtures
+            [
+                utils.shapely_geom_to_global(
+                    local_geom=Polygon(fixture.shape.vertices),
+                    local_cs_pose_in_global=(body.position[0], body.position[1], math.degrees(body.angle))
+                ).exterior.xy
+                for fixture in body.fixtures
+            ]
+            for body in self.b2_world.bodies
             if body.active
         ]
         fig, ax = plt.subplots()
-        for polygon_xy in polygons_xy:
-            ax.plot(*polygon_xy, color='black')
+        for polygons in polygons_xy:
+            c = numpy.random.rand(3, )
+            for polygon_xy in polygons:
+                ax.plot(*polygon_xy, color=c)
         ax.axis('equal')
+        ax.set_title(name)
         fig.show()

@@ -1425,14 +1425,14 @@ class Stilman2005Behavior(BaselineBehavior):
         return valid_transit_end_poses, valid_transfer_start_poses
 
     def find_path(self, robot_pose, goal_pose, inflated_grid_by_robot, robot_polygon):
-        raw_path = graph_search.real_to_grid_search_a_star(robot_pose, goal_pose, inflated_grid_by_robot)
-        if raw_path:
+        cell_path, real_path = graph_search.real_to_grid_search_a_star(robot_pose, goal_pose, inflated_grid_by_robot)
+        if real_path:
             phys_cost = 0.
-            raw_path_iterator = iter(raw_path)
+            raw_path_iterator = iter(real_path)
             prev_step = next(raw_path_iterator)
             for cur_step in raw_path_iterator:
                 phys_cost += self.g(prev_step, cur_step, is_transfer=False)
-            return TransitPath.from_poses(raw_path, robot_polygon, robot_pose, phys_cost)
+            return TransitPath.from_poses(cell_path, real_path, robot_polygon, robot_pose, phys_cost)
         else:
             return None
 
@@ -1703,13 +1703,14 @@ class HasNoPathComponents(PlanValidityError):
 
 
 class Path:
-    def __init__(self, poses, polygons, actions, indexes=None):
+    def __init__(self, poses, polygons, actions, indexes=None, cells=None):
         self.poses = poses
         self.polygons = polygons
         self.actions = actions
         self.indexes = indexes
         if self.indexes is None:
             self.reset_indexes()
+        self.cells = cells
 
     def is_empty(self):
         return not bool(self.indexes)
@@ -1827,7 +1828,8 @@ class TransferPath:
                 robot_uid: self.robot_path.poses[1],
                 self.obstacle_uid: self.obstacle_path.poses[1]
             },
-            actions=actions_to_check, main_pose=robot_pose
+            actions=actions_to_check, main_pose=robot_pose,
+            debug_init=True, debug_after=True
         )
         if collision_pairs:
             raise DynamicCollisionError(collision_pairs)
@@ -1863,9 +1865,38 @@ class TransitPath:
         self.is_transfer = False
 
     @classmethod
-    def from_poses(cls, poses, robot_polygon, robot_pose, phys_cost=None, social_cost=0., weight=1.):
-        polygons = [utils.set_polygon_pose(robot_polygon, robot_pose, pose) for pose in poses]
-        robot_path = Path(poses, polygons, [], indexes=[i for i in range(len(poses))])
+    def from_poses(cls, cells, poses, robot_polygon, robot_pose, phys_cost=None, social_cost=0., weight=1.):
+        # Separate translation from rotation actions
+        previous_pose, previous_cell = poses[0], cells[0]
+        separated_poses, separated_cells = [previous_pose], [previous_cell]
+        actions = []
+        for pose, cell in zip(poses[1:], cells[1:]):
+            has_rotation, has_translation = False, False
+            if pose[2] != previous_pose[2]:
+                has_rotation = True
+            if pose[0] != previous_pose[0] or pose[1] != previous_pose[1]:
+                has_translation = True
+
+            if has_rotation and has_translation:
+                # Rotate then translate
+                separated_poses.append((previous_pose[0], previous_pose[1], pose[2]))
+                separated_poses.append(pose)
+                separated_cells.append(previous_cell)
+                separated_cells.append(cell)
+                actions.append(ba.Rotation(utils.get_rotation(previous_pose, pose)))
+                actions.append(ba.Translation(utils.get_translation(previous_pose, pose)))
+            else:
+                if has_rotation or has_translation:
+                    separated_poses.append(pose)
+                    separated_cells.append(cell)
+                    if has_rotation:
+                        actions.append(ba.Rotation(utils.get_rotation(previous_pose, pose)))
+                    if has_translation:
+                        actions.append(ba.Translation(utils.get_translation(previous_pose, pose)))
+            previous_pose, previous_cell = pose, cell
+
+        polygons = [utils.set_polygon_pose(robot_polygon, robot_pose, pose) for pose in separated_poses]
+        robot_path = Path(separated_poses, polygons, actions, cells=separated_cells)
         return cls(robot_path, phys_cost, social_cost, weight)
 
     def has_infinite_cost(self):
@@ -1874,32 +1905,25 @@ class TransitPath:
     def is_empty(self):
         return self.robot_path.is_empty()
 
-    def is_valid(self, inflated_grid_by_robot, check_horizon=None):
+    def is_valid(self, robot_uid, inflated_grid_by_robot, check_horizon=None):
         if check_horizon is not None:
             if check_horizon and self.robot_path.indexes:
-                # TODO: Remove this conversion by also directly saving the cell sequence in the object
-                poses_to_check = [self.robot_path.poses[index] for index in self.robot_path.indexes[:check_horizon]]
+                cells_to_check = [self.robot_path.cells[index] for index in self.robot_path.indexes[:check_horizon + 1]]
             else:
-                poses_to_check = []
+                cells_to_check = []
         else:
-            poses_to_check = [self.robot_path.poses[index] for index in self.robot_path.indexes]
+            cells_to_check = [self.robot_path.cells[index] for index in self.robot_path.indexes]
 
-        for pose in poses_to_check:
-            cell = utils.real_to_grid(
-                pose[0], pose[1], inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose
-            )
+        for cell in cells_to_check:
+            # inflated_grid_by_robot.deactivate_entities((robot_uid, o_uid))
             if inflated_grid_by_robot.grid[cell[0]][cell[1]] != 0:
-                raise DynamicCollisionError(inflated_grid_by_robot.obstacles_uids_in_cell(cell))
+                collision_pairs = [(robot_uid, o_uid) for o_uid in inflated_grid_by_robot.obstacles_uids_in_cell(cell)]
+                raise DynamicCollisionError(collision_pairs)
 
         return True
 
     def pop_next_step(self):
-        # If there are steps left to execute in self.path, pop and return the first
-        if self.robot_path.indexes:
-            return self.robot_path.poses[self.robot_path.indexes.pop(0)]
-        else:
-            # Return None otherwise
-            return None
+        return self.robot_path.pop_next_step()
 
     def get_length(self):
         return self.robot_path.get_length()
@@ -1955,20 +1979,21 @@ class Plan:
         for counter, path in enumerate(self.path_components):
             if shared_horizon is None or shared_horizon > 0:
                 if isinstance(path, TransitPath):
-                    path.is_valid(inflated_grid_by_robot, check_horizon=shared_horizon)
+                    path.is_valid(self.robot_uid, inflated_grid_by_robot, check_horizon=shared_horizon)
                 elif isinstance(path, TransferPath):
                     # If the previously checked path components are valid, we assume it leaves any manipulated
                     # obstacles in the right place so we don't check again:
                     # - We simply deactivate collisions with them from the world representation
                     # - or if another path component needs to move them (check_start_pose)
-                    previously_moved_entities_uids.add(path.obstacle_uid)
-                    inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
-                    b2_sim.deactivate_entities([path.obstacle_uid])
                     check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
 
                     path.is_valid(
                         all_entities_poses, self.robot_uid, b2_sim, shared_horizon, check_start_pose
                     )
+
+                    previously_moved_entities_uids.add(path.obstacle_uid)
+                    inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
+                    b2_sim.deactivate_entities([path.obstacle_uid])
                 else:
                     raise TypeError('Expected TransitPath or TransferPath instance.')
 
@@ -2006,16 +2031,11 @@ class Plan:
             else:
                 return None
 
-        if isinstance(current_component, TransitPath):
-            return ba.GoToPose(pose=current_component.pop_next_step())
-        elif isinstance(current_component, TransferPath):
-            next_step = current_component.pop_next_step()
-            if next_step:
-                return next_step
-            else:
-                return ba.Wait()
+        next_step = current_component.pop_next_step()
+        if next_step:
+            return next_step
         else:
-            raise TypeError('A plan can only pop steps from TransitPath or TransferPath object.')
+            return ba.Wait()
 
     def executed_only_first_step(self):
         """

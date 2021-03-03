@@ -19,11 +19,12 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon,
 
     RosPublisher().publish_diameter_inflated_polygons(init_entity_inflated_polygon, target_entity_inflated_polygon, ns=ns)
 
+    other_entities_polygons_uids = set(other_entities_polygons.keys())
+
     # Build blocking areas
     # Note: Intersection geometry can be either Point, LineString or Polygon
     if not init_blocking_areas:
         init_blocking_areas = []
-        other_entities_polygons_uids = set(other_entities_polygons.keys())
         potential_collision_polygons_uids = b2_sim.query_aabb_overlapping_uids(
             init_entity_inflated_polygon).intersection(other_entities_polygons_uids)
 
@@ -42,7 +43,8 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon,
 
     target_blocking_areas = []
 
-    potential_collision_polygons_uids = b2_sim.query_aabb_overlapping_uids(target_entity_inflated_polygon)
+    potential_collision_polygons_uids = b2_sim.query_aabb_overlapping_uids(
+        target_entity_inflated_polygon).intersection(other_entities_polygons_uids)
 
     for uid in potential_collision_polygons_uids:
         intersection_geometry = target_entity_inflated_polygon.intersection(other_entities_polygons[uid])

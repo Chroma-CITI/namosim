@@ -505,7 +505,7 @@ class Simulator:
         # Only Grab and Release actions require further checks, and Wait actions are necessarily valid
         to_check = {
             uid: a for uid, a in agent_uid_to_next_action.items()
-            if isinstance(a, (ba.GoToPose, ba.Translation, ba.Rotation))
+            if isinstance(a, (ba.Translation, ba.Rotation)) and not isinstance(a, (ba.Grab, ba.Release))
         }
         failed = {}
         succeeded = {
