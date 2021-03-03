@@ -16,14 +16,14 @@ class CollisionPairsContactListener(Box2D.b2ContactListener):
 
     def BeginContact(self, contact):
         self._contacts[(contact.fixtureA.userData['uid'], contact.fixtureB.userData['uid'])] = contact
-        print(self.get_collision_pairs())
+        # print(self.get_collision_pairs())
 
     def EndContact(self, contact):
         try:
             del self._contacts[(contact.fixtureA.userData['uid'], contact.fixtureB.userData['uid'])]
         except KeyError:
             pass
-        print(self.get_collision_pairs())
+        # print(self.get_collision_pairs())
 
     def get_collision_pairs(self):
         return list(self._contacts.keys())
@@ -168,7 +168,7 @@ class B2Sim:
 
     def simulate_multiple(self, ghosts_datas, stop_on_collision=True, apply=True, debug_init=False, debug_after=False):
         if debug_init:
-            self.display_b2world()
+            self.display_b2world(name="Before ghost activation")
 
         # Initialize world state
         actions_len = 0
@@ -189,8 +189,12 @@ class B2Sim:
 
             actions_len = max(actions_len, len(ghost_data.actions))
 
+        if debug_after:
+            self.display_b2world(name="After ghost activation")
+
         collision_pairs = []
         for action_counter in range(actions_len):
+            ignored_collision_pairs = set()
             for ghost_data in ghosts_datas:
                 try:
                     action = ghost_data.actions[action_counter]
@@ -209,13 +213,22 @@ class B2Sim:
                         "b2_collision.py simulate_multiple method only simulates Rotations and Translations."
                     )
 
-            # Have Box2D simulate the action
-            self.b2_world.Step(
-                timeStep=self.time_step,
-                velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
-            )
+                if isinstance(action, (ba.Grab, ba.Release)):
+                    for uid in ghost_data.entities_polygons.keys():
+                        ignored_collision_pairs.add((uid, action.entity_uid))
+                        ignored_collision_pairs.add((action.entity_uid, uid))
 
-            collision_pairs += self.contact_listener.get_collision_pairs()
+            # Have Box2D simulate the action
+            for i in range(5):
+                self.b2_world.Step(
+                    timeStep=1/5.,
+                    velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
+                )
+
+            if debug_after:
+                self.display_b2world(name="After applying step {}/{}".format(action_counter + 1, actions_len))
+
+            collision_pairs += list(set(self.contact_listener.get_collision_pairs()).difference(ignored_collision_pairs))
 
             if stop_on_collision and collision_pairs:
                 break
@@ -246,7 +259,8 @@ class B2Sim:
                         ))
 
         if debug_after:
-            self.display_b2world()
+            self.display_b2world(name="After apply and deactivating ghosts")
+            pass
 
         return collision_pairs
 

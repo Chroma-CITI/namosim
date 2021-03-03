@@ -62,6 +62,12 @@ class Translation:
         self.translation_length = utils.euclidean_distance((0., 0.), translation_vector)
         self.translation_linestring = LineString([(0., 0.), self.translation_vector])
 
+    @classmethod
+    def from_absolute_translation_vector(cls, absolute_translation_vector):
+        translation_length = utils.euclidean_distance((0., 0.), absolute_translation_vector)
+        translation_vector = (translation_length, 0.)
+        return cls(translation_vector)
+
     def compute_translation_vector(self, angle):
         # TODO Replace by call to utils.direction_from_yaw(angle) multiplying self.translation_vector ?
         rotated_linestring = affinity.rotate(self.translation_linestring, angle, origin=(0., 0.))

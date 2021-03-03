@@ -82,6 +82,10 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self.check_horizon = 10
 
+        self.angular_tolerance = .1
+        self.position_tolerance = self._world.dd.res / 10.
+
+
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
         self.wait_steps = -1
@@ -134,8 +138,11 @@ class Stilman2005Behavior(BaselineBehavior):
         return not self._navigation_goals and self._q_goal is None
 
     def is_goal_success(self, q_r):
-        # TODO Extract abs_tol constant and make it a parameter for each goal
-        return all(np.isclose(q_r, self._q_goal, rtol=1e-5))
+        return all([
+            utils.is_close(q_r[0], self._q_goal[0], rel_tol=self.position_tolerance),
+            utils.is_close(q_r[1], self._q_goal[1], rel_tol=self.position_tolerance),
+            utils.angle_is_close(q_r[2], self._q_goal[2], rel_tol=self.angular_tolerance)
+        ])
 
     def get_current_goal(self):
         return self._q_goal
@@ -1425,14 +1432,14 @@ class Stilman2005Behavior(BaselineBehavior):
         return valid_transit_end_poses, valid_transfer_start_poses
 
     def find_path(self, robot_pose, goal_pose, inflated_grid_by_robot, robot_polygon):
-        cell_path, real_path = graph_search.real_to_grid_search_a_star(robot_pose, goal_pose, inflated_grid_by_robot)
+        real_path = graph_search.real_to_grid_search_a_star(robot_pose, goal_pose, inflated_grid_by_robot)
         if real_path:
             phys_cost = 0.
             raw_path_iterator = iter(real_path)
             prev_step = next(raw_path_iterator)
             for cur_step in raw_path_iterator:
                 phys_cost += self.g(prev_step, cur_step, is_transfer=False)
-            return TransitPath.from_poses(cell_path, real_path, robot_polygon, robot_pose, phys_cost)
+            return TransitPath.from_poses(real_path, robot_polygon, robot_pose, phys_cost)
         else:
             return None
 
@@ -1703,34 +1710,10 @@ class HasNoPathComponents(PlanValidityError):
 
 
 class Path:
-    def __init__(self, poses, polygons, actions, indexes=None, cells=None):
+    def __init__(self, poses, polygons, cells=None):
         self.poses = poses
         self.polygons = polygons
-        self.actions = actions
-        self.indexes = indexes
-        if self.indexes is None:
-            self.reset_indexes()
         self.cells = cells
-
-    def is_empty(self):
-        return not bool(self.indexes)
-
-    def pop_next_step(self):
-        # If there are steps left to execute in self.path, pop and return the first
-        if self.indexes:
-            return self.actions[self.indexes.pop(0)]
-        else:
-            # Return None otherwise
-            return None
-
-    def reset_indexes(self):
-        self.indexes = [i for i in range(len(self.actions))]
-
-    def is_path_started(self):
-        return len(self.indexes) != len(self.actions)
-
-    def is_path_at_last(self):
-        return len(self.indexes) == 1
 
     # TODO Have these trans and rot precision values be passed from calling functions !
     def is_start_pose(self, pose, trans_mult=100., rot_mult=1.):
@@ -1738,25 +1721,33 @@ class Path:
         fixed_precision_self_pose = utils.real_pose_to_fixed_precision_pose(self.poses[0], trans_mult, rot_mult)
         return fixed_precision_pose == fixed_precision_self_pose
 
-    def get_length(self):
-        return len(self.indexes)
-
 
 class TransferPath:
-    def __init__(self, robot_path, obstacle_path, obstacle_uid, manip_pose_id,
+    def __init__(self, robot_path, obstacle_path, actions, grab_action, release_action, obstacle_uid, manip_pose_id,
                  phys_cost=None, social_cost=0., weight=1.):
         self.robot_path = robot_path
         self.obstacle_path = obstacle_path
+
         self.obstacle_uid = obstacle_uid
         self.manip_pose_id = manip_pose_id
+
         self.phys_cost = (
             phys_cost if phys_cost is not None
             else utils.sum_of_euclidean_distances(self.robot_path.poses) * weight
         )
         self.social_cost = social_cost
         self.total_cost = self.phys_cost + self.social_cost
-        # TODO Remove this attribute that is currentlty kept to avoid circular dependency with ros_conversion.py
+
+        # TODO Remove this attribute that is currently kept to avoid circular dependency with ros_conversion.py
+        #   Simply move this class and the other ones in another module
         self.is_transfer = True
+
+        self.grab_action = grab_action
+        self.grab_done = False
+        self.release_action = release_action
+        self.release_done = False
+        self.actions = actions
+        self.action_index = 0
 
     @classmethod
     def from_configurations(cls, prev_transit_end_configuration, next_transit_start_configuration,
@@ -1775,147 +1766,203 @@ class TransferPath:
                 [prev_transit_end_configuration.polygon]
                 + [configuration.robot.polygon for configuration in transfer_configurations]
                 + [next_transit_start_configuration.polygon]
-            ),
-            actions=(
-                [prev_transit_end_configuration.action]
-                + [configuration.action for configuration in configurations_min_start]
-                + [next_transit_start_configuration.action]
             )
         )
         obstacle_path = Path(
             poses=[configuration.obstacle.floating_point_pose for configuration in transfer_configurations],
-            polygons=[configuration.obstacle.polygon for configuration in transfer_configurations],
-            actions=[configuration.action for configuration in configurations_min_start]
+            polygons=[configuration.obstacle.polygon for configuration in transfer_configurations]
         )
+        actions = [configuration.action for configuration in configurations_min_start]
+        grab_action, release_action = prev_transit_end_configuration.action, next_transit_start_configuration.action
         manip_pose_id = transfer_configurations[0].manip_pose_id
-        return cls(robot_path, obstacle_path, obstacle_uid, manip_pose_id, phys_cost, social_cost, weight)
+        return cls(
+            robot_path, obstacle_path, actions, grab_action, release_action,
+            obstacle_uid, manip_pose_id, phys_cost, social_cost, weight
+        )
 
     def has_infinite_cost(self):
         return True if self.total_cost == float("inf") else False
 
     def is_empty(self):
-        return self.robot_path.is_empty()
+        return self.grab_done and self.action_index >= len(self.actions) and self.release_done
 
-    def is_valid(self, all_entities_poses, robot_uid, b2_sim, check_horizon=None, check_start_pose=True):
-        obstacle_pose, robot_pose = all_entities_poses[self.obstacle_uid], all_entities_poses[robot_uid]
+    def is_valid(self, all_entities_poses, robot_uid, b2_sim, previously_moved_entities_uids, check_horizon=None):
+        obstacle_pose = all_entities_poses[self.obstacle_uid]
 
         # Check that the obstacle that is to transferred is actually in its initial place
-        # (only relevant if this transfer path has not already be started)
-        if check_start_pose and not self.robot_path.is_path_started():
+        # (only relevant if obstacle not already moved in previous transfer path validation
+        # and this transfer path has not already be started)
+        if self.obstacle_uid not in previously_moved_entities_uids and not self.grab_done:
             obstacle_at_start_pose = self.obstacle_path.is_start_pose(obstacle_pose)
             if not obstacle_at_start_pose:
                 raise ObstacleNotAtStartPoseError(self.obstacle_uid)
 
         # If the path is fully executed, it's valid
-        if self.robot_path.is_empty() and self.obstacle_path.is_empty():
+        if self.is_empty():
             return True
 
-        # Check potential collisions caused by actions within horizon if one is specified
         if check_horizon is None:
-            actions_to_check = [self.robot_path.actions[index] for index in self.robot_path.indexes]
-        elif check_horizon == 0:
-            return True
-        else:
-            actions_to_check = [self.robot_path.actions[index] for index in self.robot_path.indexes[:check_horizon]]
+            check_horizon = self.get_length()
 
-        collision_pairs = b2_sim.check_actions_with_ghost(
-            key=(robot_uid, self.obstacle_uid, self.manip_pose_id),
-            entities_polygons={
-                robot_uid: self.robot_path.polygons[1],
-                self.obstacle_uid: self.obstacle_path.polygons[1]
-            },
-            entities_poses={
-                robot_uid: self.robot_path.poses[1],
-                self.obstacle_uid: self.obstacle_path.poses[1]
-            },
-            actions=actions_to_check, main_pose=robot_pose,
-            debug_init=True, debug_after=True
-        )
+        collision_pairs = []
+
+        if not self.grab_done and check_horizon > 0:
+            # Call b2_sim to check grab done
+            b2_sim.deactivate_entities([self.obstacle_uid])
+
+            robot_before_grab_pose = self.robot_path.poses[0]
+            robot_before_grab_polygon = self.robot_path.polygons[0]
+
+            collision_pairs += b2_sim.check_actions_with_ghost(
+                (robot_uid,), {robot_uid: robot_before_grab_polygon}, {robot_uid: robot_before_grab_pose},
+                [self.grab_action], robot_before_grab_pose
+            )
+
+            b2_sim.activate_entities([self.obstacle_uid])
+
+        exists_transfer_actions = self.action_index < len(self.actions)
+        if check_horizon > 0 and exists_transfer_actions:
+            transfer_actions_to_check = self.actions[self.action_index:check_horizon + 1]
+        else:
+            transfer_actions_to_check = []
+        if transfer_actions_to_check:
+            key = (robot_uid, self.obstacle_uid, self.manip_pose_id)
+            robot_after_grab_pose = self.robot_path.poses[1]
+            obstacle_after_grab_pose = self.obstacle_path.poses[0]
+            robot_after_grab_polygon = self.robot_path.polygons[1]
+            obstacle_after_grab_polygon = self.obstacle_path.polygons[0]
+            entities_polygons = {robot_uid: robot_after_grab_polygon, self.obstacle_uid: obstacle_after_grab_polygon}
+            entities_poses = {robot_uid: robot_after_grab_pose, self.obstacle_uid: obstacle_after_grab_pose}
+
+            collision_pairs += b2_sim.check_actions_with_ghost(
+                key, entities_polygons, entities_poses, transfer_actions_to_check, robot_after_grab_pose
+            )
+
+        check_horizon -= len(transfer_actions_to_check)
+
+        if not self.release_done and check_horizon > 0:
+            # Call b2_sim to check release done
+            b2_sim.deactivate_entities([self.obstacle_uid])
+
+            robot_before_release_pose = self.robot_path.poses[-2]
+            robot_before_release_polygon = self.robot_path.polygons[-2]
+
+            collision_pairs += b2_sim.check_actions_with_ghost(
+                (robot_uid,), {robot_uid: robot_before_release_polygon}, {robot_uid: robot_before_release_pose},
+                [self.grab_action], robot_before_release_pose
+            )
+
+            b2_sim.activate_entities([self.obstacle_uid])
+
         if collision_pairs:
             raise DynamicCollisionError(collision_pairs)
 
         return True
 
     def pop_next_step(self):
-        if self.robot_path.is_path_started():
-            # Only start popping obstacle_path when the robot_path has lost its first step (transit to transfer pose)
-            self.obstacle_path.pop_next_step()
-        return self.robot_path.pop_next_step()
+        if not self.grab_done:
+            self.grab_done = True
+            return self.grab_action
+        elif self.action_index < len(self.actions):
+            action = self.actions[self.action_index]
+            self.action_index += 1
+            return action
+        elif not self.release_done:
+            self.release_done = True
+            return self.release_action
+        else:
+            # Return None otherwise
+            return None
 
     def get_length(self):
-        return self.robot_path.get_length()
+        return len(self.actions) + 2
 
     def is_path_started(self):
-        return self.robot_path.is_path_started()
+        return self.grab_done
 
-    def is_path_at_last(self):
-        return len(self.robot_path.indexes)
+    def reset(self):
+        self.action_index = 0
+        self.grab_done = False
+        self.release_done = False
 
 
 class TransitPath:
-    def __init__(self, robot_path, phys_cost=None, social_cost=0., weight=1.):
+    def __init__(self, robot_path, actions, phys_cost=None, social_cost=0., weight=1.):
+        if len(robot_path.polygons) != len(robot_path.poses) != len(actions) + 1:
+            raise ValueError(
+                "A TransitPath requires that its polygon and pose arrays are the same size. "
+                "The action array must be of this same size -1."
+                "Current sizes are: polygon({}), pose({}), action({})".format(
+                    len(robot_path.polygons), len(robot_path.poses), len(actions)
+                )
+            )
+
         self.robot_path = robot_path
+
         self.phys_cost = (
             phys_cost if phys_cost is not None
             else utils.sum_of_euclidean_distances(self.robot_path.poses) * weight
         )
         self.social_cost = social_cost
         self.total_cost = self.phys_cost + self.social_cost
-        # TODO Remove this attribute that is currentlty kept to avoid circular dependency with ros_conversion.py
+
+        # TODO Remove this attribute that is currently kept to avoid circular dependency with ros_conversion.py
+        #   Simply move this class and the other ones in another module
         self.is_transfer = False
 
-    @classmethod
-    def from_poses(cls, cells, poses, robot_polygon, robot_pose, phys_cost=None, social_cost=0., weight=1.):
-        # Separate translation from rotation actions
-        previous_pose, previous_cell = poses[0], cells[0]
-        separated_poses, separated_cells = [previous_pose], [previous_cell]
-        actions = []
-        for pose, cell in zip(poses[1:], cells[1:]):
-            has_rotation, has_translation = False, False
-            if pose[2] != previous_pose[2]:
-                has_rotation = True
-            if pose[0] != previous_pose[0] or pose[1] != previous_pose[1]:
-                has_translation = True
+        self.actions = actions
+        self.action_index = 0
 
-            if has_rotation and has_translation:
-                # Rotate then translate
-                separated_poses.append((previous_pose[0], previous_pose[1], pose[2]))
-                separated_poses.append(pose)
-                separated_cells.append(previous_cell)
-                separated_cells.append(cell)
-                actions.append(ba.Rotation(utils.get_rotation(previous_pose, pose)))
-                actions.append(ba.Translation(utils.get_translation(previous_pose, pose)))
-            else:
-                if has_rotation or has_translation:
+    @classmethod
+    def from_poses(cls, poses, robot_polygon, robot_pose, phys_cost=None, social_cost=0., weight=1.):
+        # Separate translation from rotation actions
+        previous_pose, separated_poses, actions = poses[0], [poses[0]], []
+        for pose in poses[1:]:
+            has_rotation = not utils.angle_is_close(pose[2], previous_pose[2], rel_tol=1e-6)
+            has_translation = (
+                not utils.is_close(pose[0], previous_pose[0], rel_tol=1e-6)
+                or not utils.is_close(pose[1], previous_pose[1], rel_tol=1e-6)
+            )
+
+            if has_rotation or has_translation:
+                if has_rotation and has_translation:
+                    separated_poses.append((previous_pose[0], previous_pose[1], pose[2]))
                     separated_poses.append(pose)
-                    separated_cells.append(cell)
-                    if has_rotation:
-                        actions.append(ba.Rotation(utils.get_rotation(previous_pose, pose)))
-                    if has_translation:
-                        actions.append(ba.Translation(utils.get_translation(previous_pose, pose)))
-            previous_pose, previous_cell = pose, cell
+                else:
+                    separated_poses.append(pose)
+                if has_rotation:
+                    actions.append(ba.Rotation(utils.get_rotation(previous_pose, pose)))
+                if has_translation:
+                    actions.append(
+                        ba.Translation.from_absolute_translation_vector(utils.get_translation(previous_pose, pose))
+                    )
+            previous_pose = pose
 
         polygons = [utils.set_polygon_pose(robot_polygon, robot_pose, pose) for pose in separated_poses]
-        robot_path = Path(separated_poses, polygons, actions, cells=separated_cells)
-        return cls(robot_path, phys_cost, social_cost, weight)
+        robot_path = Path(separated_poses, polygons)
+        return cls(robot_path, actions, phys_cost=phys_cost, social_cost=social_cost, weight=weight)
 
     def has_infinite_cost(self):
         return True if self.total_cost == float("inf") else False
 
     def is_empty(self):
-        return self.robot_path.is_empty()
+        return self.action_index >= len(self.actions)
 
     def is_valid(self, robot_uid, inflated_grid_by_robot, check_horizon=None):
-        if check_horizon is not None:
-            if check_horizon and self.robot_path.indexes:
-                cells_to_check = [self.robot_path.cells[index] for index in self.robot_path.indexes[:check_horizon + 1]]
-            else:
-                cells_to_check = []
-        else:
-            cells_to_check = [self.robot_path.cells[index] for index in self.robot_path.indexes]
+        # If the path is fully executed, it's valid
+        if self.is_empty():
+            return True
 
-        for cell in cells_to_check:
-            # inflated_grid_by_robot.deactivate_entities((robot_uid, o_uid))
+        if check_horizon is None:
+            check_horizon=self.get_length()
+        exists_actions = self.action_index < len(self.actions)
+        if check_horizon > 0 and exists_actions:
+            poses_to_check = self.robot_path.poses[self.action_index:check_horizon + 1]
+        else:
+            poses_to_check = []
+
+        for pose in poses_to_check:
+            cell = utils.real_to_grid(pose[0], pose[1], inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose)
             if inflated_grid_by_robot.grid[cell[0]][cell[1]] != 0:
                 collision_pairs = [(robot_uid, o_uid) for o_uid in inflated_grid_by_robot.obstacles_uids_in_cell(cell)]
                 raise DynamicCollisionError(collision_pairs)
@@ -1923,10 +1970,20 @@ class TransitPath:
         return True
 
     def pop_next_step(self):
-        return self.robot_path.pop_next_step()
+        # If there are steps left to execute in self.path, pop and return the first
+        if self.action_index < len(self.actions):
+            action = self.actions[self.action_index]
+            self.action_index += 1
+            return action
+        else:
+            # Return None otherwise
+            return None
 
     def get_length(self):
-        return self.robot_path.get_length()
+        return len(self.actions)
+
+    def reset(self):
+        self.action_index = 0
 
 
 class Plan:
@@ -1985,10 +2042,8 @@ class Plan:
                     # obstacles in the right place so we don't check again:
                     # - We simply deactivate collisions with them from the world representation
                     # - or if another path component needs to move them (check_start_pose)
-                    check_start_pose = path.obstacle_uid not in previously_moved_entities_uids
-
                     path.is_valid(
-                        all_entities_poses, self.robot_uid, b2_sim, shared_horizon, check_start_pose
+                        all_entities_poses, self.robot_uid, b2_sim, previously_moved_entities_uids, shared_horizon
                     )
 
                     previously_moved_entities_uids.add(path.obstacle_uid)

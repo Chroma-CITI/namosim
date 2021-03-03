@@ -310,8 +310,24 @@ def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
         direction_vector = (real_x - previous_pose[0], real_y - previous_pose[1])
         real_yaw = yaw_from_direction(direction_vector)
         new_pose = (real_x, real_y, real_yaw)
-        real_path.append(new_pose)
+        has_rotation = not angle_is_close(new_pose[2], previous_pose[2], rel_tol=1e-6)
+        has_translation = (
+                not is_close(new_pose[0], previous_pose[0], rel_tol=1e-6)
+                or not is_close(new_pose[1], previous_pose[1], rel_tol=1e-6)
+        )
+
+        if has_rotation or has_translation:
+            if has_rotation and has_translation:
+                real_path.append((previous_pose[0], previous_pose[1], new_pose[2]))
+                real_path.append(new_pose)
+            else:
+                real_path.append(new_pose)
         previous_pose = new_pose
+
+    last_direction_vector = (goal_pose[0] - real_path[-1][0], goal_pose[1] - real_path[-1][1])
+    last_real_yaw = yaw_from_direction(last_direction_vector)
+    real_path.append((real_path[-1][0], real_path[-1][1], last_real_yaw))
+    real_path.append((goal_pose[0], goal_pose[1], last_real_yaw))
     real_path.append(goal_pose)
     return real_path
 
@@ -1020,3 +1036,11 @@ def angle_to_360_interval(angle):
     final_angle = angle % 360.
     final_angle = final_angle if final_angle >= 0. else final_angle + 360.
     return final_angle
+
+
+def is_close(a, b, rel_tol=1e-09):
+    return b - rel_tol <= a <= b + rel_tol or a - rel_tol <= b <= a + rel_tol
+
+
+def angle_is_close(a, b, rel_tol=1e-09):
+    return is_close(a, b, rel_tol) or is_close(abs(a - 360.), b, rel_tol) or is_close(a, abs(b - 360.), rel_tol)

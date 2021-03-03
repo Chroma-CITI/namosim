@@ -568,7 +568,7 @@ class Simulator:
                 entities_poses = {agent_uid: agent.pose}
             ghost_data = b2_collision.GhostData(key, entities_polygons, entities_poses, [action], agent.pose)
             ghosts_datas.append(ghost_data)
-        collision_pairs = self.b2_sim.simulate_multiple(ghosts_datas)
+        collision_pairs = self.b2_sim.simulate_multiple(ghosts_datas, debug_init=False, debug_after=False)
 
         # Finish separating succeeded and failed actions, and apply result to world state on success
         collides_with = {}
@@ -583,8 +583,21 @@ class Simulator:
                 collides_with[uid_2] = {uid_1}
         for agent_uid, action in to_check.items():
             action_dynamically_collides = (
-                    agent_uid in collides_with
-                    or (
+                    (  # The agent associated with the action collides
+                        (
+                            agent_uid in collides_with
+                            and not isinstance(action, ba.Grab)
+                        )
+                        or (  # Special case for Grab: ignore collision with grabbed obstacle
+                            agent_uid in collides_with
+                            and isinstance(action, ba.Grab)
+                            and (
+                                len(collides_with[agent_uid]) > 1
+                                or action.entity_uid not in collides_with[agent_uid]
+                            )
+                        )
+                    )
+                    or (  # The obstacle associated with the action collides
                         agent_uid in entity_to_agent.inverse
                         and entity_to_agent.inverse[agent_uid] in collides_with
                         and not isinstance(action, ba.Release)

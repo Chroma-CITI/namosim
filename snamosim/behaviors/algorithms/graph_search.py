@@ -243,7 +243,7 @@ def real_to_grid_search_a_star(start_pose, goal_pose, grid):
         goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], grid.res, grid.grid_pose)
 
         if grid.grid[start_cell[0]][start_cell[1]] > 0 or grid.grid[goal_cell[0]][goal_cell[1]] > 0:
-            return [], []
+            return []
 
         path_found, last_cell, came_from, _, _, _ = grid_search_a_star(
             start_cell, goal_cell, grid.grid, grid.d_width, grid.d_height, grid.neighborhood, check_diag_neighbors=False
@@ -253,9 +253,9 @@ def real_to_grid_search_a_star(start_pose, goal_pose, grid):
             raw_path = reconstruct_path(came_from, last_cell)
             real_path = utils.grid_path_to_real_path(raw_path, start_pose, goal_pose, grid.res, grid.grid_pose)
             raw_path.append(raw_path[-1])  # Copy last cell element to have same number of cells and real poses
-            return raw_path, real_path
+            return real_path
         else:
-            return [], []
+            return []
 
 
 def new_generic_dijkstra(start, goal, exit_condition, get_neighbors):
