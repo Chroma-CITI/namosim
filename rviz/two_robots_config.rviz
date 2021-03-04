@@ -6,6 +6,11 @@ Panels:
       Expanded:
         - /Global Options1
         - /Group1
+        - /Group1/Simulator Knowledge1
+        - /Group1/robot_01/Robot Simulated Actions1
+        - /Group1/robot_011
+        - /Group1/robot_011/Robot Simulated Actions1
+        - /Group1/robot_011/Robot Simulated Actions1/Namespaces1
       Splitter Ratio: 0.606060624
     Tree Height: 769
   - Class: rviz/Selection
@@ -59,19 +64,20 @@ Visualization Manager:
               Marker Topic: /simulation/knowledge
               Name: Simulator Knowledge
               Namespaces:
-                {}
+                /obstacles/polygon: true
+                /robot/polygon: true
               Queue Size: 100
               Value: true
             - Alpha: 0.5
               Class: rviz/Map
               Color Scheme: costmap
               Draw Behind: false
-              Enabled: true
+              Enabled: false
               Name: Sim Costmap
               Topic: /simulation/costmap
               Unreliable: false
               Use Timestamp: false
-              Value: true
+              Value: false
             - Alpha: 1
               Autocompute Intensity Bounds: false
               Class: grid_map_rviz_plugin/GridMap
@@ -465,7 +471,7 @@ Visualization Manager:
               Marker Topic: /robot_01/goal
               Name: Goal
               Namespaces:
-                {}
+                /polygon: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -483,7 +489,22 @@ Visualization Manager:
               Marker Topic: /robot_01/sim
               Name: Robot Simulated Actions
               Namespaces:
-                {}
+                /blocking_areas/init: true
+                /blocking_areas/target: true
+                /diameter_inflated_polygon/init: true
+                /diameter_inflated_polygon/target: true
+                /manip_search/close_set: true
+                /manip_search/current/obstacle/polygon: true
+                /manip_search/current/obstacle/pose: true
+                /manip_search/current/robot/polygon: true
+                /manip_search/current/robot/pose: true
+                /manip_search_neighbors: true
+                /rch_came_from: true
+                /rch_close_set: true
+                /rch_current_cell: true
+                /rch_current_cell_neighbors: true
+                /target/obstacle/polygon: true
+                /target/robot/polygon: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -549,7 +570,7 @@ Visualization Manager:
               Marker Topic: /robot_01/plan
               Name: p_opt
               Namespaces:
-                {}
+                /plan: true
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -811,8 +832,8 @@ Visualization Manager:
   Views:
     Current:
       Centre:
-        X: 0
-        Y: 0
+        X: -0.00480392156
+        Y: 0.0257937312
         Z: 0
       Class: rviz_ortho_view_controller/Ortho
       Enable Stereo Rendering:
@@ -829,7 +850,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: none
-      Scale: 94.3632278
+      Scale: 72.2873688
       Target Frame: <Fixed Frame>
       Value: Ortho (rviz_ortho_view_controller)
     Saved: ~
@@ -850,4 +871,4 @@ Window Geometry:
     collapsed: false
   Width: 1855
   X: 65
-  Y: 1104
+  Y: 24
