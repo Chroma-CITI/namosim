@@ -157,8 +157,8 @@ class Stilman2005Behavior(BaselineBehavior):
         self.b2_sim.remove_entities(self._removed_uids)
 
         # Update grid(s)
-        self.inflated_grid_by_robot.update(
-            new_polygons={
+        self.inflated_grid_by_robot.polygon_update(
+            new_or_updated_polygons={
                 uid: self._world.entities[uid].polygon
                 for uid in self._added_uids.union(self._updated_uids) if uid != self._robot_uid
             },
@@ -328,7 +328,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 next_step = self._p_opt.pop_next_step()
                 return next_step
 
-    def select_connect(self, w_t, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, r_f, ccs_data=None,
+    def select_connect(self, w_t, static_obs_inf_grid, inflated_grid_by_robot_max, b2_sim, r_f, ccs_data=None,
                        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, nb_self_calls=0, nb_rch_calls=0):
         """
         High Level Planner _select_connect (SC).
@@ -355,7 +355,7 @@ class Stilman2005Behavior(BaselineBehavior):
         robot_cell = utils.real_to_grid(r_t[0], r_t[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose)
         goal_cell = utils.real_to_grid(r_f[0], r_f[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose)
 
-        simple_path_to_goal = self.find_path(r_t, r_f, inflated_grid_by_robot, robot_at_t.polygon)
+        simple_path_to_goal = self.find_path(r_t, r_f, inflated_grid_by_robot_max, robot_at_t.polygon)
         if simple_path_to_goal:
             # If the goal is in the same free space component as the robot in simulated w_t
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
@@ -364,13 +364,13 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if ccs_data is None:
             ccs_data = connectivity.init_ccs_for_grid(
-                inflated_grid_by_robot.grid, inflated_grid_by_robot.d_width,
-                inflated_grid_by_robot.d_height, neighborhood
+                inflated_grid_by_robot_max.grid, inflated_grid_by_robot_max.d_width,
+                inflated_grid_by_robot_max.d_height, neighborhood
             )
         else:
             ccs_data = connectivity.update_ccs_and_grid(
-                ccs_data, inflated_grid_by_robot.grid, inflated_grid_by_robot.d_width,
-                inflated_grid_by_robot.d_height, neighborhood
+                ccs_data, inflated_grid_by_robot_max.grid, inflated_grid_by_robot_max.d_width,
+                inflated_grid_by_robot_max.d_height, neighborhood
             )
         connected_components_grid = ccs_data.ccs_grid
         self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd, ns=self._robot_name)
@@ -378,7 +378,7 @@ class Stilman2005Behavior(BaselineBehavior):
         nb_rch_calls += 1
         o_1, c_1 = self.rch(
             robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
-            inflated_grid_by_robot, avoid_list, neighborhood
+            inflated_grid_by_robot_max, avoid_list, neighborhood
         )
         while o_1 != 0:
             self.simulation_log.append(utils.BasicLog(
@@ -389,7 +389,9 @@ class Stilman2005Behavior(BaselineBehavior):
             )
             r_acc_cells_set = ccs_data.ccs[ccs_data.ccs_grid[robot_cell[0]][robot_cell[1]]].visited
             c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
-            w_t_plus_2, tho_m = self.manip_search_procedure(w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim)
+            w_t_plus_2, tho_m = self.manip_search_procedure(
+                w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim, inflated_grid_by_robot_max
+            )
 
             if tho_m is not None:
                 self.simulation_log.append(utils.BasicLog(
@@ -398,14 +400,14 @@ class Stilman2005Behavior(BaselineBehavior):
                     ),
                     self._step_count)
                 )
-                inflated_grid_by_robot.update({o_1: w_t_plus_2.entities[o_1].polygon})
+                prev_cells_sets = inflated_grid_by_robot_max.polygon_update({o_1: w_t_plus_2.entities[o_1].polygon})
                 future_plan = self.select_connect(
-                    w_t_plus_2, static_obs_inf_grid, inflated_grid_by_robot, self.b2_sim, r_f, ccs_data, neighborhood,
+                    w_t_plus_2, static_obs_inf_grid, inflated_grid_by_robot_max, self.b2_sim, r_f, ccs_data, neighborhood,
                     nb_self_calls=nb_self_calls+1, nb_rch_calls=nb_rch_calls
                 )
-                inflated_grid_by_robot.update({o_1: w_t.entities[o_1].polygon})
+                inflated_grid_by_robot_max.cells_sets_update(prev_cells_sets)
                 if future_plan is not None:
-                    tho_n = self.find_path(r_t, tho_m.robot_path.poses[0], inflated_grid_by_robot, robot_at_t.polygon)
+                    tho_n = self.find_path(r_t, tho_m.robot_path.poses[0], inflated_grid_by_robot_max, robot_at_t.polygon)
                     return Plan([tho_n, tho_m], self._q_goal, self._robot_uid).append(future_plan)
 
             # Extra check for when the goal is in a movable obstacle that we could not find how to move
@@ -423,7 +425,7 @@ class Stilman2005Behavior(BaselineBehavior):
             nb_rch_calls += 1
             o_1, c_1 = self.rch(
                 robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
-                inflated_grid_by_robot, avoid_list, neighborhood
+                inflated_grid_by_robot_max, avoid_list, neighborhood
             )
 
         return None
@@ -591,7 +593,7 @@ class Stilman2005Behavior(BaselineBehavior):
         else:
             return 0, 0
 
-    def manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim,
+    def manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim, inflated_grid_by_robot_max,
                      check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
@@ -619,10 +621,7 @@ class Stilman2005Behavior(BaselineBehavior):
             other_entities_polygons, res, robot_min_inflation_radius - utils.SQRT_OF_2 * res,
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
         )
-        inflated_grid_by_robot_max = BinaryInflatedOccupancyGrid(
-            other_entities_polygons, res, robot_max_inflation_radius,
-            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=inflated_grid_by_robot_min.params
-        )
+        inflated_grid_by_robot_max.deactivate_entities([obstacle_uid])
         inflated_grid_by_obstacle = BinaryInflatedOccupancyGrid(
             other_entities_polygons, res, obstacle_min_inflation_radius - utils.SQRT_OF_2 * res,
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=inflated_grid_by_robot_min.params
@@ -708,9 +707,11 @@ class Stilman2005Behavior(BaselineBehavior):
         self._rp.cleanup_robot_sim(ns=self._robot_name)
         self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
 
+        inflated_grid_by_robot_max.activate_entities([obstacle_uid])
+
         return w_t_plus_2, tho_m
 
-    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim,
+    def focused_manip_search(self, w_t, o_1, r_acc_cells_set, c_1_cells_set, r_f, b2_sim, inflated_grid_by_robot_max,
                              check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
@@ -738,10 +739,7 @@ class Stilman2005Behavior(BaselineBehavior):
             other_entities_polygons, res, robot_min_inflation_radius - utils.SQRT_OF_2 * res,
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
         )
-        inflated_grid_by_robot_max = BinaryInflatedOccupancyGrid(
-            other_entities_polygons, res, robot_max_inflation_radius,
-            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=inflated_grid_by_robot_min.params
-        )
+        inflated_grid_by_robot_max.deactivate_entities([obstacle_uid])
         inflated_grid_by_obstacle = BinaryInflatedOccupancyGrid(
             other_entities_polygons, res, obstacle_min_inflation_radius - utils.SQRT_OF_2 * res,
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=inflated_grid_by_robot_min.params
@@ -889,6 +887,8 @@ class Stilman2005Behavior(BaselineBehavior):
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
         self._rp.cleanup_robot_sim(ns=self._robot_name)
         self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
+
+        inflated_grid_by_robot_max.activate_entities([obstacle_uid])
 
         return w_t_plus_2, tho_m
 
@@ -1213,7 +1213,7 @@ class Stilman2005Behavior(BaselineBehavior):
             has_new_local_opening = True
 
         if has_new_local_opening:
-            inflated_grid_by_robot_max.update(new_polygons={obstacle_uid: new_obstacle_polygon})
+            inflated_grid_by_robot_max.polygon_update(new_or_updated_polygons={obstacle_uid: new_obstacle_polygon})
 
             if not c_1_cells_set or (c_1_cells_set and goal_cell in c_1_cells_set):
                 cell_in_c_1 = goal_cell
@@ -1227,7 +1227,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     except StopIteration:
                         # Note: using the the exception detection is the pythonic way it seems (no has_next)
                         # No opening because c_1_cells_set is entirely inaccessible to the robot after manipulation
-                        inflated_grid_by_robot_max.update(removed_polygons={obstacle_uid})
+                        inflated_grid_by_robot_max.cells_sets_update(removed_cells_sets={obstacle_uid})
                         has_new_global_opening, skipped_global_opening_check = False, False
                         return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
@@ -1239,7 +1239,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 neighborhood, check_diag_neighbors=False
             )
 
-            inflated_grid_by_robot_max.update(removed_polygons={obstacle_uid})
+            inflated_grid_by_robot_max.cells_sets_update(removed_cells_sets={obstacle_uid})
 
             self._rp.cleanup_a_star_close_set(ns=robot_name)
             self._rp.cleanup_diameter_inflated_polygons(ns=robot_name)
