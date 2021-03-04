@@ -398,10 +398,12 @@ class Stilman2005Behavior(BaselineBehavior):
                     ),
                     self._step_count)
                 )
+                inflated_grid_by_robot.update({o_1: w_t_plus_2.entities[o_1].polygon})
                 future_plan = self.select_connect(
                     w_t_plus_2, static_obs_inf_grid, inflated_grid_by_robot, self.b2_sim, r_f, ccs_data, neighborhood,
                     nb_self_calls=nb_self_calls+1, nb_rch_calls=nb_rch_calls
                 )
+                inflated_grid_by_robot.update({o_1: w_t.entities[o_1].polygon})
                 if future_plan is not None:
                     tho_n = self.find_path(r_t, tho_m.robot_path.poses[0], inflated_grid_by_robot, robot_at_t.polygon)
                     return Plan([tho_n, tho_m], self._q_goal, self._robot_uid).append(future_plan)
