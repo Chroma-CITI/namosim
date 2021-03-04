@@ -39,7 +39,7 @@ class Simulator:
         os.makedirs(self.abs_path_to_logs_dir)
         os.makedirs(self.abs_path_to_logs_dir + "simulation/")
         self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
-        self.simulation_log = utils.CustomLogger(printout=True)
+        self.simulation_log = utils.CustomLogger()
 
         self.simulation_log.append(utils.BasicLog("Simulation file successfully loaded", 0))
 

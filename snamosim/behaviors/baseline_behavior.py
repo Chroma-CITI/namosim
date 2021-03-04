@@ -10,7 +10,7 @@ class BaselineBehavior(object):
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir):
-        self.simulation_log = utils.CustomLogger(printout=True)
+        self.simulation_log = utils.CustomLogger()
 
         self._initial_world = initial_world
         self._robot_uid = robot_uid
