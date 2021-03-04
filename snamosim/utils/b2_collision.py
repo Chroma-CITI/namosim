@@ -295,10 +295,11 @@ class B2Sim:
                 ghost.linearVelocity, ghost.angularVelocity = (0., 0.), math.radians(action.angle)
 
             # Have Box2D simulate the action
-            self.b2_world.Step(
-                timeStep=self.time_step,
-                velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
-            )
+            for i in range(5):
+                self.b2_world.Step(
+                    timeStep=1 / 5.,
+                    velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
+                )
 
             if debug_after:
                 self.display_b2world(name="After stepping")
