@@ -107,9 +107,9 @@ class Stilman2005Behavior(BaselineBehavior):
                 or (isinstance(entity, Obstacle) and self._robot.deduce_movability(entity.type) == "unmovable")
             )
         }
-        robot_max_inflation_radius = utils.get_circumscribed_radius(self._robot.polygon)
+        self.robot_max_inflation_radius = utils.get_circumscribed_radius(self._robot.polygon)
         self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
-            static_obs_polygons, self._world.dd.res, robot_max_inflation_radius, neighborhood=self.neighborhood
+            static_obs_polygons, self._world.dd.res, self.robot_max_inflation_radius, neighborhood=self.neighborhood
         )
 
         # Initialize social occupation costmap
@@ -122,15 +122,6 @@ class Stilman2005Behavior(BaselineBehavior):
                 static_obs_grid.grid, self._world.dd.res, log_costmaps=self.activate_grids_logging,
                 abs_path_to_logs_dir=self.abs_path_to_logs_dir, ns=self._robot_name)
             self._rp.publish_grid_map(self._social_costmap, self._world.dd.res, ns=self._robot_name)
-
-        # Initialize robot max radius inflated costmap used to check for transit path validity
-        other_entities_polygons = {
-            uid: e.polygon for uid, e in self._world.entities.items() if e.uid != self._robot.uid
-        }
-        self.inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
-            other_entities_polygons, self._world.dd.res, robot_max_inflation_radius, neighborhood=self.neighborhood,
-            params=self.static_obs_inf_grid.params
-        )
 
         self.replan_count = 10
 
@@ -157,13 +148,13 @@ class Stilman2005Behavior(BaselineBehavior):
         self.b2_sim.remove_entities(self._removed_uids)
 
         # Update grid(s)
-        self.inflated_grid_by_robot.polygon_update(
-            new_or_updated_polygons={
-                uid: self._world.entities[uid].polygon
-                for uid in self._added_uids.union(self._updated_uids) if uid != self._robot_uid
-            },
-            removed_polygons=self._removed_uids
-        )
+        # self.inflated_grid_by_robot.polygon_update(
+        #     new_or_updated_polygons={
+        #         uid: self._world.entities[uid].polygon
+        #         for uid in self._added_uids.union(self._updated_uids) if uid != self._robot_uid
+        #     },
+        #     removed_polygons=self._removed_uids
+        # )
 
     def think(self):
         # TODO Try to rewrite this more cleanly
@@ -226,7 +217,7 @@ class Stilman2005Behavior(BaselineBehavior):
             all_entities_poses = {uid: entity.pose for uid, entity in self._world.entities.items()}
             try:
                 p_opt_is_valid = self._p_opt.is_valid(
-                    all_entities_poses, self.b2_sim, self.inflated_grid_by_robot, check_horizon=self.check_horizon
+                    all_entities_poses, self.b2_sim, check_horizon=self.check_horizon
                 )
             except PlanValidityError as e:
                 p_opt_is_valid = False
@@ -258,15 +249,6 @@ class Stilman2005Behavior(BaselineBehavior):
                     "Plan of agent '{}' is invalid.".format(self._robot.name),
                     self._step_count)
                 )
-                if self._p_opt.executed_only_first_step():
-                    self.simulation_log.append(utils.BasicLog(
-                        "Goal failure because of plan validity check incoherence.",
-                        self._step_count)
-                    )
-                    gf_action = ba.GoalFailed(self._q_goal)
-                    self.replan_count = 0
-                    self._q_goal = None
-                    return gf_action
         if replan:
             self.simulation_log.append(utils.BasicLog(
                 "Agent '{}' tries replanning.".format(self._robot.name),
@@ -304,8 +286,16 @@ class Stilman2005Behavior(BaselineBehavior):
                     self._q_goal = None
                     return gf_action
 
+            other_entities_polygons = {
+                uid: e.polygon for uid, e in self._world.entities.items() if e.uid != self._robot.uid
+            }
+            inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
+                other_entities_polygons, self._world.dd.res, self.robot_max_inflation_radius,
+                neighborhood=self.neighborhood,
+                params=self.static_obs_inf_grid.params
+            )
             self._p_opt = self.select_connect(
-                self._world, self.static_obs_inf_grid, self.inflated_grid_by_robot, self.b2_sim, self._q_goal,
+                self._world, self.static_obs_inf_grid, inflated_grid_by_robot, self.b2_sim, self._q_goal,
                 neighborhood=self.neighborhood
             )
             self.replan_count += 1
@@ -1774,6 +1764,8 @@ class TransferPath:
             poses=[configuration.obstacle.floating_point_pose for configuration in transfer_configurations],
             polygons=[configuration.obstacle.polygon for configuration in transfer_configurations]
         )
+        obstacle_path.poses = [obstacle_path.poses[0]] + obstacle_path.poses + [obstacle_path.poses[-1]]
+        obstacle_path.polygons = [obstacle_path.polygons[0]] + obstacle_path.polygons + [obstacle_path.polygons[-1]]
         actions = [configuration.action for configuration in configurations_min_start]
         grab_action, release_action = prev_transit_end_configuration.action, next_transit_start_configuration.action
         manip_pose_id = transfer_configurations[0].manip_pose_id
@@ -1829,15 +1821,15 @@ class TransferPath:
             transfer_actions_to_check = []
         if transfer_actions_to_check:
             key = (robot_uid, self.obstacle_uid, self.manip_pose_id)
-            robot_after_grab_pose = self.robot_path.poses[1]
-            obstacle_after_grab_pose = self.obstacle_path.poses[0]
-            robot_after_grab_polygon = self.robot_path.polygons[1]
-            obstacle_after_grab_polygon = self.obstacle_path.polygons[0]
-            entities_polygons = {robot_uid: robot_after_grab_polygon, self.obstacle_uid: obstacle_after_grab_polygon}
-            entities_poses = {robot_uid: robot_after_grab_pose, self.obstacle_uid: obstacle_after_grab_pose}
+            robot_pose = self.robot_path.poses[self.action_index + 1]
+            obstacle_pose = self.obstacle_path.poses[self.action_index + 1]
+            robot_polygon = self.robot_path.polygons[self.action_index + 1]
+            obstacle_polygon = self.obstacle_path.polygons[self.action_index + 1]
+            entities_polygons = {robot_uid: robot_polygon, self.obstacle_uid: obstacle_polygon}
+            entities_poses = {robot_uid: robot_pose, self.obstacle_uid: obstacle_pose}
 
             collision_pairs += b2_sim.check_actions_with_ghost(
-                key, entities_polygons, entities_poses, transfer_actions_to_check, robot_after_grab_pose
+                key, entities_polygons, entities_poses, transfer_actions_to_check, robot_pose
             )
 
         check_horizon -= len(transfer_actions_to_check)
@@ -1950,24 +1942,43 @@ class TransitPath:
     def is_empty(self):
         return self.action_index >= len(self.actions)
 
-    def is_valid(self, robot_uid, inflated_grid_by_robot, check_horizon=None):
+    def is_valid(self, robot_uid, b2_sim, check_horizon=None):
         # If the path is fully executed, it's valid
         if self.is_empty():
             return True
 
-        if check_horizon is None:
-            check_horizon=self.get_length()
+        # # Check based on Binary Occupancy Grid (temporarily deprecated because required up to date grid,
+        # # which is too costly computationnaly for the moment.)
+        # if check_horizon is None:
+        #     check_horizon=self.get_length()
+        # exists_actions = self.action_index < len(self.actions)
+        # if check_horizon > 0 and exists_actions:
+        #     poses_to_check = self.robot_path.poses[self.action_index:check_horizon + 1]
+        # else:
+        #     poses_to_check = []
+        #
+        # for pose in poses_to_check:
+        #     cell = utils.real_to_grid(pose[0], pose[1], inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose)
+        #     if inflated_grid_by_robot.grid[cell[0]][cell[1]] != 0:
+        #         collision_pairs = [(robot_uid, o_uid) for o_uid in inflated_grid_by_robot.obstacles_uids_in_cell(cell)]
+        #         raise DynamicCollisionError(collision_pairs)
+
+        collision_pairs = []
         exists_actions = self.action_index < len(self.actions)
         if check_horizon > 0 and exists_actions:
-            poses_to_check = self.robot_path.poses[self.action_index:check_horizon + 1]
+            actions_to_check = self.actions[self.action_index:check_horizon + 1]
         else:
-            poses_to_check = []
+            actions_to_check = []
+        if actions_to_check:
+            key = (robot_uid,)
+            start_pose, start_polygon = self.robot_path.poses[self.action_index], self.robot_path.polygons[self.action_index]
+            entities_polygons, entities_poses = {robot_uid: start_polygon}, {robot_uid: start_pose}
+            collision_pairs += b2_sim.check_actions_with_ghost(
+                key, entities_polygons, entities_poses, actions_to_check, start_pose
+            )
 
-        for pose in poses_to_check:
-            cell = utils.real_to_grid(pose[0], pose[1], inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose)
-            if inflated_grid_by_robot.grid[cell[0]][cell[1]] != 0:
-                collision_pairs = [(robot_uid, o_uid) for o_uid in inflated_grid_by_robot.obstacles_uids_in_cell(cell)]
-                raise DynamicCollisionError(collision_pairs)
+        if collision_pairs:
+            raise DynamicCollisionError(collision_pairs)
 
         return True
 
@@ -2025,7 +2036,7 @@ class Plan:
         else:
             return True
 
-    def is_valid(self, all_entities_poses, b2_sim, inflated_grid_by_robot, check_horizon=None):
+    def is_valid(self, all_entities_poses, b2_sim, check_horizon=None):
         # Basic checks
         if self.has_infinite_cost():
             raise HasInfiniteCostError()
@@ -2038,7 +2049,7 @@ class Plan:
         for counter, path in enumerate(self.path_components):
             if shared_horizon is None or shared_horizon > 0:
                 if isinstance(path, TransitPath):
-                    path.is_valid(self.robot_uid, inflated_grid_by_robot, check_horizon=shared_horizon)
+                    path.is_valid(self.robot_uid, b2_sim, check_horizon=shared_horizon)
                 elif isinstance(path, TransferPath):
                     # If the previously checked path components are valid, we assume it leaves any manipulated
                     # obstacles in the right place so we don't check again:
@@ -2049,7 +2060,7 @@ class Plan:
                     )
 
                     previously_moved_entities_uids.add(path.obstacle_uid)
-                    inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
+                    # inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
                     b2_sim.deactivate_entities([path.obstacle_uid])
                 else:
                     raise TypeError('Expected TransitPath or TransferPath instance.')
@@ -2061,7 +2072,7 @@ class Plan:
                     break
 
         # Reactivate entities that had been deactivated during checks
-        inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
+        # inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
         b2_sim.activate_entities(previously_moved_entities_uids)
 
         return True
@@ -2093,16 +2104,3 @@ class Plan:
             return next_step
         else:
             return ba.Wait()
-
-    def executed_only_first_step(self):
-        """
-        Temporary badly written function to prevent infinite looping because of incoherence between plan computation
-        validity checks (based on b2_sim) and plan verification validity checks (based on custom convex approach)
-        :return:
-        :rtype:
-        """
-        if not self.is_empty():
-            path = self.path_components[0]
-            if len(path.robot_path.poses) - 1 == len(path.robot_path.indexes):
-                return True
-        return False
