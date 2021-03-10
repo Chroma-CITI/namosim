@@ -553,34 +553,9 @@ class Simulator:
                 to_check[agent_uid] = action
 
         # Check actions regarding dynamic collisions and apply the valid ones using Box2D
-        ghosts_datas = []
-        for agent_uid, action in to_check.items():
-            agent = self.ref_world.entities[agent_uid]
-            if not isinstance(action, ba.Release) and agent_uid in entity_to_agent.inverse:
-                entity_uid = entity_to_agent.inverse[agent_uid]
-                entity = self.ref_world.entities[entity_uid]
-                key = (agent_uid, entity_uid)
-                entities_polygons = {agent_uid: agent.polygon, entity_uid: entity.polygon}
-                entities_poses = {agent_uid: agent.pose, entity_uid: entity.pose}
-            else:
-                key = (agent_uid,)
-                entities_polygons = {agent_uid: agent.polygon}
-                entities_poses = {agent_uid: agent.pose}
-            ghost_data = b2_collision.GhostData(key, entities_polygons, entities_poses, [action], agent.pose)
-            ghosts_datas.append(ghost_data)
-        collision_pairs = self.b2_sim.simulate_multiple(ghosts_datas, debug_init=False, debug_after=False)
+        collides_with = self.b2_sim.simulate_simple_kinematics([to_check], apply=True)
 
         # Finish separating succeeded and failed actions, and apply result to world state on success
-        collides_with = {}
-        for uid_1, uid_2 in collision_pairs:
-            if uid_1 in collides_with:
-                collides_with[uid_1].add(uid_2)
-            else:
-                collides_with[uid_1] = {uid_2}
-            if uid_2 in collides_with:
-                collides_with[uid_2].add(uid_1)
-            else:
-                collides_with[uid_2] = {uid_1}
         for agent_uid, action in to_check.items():
             action_dynamically_collides = (
                     (  # The agent associated with the action collides
