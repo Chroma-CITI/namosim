@@ -35,7 +35,7 @@ class Robot(Entity):
         return added_uids, updated_uids, removed_uids
 
     def deduce_movability(self, obstacle_type):
-        if obstacle_type == "unknown":
+        if obstacle_type == "unknown" or obstacle_type == "robot":
             return "unknown"
         elif obstacle_type in self.movable_whitelist:
             return "movable"
