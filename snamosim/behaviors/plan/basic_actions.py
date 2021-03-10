@@ -1,7 +1,7 @@
 from shapely import affinity
 from shapely.geometry import Point, LineString
 
-from snamosim.utils import utils, collision
+from snamosim.utils import utils
 
 
 class GoalResult:
@@ -97,11 +97,3 @@ class Release(Translation):
     def __init__(self, translation_vector, entity_uid):
         Translation.__init__(self, translation_vector)
         self.entity_uid = entity_uid
-
-
-def convert_action(action, robot_pose):
-    if isinstance(action, Translation):
-        translation_vector = action.compute_translation_vector(robot_pose[2])
-        return collision.Translation(translation_vector)
-    elif isinstance(action, Rotation):
-        return collision.Rotation(action.angle, (robot_pose[0], robot_pose[1]))
