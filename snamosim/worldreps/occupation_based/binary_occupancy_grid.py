@@ -140,6 +140,6 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
                 uid: polygon.buffer(self.inflation_radius)
                 for uid, polygon in new_or_updated_polygons.items()
             }
-            BinaryOccupancyGrid.polygon_update(self, inflated_polygons, removed_polygons, fill=fill)
+            return BinaryOccupancyGrid.polygon_update(self, inflated_polygons, removed_polygons, fill=fill)
         else:
-            BinaryOccupancyGrid.polygon_update(self, new_or_updated_polygons, removed_polygons)
+            return BinaryOccupancyGrid.polygon_update(self, new_or_updated_polygons, removed_polygons)
