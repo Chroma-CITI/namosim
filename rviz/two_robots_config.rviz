@@ -64,8 +64,7 @@ Visualization Manager:
               Marker Topic: /simulation/knowledge
               Name: Simulator Knowledge
               Namespaces:
-                /obstacles/polygon: true
-                /robot/polygon: true
+                {}
               Queue Size: 100
               Value: true
             - Alpha: 0.5
@@ -471,7 +470,7 @@ Visualization Manager:
               Marker Topic: /robot_01/goal
               Name: Goal
               Namespaces:
-                /polygon: true
+                {}
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -489,22 +488,7 @@ Visualization Manager:
               Marker Topic: /robot_01/sim
               Name: Robot Simulated Actions
               Namespaces:
-                /blocking_areas/init: true
-                /blocking_areas/target: true
-                /diameter_inflated_polygon/init: true
-                /diameter_inflated_polygon/target: true
-                /manip_search/close_set: true
-                /manip_search/current/obstacle/polygon: true
-                /manip_search/current/obstacle/pose: true
-                /manip_search/current/robot/polygon: true
-                /manip_search/current/robot/pose: true
-                /manip_search_neighbors: true
-                /rch_came_from: true
-                /rch_close_set: true
-                /rch_current_cell: true
-                /rch_current_cell_neighbors: true
-                /target/obstacle/polygon: true
-                /target/robot/polygon: true
+                {}
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -570,7 +554,7 @@ Visualization Manager:
               Marker Topic: /robot_01/plan
               Name: p_opt
               Namespaces:
-                /plan: true
+                {}
               Queue Size: 100
               Value: true
             - Alpha: 1
@@ -832,8 +816,8 @@ Visualization Manager:
   Views:
     Current:
       Centre:
-        X: -0.00480392156
-        Y: 0.0257937312
+        X: -0.0641891211
+        Y: 0.236637354
         Z: 0
       Class: rviz_ortho_view_controller/Ortho
       Enable Stereo Rendering:
@@ -850,7 +834,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: none
-      Scale: 72.2873688
+      Scale: 36.4601555
       Target Frame: <Fixed Frame>
       Value: Ortho (rviz_ortho_view_controller)
     Saved: ~
