@@ -1247,7 +1247,7 @@ class Stilman2005Behavior(BaselineBehavior):
         if check_new_local_opening_before_global:
             has_new_local_opening, init_blocking_areas, init_entity_inflated_polygon = check_new_local_opening(
                 old_obstacle_polygon, new_obstacle_polygon,
-                other_entities_polygons, other_entities_aabb_tree, b2_sim,
+                other_entities_polygons, b2_sim,
                 inflated_grid_by_robot_max.inflation_radius, goal_pose,
                 init_blocking_areas, init_entity_inflated_polygon, robot_name
             )
