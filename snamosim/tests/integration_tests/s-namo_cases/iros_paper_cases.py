@@ -3,7 +3,7 @@ import os
 from snamosim.simulator import Simulator
 
 
-class BasicWithOpeningTest(unittest.TestCase):
+class IrosPaperCasesTest(unittest.TestCase):
 
     def setUp(self):
         self.path_to_folder = os.path.join(__file__, "../../../../../data/simulations/s-namo_cases/")
