@@ -26,6 +26,9 @@ class CollisionPairsContactListener(Box2D.b2ContactListener):
         self._collision_pairs = set()
         return collision_pairs
 
+    def reset(self):
+        self._collision_pairs = set()
+
 
 class OverlappingEntitiesUidsQueryCallback(Box2D.b2QueryCallback):
     def __init__(self):
@@ -60,6 +63,7 @@ class B2Sim:
         self.b2_world = Box2D.b2World(gravity=gravity, contactListener=self.contact_listener)
         self.b2_entities = {}
         self.b2_joints = {}
+        self.deactivated_entities = {}
 
         # Initialize stepping parameters
         self.time_step = 1./float(frequency)
@@ -110,7 +114,7 @@ class B2Sim:
         for uid, entity in entities.items():
             self.b2_entities[uid] = self.b2_world.CreateBody(
                 defn=Box2D.b2BodyDef(
-                    type=2,
+                    type=0 if entity.movability == "unmovable" or entity.movability == "static" else 2,
                     position=(entity.pose[0], entity.pose[1]),
                     angle=math.radians(entity.pose[2]),
                     linearVelocity=(0., 0.),
@@ -120,14 +124,17 @@ class B2Sim:
                     allowSleep=True,
                     awake=True,
                     fixedRotation=False,
-                    bullet=True,
+                    bullet=False if entity.movability == "unmovable" or entity.movability == "static" else True,
                     active=True,
                     gravityScale=1.,
                     userData={'uid': uid}
                 )
             )
             for fixture_def in self.polygon_to_fixtures_defs(entity.polygon, entity.pose, uid):
-                self.b2_entities[uid].CreateFixture(defn=fixture_def)
+                try:
+                    self.b2_entities[uid].CreateFixture(defn=fixture_def)
+                except AssertionError:
+                    continue
 
     def remove_entities(self, entities_uids):
         for uid in entities_uids:
@@ -154,10 +161,7 @@ class B2Sim:
             self.display_b2world()
 
     def get_collides_with(self, ignored_collision_pairs):
-        collision_pairs = {
-            (contact.fixtureA.userData['uid'], contact.fixtureB.userData['uid'])
-            for contact in self.b2_world.contacts if contact.touching
-        }.union(self.contact_listener.get_collision_pairs(ignored_collision_pairs))
+        collision_pairs = self.contact_listener.get_collision_pairs(ignored_collision_pairs)
         if ignored_collision_pairs:
             collision_pairs = collision_pairs.difference(ignored_collision_pairs)
         else:
@@ -175,7 +179,7 @@ class B2Sim:
         return collides_with
 
     def simulate_simple_kinematics(self, list_of_uid_to_actions, init_poses=None, init_welded_pairs=None,
-                                   apply=False, debug_all=False, debug_before_init=False, debug_after_init=False,
+                                   apply=False, return_poses_before_reset=False, debug_all=False, debug_before_init=False, debug_after_init=False,
                                    debug_after_reset=False, debug_after_each_step=False):
         """
         Initiliazes bodies poses and joints in Box2D simulation at the specified state, then try to apply the list
@@ -218,6 +222,14 @@ class B2Sim:
              self.display_b2world(name="After initial world state is set")
 
         if collides_with:
+            poses_before_reset = {
+                uid: (
+                    self.b2_entities[uid].position[0],
+                    self.b2_entities[uid].position[1],
+                    math.degrees(self.b2_entities[uid].angle)
+                )
+                for uid in previous_poses.keys()
+            }
             if not apply:
                 self._reset_world_state(previous_poses, init_welded_pairs, [], debug_all or debug_after_reset)
             else:
@@ -228,7 +240,10 @@ class B2Sim:
                     {pair for pair in init_welded_pairs if pair[0] in colliding_uids or pair[1] in colliding_uids},
                     [], debug_all or debug_after_reset
                 )
-            return collides_with
+            if return_poses_before_reset:
+                return collides_with, poses_before_reset
+            else:
+                return collides_with
 
         # Try to apply actions
         nb_actions = len(list_of_uid_to_actions)
@@ -261,6 +276,9 @@ class B2Sim:
                     timeStep=self.time_step,
                     velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
                 )
+                if debug_all or debug_after_each_step:
+                    self.display_b2world(name="After applying substep {}/{} instep {}/{}".format(i + 1, self.frequency, action_index + 1, nb_actions))
+                    pass
 
             # Reset velocities and apply weld joint for grab actions
             for uid, action in uid_to_action.items():
@@ -276,9 +294,19 @@ class B2Sim:
 
             if debug_all or debug_after_each_step:
                 self.display_b2world(name="After applying step {}/{}".format(action_index + 1, nb_actions))
-                pass
 
             if collides_with:
+                if debug_all or debug_after_each_step:
+                    self.display_b2world(name="Collision after applying step {}/{}".format(action_index + 1, nb_actions), show=True)
+
+                poses_before_reset = {
+                    uid: (
+                        self.b2_entities[uid].position[0],
+                        self.b2_entities[uid].position[1],
+                        math.degrees(self.b2_entities[uid].angle)
+                    )
+                    for uid in previous_poses.keys()
+                }
                 if not apply:
                     self._reset_world_state(previous_poses, init_welded_pairs.union(welded_pairs), unwelded_pairs.difference(init_welded_pairs), debug_all or debug_after_reset)
                 else:
@@ -290,13 +318,27 @@ class B2Sim:
                         {pair for pair in unwelded_pairs.difference(init_welded_pairs) if pair[0] in colliding_uids or pair[1] in colliding_uids},
                         debug_all or debug_after_reset
                     )
-                return collides_with
+                if return_poses_before_reset:
+                    return collides_with, poses_before_reset
+                else:
+                    return collides_with
 
         # Reset world state
+        poses_before_reset = {
+            uid: (
+                self.b2_entities[uid].position[0],
+                self.b2_entities[uid].position[1],
+                math.degrees(self.b2_entities[uid].angle)
+            )
+            for uid in previous_poses.keys()
+        }
         if not apply:
             self._reset_world_state(previous_poses, init_welded_pairs.union(welded_pairs), unwelded_pairs.difference(init_welded_pairs), debug_all or debug_after_reset)
 
-        return collides_with  # Should be an empty dict
+        if return_poses_before_reset:
+            return collides_with, poses_before_reset
+        else:
+            return collides_with
 
     def _initialize_world_state(self, init_poses, init_welded_pairs, debug=False):
         if debug:
@@ -307,30 +349,32 @@ class B2Sim:
             b2_entity = self.b2_entities[uid]
             previous_poses[uid] = (b2_entity.position[0], b2_entity.position[1], b2_entity.angle)
             b2_entity.position, b2_entity.angle = (pose[0], pose[1]), math.radians(pose[2])
+            b2_entity.angularVelocity = -0.01
 
         for pair in init_welded_pairs:
             self._weld(pair)
 
-        # Have Box2D apply the initial state and add collisions if there are some
+        # Have Box2D apply the initial state, ignore collisions to work around Weld Joint teleport phenomenon...
         for i in range(self.frequency):
             self.b2_world.Step(
                 timeStep=self.time_step,
                 velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
             )
+            if debug:
+                self.display_b2world(name="Before initial world state is set - Init Steps")
+        self.contact_listener.reset()
 
-        # Slightly oscillate to force proper collision checks updates
+        # Slightly oscillate back 0.01 rad to force proper collision checks updates
         for uid in init_poses.keys():
-            self.b2_entities[uid].angularVelocity = -0.01
+            self.b2_entities[uid].angularVelocity = 0.01
 
         for i in range(self.frequency):
             self.b2_world.Step(
                 timeStep=self.time_step,
                 velocityIterations=self.velocity_iterations, positionIterations=self.position_iterations
             )
-
-        for uid, pose in init_poses.items():
-            b2_entity = self.b2_entities[uid]
-            b2_entity.position, b2_entity.angle = (pose[0], pose[1]), math.radians(pose[2])
+            if debug:
+                self.display_b2world(name="Before initial world state is set - Init Steps")
 
         return previous_poses
 
@@ -383,12 +427,18 @@ class B2Sim:
     def deactivate_entities(self, uids):
         for uid in uids:
             if uid in self.b2_entities:
-                self.b2_entities[uid].active = False
+                b2_entity = self.b2_entities[uid]
+                b2_entity.active = False
+                self.deactivated_entities[uid] = b2_entity
+                del self.b2_entities[uid]
 
     def activate_entities(self, uids):
         for uid in uids:
-            if uid in self.b2_entities:
-                self.b2_entities[uid].active = True
+            if uid in self.deactivated_entities:
+                b2_entity = self.deactivated_entities[uid]
+                b2_entity.active = True
+                self.b2_entities[uid] = b2_entity
+                del self.deactivated_entities[uid]
 
     def get_entity_pose(self, uid):
         entity_body = self.b2_entities[uid]
@@ -401,7 +451,7 @@ class B2Sim:
         self.b2_world.QueryAABB(query, aabb)
         return query.overlapping_uids
 
-    def display_b2world(self, name=""):
+    def b2world_to_fig(self, name=""):
         polygons_xy = [
             [
                 utils.shapely_geom_to_global(
@@ -420,6 +470,10 @@ class B2Sim:
                 ax.plot(*polygon_xy, color=c)
         ax.axis('equal')
         ax.set_title(name)
+        return fig, ax
+
+    def display_b2world(self, name="", show=False):
+        fig, ax = self.b2world_to_fig(name=name)
 
         log_dir = "/home/xia0ben/logs/"
         existing_log_images_names = {
@@ -432,4 +486,5 @@ class B2Sim:
         plt.ioff()
         fig.savefig(os.path.join(log_dir, str(counter) + ".png"))
 
-        # fig.show()
+        if show:
+            fig.show()
