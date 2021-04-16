@@ -17,6 +17,7 @@ import snamosim.behaviors.plan.action_result as ar
 from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, BinaryInflatedOccupancyGrid
 import snamosim.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
 import snamosim.utils.b2_collision as b2_collision
+import snamosim.utils.collision as collision
 import snamosim.utils.connectivity as connectivity
 
 
@@ -111,6 +112,14 @@ class Stilman2005Behavior(BaselineBehavior):
         self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
             static_obs_polygons, self._world.dd.res, self.robot_max_inflation_radius, neighborhood=self.neighborhood
         )
+        other_entities_polygons = {
+            uid: e.polygon for uid, e in self._world.entities.items() if e.uid != self._robot.uid
+        }
+        self.inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
+            other_entities_polygons, self._world.dd.res, self.robot_max_inflation_radius,
+            neighborhood=self.neighborhood,
+            params=self.static_obs_inf_grid.params
+        )
 
         # Initialize social occupation costmap
         if self.use_social_cost and self._social_costmap is None:
@@ -148,13 +157,13 @@ class Stilman2005Behavior(BaselineBehavior):
         self.b2_sim.remove_entities(self._removed_uids)
 
         # Update grid(s)
-        # self.inflated_grid_by_robot.polygon_update(
-        #     new_or_updated_polygons={
-        #         uid: self._world.entities[uid].polygon
-        #         for uid in self._added_uids.union(self._updated_uids) if uid != self._robot_uid
-        #     },
-        #     removed_polygons=self._removed_uids
-        # )
+        self.inflated_grid_by_robot.polygon_update(
+            new_or_updated_polygons={
+                uid: self._world.entities[uid].polygon
+                for uid in self._added_uids.union(self._updated_uids) if uid != self._robot_uid
+            },
+            removed_polygons=self._removed_uids
+        )
 
     def think(self):
         # TODO Try to rewrite this more cleanly
@@ -217,22 +226,19 @@ class Stilman2005Behavior(BaselineBehavior):
             all_entities_poses = {uid: entity.pose for uid, entity in self._world.entities.items()}
             try:
                 p_opt_is_valid = self._p_opt.is_valid(
-                    all_entities_poses, self.b2_sim, check_horizon=self.check_horizon
+                    all_entities_poses, self.b2_sim, self._world,
+                    self.inflated_grid_by_robot, check_horizon=self.check_horizon
                 )
             except PlanValidityError as e:
                 p_opt_is_valid = False
                 if isinstance(e, DynamicCollisionError):
-                    colliding_entities = []
-                    for uid_1, uid_2 in e.colliding_entities:
-                        colliding_entities.append(self._world.entities[uid_1])
-                        colliding_entities.append(self._world.entities[uid_2])
-                    all_colliding_entities_are_robots = all([isinstance(e, Robot) for e in colliding_entities])
+                    all_colliding_entities_are_robots = all([isinstance(self._world.entities[uid], Robot) for uid in e.colliding_entities])
                     if all_colliding_entities_are_robots and self.wait_steps == -1:
                         self.wait_steps = random.randint(self.min_nb_steps_to_wait, self.max_nb_steps_to_wait)
                         self.wait_steps -= 1
                         self.simulation_log.append(utils.BasicLog(
                             "Plan of agent '{}' has been invalidated because collides with other agent(s) {}.".format(
-                                self._robot.name, str([e.name for e in colliding_entities])),
+                                self._robot.name, str([self._world.entities[uid].name for uid in e.colliding_entities])),
                             self._step_count)
                         )
                         self.simulation_log.append(utils.BasicLog(
@@ -265,37 +271,33 @@ class Stilman2005Behavior(BaselineBehavior):
                 other_entities_polygons = {
                     uid: e.polygon for uid, e in self._world.entities.items() if e.uid != self._robot.uid
                 }
+                other_entities_polygons_aabb = collision.polygons_to_aabb_tree(other_entities_polygons)
                 inflated_grid_by_robot_max = BinaryInflatedOccupancyGrid(
                     other_entities_polygons, self._world.dd.res, self.static_obs_inf_grid.inflation_radius,
                     self.neighborhood, self.static_obs_inf_grid.params
                 )
 
+                obstacle_uid = self.grabbed_obstacles.pop()
                 can_release, _ = self.can_robot_walk_back_to_next_transit_pose(
-                    inflated_grid_by_robot_max, self._robot.pose, self._robot.polygon, self._robot.uid, self.b2_sim
+                    inflated_grid_by_robot_max, self._robot.pose, self._robot.polygon, self._robot.uid,
+                    obstacle_uid, self._world.entities[obstacle_uid].pose, self.b2_sim,
+                    other_entities_polygons, other_entities_polygons_aabb
                 )
                 if can_release:
-                    obstacle_uid = self.grabbed_obstacles.pop()
                     new_configuration = self.get_robot_walk_back_to_next_transit_configuration(
                         self._robot.pose, self._robot.polygon, self.static_obs_inf_grid.inflation_radius,
                         self._world.dd.res, inflated_grid_by_robot_max.grid_pose, obstacle_uid, 0.01, 1.
                     )
                     return new_configuration.action
                 else:
+                    obstacle_uid.add(obstacle_uid)
                     gf_action = ba.GoalFailed(self._q_goal)
                     self.replan_count = 0
                     self._q_goal = None
                     return gf_action
 
-            other_entities_polygons = {
-                uid: e.polygon for uid, e in self._world.entities.items() if e.uid != self._robot.uid
-            }
-            inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
-                other_entities_polygons, self._world.dd.res, self.robot_max_inflation_radius,
-                neighborhood=self.neighborhood,
-                params=self.static_obs_inf_grid.params
-            )
             self._p_opt = self.select_connect(
-                self._world, self.static_obs_inf_grid, inflated_grid_by_robot, self.b2_sim, self._q_goal,
+                self._world, self.static_obs_inf_grid, self.inflated_grid_by_robot, self.b2_sim, self._q_goal,
                 neighborhood=self.neighborhood
             )
             self.replan_count += 1
@@ -587,6 +589,7 @@ class Stilman2005Behavior(BaselineBehavior):
                      check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
+
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
 
         res = w_t_plus_2.dd.res
@@ -594,6 +597,7 @@ class Stilman2005Behavior(BaselineBehavior):
         other_entities = [entity for entity in w_t_plus_2.entities.values()
                           if entity.uid != self._robot.uid and entity.uid != o_1]
         other_entities_polygons = {entity.uid: entity.polygon for entity in other_entities}
+        other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
 
         robot = w_t_plus_2.entities[self._robot.uid]
         robot_uid, robot_pose, robot_polygon, robot_name = robot.uid, robot.pose, robot.polygon, robot.name
@@ -603,6 +607,11 @@ class Stilman2005Behavior(BaselineBehavior):
         obstacle = w_t_plus_2.entities[o_1]
         obstacle_uid, obstacle_pose, obstacle_polygon = obstacle.uid, obstacle.pose, obstacle.polygon
         obstacle_min_inflation_radius = utils.get_inscribed_radius(obstacle_polygon)
+
+        inf_robot, inf_obstacle = copy.deepcopy(robot), copy.deepcopy(obstacle)
+        inf_robot.polygon, inf_obstacle.polygon = robot.polygon.buffer(res, join_style=2), obstacle.polygon.buffer(res, join_style=2)
+        b2_sim.deactivate_entities({robot_uid, obstacle_uid})
+        b2_sim.add_entities({robot_uid: inf_robot, obstacle_uid: inf_obstacle})
 
         # CAREFUL : We inflate by inscribed radius MINUS sqrt(2)*res to make sure occupied cells are really where the
         # entity's center should NEVER be to avoid collisions.
@@ -638,14 +647,14 @@ class Stilman2005Behavior(BaselineBehavior):
         transfer_start_configurations = {
             RobotObstacleConfiguration(
                 robot_floating_point_pose=manip_pose,
-                robot_polygon=utils.set_polygon_pose(robot_polygon, robot_pose, manip_pose),
+                robot_polygon=utils.set_polygon_pose(robot_polygon, robot_pose, manip_pose),#.buffer(res*2., join_style=2),
                 robot_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(manip_pose, trans_mult, rot_mult),
                 robot_cell_in_grid=utils.real_to_grid(
                     manip_pose[0], manip_pose[1],
                     res, inflated_grid_by_robot_min.grid_pose
                 ),
                 obstacle_floating_point_pose=obstacle_pose,
-                obstacle_polygon=obstacle_polygon,
+                obstacle_polygon=obstacle_polygon,#.buffer(res*2., join_style=2),
                 obstacle_fixed_precision_pose=utils.real_pose_to_fixed_precision_pose(
                     obstacle_pose, trans_mult, rot_mult
                 ),
@@ -661,7 +670,8 @@ class Stilman2005Behavior(BaselineBehavior):
         # Use Dijkstra algorithm to compute a transfer path that allows for an opening to be created
         path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.dijkstra_for_manip_search(
             transfer_start_configurations, robot_uid, robot_name, obstacle_uid, obstacle_polygon,
-            other_entities_polygons, inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle,
+            other_entities_polygons, other_entities_aabb_tree,
+            inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle,
             c_1_cells_set, trans_mult, rot_mult, b2_sim, check_new_local_opening_before_global, goal_pose, goal_cell
         )
         if path_found:
@@ -698,6 +708,8 @@ class Stilman2005Behavior(BaselineBehavior):
         self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
 
         inflated_grid_by_robot_max.activate_entities([obstacle_uid])
+        b2_sim.remove_entities({robot_uid, obstacle_uid})
+        b2_sim.activate_entities({robot_uid, obstacle_uid})
 
         return w_t_plus_2, tho_m
 
@@ -712,6 +724,7 @@ class Stilman2005Behavior(BaselineBehavior):
         other_entities = [entity for entity in w_t_plus_2.entities.values()
                           if entity.uid != self._robot.uid and entity.uid != o_1]
         other_entities_polygons = {entity.uid: entity.polygon for entity in other_entities}
+        other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
 
         robot = w_t_plus_2.entities[self._robot.uid]
         robot_uid, robot_pose, robot_polygon, robot_name = robot.uid, robot.pose, robot.polygon, robot.name
@@ -788,7 +801,7 @@ class Stilman2005Behavior(BaselineBehavior):
         best_transfer_end_configuration = self.find_best_transfer_end_configuration(
             robot_pose, robot_polygon, robot_name, robot_uid,
             obstacle_uid, obstacle_pose, obstacle_polygon,
-            goal_pose, goal_cell, other_entities_polygons, b2_sim,
+            goal_pose, goal_cell, other_entities_polygons, other_entities_aabb_tree, b2_sim,
             inflated_grid_by_robot_max, cells_sorted_by_combined_cost, c_1_cells_set, transfer_start_robot_poses,
             trans_mult, rot_mult, gscore=None, close_set=None,
             check_new_local_opening_before_global=check_new_local_opening_before_global
@@ -803,7 +816,7 @@ class Stilman2005Behavior(BaselineBehavior):
             path_found, transfer_end_configuration, came_from, close_set, gscore, _ = self.a_star_for_manip_search(
                 transfer_start_configurations, best_transfer_end_configuration,
                 robot_uid, robot_name, obstacle_uid, obstacle_polygon,
-                other_entities_polygons,
+                other_entities_polygons, other_entities_aabb_tree,
                 inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
                 trans_mult, rot_mult,
                 sorted_cell_to_combined_cost, bound_quantile, b2_sim, check_new_local_opening_before_global,
@@ -836,7 +849,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 best_transfer_end_configuration = self.find_best_transfer_end_configuration(
                     robot_pose, robot_polygon, robot_name, robot_uid,
                     obstacle_uid, obstacle_pose, obstacle_polygon,
-                    goal_pose, goal_cell, other_entities_polygons, b2_sim,
+                    goal_pose, goal_cell, other_entities_polygons, other_entities_aabb_tree, b2_sim,
                     inflated_grid_by_robot_max, cells_sorted_by_combined_cost, c_1_cells_set,
                     transfer_start_robot_poses, trans_mult, rot_mult, gscore=gscore, close_set=close_set,
                     check_new_local_opening_before_global=check_new_local_opening_before_global
@@ -884,7 +897,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def dijkstra_for_manip_search(
             self, start, robot_uid, robot_name, obstacle_uid, obstacle_polygon,
-            other_entities_polygons,
+            other_entities_polygons, other_entities_aabb_tree,
             inflated_grid_by_robot_min, inflated_grid_by_robot_max, inflated_grid_by_obstacle, c_1_cells_set,
             trans_mult, rot_mult, b2_sim, check_new_local_opening_before_global,
             overall_goal_pose, overall_goal_cell):
@@ -893,13 +906,14 @@ class Stilman2005Behavior(BaselineBehavior):
             return self.get_neighbors(
                 _current, _gscore, _close_set, _open_queue, _came_from,
                 start, inflated_grid_by_robot_min, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
-                trans_mult, rot_mult, b2_sim
+                trans_mult, rot_mult, b2_sim, other_entities_polygons, other_entities_aabb_tree
             )
 
         def exit_condition(_current, _goal):
             can_walk_back, robot_cell_after = self.can_robot_walk_back_to_next_transit_pose(
                 inflated_grid_by_robot_max, _current.robot.floating_point_pose,
-                _current.robot.polygon, robot_uid, b2_sim
+                _current.robot.polygon, robot_uid, obstacle_uid, _current.obstacle.floating_point_pose, b2_sim,
+                other_entities_polygons, other_entities_aabb_tree
             )
             if can_walk_back:
                 #   3. ... and creates a global opening to c1
@@ -907,7 +921,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     check_new_local_opening_before_global,
                     robot_name, robot_cell_after,
                     obstacle_uid, obstacle_polygon, _current.obstacle.polygon,
-                    other_entities_polygons, b2_sim,
+                    other_entities_polygons, other_entities_aabb_tree, b2_sim,
                     inflated_grid_by_robot_max, c_1_cells_set,
                     overall_goal_pose, overall_goal_cell,
                     neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -923,7 +937,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def a_star_for_manip_search(self, start, goal,
                                 robot_uid, robot_name, obstacle_uid, obstacle_polygon,
-                                other_entities_polygons,
+                                other_entities_polygons, other_entities_aabb_tree,
                                 inflated_grid_by_robot, inflated_grid_by_robot_max,
                                 inflated_grid_by_obstacle, c_1_cells_set,
                                 trans_mult, rot_mult,
@@ -934,7 +948,7 @@ class Stilman2005Behavior(BaselineBehavior):
             return self.get_neighbors(
                 _current, _gscore, _close_set, _open_queue, _came_from,
                 start, inflated_grid_by_robot, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
-                trans_mult, rot_mult, b2_sim
+                trans_mult, rot_mult, b2_sim, other_entities_polygons, other_entities_aabb_tree
             )
 
         def heuristic(_neighbor, _goal):
@@ -954,7 +968,8 @@ class Stilman2005Behavior(BaselineBehavior):
             if current_cell_cc_within_bound:
                 can_walk_back, robot_cell_after = self.can_robot_walk_back_to_next_transit_pose(
                     inflated_grid_by_robot_max, _current.robot.floating_point_pose,
-                    _current.robot.polygon, robot_uid, b2_sim
+                    _current.robot.polygon, robot_uid, obstacle_uid, _current.obstacle.floating_point_pose, b2_sim,
+                    other_entities_polygons, other_entities_aabb_tree
                 )
                 if can_walk_back:
                     #   3. ... and creates a global opening to c1
@@ -962,7 +977,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         check_new_local_opening_before_global,
                         robot_name, robot_cell_after,
                         obstacle_uid, obstacle_polygon, _current.obstacle.polygon,
-                        other_entities_polygons, b2_sim,
+                        other_entities_polygons, other_entities_aabb_tree, b2_sim,
                         inflated_grid_by_robot_max, c_1_cells_set,
                         overall_goal_pose, overall_goal_cell,
                         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -1011,10 +1026,10 @@ class Stilman2005Behavior(BaselineBehavior):
     def find_best_transfer_end_configuration(self, robot_pose, robot_polygon, robot_name, robot_uid,
                                              obstacle_uid, obstacle_pose, obstacle_polygon,
                                              goal_pose, goal_cell,
-                                             other_entities_polygons, b2_sim,
+                                             other_entities_polygons, other_entities_aabb_tree, b2_sim,
                                              inflated_grid_by_robot_max, ordered_cells_by_cost, c_1_cells_set,
                                              init_robot_manip_poses, trans_mult, rot_mult, gscore=None, close_set=None,
-                                             check_new_local_opening_before_global=True):
+                                             check_new_local_opening_before_global=True, use_b2=False):
         if close_set:
             # If all reachable configurations have been explored, index them by obstacle cell
             obs_cell_to_reachable_configurations = {}
@@ -1036,7 +1051,8 @@ class Stilman2005Behavior(BaselineBehavior):
                         #   2. ... allows sufficient space for the robot to release the object, ...
                         can_walk_back, robot_cell_after = self.can_robot_walk_back_to_next_transit_pose(
                             inflated_grid_by_robot_max, configuration.robot.floating_point_pose,
-                            configuration.robot.polygon, robot_uid, b2_sim
+                            configuration.robot.polygon, robot_uid, obstacle_uid,
+                            configuration.obstacle.floating_point_pose, b2_sim, other_entities_polygons, other_entities_aabb_tree
                         )
                         if can_walk_back:
                             #   3. ... and creates a global opening to c1
@@ -1044,7 +1060,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 check_new_local_opening_before_global,
                                 robot_name, robot_cell_after,
                                 obstacle_uid, obstacle_polygon, configuration.obstacle.polygon,
-                                other_entities_polygons, b2_sim,
+                                other_entities_polygons, other_entities_aabb_tree, b2_sim,
                                 inflated_grid_by_robot_max, c_1_cells_set,
                                 goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
                                 init_blocking_areas=None, init_entity_inflated_polygon=None
@@ -1065,10 +1081,20 @@ class Stilman2005Behavior(BaselineBehavior):
                     )
 
                     # If the obstacle collides at this pose, don't consider checking further
-                    obstacle_collision_pairs = b2_sim.check_teleportation_with_ghost(
-                        obstacle_uid, {obstacle_uid: obstacle_polygon}, {obstacle_uid: obstacle_pose}, obstacle_pose_at_transfer_end
-                    )
-                    if obstacle_collision_pairs:
+                    if use_b2:
+                        collides_with = b2_sim.simulate_simple_kinematics(
+                            [], init_poses={obstacle_uid: obstacle_pose_at_transfer_end}
+                        )
+                        obstacle_transfer_end_poly = None
+                    else:
+                        obstacle_transfer_end_poly = utils.set_polygon_pose(
+                            obstacle_polygon, obstacle_pose, obstacle_pose_at_transfer_end
+                        )
+                        collides_with = collision.check_static_collision(
+                            obstacle_uid, obstacle_transfer_end_poly, other_entities_polygons, other_entities_aabb_tree
+                        )
+
+                    if collides_with:
                         continue
 
                     for init_robot_manip_pose in init_robot_manip_poses:
@@ -1079,30 +1105,46 @@ class Stilman2005Behavior(BaselineBehavior):
 
                         # For this (robot, obstacle) configuration, check if:
                         #   1. there are no static collisions for robot too, ...
-                        robot_collision_pairs = b2_sim.check_teleportation_with_ghost(
-                            robot_uid, {robot_uid: robot_polygon}, {robot_uid: robot_pose}, robot_pose_at_transfer_end
-                        )
-                        if robot_collision_pairs:
+                        if use_b2:
+                            collides_with = b2_sim.simulate_simple_kinematics(
+                                [], init_welded_pairs={(robot_uid, obstacle_uid)},
+                                init_poses={
+                                    obstacle_uid: obstacle_pose_at_transfer_end, robot_uid: robot_pose_at_transfer_end
+                                }
+                            )
+                            robot_transfer_end_poly = None
+                        else:
+                            robot_transfer_end_poly = utils.set_polygon_pose(
+                                robot_polygon, robot_pose, robot_pose_at_transfer_end
+                            )
+                            collides_with = collision.check_static_collision(
+                                robot_uid, robot_transfer_end_poly, other_entities_polygons, other_entities_aabb_tree
+                            )
+
+                        if collides_with:
                             continue
 
                         #   2. ... the configuration allows sufficient space for the robot to release the object, ...
-                        robot_transfer_end_poly = utils.set_polygon_pose(
-                            robot_polygon, robot_pose, robot_pose_at_transfer_end
-                        )
+                        if not robot_transfer_end_poly:
+                            robot_transfer_end_poly = utils.set_polygon_pose(
+                                robot_polygon, robot_pose, robot_pose_at_transfer_end
+                            )
                         can_walk_back, robot_cell_after = self.can_robot_walk_back_to_next_transit_pose(
                             inflated_grid_by_robot_max, robot_pose_at_transfer_end,
-                            robot_transfer_end_poly, robot_uid, b2_sim,
+                            robot_transfer_end_poly, robot_uid, obstacle_uid, obstacle_pose_at_transfer_end, b2_sim,
+                            other_entities_polygons, other_entities_aabb_tree
                         )
                         if can_walk_back:
                             #   3. ... and creates a global opening to c1
-                            obstacle_transfer_end_poly = utils.set_polygon_pose(
-                                obstacle_polygon, obstacle_pose, obstacle_pose_at_transfer_end
-                            )
+                            if not obstacle_transfer_end_poly:
+                                obstacle_transfer_end_poly = utils.set_polygon_pose(
+                                    obstacle_polygon, obstacle_pose, obstacle_pose_at_transfer_end
+                                )
                             has_new_global_opening, _, _ = self.is_there_opening_to_c_1(
                                 check_new_local_opening_before_global,
                                 robot_name, robot_cell_after,
                                 obstacle_uid, obstacle_polygon, obstacle_transfer_end_poly,
-                                other_entities_polygons, b2_sim,
+                                other_entities_polygons, other_entities_aabb_tree, b2_sim,
                                 inflated_grid_by_robot_max, c_1_cells_set,
                                 goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
                                 init_blocking_areas=None, init_entity_inflated_polygon=None
@@ -1132,7 +1174,9 @@ class Stilman2005Behavior(BaselineBehavior):
         return None  # If no valid configuration could be found...
 
     @staticmethod
-    def can_robot_walk_back_to_next_transit_pose(grid, robot_pose, robot_polygon, robot_uid, b2_sim):
+    def can_robot_walk_back_to_next_transit_pose(grid, robot_pose, robot_polygon, robot_uid, obstacle_uid,
+                                                 obstacle_pose, b2_sim, other_entities_polygons,
+                                                 other_entities_aabb_tree, use_b2=False):
         release_translation = ba.Translation(
             translation_vector=(
                 -1. * (grid.inflation_radius + 1.5 * grid.res), 0.
@@ -1156,12 +1200,20 @@ class Stilman2005Behavior(BaselineBehavior):
             return False, cell
 
         # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-        collision_pairs = b2_sim.check_actions_with_ghost(
-            key=robot_uid, entities_polygons={robot_uid: robot_polygon}, entities_poses={robot_uid: robot_pose},
-            actions=[release_translation], main_pose=robot_pose
-        )
+        if use_b2:
+            collides_with = b2_sim.simulate_simple_kinematics(
+                [{robot_uid: release_translation}], init_poses={robot_uid: robot_pose, obstacle_uid: obstacle_pose},
+                init_welded_pairs={(robot_uid, obstacle_uid)}, apply=False
+            )
+        else:
+            _, collides_with, _ = collision.csv_check_collisions(
+                main_uid=robot_uid, other_polygons=other_entities_polygons,
+                polygon_sequence=[robot_polygon, new_robot_polygon],
+                action_sequence=[collision.convert_action(release_translation, robot_pose)],
+                bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree
+            )
 
-        return not collision_pairs, cell
+        return not collides_with, cell
 
     @staticmethod
     def get_robot_walk_back_to_next_transit_configuration(robot_pose, robot_polygon, robot_max_inflation_radius,
@@ -1182,7 +1234,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def is_there_opening_to_c_1(self, check_new_local_opening_before_global,
                                 robot_name, robot_cell,
                                 obstacle_uid, old_obstacle_polygon, new_obstacle_polygon,
-                                other_entities_polygons, b2_sim,
+                                other_entities_polygons, other_entities_aabb_tree, b2_sim,
                                 inflated_grid_by_robot_max, c_1_cells_set,
                                 goal_pose, goal_cell, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
                                 init_blocking_areas=None, init_entity_inflated_polygon=None):
@@ -1195,7 +1247,7 @@ class Stilman2005Behavior(BaselineBehavior):
         if check_new_local_opening_before_global:
             has_new_local_opening, init_blocking_areas, init_entity_inflated_polygon = check_new_local_opening(
                 old_obstacle_polygon, new_obstacle_polygon,
-                other_entities_polygons, b2_sim,
+                other_entities_polygons, other_entities_aabb_tree, b2_sim,
                 inflated_grid_by_robot_max.inflation_radius, goal_pose,
                 init_blocking_areas, init_entity_inflated_polygon, robot_name
             )
@@ -1231,10 +1283,6 @@ class Stilman2005Behavior(BaselineBehavior):
 
             inflated_grid_by_robot_max.cells_sets_update(removed_cells_sets={obstacle_uid})
 
-            self._rp.cleanup_a_star_close_set(ns=robot_name)
-            self._rp.cleanup_diameter_inflated_polygons(ns=robot_name)
-            self._rp.cleanup_blocking_areas(ns=robot_name)
-
             skipped_global_opening_check = False
 
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
@@ -1244,7 +1292,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def get_neighbors(self, current_configuration, gscore, close_set, open_queue, came_from,
                       start, inflated_grid_by_robot, inflated_grid_by_obstacle, robot_uid, obstacle_uid,
-                      trans_mult, rot_mult, b2_sim):
+                      trans_mult, rot_mult, b2_sim, other_entities_polygons, other_entities_aabb_tree, use_b2=False):
         """
         Creates list of neighbors that are not in close set, do not collide dynamically nor statically
         """
@@ -1341,20 +1389,35 @@ class Stilman2005Behavior(BaselineBehavior):
                 continue
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            collision_pairs = b2_sim.check_actions_with_ghost(
-                key=(robot_uid, obstacle_uid, current_configuration.manip_pose_id),
-                entities_polygons={
-                    robot_uid: current_configuration.robot.polygon,
-                    obstacle_uid: current_configuration.obstacle.polygon
-                },
-                entities_poses={
-                    robot_uid: current_configuration.robot.floating_point_pose,
-                    obstacle_uid: current_configuration.obstacle.floating_point_pose
-                },
-                actions=[action], main_pose=current_configuration.robot.floating_point_pose
-            )
-            if collision_pairs:
-                continue
+            if use_b2:
+                collides_with, poses = b2_sim.simulate_simple_kinematics(
+                    [{robot_uid: action}], init_welded_pairs={(robot_uid, obstacle_uid)}, apply=False,
+                    init_poses={
+                        robot_uid: current_configuration.robot.floating_point_pose,
+                        obstacle_uid: current_configuration.obstacle.floating_point_pose
+                    }, return_poses_before_reset=True
+                )
+                if collides_with:
+                    continue
+                new_robot_pose, new_obstacle_pose = poses[robot_uid], poses[obstacle_uid]
+            else:
+                _, collides_with, _ = collision.csv_check_collisions(
+                    main_uid=robot_uid, other_polygons=other_entities_polygons,
+                    polygon_sequence=[current_configuration.robot.polygon, new_robot_polygon],
+                    action_sequence=[collision.convert_action(action, current_configuration.robot.floating_point_pose)],
+                    bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree
+                )
+                if collides_with:
+                    continue
+                # TODO Refactor collision.csv_check_collisions to check for any number of attached polygons or make new function
+                _, collides_with, _ = collision.csv_check_collisions(
+                    main_uid=obstacle_uid, other_polygons=other_entities_polygons,
+                    polygon_sequence=[current_configuration.obstacle.polygon, new_obstacle_polygon],
+                    action_sequence=[collision.convert_action(action, current_configuration.obstacle.floating_point_pose)],
+                    bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree
+                )
+                if collides_with:
+                    continue
 
             # If we are here, then this newly computed neighbor configuration is valid and we must save it
             neighbor_configuration = RobotObstacleConfiguration(
@@ -1780,7 +1843,7 @@ class TransferPath:
     def is_empty(self):
         return self.grab_done and self.action_index >= len(self.actions) and self.release_done
 
-    def is_valid(self, all_entities_poses, robot_uid, b2_sim, previously_moved_entities_uids, check_horizon=None):
+    def is_valid(self, all_entities_poses, robot_uid, b2_sim, world, previously_moved_entities_uids, check_horizon=None, use_b2=False):
         obstacle_pose = all_entities_poses[self.obstacle_uid]
 
         # Check that the obstacle that is to transferred is actually in its initial place
@@ -1798,58 +1861,94 @@ class TransferPath:
         if check_horizon is None:
             check_horizon = self.get_length()
 
-        collision_pairs = []
+        if not use_b2:
+            other_entities_polygons = {uid: e.polygon for uid, e in world.entities.items() if uid != robot_uid and uid != self.obstacle_uid}
+            other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
 
         if not self.grab_done and check_horizon > 0:
             # Call b2_sim to check grab done
-            b2_sim.deactivate_entities([self.obstacle_uid])
-
             robot_before_grab_pose = self.robot_path.poses[0]
-            robot_before_grab_polygon = self.robot_path.polygons[0]
+            if use_b2:
+                collides_with = b2_sim.simulate_simple_kinematics(
+                    [{robot_uid: self.grab_action}], init_poses={robot_uid: robot_before_grab_pose}, apply=False
+                )
+            else:
+                _, collides_with, _ = collision.csv_check_collisions(
+                    main_uid=robot_uid, other_polygons=other_entities_polygons,
+                    polygon_sequence=[self.robot_path.polygons[0], self.robot_path.polygons[1]],
+                    action_sequence=[collision.convert_action(self.grab_action, self.robot_path.poses[0])],
+                    bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree
+                )
 
-            collision_pairs += b2_sim.check_actions_with_ghost(
-                (robot_uid,), {robot_uid: robot_before_grab_polygon}, {robot_uid: robot_before_grab_pose},
-                [self.grab_action], robot_before_grab_pose
-            )
-
-            b2_sim.activate_entities([self.obstacle_uid])
+            if collides_with:
+                raise DynamicCollisionError(collides_with[robot_uid])
 
         exists_transfer_actions = self.action_index < len(self.actions)
         if check_horizon > 0 and exists_transfer_actions:
-            transfer_actions_to_check = self.actions[self.action_index:check_horizon + 1]
+            transfer_actions_to_check = self.actions[self.action_index:self.action_index + check_horizon]
         else:
             transfer_actions_to_check = []
         if transfer_actions_to_check:
-            key = (robot_uid, self.obstacle_uid, self.manip_pose_id)
-            robot_pose = self.robot_path.poses[self.action_index + 1]
-            obstacle_pose = self.obstacle_path.poses[self.action_index + 1]
-            robot_polygon = self.robot_path.polygons[self.action_index + 1]
-            obstacle_polygon = self.obstacle_path.polygons[self.action_index + 1]
-            entities_polygons = {robot_uid: robot_polygon, self.obstacle_uid: obstacle_polygon}
-            entities_poses = {robot_uid: robot_pose, self.obstacle_uid: obstacle_pose}
-
-            collision_pairs += b2_sim.check_actions_with_ghost(
-                key, entities_polygons, entities_poses, transfer_actions_to_check, robot_pose
-            )
+            if use_b2:
+                robot_pose = self.robot_path.poses[self.action_index + 1]
+                obstacle_pose = self.obstacle_path.poses[self.action_index + 1]
+                collides_with = b2_sim.simulate_simple_kinematics(
+                    [{robot_uid: action} for action in transfer_actions_to_check],
+                    init_welded_pairs={(robot_uid, self.obstacle_uid)},
+                    init_poses={robot_uid: robot_pose, self.obstacle_uid: obstacle_pose}, apply=False
+                )
+                if collides_with:
+                    raise DynamicCollisionError(collides_with)
+            else:
+                _, collides_with, _ = collision.csv_check_collisions(
+                    main_uid=robot_uid, other_polygons=other_entities_polygons,
+                    polygon_sequence=self.robot_path.polygons[self.action_index + 1:self.action_index + 2 + check_horizon],
+                    action_sequence=[
+                        collision.convert_action(self.actions[i], self.robot_path.poses[i + 1])
+                        for i in range(self.action_index, self.action_index + check_horizon)
+                        if i < len(self.actions)
+                    ],
+                    bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree,
+                    ignored_entities=previously_moved_entities_uids
+                )
+                if collides_with:
+                    raise DynamicCollisionError(collides_with)
+                _, collides_with, _ = collision.csv_check_collisions(
+                    main_uid=self.obstacle_uid, other_polygons=other_entities_polygons,
+                    polygon_sequence=self.obstacle_path.polygons[self.action_index + 1:self.action_index + 2 + check_horizon],
+                    action_sequence=[
+                        collision.convert_action(self.actions[i], self.obstacle_path.poses[i + 1])
+                        for i in range(self.action_index, self.action_index + check_horizon)
+                        if i < len(self.actions)
+                    ],
+                    bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree,
+                    ignored_entities=previously_moved_entities_uids
+                )
+                if collides_with:
+                    raise DynamicCollisionError(collides_with)
 
         check_horizon -= len(transfer_actions_to_check)
 
         if not self.release_done and check_horizon > 0:
             # Call b2_sim to check release done
-            b2_sim.deactivate_entities([self.obstacle_uid])
-
             robot_before_release_pose = self.robot_path.poses[-2]
-            robot_before_release_polygon = self.robot_path.polygons[-2]
-
-            collision_pairs += b2_sim.check_actions_with_ghost(
-                (robot_uid,), {robot_uid: robot_before_release_polygon}, {robot_uid: robot_before_release_pose},
-                [self.grab_action], robot_before_release_pose
-            )
-
-            b2_sim.activate_entities([self.obstacle_uid])
-
-        if collision_pairs:
-            raise DynamicCollisionError(collision_pairs)
+            obstacle_before_release_pose = self.obstacle_path.poses[-2]
+            if use_b2:
+                collides_with = b2_sim.simulate_simple_kinematics(
+                    [{robot_uid: self.release_action}],
+                    init_poses={robot_uid: robot_before_release_pose, self.obstacle_uid: obstacle_before_release_pose},
+                    init_welded_pairs={(robot_uid, self.obstacle_uid)},
+                    apply=False
+                )
+            else:
+                _, collides_with, _ = collision.csv_check_collisions(
+                    main_uid=robot_uid, other_polygons=other_entities_polygons,
+                    polygon_sequence=[self.robot_path.polygons[-2], self.robot_path.polygons[-1]],
+                    action_sequence=[collision.convert_action(self.release_action, self.robot_path.poses[-2])],
+                    bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree
+                )
+            if collides_with:
+                raise DynamicCollisionError(collides_with[robot_uid])
 
         return True
 
@@ -1942,43 +2041,54 @@ class TransitPath:
     def is_empty(self):
         return self.action_index >= len(self.actions)
 
-    def is_valid(self, robot_uid, b2_sim, check_horizon=None):
+    def is_valid(self, robot_uid, b2_sim, world, inflated_grid_by_robot, check_horizon=None, use_b2=False):
         # If the path is fully executed, it's valid
         if self.is_empty():
             return True
 
-        # # Check based on Binary Occupancy Grid (temporarily deprecated because required up to date grid,
-        # # which is too costly computationnaly for the moment.)
-        # if check_horizon is None:
-        #     check_horizon=self.get_length()
-        # exists_actions = self.action_index < len(self.actions)
-        # if check_horizon > 0 and exists_actions:
-        #     poses_to_check = self.robot_path.poses[self.action_index:check_horizon + 1]
-        # else:
-        #     poses_to_check = []
-        #
-        # for pose in poses_to_check:
-        #     cell = utils.real_to_grid(pose[0], pose[1], inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose)
-        #     if inflated_grid_by_robot.grid[cell[0]][cell[1]] != 0:
-        #         collision_pairs = [(robot_uid, o_uid) for o_uid in inflated_grid_by_robot.obstacles_uids_in_cell(cell)]
-        #         raise DynamicCollisionError(collision_pairs)
-
-        collision_pairs = []
+        # Check based on Binary Occupancy Grid (temporarily deprecated because required up to date grid,
+        # which is too costly computationnaly for the moment.)
+        if check_horizon is None:
+            check_horizon=self.get_length()
         exists_actions = self.action_index < len(self.actions)
         if check_horizon > 0 and exists_actions:
-            actions_to_check = self.actions[self.action_index:check_horizon + 1]
+            poses_to_check = self.robot_path.poses[self.action_index:self.action_index + check_horizon + 1]
         else:
-            actions_to_check = []
-        if actions_to_check:
-            key = (robot_uid,)
-            start_pose, start_polygon = self.robot_path.poses[self.action_index], self.robot_path.polygons[self.action_index]
-            entities_polygons, entities_poses = {robot_uid: start_polygon}, {robot_uid: start_pose}
-            collision_pairs += b2_sim.check_actions_with_ghost(
-                key, entities_polygons, entities_poses, actions_to_check, start_pose
-            )
+            poses_to_check = []
 
-        if collision_pairs:
-            raise DynamicCollisionError(collision_pairs)
+        for pose in poses_to_check:
+            cell = utils.real_to_grid(pose[0], pose[1], inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose)
+            if inflated_grid_by_robot.grid[cell[0]][cell[1]] != 0:
+                collision_pairs = [(robot_uid, o_uid) for o_uid in inflated_grid_by_robot.obstacles_uids_in_cell(cell)]
+                raise DynamicCollisionError(collision_pairs)
+
+        # exists_actions = self.action_index < len(self.actions)
+        # if check_horizon > 0 and exists_actions:
+        #     actions_to_check = self.actions[self.action_index:self.action_index + check_horizon]
+        # else:
+        #     actions_to_check = []
+        # if actions_to_check:
+        #     if use_b2:
+        #         collides_with = b2_sim.simulate_simple_kinematics(
+        #             [{robot_uid: action} for action in actions_to_check], init_welded_pairs=None,
+        #             init_poses={robot_uid: self.robot_path.poses[self.action_index]}, apply=False
+        #         )
+        #     else:
+        #         other_entities_polygons = {uid: e.polygon for uid, e in world.entities.items() if uid != robot_uid}
+        #         other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
+        #         _, collides_with, _ = collision.csv_check_collisions(
+        #             main_uid=robot_uid, other_polygons=other_entities_polygons,
+        #             polygon_sequence=self.robot_path.polygons[self.action_index:self.action_index + check_horizon + 1],
+        #             action_sequence=[
+        #                 collision.convert_action(self.actions[i], self.robot_path.poses[i])
+        #                 for i in range(self.action_index, self.action_index + check_horizon)
+        #                 if i < len(self.actions)
+        #             ],
+        #             bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree
+        #         )
+        #
+        #     if collides_with:
+        #         raise DynamicCollisionError(collides_with[robot_uid])
 
         return True
 
@@ -2036,7 +2146,7 @@ class Plan:
         else:
             return True
 
-    def is_valid(self, all_entities_poses, b2_sim, check_horizon=None):
+    def is_valid(self, all_entities_poses, b2_sim, world, inflated_grid_by_robot, check_horizon=None):
         # Basic checks
         if self.has_infinite_cost():
             raise HasInfiniteCostError()
@@ -2049,19 +2159,20 @@ class Plan:
         for counter, path in enumerate(self.path_components):
             if shared_horizon is None or shared_horizon > 0:
                 if isinstance(path, TransitPath):
-                    path.is_valid(self.robot_uid, b2_sim, check_horizon=shared_horizon)
+                    path.is_valid(self.robot_uid, b2_sim, world, inflated_grid_by_robot, check_horizon=shared_horizon)
                 elif isinstance(path, TransferPath):
                     # If the previously checked path components are valid, we assume it leaves any manipulated
                     # obstacles in the right place so we don't check again:
                     # - We simply deactivate collisions with them from the world representation
                     # - or if another path component needs to move them (check_start_pose)
                     path.is_valid(
-                        all_entities_poses, self.robot_uid, b2_sim, previously_moved_entities_uids, shared_horizon
+                        all_entities_poses, self.robot_uid, b2_sim, world, previously_moved_entities_uids, shared_horizon
                     )
 
                     previously_moved_entities_uids.add(path.obstacle_uid)
                     # inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
                     b2_sim.deactivate_entities([path.obstacle_uid])
+                    inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
                 else:
                     raise TypeError('Expected TransitPath or TransferPath instance.')
 
@@ -2074,6 +2185,7 @@ class Plan:
         # Reactivate entities that had been deactivated during checks
         # inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
         b2_sim.activate_entities(previously_moved_entities_uids)
+        inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
 
         return True
 
@@ -2104,3 +2216,35 @@ class Plan:
             return next_step
         else:
             return ba.Wait()
+
+
+def display_world_and_path(world, b2_sim, robot_path, obstacle_path=None):
+    import matplotlib.pyplot as plt
+    import os
+
+    fig, ax = b2_sim.b2world_to_fig()
+
+    # for entity in world.entities.values():
+    #     ax.plot(*entity.polygon.exterior.xy)
+
+    for polygon in robot_path.polygons:
+        ax.plot(*polygon.exterior.xy)
+
+    if obstacle_path:
+        for polygon in obstacle_path.polygons:
+            ax.plot(*polygon.exterior.xy)
+
+    ax.axis('equal')
+    ax.set_title("Debug world + paths")
+
+    log_dir = "/home/xia0ben/logs/"
+    existing_log_images_names = {
+        name[:-4] for name in os.listdir(log_dir) if os.path.isfile(os.path.join(log_dir, name))
+    }
+    counter = 0
+    while str(counter) in existing_log_images_names:
+        counter += 1
+
+    plt.ioff()
+    fig.savefig(os.path.join(log_dir, str(counter) + ".png"))
+    fig.show()
