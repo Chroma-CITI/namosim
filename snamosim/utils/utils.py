@@ -149,7 +149,7 @@ class OrderedSet(collections.MutableSet):
 
 
 class CustomLogger(list):
-    def __init__(self, printout=False):
+    def __init__(self, printout=True):
         list.__init__(self)
         self.printout = printout
 
@@ -219,6 +219,25 @@ def get_neighbors_no_checks(cell, neighborhood=TAXI_NEIGHBORHOOD):
 
 
 def get_neighbors_no_coll(cell, grid, width, height, neighborhood=TAXI_NEIGHBORHOOD):
+    # # width_m_1, height_m_1= width - 1, height - 1
+    # if 0 < cell[0] < width - 1:
+    #     if 0 < cell[1] < height - 1:
+    #         # If cell in grid center, return all neighbors in neighborhood
+    #         return {(cell[0] + i, cell[1] + j) for i, j in neighborhood}
+    #     elif cell[1] == 0:
+    #         # If cell in top row
+    #         pass
+    #     elif cell[1] == height - 1:
+    #         pass
+    #     else:
+    #         return set()
+    # elif cell[0] == 0:
+    #     pass
+    # elif cell[0] == width - 1:
+    #     pass
+    # else:
+    #     return set()
+
     neighbors = set()
     for i, j in neighborhood:
         neighbor = cell[0] + i, cell[1] + j
@@ -286,18 +305,25 @@ def real_pose_to_fixed_precision_pose(real_pose, trans_mult, rot_mult):
     )
 
 
-def yaw_from_direction(direction_vector):
+def yaw_from_direction(direction_vector, radians=False):
+    # TODO Replace this by atan2(y, x) with direction vector (x, y)
     if direction_vector[1] < 0:
         yaw = 2 * math.pi - math.acos(
             direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
     else:
         yaw = math.acos(
             direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
-    return math.degrees(yaw)
+    if radians:
+        return yaw
+    else:
+        return math.degrees(yaw)
 
 
-def direction_from_yaw(yaw):
-    return math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+def direction_from_yaw(yaw, radians=False):
+    if radians:
+        return math.cos(yaw), math.sin(yaw)
+    else:
+        return math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
 
 
 def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
