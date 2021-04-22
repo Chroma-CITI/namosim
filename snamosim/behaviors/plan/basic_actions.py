@@ -87,6 +87,23 @@ class Translation:
         return new_point[0], new_point[1], pose[2]
 
 
+class AbsoluteTranslation(Translation):
+    def __init__(self, translation_vector):
+        Translation.__init__(self, translation_vector)
+
+    def compute_translation_vector(self, angle):
+        return self.translation_vector
+
+    def apply(self, polygon, pose):
+        return affinity.translate(geom=polygon, xoff=self.translation_vector[0], yoff=self.translation_vector[1], zoff=0.)
+
+    def predict_pose(self, pose, direction_angle):
+        new_point = affinity.translate(
+            geom=Point((pose[0], pose[1])), xoff=self.translation_vector[0], yoff=self.translation_vector[1], zoff=0.
+        ).coords[0]
+        return new_point[0], new_point[1], pose[2]
+
+
 class Grab(Translation):
     def __init__(self, translation_vector, entity_uid):
         Translation.__init__(self, translation_vector)

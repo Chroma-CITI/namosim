@@ -28,6 +28,15 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # Configuration parameters
         parameters = behavior_config["parameters"]
+
+        # For each, specify collision model, action space
+        # self.transit_search_config =
+        # self.transfer_search_config =  # Include new opening detection parameters and social cost parameters
+        # self.grab_search_config =
+        # self.release_search_config =
+        # self.obstacle_selection_config =
+        # self.plan_execution_config =
+
         # - Original Stilman method configuration parameters
         self.alpha = parameters["alpha_for_obstacle_choice_heur"]
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD  # default if bad parameter
@@ -39,11 +48,14 @@ class Stilman2005Behavior(BaselineBehavior):
         self.transfer_coefficient = 2.  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
         self.angular_res = parameters["collision_check_angular_res"]
-        self.rotation_unit_angle = 60.  # parameters["robot_rotation_unit_angle"]
+        self.rotation_unit_angle = 10.  # parameters["robot_rotation_unit_angle"]
         self.translation_unit_length = parameters["robot_translation_unit_length"]
         self.forbid_rotations = parameters["forbid_rotations"]
         self.translation_factor = self.translation_unit_cost / self.translation_unit_length
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
+        self.absolute_translations = True
+        self.robot_base_drive_type = "holonomic"
+        # self.robot_base_drive_type = "differential"
 
         # - S-NAMO parameters
         self.use_social_cost = parameters["use_social_cost"]
@@ -63,7 +75,14 @@ class Stilman2005Behavior(BaselineBehavior):
         self.check_new_local_opening_before_global = parameters["check_new_local_opening_before_global"]
         self.activate_grids_logging = False  # not parameters["deactivate_grids_logging"]
 
-        self._trans_vectors = np.array([(self.translation_unit_length, 0.), (-self.translation_unit_length, 0.)])
+        if self.robot_base_drive_type == "differential":
+            self._trans_vectors = np.array([(self.translation_unit_length, 0.), (-self.translation_unit_length, 0.)])
+        elif self.robot_base_drive_type == "holonomic":
+            self._trans_vectors = np.array([
+                (self.translation_unit_length, 0.), (-self.translation_unit_length, 0.),
+                (0., self.translation_unit_length), (0., -self.translation_unit_length)
+            ])
+
         if self.forbid_rotations:
             self._rot_angles = np.array([])
         else:
@@ -71,11 +90,18 @@ class Stilman2005Behavior(BaselineBehavior):
         self._all_rot_angles = self.rotation_unit_angle * np.array(range(1, 360 // int(self.rotation_unit_angle)))
         self._nb_possible_angles = len(self._all_rot_angles)
 
-        self._new_actions = []
-        for trans_vector in self._trans_vectors:
-            self._new_actions.append(ba.Translation(trans_vector))
-        for rot_angle in self._rot_angles:
-            self._new_actions.append(ba.Rotation(rot_angle))
+        if self.absolute_translations:
+            self._new_actions = []
+            for trans_vector in self._trans_vectors:
+                self._new_actions.append(ba.AbsoluteTranslation(trans_vector))
+            for rot_angle in self._rot_angles:
+                self._new_actions.append(ba.Rotation(rot_angle))
+        else:
+            self._new_actions = []
+            for trans_vector in self._trans_vectors:
+                self._new_actions.append(ba.Translation(trans_vector))
+            for rot_angle in self._rot_angles:
+                self._new_actions.append(ba.Rotation(rot_angle))
 
         self._social_costmap = None
 
