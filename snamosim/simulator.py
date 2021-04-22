@@ -579,11 +579,7 @@ class Simulator:
                     )
             )
             if action_dynamically_collides:
-                if agent_uid in entity_to_agent.inverse and not isinstance(action, ba.Release):
-                    colliding = collides_with[agent_uid].union(collides_with[entity_to_agent.inverse[agent_uid]])
-                else:
-                    colliding = collides_with[agent_uid]
-                failed[agent_uid] = ar.DynamicCollisionFailure(action, colliding)
+                failed[agent_uid] = ar.DynamicCollisionFailure(action, collides_with)
             else:
                 # SUCCESS
                 # If Grab or Release, first update entity_to_agent

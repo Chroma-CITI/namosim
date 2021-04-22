@@ -48,7 +48,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.transfer_coefficient = 2.  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
         self.angular_res = parameters["collision_check_angular_res"]
-        self.rotation_unit_angle = 10.  # parameters["robot_rotation_unit_angle"]
+        self.rotation_unit_angle = 30.  # parameters["robot_rotation_unit_angle"]
         self.translation_unit_length = parameters["robot_translation_unit_length"]
         self.forbid_rotations = parameters["forbid_rotations"]
         self.translation_factor = self.translation_unit_cost / self.translation_unit_length
@@ -237,7 +237,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self.wait_steps = random.randint(self.min_nb_steps_to_wait, self.max_nb_steps_to_wait)
                 self.wait_steps -= 1
                 self.simulation_log.append(utils.BasicLog(
-                    str(action_failed_because_of_other_agent),
+                    str(self._last_action_result),
                     self._step_count)
                 )
                 self.simulation_log.append(utils.BasicLog(
