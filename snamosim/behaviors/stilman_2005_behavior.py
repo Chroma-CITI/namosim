@@ -48,14 +48,14 @@ class Stilman2005Behavior(BaselineBehavior):
         self.transfer_coefficient = 2.  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
         self.angular_res = parameters["collision_check_angular_res"]
-        self.rotation_unit_angle = 60.  # parameters["robot_rotation_unit_angle"]
+        self.rotation_unit_angle = 10.  # parameters["robot_rotation_unit_angle"]
         self.translation_unit_length = parameters["robot_translation_unit_length"]
         self.forbid_rotations = parameters["forbid_rotations"]
         self.translation_factor = self.translation_unit_cost / self.translation_unit_length
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
-        self.absolute_translations = False
-        # self.robot_base_drive_type = "holonomic"
-        self.robot_base_drive_type = "differential"
+        self.absolute_translations = True
+        self.robot_base_drive_type = "holonomic"
+        # self.robot_base_drive_type = "differential"
 
         # - S-NAMO parameters
         self.use_social_cost = parameters["use_social_cost"]
@@ -190,6 +190,63 @@ class Stilman2005Behavior(BaselineBehavior):
             },
             removed_polygons=self._removed_uids
         )
+
+    def new_think(self):
+        next_step = self.local_coordination_strategy()
+        if isinstance(next_step, (ba.GoalSuccess, ba.GoalFailed)):
+            current_plan = Plan()
+
+
+    def is_goal_reached(self, q_t, q_f, pos_tol=0.01, ang_tol=0.1):
+        return all([
+            utils.is_close(q_t[0], q_f[0], rel_tol=pos_tol),
+            utils.is_close(q_t[1], q_f[1], rel_tol=pos_tol),
+            utils.angle_is_close(q_t[2], q_f[2], rel_tol=ang_tol)
+        ])
+
+    def local_coordination_strategy(self, w_t, robot_uid, goal, plan, fov, try_max, t_min, t_max, pos_tol, ang_tol):
+        # If current robot pose is close enough to goal, return Success
+        if self.is_goal_reached(w_t.entities[robot_uid].pose, goal, pos_tol, ang_tol):
+            return ba.GoalSuccess(goal)
+
+        # Try to compute and/or execute a plan to reach the goal
+        if plan.exists():
+            if plan.was_last_step_success():
+                if plan.is_postponed():
+                    if plan.is_valid():
+                        plan.unpostpone()
+                        return plan.pop_next_step()
+                    else:
+                        if plan.is_postponed_last_step():
+                            try_compute_plan = True
+                        else:
+                            return plan.pop_next_step()
+                else:
+                    if plan.is_valid():
+                        return plan.pop_next_step()
+                    else:
+                        plan.postpone()
+                        return plan.pop_next_step()
+            else:
+                try_compute_plan = True
+        else:
+            if plan.is_postponed():
+                return plan.pop_next_step()
+            else:
+                try_compute_plan = True
+
+        if try_compute_plan:
+            if plan.has_tries_remaining():
+                compute_plan(plan)
+                if plan.exists():
+                    return plan.pop_next_step()
+                else:
+                    if plan.has_tries_remaining():
+                        plan.postpone()
+                        return plan.pop_next_step()
+
+        # If no success nor plan step returned, return failure by default
+        return ba.GoalFailed(goal)
 
     def think(self):
         # TODO Try to rewrite this more cleanly
