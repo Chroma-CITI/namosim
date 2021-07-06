@@ -1,9 +1,10 @@
 import math
-from shapely.geometry import MultiPoint
+from shapely.geometry import MultiPoint, Point
 import shapely.affinity as affinity
 import matplotlib.pyplot as plt
 from aabbtree import AABB, AABBTree
 import snamosim.behaviors.plan.basic_actions as ba
+from snamosim.utils import utils
 
 
 class Action:
@@ -275,8 +276,8 @@ def bounding_boxes_vertices(action_sequence, polygon_sequence, bb_type='minimum_
 def csv_from_bb_vertices(bb_vertices):
     """
     Computes the CSV (Convex Swept Volume) approximation polygon of the provided bounding boxes vertices
-    :param bb_vertices: Bounding boxes vertices
-    :type bb_vertices: shapely.geometry.MultiPoint
+    :param bb_vertices: List of Bounding boxes vertices for each action
+    :type bb_vertices:
     :return: The CSV (Convex Swept Volume) approximation polygon
     :rtype: shapely.geometry.Polygon
     """
@@ -296,7 +297,7 @@ def polygons_to_aabb_tree(polygons):
     return aabb_tree
 
 
-def check_static_collision(main_uid, polygon, other_entities_polygons, aabb_tree, ignored_uids=None, break_at_first=True):
+def check_static_collision(main_uid, polygon, other_entities_polygons, aabb_tree, ignored_uids=None, break_at_first=True, save_intersections=False):
     aabb = polygon_to_aabb(polygon)
     potential_collision_uids = aabb_tree.overlap_values(aabb)
     if ignored_uids:
@@ -304,12 +305,23 @@ def check_static_collision(main_uid, polygon, other_entities_polygons, aabb_tree
     if break_at_first:
         for uid in potential_collision_uids:
             if polygon.intersects(other_entities_polygons[uid]):
-                return {main_uid: {uid}, uid: {main_uid}}
+                if save_intersections:
+                    intersection = polygon.intersection(other_entities_polygons[uid])
+                    return {main_uid: {uid}, uid: {main_uid}}, {(main_uid, uid): intersection, (uid, main_uid): intersection}
+                else:
+                    return {main_uid: {uid}, uid: {main_uid}}
         return {}
     else:
         collides_with = {}
+        if save_intersections:
+            intersections = {}
         for uid in potential_collision_uids:
             if polygon.intersects(other_entities_polygons[uid]):
+                if save_intersections:
+                    intersection = polygon.intersection(other_entities_polygons[uid])
+                    intersections[(main_uid, uid)] = intersection
+                    intersections[(uid, main_uid)] = intersection
+
                 if main_uid in collides_with:
                     collides_with[main_uid].add(uid)
                 else:
@@ -319,23 +331,63 @@ def check_static_collision(main_uid, polygon, other_entities_polygons, aabb_tree
                     collides_with[uid].add(main_uid)
                 else:
                     collides_with[uid] = {main_uid}
-        return collides_with
+
+        if save_intersections:
+            return collides_with, intersections
+        else:
+            return collides_with
 
 
-def csv_check_collisions(main_uid, other_polygons, polygon_sequence, action_sequence, bb_type='minimum_rotated_rectangle',
-                         aabb_tree=None, bb_vertices=None, ignored_entities=None, display_debug=False):
+def merge_collides_with(source, other):
+    for uid, uids in other.items():
+        if uid in source:
+            source[uid].update(uids)
+            for uid_2 in uids:
+                if uid_2 in source:
+                    source[uid_2].add(uid)
+                else:
+                    source[uid_2] = {uid}
+        else:
+            source[uid] = uids
+            for uid_2 in uids:
+                if uid_2 in source:
+                    source[uid_2].add(uid)
+                else:
+                    source[uid_2] = {uid}
+    return source
+
+
+def csv_check_collisions(main_uid, other_polygons, polygon_sequence, action_sequence, id_sequence=None,
+                         bb_type='minimum_rotated_rectangle', aabb_tree=None, bb_vertices=None, csv_polygons=None,
+                         intersections=None, ignored_entities=None, display_debug=False, break_at_first=True,
+                         save_intersections=False):
     # Initialize at first recursive iteration
     if not aabb_tree:
         aabb_tree = polygons_to_aabb_tree(other_polygons)
     if not bb_vertices:
         bb_vertices = bounding_boxes_vertices(action_sequence, polygon_sequence, bb_type)
+    if not csv_polygons:
+        csv_polygons = {}
+    if not intersections:
+        intersections = {}
+    if not id_sequence:
+        id_sequence = range(len(action_sequence))
 
     csv_polygon = csv_from_bb_vertices(bb_vertices)
+    csv_polygons[tuple(id_sequence)] = csv_polygon
 
     # Dichotomy-check for collision between polygon and CSV as long as:
     # - there is no collision
     # - AND the CSV envelops more than one action (two consecutive polygons)
-    collides_with = check_static_collision(main_uid, csv_polygon, other_polygons, aabb_tree, ignored_entities, True)
+    if save_intersections:
+        collides_with, local_intersections = check_static_collision(
+            main_uid, csv_polygon, other_polygons, aabb_tree, ignored_entities, break_at_first, save_intersections
+        )
+        intersections[tuple(id_sequence)] = local_intersections
+    else:
+        collides_with = check_static_collision(
+            main_uid, csv_polygon, other_polygons, aabb_tree, ignored_entities, break_at_first, save_intersections
+        )
 
     if collides_with:
         if display_debug:
@@ -358,14 +410,125 @@ def csv_check_collisions(main_uid, other_polygons, polygon_sequence, action_sequ
         if len(bb_vertices) >= 2:
             first_half_bb_vertices = bb_vertices[:len(bb_vertices) // 2]
             second_half_bb_vertices = bb_vertices[len(bb_vertices) // 2:]
-            first_half_collides, collides_with, aabb_tree = csv_check_collisions(
-                main_uid, other_polygons, polygon_sequence, action_sequence, aabb_tree=aabb_tree,
-                bb_vertices=first_half_bb_vertices, display_debug=display_debug)
-            second_half_collides, collides_with, aabb_tree = csv_check_collisions(
-                main_uid, other_polygons, polygon_sequence, action_sequence, aabb_tree=aabb_tree,
-                bb_vertices=second_half_bb_vertices, display_debug=display_debug)
-            return (first_half_collides or second_half_collides), collides_with, aabb_tree
+            first_half_ids = id_sequence[:len(id_sequence) // 2]
+            second_half_ids = id_sequence[len(id_sequence) // 2:]
+            first_half_collides, first_half_collides_with, _, _, _, _ = csv_check_collisions(
+                main_uid, other_polygons, polygon_sequence, action_sequence, first_half_ids, aabb_tree=aabb_tree,
+                bb_vertices=first_half_bb_vertices, ignored_entities=ignored_entities, display_debug=display_debug,
+                break_at_first=break_at_first, bb_type=bb_type, csv_polygons=csv_polygons, intersections=intersections
+            )
+            second_half_collides, second_half_collides_with, _, _, _, _ = csv_check_collisions(
+                main_uid, other_polygons, polygon_sequence, action_sequence, second_half_ids, aabb_tree=aabb_tree,
+                bb_vertices=second_half_bb_vertices, ignored_entities=ignored_entities, display_debug=display_debug,
+                break_at_first=break_at_first, bb_type=bb_type, csv_polygons=csv_polygons, intersections=intersections
+            )
+            collides_with = merge_collides_with(first_half_collides_with, second_half_collides_with)
+            collides = first_half_collides or second_half_collides
+            return collides, collides_with, aabb_tree, csv_polygons, intersections, bb_vertices
         else:
-            return True, collides_with, aabb_tree
+            return True, collides_with, aabb_tree, csv_polygons, intersections, bb_vertices
     else:
-        return False, collides_with, aabb_tree
+        return False, collides_with, aabb_tree, csv_polygons, intersections, bb_vertices
+
+
+def csv_simulate_simple_kinematics(world, agent_uid_to_next_action, apply=False, bb_type='minimum_rotated_rectangle', ignore_collisions=False):
+    # Apply each action to get polygon after for robot and obstacle if relevant
+    # and compute CSV for each
+    # and check that no CSV intersects with other entities beyond those that are moving this round
+    uid_to_csv_polygon = {}
+    collides_with = {}
+    moving_uids = set(agent_uid_to_next_action.keys()).union({
+        world.entity_to_agent.inverse[agent_uid] for agent_uid in agent_uid_to_next_action.keys()
+        if agent_uid in world.entity_to_agent.inverse
+    })
+    other_polygons = {uid: e.polygon for uid, e in world.entities.items() if uid not in moving_uids}
+    aabb_tree = polygons_to_aabb_tree(other_polygons)
+    if apply:
+        new_polygons = {}
+        new_poses = {}
+    for agent_uid, action in agent_uid_to_next_action.items():
+        agent = world.entities[agent_uid]
+        agent_action = convert_action(action, agent.pose)
+        agent_polygon_after = action.apply(agent.polygon, agent.pose)
+        agent_csv = csv_from_bb_vertices(bounding_boxes_vertices(
+            [agent_action], [agent.polygon, agent_polygon_after], bb_type=bb_type
+        ))
+        uid_to_csv_polygon[agent_uid] = agent_csv
+        ignored_entities = {action.entity_uid} if isinstance(action, (ba.Release, ba.Grab)) else set()
+        agent_collides_with = check_static_collision(agent_uid, agent_csv, other_polygons, aabb_tree, ignored_entities)
+        if agent_uid in agent_collides_with:
+            if isinstance(action, ba.Rotation):
+                # Extra check for rotation to avoid false positives during transit paths
+                actual_colliding_entities = set()
+                for other_uid in agent_collides_with[agent_uid]:
+                    nearest_distance = Point((agent.pose[0], agent.pose[1])).distance(world.entities[other_uid].polygon)
+                    if nearest_distance <= utils.get_circumscribed_radius(agent.polygon):
+                        actual_colliding_entities.add(other_uid)
+                if actual_colliding_entities:
+                    agent_collides_with = {other_uid: {agent_uid} for other_uid in actual_colliding_entities}
+                    agent_collides_with[agent_uid] = actual_colliding_entities
+                else:
+                    agent_collides_with = {}
+            merge_collides_with(collides_with, agent_collides_with)
+        if apply:
+            new_polygons[agent_uid] = agent_polygon_after
+            if isinstance(action, ba.Translation):
+                new_poses[agent_uid] = action.predict_pose(agent.pose, agent.pose[2])
+            else:
+                new_poses[agent_uid] = action.predict_pose(agent.pose, (agent.pose[0], agent.pose[1]))
+        if not isinstance(action, (ba.Release, ba.Grab)) and agent_uid in world.entity_to_agent.inverse:
+            obs_uid = world.entity_to_agent.inverse[agent_uid]
+            obs = world.entities[obs_uid]
+            obs_action = convert_action(action, agent.pose)
+            obs_polygon_after = action.apply(obs.polygon, agent.pose)
+            obs_csv = csv_from_bb_vertices(bounding_boxes_vertices(
+                [obs_action], [obs.polygon, obs_polygon_after], bb_type=bb_type
+            ))
+            uid_to_csv_polygon[obs_uid] = obs_csv
+            obs_collides_with = check_static_collision(obs_uid, obs_csv, other_polygons, aabb_tree)
+            merge_collides_with(collides_with, obs_collides_with)
+            if apply:
+                new_polygons[obs_uid] = obs_polygon_after
+                if isinstance(action, ba.Translation):
+                    new_poses[obs_uid] = action.predict_pose(obs.pose, agent.pose[2])
+                else:
+                    new_poses[obs_uid] = action.predict_pose(obs.pose, (agent.pose[0], agent.pose[1]))
+
+    # Check that no CSV intersects with another CSV
+    checked_uids = set()
+    csv_aabb_tree = polygons_to_aabb_tree(uid_to_csv_polygon)
+    for uid, csv_polygon in uid_to_csv_polygon.items():
+        checked_uids.add(uid)
+        if uid in world.entity_to_agent:
+            associated_uid = {world.entity_to_agent[uid]}
+        elif uid in world.entity_to_agent.inverse:
+            associated_uid = {world.entity_to_agent.inverse[uid]}
+        else:
+            associated_uid = set()
+        merge_collides_with(collides_with, check_static_collision(
+            uid, csv_polygon, uid_to_csv_polygon, csv_aabb_tree, ignored_uids=checked_uids.union(associated_uid)
+        ))
+
+    if apply:
+        for agent_uid, action in agent_uid_to_next_action.items():
+            agent = world.entities[agent_uid]
+            if ignore_collisions:
+                if agent_uid in world.entity_to_agent.inverse and not isinstance(action, (ba.Release, ba.Grab)):
+                    obs_uid = world.entity_to_agent.inverse[agent_uid]
+                    obstacle = world.entities[obs_uid]
+                    agent.pose, agent.polygon = new_poses[agent_uid], new_polygons[agent_uid]
+                    obstacle.pose, obstacle.polygon = new_poses[obs_uid], new_polygons[obs_uid]
+                else:
+                    agent.pose, agent.polygon = new_poses[agent_uid], new_polygons[agent_uid]
+            else:
+                if agent_uid not in collides_with:
+                    if agent_uid in world.entity_to_agent.inverse and not isinstance(action, (ba.Release, ba.Grab)):
+                        obs_uid = world.entity_to_agent.inverse[agent_uid]
+                        if obs_uid not in collides_with:
+                            obstacle = world.entities[obs_uid]
+                            agent.pose, agent.polygon = new_poses[agent_uid], new_polygons[agent_uid]
+                            obstacle.pose, obstacle.polygon = new_poses[obs_uid], new_polygons[obs_uid]
+                    else:
+                        agent.pose, agent.polygon = new_poses[agent_uid], new_polygons[agent_uid]
+
+    return collides_with

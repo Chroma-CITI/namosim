@@ -209,6 +209,8 @@ class B2Sim:
         :rtype:
         """
         # Initialize world state
+        # TODO Make it so we can choose to break at first obstacle that collides or accumulate the ids of those that do
+
         init_poses = init_poses if init_poses is not None else dict()
         init_welded_pairs = init_welded_pairs if init_welded_pairs is not None else set()
 

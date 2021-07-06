@@ -5,14 +5,14 @@ import json
 import numpy as np
 
 import shapely.affinity as affinity
-from shapely.geometry import Polygon, Point, box, LineString
+from shapely.geometry import Polygon, box, LineString
 from shapely.ops import cascaded_union
+from bidict import bidict
 
 import snamosim.utils.utils as utils
 import snamosim.utils.conversion as conversion
 from snamosim.worldreps.entity_based.custom_exceptions import EntityPlacementException
 from snamosim.worldreps.discretization_data import DiscretizationData
-from snamosim.display.ros_publisher import RosPublisher
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.taboo import Taboo
@@ -25,12 +25,11 @@ from snamosim.worldreps.entity_based.sensors.omniscient_sensor import Omniscient
 class World:
     SCALING_CONSTANT = 1. / 3.5433
 
-    def __init__(self, entities=None, dd=None, taboo_zones=None, goals=None,
-                 probabilist_occupancy_grids=None, binary_occupancy_grids=None, binary_inflated_occupancy_grids=None,
-                 social_topological_occupation_cost_grids=None, connected_components_grids=None, geometry_scale=1.,
+    def __init__(self, entities=None, entities_to_agent=None, dd=None, taboo_zones=None, goals=None, geometry_scale=1.,
                  init_geometry_filename="/world_name_placeholder.svg", init_geometry_file=None):
 
-        self.entities = entities if entities is not None else dict()
+        self.entities = entities or dict()
+        self.entity_to_agent = entities_to_agent or bidict()
 
         self.dd = dd
 
@@ -43,8 +42,8 @@ class World:
             conversion.clean_attributes(init_geometry_file)
         self.init_geometry_filename = init_geometry_filename
 
-        self.taboo_zones = taboo_zones if taboo_zones is not None else dict()
-        self.goals = goals if goals is not None else dict()
+        self.taboo_zones = taboo_zones or dict()
+        self.goals = goals or dict()
 
     # Constructor
     @classmethod
@@ -365,3 +364,12 @@ class World:
         # for taboo in self.taboo_zones.values():
         #     current_geometries_ids_and_polygons[taboo.name] = taboo.polygon
         return current_geometries_ids_and_polygons
+
+    def light_copy(self, ignored_entities=tuple()):
+        return World(
+            entities={uid: entity.light_copy() for uid, entity in self.entities.items() if uid not in ignored_entities},
+            entities_to_agent=copy.deepcopy(self.entity_to_agent), dd=copy.deepcopy(self.dd),
+            taboo_zones=copy.deepcopy(self.taboo_zones), goals=copy.deepcopy(self.goals),
+            geometry_scale=self.geometry_scale, init_geometry_filename=self.init_geometry_filename,
+            init_geometry_file=self.init_geometry_file
+        )

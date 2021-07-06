@@ -18,7 +18,7 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         self._rp.publish_sim_world(world, robot.uid)
         movable_entities_uids = tuple({entity_uid for entity_uid, entity in world.entities.items()
                                        if isinstance(entity, Robot) or (isinstance(entity, Obstacle)
-                                       and robot.deduce_movability(entity.type) == "movable")})
+                                       and entity.movability == "movable")})
         occ_grid = BinaryOccupancyGrid(
             world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
             world.dd.inflation_radius, world.entities, entities_to_ignore=movable_entities_uids)

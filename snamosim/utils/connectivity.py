@@ -3,9 +3,9 @@ from snamosim.utils import utils
 
 
 class CCSData:
-    def __init__(self, ccs, ccs_grid, current_uid):
+    def __init__(self, ccs, grid, current_uid):
         self.ccs = ccs
-        self.ccs_grid = ccs_grid
+        self.grid = grid
         self.current_uid = current_uid
 
 

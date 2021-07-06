@@ -3,7 +3,6 @@ import copy
 import json
 import os
 import traceback
-from bidict import bidict
 
 from snamosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 
@@ -16,7 +15,7 @@ from snamosim.worldreps.entity_based.world import World
 from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 
-from snamosim.utils import stats_utils, utils, conversion, b2_collision
+from snamosim.utils import stats_utils, utils, conversion, b2_collision, collision
 
 
 class Simulator:
@@ -145,7 +144,6 @@ class Simulator:
             self.rp.publish_sim_world(self.ref_world)
 
             trace_polygons = []
-            attached_entity_to_robot = bidict()
 
             step_count = 0
 
@@ -163,7 +161,7 @@ class Simulator:
                 agent_uid_to_next_action = self.think(active_agents, trace_polygons, step_count)
 
                 # Act loops: Verify that each action is doable individually and together, if so, execute them
-                self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons, step_count)
+                self.act(agent_uid_to_next_action, step_count)
 
                 # Once the simulation reference world has been modified, display the modification
                 if not self.display_sim_knowledge_only_once:
@@ -456,7 +454,7 @@ class Simulator:
                     # If the agent has executed all of its goals, remove it from the active agents
                     active_agents.remove(agent_uid)
                     self.simulation_log.append(
-                        utils.BasicLog("{} finished executed all its goals.".format(agent_uid), step_count)
+                        utils.BasicLog("Agent {} finished executing all its goals.".format(self.ref_world.entities[agent_uid].name), step_count)
                     )
                 elif isinstance(agent_next_action, ba.GoalFailed):
                     self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
@@ -482,7 +480,7 @@ class Simulator:
                     self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
                     self.simulation_log.append(
                         utils.BasicLog(
-                            "{} successfully executed goal {}.".format(
+                            "Agent {} successfully executed goal {}.".format(
                                 self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)
                             ),
                             step_count
@@ -501,7 +499,7 @@ class Simulator:
                 self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
         return agent_uid_to_next_action
 
-    def act(self, agent_uid_to_next_action, entity_to_agent, trace_polygons, step_count):
+    def act(self, agent_uid_to_next_action, step_count, use_b2=False, ignore_collisions=True):
         # Only Grab and Release actions require further checks, and Wait actions are necessarily valid
         to_check = {
             uid: a for uid, a in agent_uid_to_next_action.items()
@@ -517,10 +515,10 @@ class Simulator:
         for agent_uid, action in agent_uid_to_next_action.items():
             if isinstance(action, ba.Release):
                 entity_uid = action.entity_uid
-                if agent_uid not in entity_to_agent.inverse or entity_uid not in entity_to_agent:
+                if agent_uid not in self.ref_world.entity_to_agent.inverse or entity_uid not in self.ref_world.entity_to_agent:
                     failed[agent_uid] = ar.NotGrabbedFailure(action)
                 else:
-                    other_agent_uid = entity_to_agent[entity_uid]
+                    other_agent_uid = self.ref_world.entity_to_agent[entity_uid]
                     if other_agent_uid != agent_uid:
                         failed[agent_uid] = ar.GrabbedByOtherFailure(action, other_agent_uid)
                     else:
@@ -541,11 +539,11 @@ class Simulator:
                 if len(entity_to_grab_agents[entity_uid]) > 1:
                     failed[agent_uid] = ar.SimultaneousGrabFailure(action, entity_to_grab_agents[entity_uid])
                     continue
-                if agent_uid in entity_to_agent.inverse:
+                if agent_uid in self.ref_world.entity_to_agent.inverse:
                     failed[agent_uid] = ar.GrabMoreThanOneFailure(action)
                     continue
-                if entity_uid in entity_to_agent:
-                    other_agent_uid = entity_to_agent[entity_uid]
+                if entity_uid in self.ref_world.entity_to_agent:
+                    other_agent_uid = self.ref_world.entity_to_agent[entity_uid]
                     other_releases = other_agent_uid in to_check and isinstance(to_check[other_agent_uid], ba.Release)
                     if not other_releases:
                         failed[agent_uid] = ar.AlreadyGrabbedFailure(action, other_agent_uid)
@@ -553,54 +551,66 @@ class Simulator:
                 to_check[agent_uid] = action
 
         # Check actions regarding dynamic collisions and apply the valid ones using Box2D
-        collides_with = self.b2_sim.simulate_simple_kinematics([to_check], apply=True)
+        if use_b2:
+            collides_with = self.b2_sim.simulate_simple_kinematics([to_check], apply=True)
+        else:
+            collides_with = collision.csv_simulate_simple_kinematics(self.ref_world, to_check, apply=True, ignore_collisions=ignore_collisions)
 
         # Finish separating succeeded and failed actions, and apply result to world state on success
         for agent_uid, action in to_check.items():
             action_dynamically_collides = (
-                    (  # The agent associated with the action collides
-                        (
-                            agent_uid in collides_with
-                            and not isinstance(action, ba.Grab)
-                        )
-                        or (  # Special case for Grab: ignore collision with grabbed obstacle
-                            agent_uid in collides_with
-                            and isinstance(action, ba.Grab)
-                            and (
-                                len(collides_with[agent_uid]) > 1
-                                or action.entity_uid not in collides_with[agent_uid]
-                            )
+                (  # The agent associated with the action collides
+                    (
+                        agent_uid in collides_with
+                        and not isinstance(action, ba.Grab)
+                    )
+                    or (  # Special case for Grab: ignore collision with grabbed obstacle
+                        agent_uid in collides_with
+                        and isinstance(action, ba.Grab)
+                        and (
+                            len(collides_with[agent_uid]) > 1
+                            or action.entity_uid not in collides_with[agent_uid]
                         )
                     )
-                    or (  # The obstacle associated with the action collides
-                        agent_uid in entity_to_agent.inverse
-                        and entity_to_agent.inverse[agent_uid] in collides_with
-                        and not isinstance(action, ba.Release)
-                    )
+                )
+                or (  # The obstacle associated with the action collides
+                    agent_uid in self.ref_world.entity_to_agent.inverse
+                    and self.ref_world.entity_to_agent.inverse[agent_uid] in collides_with
+                    and not isinstance(action, ba.Release)
+                )
             )
-            if action_dynamically_collides:
+            if action_dynamically_collides and not ignore_collisions:
                 failed[agent_uid] = ar.DynamicCollisionFailure(action, collides_with)
             else:
+                if action_dynamically_collides and ignore_collisions:
+                    self.simulation_log.append("At step {}: Dynamic collision ignored, entities: {}".format(
+                        step_count, {
+                            self.ref_world.entities[uid].name: {self.ref_world.entities[uid2].name for uid2 in uids}
+                            for uid, uids in collides_with.items()
+                        }
+                    ))
+
                 # SUCCESS
-                # If Grab or Release, first update entity_to_agent
+                # If Grab or Release, first update self.ref_world.entity_to_agent
                 if isinstance(action, ba.Grab):
-                    entity_to_agent[action.entity_uid] = agent_uid
+                    self.ref_world.entity_to_agent[action.entity_uid] = agent_uid
                 if isinstance(action, ba.Release):
-                    del entity_to_agent[action.entity_uid]
+                    del self.ref_world.entity_to_agent[action.entity_uid]
 
                 # Then apply to world
-                agent = self.ref_world.entities[agent_uid]
-                agent_new_pose = self.b2_sim.get_entity_pose(agent_uid)
-                agent_new_polygon = utils.set_polygon_pose(agent.polygon, agent.pose, agent_new_pose)
-                agent.pose, agent.polygon = agent_new_pose, agent_new_polygon
-                if agent_uid in entity_to_agent.inverse:
-                    entity_uid = entity_to_agent.inverse[agent_uid]
-                    entity = self.ref_world.entities[entity_uid]
-                    entity_new_pose = self.b2_sim.get_entity_pose(entity_uid)
-                    entity_new_polygon = utils.set_polygon_pose(entity.polygon, entity.pose, entity_new_pose)
-                    entity.pose, entity.polygon = entity_new_pose, entity_new_polygon
+                if use_b2:
+                    agent = self.ref_world.entities[agent_uid]
+                    agent_new_pose = self.b2_sim.get_entity_pose(agent_uid)
+                    agent_new_polygon = utils.set_polygon_pose(agent.polygon, agent.pose, agent_new_pose)
+                    agent.pose, agent.polygon = agent_new_pose, agent_new_polygon
+                    if agent_uid in self.ref_world.entity_to_agent.inverse:
+                        entity_uid = self.ref_world.entity_to_agent.inverse[agent_uid]
+                        entity = self.ref_world.entities[entity_uid]
+                        entity_new_pose = self.b2_sim.get_entity_pose(entity_uid)
+                        entity_new_polygon = utils.set_polygon_pose(entity.polygon, entity.pose, entity_new_pose)
+                        entity.pose, entity.polygon = entity_new_pose, entity_new_polygon
 
-                succeeded[agent_uid] = ar.ActionSuccess(action, agent_new_pose)
+                succeeded[agent_uid] = ar.ActionSuccess(action, self.ref_world.entities[agent_uid].pose)
 
         # Save Action Result in action result history
         for agent_uid, action_result in succeeded.items():

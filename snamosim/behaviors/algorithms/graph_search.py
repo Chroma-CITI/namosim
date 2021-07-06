@@ -242,6 +242,9 @@ def real_to_grid_search_a_star(start_pose, goal_pose, grid):
         start_cell = utils.real_to_grid(start_pose[0], start_pose[1], grid.res, grid.grid_pose)
         goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], grid.res, grid.grid_pose)
 
+        if start_cell == goal_cell:
+            return [start_pose, goal_pose]
+
         if grid.grid[start_cell[0]][start_cell[1]] > 0 or grid.grid[goal_cell[0]][goal_cell[1]] > 0:
             return []
 

@@ -1,3 +1,6 @@
+import copy
+
+
 class OmniscientSensor:
     def __init__(self):
         self.parent_uid = None
@@ -23,6 +26,9 @@ class OmniscientSensor:
         uids_to_remove = set(target_world.entities.keys()).difference(reference_world.entities.keys())
         for uid in uids_to_remove:
             target_world.remove_entity(uid)
+
+        # Copy all grab data from reference world
+        target_world.entity_to_agent = copy.deepcopy(reference_world.entity_to_agent)
 
         return uids_to_add, uids_to_update, uids_to_remove
 
