@@ -630,6 +630,8 @@ class Plan:
 
 
 class DynamicPlan(Plan):
+    # DEBUGGING_WAIT_TIME_GENERATOR = [13, 18, 6, 17, 9, 5, 12]
+
     def __init__(self):
         Plan.__init__(self)
         self.is_postponed = False
@@ -690,6 +692,7 @@ class DynamicPlan(Plan):
 
     def postpone(self, t_min, t_max, step_count):
         self.is_postponed = True
+        # self.wait_counter = self.DEBUGGING_WAIT_TIME_GENERATOR.pop(0)
         self.wait_counter = random.randint(t_min, t_max)
         self.postponements_history[step_count] = self.wait_counter
 
@@ -803,7 +806,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.check_horizon = 10
 
         self.angular_tolerance = .1
-        self.position_tolerance = self._world.dd.res / 10.
+        self.position_tolerance = self._world.dd.res / 2.
 
 
         self.min_nb_steps_to_wait = 5
@@ -906,7 +909,7 @@ class Stilman2005Behavior(BaselineBehavior):
         return next_step
 
 
-    def is_goal_reached(self, q_t, q_f, pos_tol=0.01, ang_tol=0.1):
+    def is_goal_reached(self, q_t, q_f, pos_tol=0.05, ang_tol=0.1):
         return all([
             utils.is_close(q_t[0], q_f[0], rel_tol=pos_tol),
             utils.is_close(q_t[1], q_f[1], rel_tol=pos_tol),
@@ -943,7 +946,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     else:
                         if self.must_replan_now(conflicts):
                             self.simulation_log.append(utils.BasicLog(
-                                "Agent {}: Try compute plan because conflicts during postponement: {}".format(self._robot_name, conflicts), step_count
+                                "Agent {}: Try compute plan because conflicts during postponement (with {} steps left) that require immediate replanning: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
                             ))
                             try_compute_plan = True
                         elif plan.should_postponement_be_over():
@@ -1010,7 +1013,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     if conflicts:
                         plan.postpone(t_min, t_max, step_count)
                         self.simulation_log.append(utils.BasicLog(
-                            "Agent {}: Postponing plan for {} steps because conflicts after computation: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
+                            "Agent {}: Postpone plan for {} steps because conflicts after computation: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
                         ))
                     return plan.pop_next_step()
                 else:
