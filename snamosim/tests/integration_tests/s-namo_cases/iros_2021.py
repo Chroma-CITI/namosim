@@ -75,7 +75,7 @@ class IROS2021Tests(unittest.TestCase):
         nb_scenarios = 1000
         scenario_counter = 0
 
-        while (now_time - start_time) < (10. * 60. * 60.):
+        while (now_time - start_time) < (5. * 60. * 60.):
             if use_computer and len(current_processes) < nb_cpu - 1:
                 process = multiprocessing.Process(target=self.namo_and_snamo, args=(("{:0" + str(len(str(nb_scenarios))) + "d}").format(scenario_counter),))
                 current_processes.append(process)

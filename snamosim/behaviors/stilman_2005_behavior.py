@@ -1386,7 +1386,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
 
-        c_1_cells_set = ccs_data.ccs[c_1].visited
+        c_1_cells_set = set() if c_1==0 else ccs_data.ccs[c_1].visited
 
         res = w_t_plus_2.dd.res
 
@@ -1491,7 +1491,7 @@ class Stilman2005Behavior(BaselineBehavior):
         w_t_plus_2 = copy.deepcopy(w_t)
         self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid, ns=self._robot_name)
 
-        c_1_cells_set = ccs_data.ccs[c_1].visited
+        c_1_cells_set = set() if c_1==0 else ccs_data.ccs[c_1].visited
 
         res = w_t_plus_2.dd.res
 
