@@ -557,7 +557,7 @@ class Plan:
     def exists(self):
         return bool(self.path_components)
 
-    def get_conflicts(self, b2_sim, world, inflated_grid_by_robot, check_horizon=None,
+    def get_conflicts(self, b2_sim, world, inflated_grid_by_robot, step_count, check_horizon=None,
                         use_b2=False, apply_strict_horizon=False, exit_early_for_any_conflict=False,
                         exit_early_only_for_long_term_conflicts=True):
         # Check validity of each component
@@ -632,20 +632,33 @@ class Plan:
 class DynamicPlan(Plan):
     def __init__(self):
         Plan.__init__(self)
-        self.plan_history = []
         self.is_postponed = False
         self.wait_counter = 0
         self.plan_counter = 0
+
+        self.plan_history = {}
+        self.conflicts_history = {}
+        self.postponements_history = {}
+        self.unpostponements_history = []
 
     def was_last_step_success(self, w_t, last_action_result):
         # TODO Check if robot state (position and grab) are coherent with next step's preconditions
         return isinstance(last_action_result, ar.ActionSuccess)
 
-    def get_conflicts(self, b2_sim, world, inflated_grid_by_robot, check_horizon=None):
-        return Plan.get_conflicts(
-            self, b2_sim, world, inflated_grid_by_robot, check_horizon=check_horizon, use_b2=False,
-            apply_strict_horizon=False, exit_early_for_any_conflict=False, exit_early_only_for_long_term_conflicts=True
+    def get_conflicts(self, b2_sim, world, inflated_grid_by_robot, step_count, check_horizon=None,
+                      use_b2=False, apply_strict_horizon=False, exit_early_for_any_conflict=False,
+                      exit_early_only_for_long_term_conflicts=True):
+        conflicts = Plan.get_conflicts(
+            self, b2_sim, world, inflated_grid_by_robot, step_count, check_horizon=check_horizon, use_b2=use_b2,
+            apply_strict_horizon=apply_strict_horizon, exit_early_for_any_conflict=exit_early_for_any_conflict,
+            exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts
         )
+        if conflicts:
+            if step_count in self.conflicts_history:
+                self.conflicts_history[step_count] += conflicts
+            else:
+                self.conflicts_history[step_count] = conflicts
+        return conflicts
 
     def has_tries_remaining(self, nb_max_tries):
         return self.plan_counter < nb_max_tries
@@ -680,14 +693,16 @@ class DynamicPlan(Plan):
     def postpone(self, t_min, t_max):
         self.is_postponed = True
         self.wait_counter = random.randint(t_min, t_max)
+        self.postponements_history[step_count] = self.wait_counter
 
-    def unpostpone(self):
+    def unpostpone(self, step_count):
         self.is_postponed = False
         self.wait_counter = 0
+        self.unpostponements_history.append(step_count)
 
-    def update_plan(self, plan):
+    def update_plan(self, plan, step_count):
         self.plan_counter += 1
-        self.plan_history.append(plan)
+        self.plan_history[step_count] = plan
 
         self.path_components = plan.path_components
         self.goal = plan.goal
@@ -920,10 +935,10 @@ class Stilman2005Behavior(BaselineBehavior):
         if plan.exists():
             if plan.was_last_step_success(w_t, self._last_action_result):
                 if plan.is_postponed:
-                    conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, fov)
+                    conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                     if not conflicts:
                         self.simulation_log.append("At step {}: Unpostponing plan.".format(step_count))
-                        plan.unpostpone()
+                        plan.unpostpone(step_count)
                         return plan.pop_next_step()
                     else:
                         if self.must_replan_now(conflicts):
@@ -935,7 +950,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         else:
                             return plan.pop_next_step()
                 else:
-                    conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, fov)
+                    conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                     if not conflicts:
                         return plan.pop_next_step()
                     else:
@@ -944,7 +959,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             try_compute_plan = True
                         else:
                             self.simulation_log.append("At step {}: Postpone plan because conflicts.".format(step_count))
-                            plan.postpone(t_min, t_max)
+                            plan.postpone(t_min, t_max, step_count)
                             return plan.pop_next_step()
             else:
                 self.simulation_log.append("At step {}: Try compute plan because last step execution failed.".format(step_count))
@@ -970,15 +985,15 @@ class Stilman2005Behavior(BaselineBehavior):
                     w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, goal, trans_mult, rot_mult,
                     neighborhood=neighborhood
                 )
-                plan.update_plan(p)
+                plan.update_plan(p, step_count)
                 self._rp.cleanup_p_opt(ns=self._robot_name)
                 self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
 
                 if plan.exists():
-                    conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, fov)
+                    conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                     if conflicts:
                         self.simulation_log.append("At step {}: Postponing plan because conflicts after computation: {}.".format(step_count, conflicts))
-                        plan.postpone(t_min, t_max)
+                        plan.postpone(t_min, t_max, step_count)
                     return plan.pop_next_step()
                 else:
                     if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
@@ -1000,7 +1015,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             self.simulation_log.append("At step {}: Could not release object during manipulation because no valid transit pose could be found.".format(step_count))
 
                         self.simulation_log.append("At step {}: Postponing because no plan could be found yet.".format(step_count))
-                        plan.postpone(t_min, t_max)
+                        plan.postpone(t_min, t_max, step_count)
                         return plan.pop_next_step()
 
         # If no success nor plan step returned, return failure by default

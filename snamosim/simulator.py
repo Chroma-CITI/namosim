@@ -225,8 +225,13 @@ class Simulator:
             utils.BasicLog("Simulation report saved at: {}".format(self.log_filepath), step_count)
         )
         simulation_report["simulation_log"] = self.simulation_log
+
         p = jsonpickle.Pickler()
         simulation_report["simulation_history"] = p.flatten(self.history)
+        simulation_report["agent_plans_history"] = {
+            agent_uid: p.flatten(dict(behavior.goal_to_plans)) for agent_uid, behavior in self.agent_uid_to_behavior.items()
+        }
+
         simulation_report_json = json.dumps(simulation_report, default=lambda o: o.__dict__, indent=4, sort_keys=True)
         with open(self.log_filepath, 'w+') as f:
             f.write(simulation_report_json)
@@ -269,8 +274,6 @@ class Simulator:
             "absolute_social_cost_initial": init_abs_social_cost,
             "agents": []
         }
-
-
 
         goal_counter = 1
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
