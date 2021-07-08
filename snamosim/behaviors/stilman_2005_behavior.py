@@ -338,7 +338,7 @@ class TransferPath:
                                     return conflicts
                         else:
                             conflicts.append(RobotObstacleConflict(uid))
-                            if exit_early_for_any_conflict or exit_early_only_for_robot_obstacle_conflicts:
+                            if exit_early_for_any_conflict or exit_early_only_for_long_term_conflicts:
                                 return conflicts
             else:
                 if use_b2:
@@ -363,7 +363,7 @@ class TransferPath:
                                         return conflicts
                             else:
                                 conflicts.append(RobotObstacleConflict(uid))
-                                if exit_early_for_any_conflict or exit_early_only_for_robot_obstacle_conflicts:
+                                if exit_early_for_any_conflict or exit_early_only_for_long_term_conflicts:
                                     return conflicts
                 else:
                     _, collides_with, _, csv_polygons, intersections, bb_vertices = collision.csv_check_collisions(
@@ -382,7 +382,7 @@ class TransferPath:
                                         return conflicts
                             else:
                                 conflicts.append(RobotObstacleConflict(uid))
-                                if exit_early_for_any_conflict or exit_early_only_for_robot_obstacle_conflicts:
+                                if exit_early_for_any_conflict or exit_early_only_for_long_term_conflicts:
                                     return conflicts
                     _, collides_with, _, csv_polygons, intersections, bb_vertices = collision.csv_check_collisions(
                         main_uid=self.obstacle_uid, other_polygons=other_entities_polygons,
@@ -400,7 +400,7 @@ class TransferPath:
                                         return conflicts
                             else:
                                 conflicts.append(RobotObstacleConflict(uid))
-                                if exit_early_for_any_conflict or exit_early_only_for_robot_obstacle_conflicts:
+                                if exit_early_for_any_conflict or exit_early_only_for_long_term_conflicts:
                                     return conflicts
 
         return conflicts
