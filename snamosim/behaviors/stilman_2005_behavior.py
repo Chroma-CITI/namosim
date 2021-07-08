@@ -690,7 +690,7 @@ class DynamicPlan(Plan):
                 self.wait_counter = 0
         return Plan.pop_next_step(self)
 
-    def postpone(self, t_min, t_max):
+    def postpone(self, t_min, t_max, step_count):
         self.is_postponed = True
         self.wait_counter = random.randint(t_min, t_max)
         self.postponements_history[step_count] = self.wait_counter
