@@ -131,7 +131,7 @@ class StolenMovableConflict:  # If Movable is in grabbed state, postpone, else i
 
     def __str__(self):
         return "Stolen Movable conflict concerning obstacle uid {}{}.".format(
-            self.obstacle_uid, ("" if not self.is_grabbed else "grabbed by {}".format(self.thief_uid))
+            self.obstacle_uid, ("" if not self.is_grabbed else " grabbed by {}".format(self.thief_uid))
         )
 
     def __repr__(self):
@@ -682,8 +682,6 @@ class DynamicPlan(Plan):
         if self.is_postponed:
             if self.wait_counter > 0:
                 self.wait_counter -= 1
-                if self.wait_counter == 0:
-                    self.is_postponed = False
                 return ba.Wait()
             else:
                 self.is_postponed = False
@@ -937,15 +935,21 @@ class Stilman2005Behavior(BaselineBehavior):
                 if plan.is_postponed:
                     conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                     if not conflicts:
-                        self.simulation_log.append("At step {}: Unpostponing plan.".format(step_count))
+                        self.simulation_log.append(utils.BasicLog(
+                            "Agent {}: Unpostponing plan.".format(self._robot_name), step_count
+                        ))
                         plan.unpostpone(step_count)
                         return plan.pop_next_step()
                     else:
                         if self.must_replan_now(conflicts):
-                            self.simulation_log.append("At step {}: Try compute plan because conflicts during postponement.".format(step_count))
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Try compute plan because conflicts during postponement: {}".format(self._robot_name, conflicts), step_count
+                            ))
                             try_compute_plan = True
                         elif plan.should_postponement_be_over():
-                            self.simulation_log.append("At step {}: Try compute plan because postponement should be over.".format(step_count))
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Try compute plan because postponement should be over and there are conflicts: {}".format(self._robot_name, conflicts), step_count
+                            ))
                             try_compute_plan = True
                         else:
                             return plan.pop_next_step()
@@ -955,20 +959,28 @@ class Stilman2005Behavior(BaselineBehavior):
                         return plan.pop_next_step()
                     else:
                         if self.must_replan_now(conflicts):
-                            self.simulation_log.append("At step {}: Try compute plan because conflicts.".format(step_count))
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Try compute plan because conflicts during normal execution: {}".format(self._robot_name, conflicts), step_count
+                            ))
                             try_compute_plan = True
                         else:
-                            self.simulation_log.append("At step {}: Postpone plan because conflicts.".format(step_count))
                             plan.postpone(t_min, t_max, step_count)
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Postpone plan for {} steps because conflicts during normal execution: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
+                            ))
                             return plan.pop_next_step()
             else:
-                self.simulation_log.append("At step {}: Try compute plan because last step execution failed.".format(step_count))
+                self.simulation_log.append(utils.BasicLog(
+                    "Agent {}: Try compute plan because last step execution failed.".format(self._robot_name), step_count
+                ))
                 try_compute_plan = True
         else:
             if plan.is_postponed:
                 return plan.pop_next_step()
             else:
-                self.simulation_log.append("At step {}: Try compute plan because there is no plan yet.".format(step_count))
+                self.simulation_log.append(utils.BasicLog(
+                    "Agent {}: Try compute plan because there is no plan yet.".format(self._robot_name), step_count
+                ))
                 try_compute_plan = True
 
         if try_compute_plan:
@@ -980,11 +992,15 @@ class Stilman2005Behavior(BaselineBehavior):
                         or (uid in w_t.entity_to_agent and w_t.entity_to_agent[uid] != robot_uid)
                     )
                 }
-                w_t_no_dyn = w_t.light_copy(ignored_entities=[dynamic_entities])
+                w_t_no_dyn = w_t.light_copy(ignored_entities=dynamic_entities)
+                inflated_grid_by_robot.deactivate_entities(dynamic_entities)
+                static_obs_inf_grid.deactivate_entities(dynamic_entities)
                 p = self.select_connect(
                     w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, goal, trans_mult, rot_mult,
                     neighborhood=neighborhood
                 )
+                inflated_grid_by_robot.activate_entities(dynamic_entities)
+                static_obs_inf_grid.activate_entities(dynamic_entities)
                 plan.update_plan(p, step_count)
                 self._rp.cleanup_p_opt(ns=self._robot_name)
                 self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
@@ -992,8 +1008,10 @@ class Stilman2005Behavior(BaselineBehavior):
                 if plan.exists():
                     conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                     if conflicts:
-                        self.simulation_log.append("At step {}: Postponing plan because conflicts after computation: {}.".format(step_count, conflicts))
                         plan.postpone(t_min, t_max, step_count)
+                        self.simulation_log.append(utils.BasicLog(
+                            "Agent {}: Postponing plan for {} steps because conflicts after computation: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
+                        ))
                     return plan.pop_next_step()
                 else:
                     if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
@@ -1010,13 +1028,24 @@ class Stilman2005Behavior(BaselineBehavior):
                                 other_entities_polygons, other_entities_aabb_tree, trans_mult, rot_mult, use_b2=False
                             )
                             if transit_configuration_after_release:
-                                self.simulation_log.append("At step {}: Release object because of plan change during manipulation.".format(step_count))
+                                self.simulation_log.append(utils.BasicLog(
+                                    "Agent {}: Release object {} because of plan change during manipulation.".format(self._robot_name, obstacle.name), step_count
+                                ))
                                 return transit_configuration_after_release.action
-                            self.simulation_log.append("At step {}: Could not release object during manipulation because no valid transit pose could be found.".format(step_count))
-
-                        self.simulation_log.append("At step {}: Postponing because no plan could be found yet.".format(step_count))
-                        plan.postpone(t_min, t_max, step_count)
-                        return plan.pop_next_step()
+                            else:
+                                self.simulation_log.append(utils.BasicLog(
+                                    "Agent {}: Could not release object {} during manipulation because no valid transit pose could be found.".format(self._robot_name, obstacle.name), step_count
+                                ))
+                        else:
+                            plan.postpone(t_min, t_max, step_count)
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Postponing for {} steps because no plan could be found yet.".format(self._robot_name, plan.wait_counter), step_count
+                            ))
+                            return plan.pop_next_step()
+                    else:
+                        self.simulation_log.append(utils.BasicLog(
+                            "Agent {}: No plan could be found, no tries are remaining or no plan can ever be found.".format(self._robot_name), step_count
+                        ))
 
         # If no success nor plan step returned, return failure by default
         return ba.GoalFailed(goal)
@@ -1036,7 +1065,7 @@ class Stilman2005Behavior(BaselineBehavior):
         """
         if nb_self_calls > 20 or nb_rch_calls > 20:
             self.simulation_log.append(utils.BasicLog(
-                "Too much recursion, there must be a problem, failing goal.", self._step_count)
+                "Agent {}: select_connect: recursed too much, there must be a problem, failing goal.".format(self._robot_name), self._step_count)
             )
             return Plan(plan_error="recursion_error")
 
@@ -1084,7 +1113,7 @@ class Stilman2005Behavior(BaselineBehavior):
         )
         while o_1 != 0:
             self.simulation_log.append(utils.BasicLog(
-                "Agent {} selected entity {} for manipulation search to reach component {}.".format(
+                "Agent {}: select_connect: selected entity {} for manipulation search to reach component {}.".format(
                     self._robot_name, w_t.entities[o_1].name, c_1
                 ),
                 self._step_count)
@@ -1096,7 +1125,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
             if tho_m is not None:
                 self.simulation_log.append(utils.BasicLog(
-                    "Agent {} found partial plan manipulating entity {} to reach component {}.".format(
+                    "Agent {}: select_connect: found partial plan manipulating entity {} to reach component {}.".format(
                         self._robot_name, w_t.entities[o_1].name, c_1
                     ),
                     self._step_count)
@@ -1117,7 +1146,7 @@ class Stilman2005Behavior(BaselineBehavior):
             # Extra check for when the goal is in a movable obstacle that we could not find how to move
             if c_1 == 0:
                 self.simulation_log.append(utils.BasicLog(
-                    "Agent {} did not find a reachable component if manipulating {}.".format(
+                    "Agent {}: select_connect: did not find a reachable component if manipulating {}.".format(
                         self._robot_name, w_t.entities[o_1].name
                     ),
                     self._step_count)
@@ -1229,27 +1258,31 @@ class Stilman2005Behavior(BaselineBehavior):
             neighborhood=utils.TAXI_NEIGHBORHOOD):
 
         if static_obs_grid.grid[start_cell[0]][start_cell[1]] > 0:
+            obstacle_names = {self._world.entities[uid].name for uid in static_obs_grid.obstacles_uids_in_cell(start_cell)}
             self.simulation_log.append(utils.BasicLog(
-                'The robot start cell in a rch call must always be outside of static obstacles.', self._step_count)
+                'Agent {}: rch: The robot start cell {} in a rch call must always be outside of static obstacles, here: {}.'.format(self._robot_name, start_cell, obstacle_names), self._step_count)
             )
             return 0, 0
 
         if static_obs_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
+            obstacle_names = {self._world.entities[uid].name for uid in static_obs_grid.obstacles_uids_in_cell(goal_cell)}
             self.simulation_log.append(utils.BasicLog(
-                'The robot goal cell in a rch call must always be outside of static obstacles.', self._step_count)
+                'Agent {}: rch: The robot goal cell {} in a rch call must always be outside of static obstacles, here: {}.'.format(self._robot_name, goal_cell, obstacle_names), self._step_count)
             )
             return 0, 0
 
         start_obstacle_uid = inflated_robot_grid.only_obstacle_uid_in_cell(start_cell)
         if start_obstacle_uid == -1:
+            obstacle_names = {self._world.entities[uid].name for uid in inflated_robot_grid.obstacles_uids_in_cell(start_cell)}
             self.simulation_log.append(utils.BasicLog(
-                'The robot start cell in a rch call must always be at most in one obstacle.', self._step_count)
+                'Agent {}: rch: The robot start cell {} in a rch call must always be at most in one obstacle, here: {}.'.format(self._robot_name, start_cell, obstacle_names), self._step_count)
             )
             return 0, 0
 
         if inflated_robot_grid.grid[goal_cell[0]][goal_cell[1]] > 1:
+            obstacle_names = {self._world.entities[uid].name for uid in inflated_robot_grid.obstacles_uids_in_cell(goal_cell)}
             self.simulation_log.append(utils.BasicLog(
-                'The robot goal cell in a rch call must be at most within one movable obstacle.', self._step_count)
+                'Agent {}: rch: The robot goal cell {} in a rch call must be at most within one movable obstacle, here: {}.'.format(self._robot_name, goal_cell, obstacle_names), self._step_count)
             )
             return 0, 0
 

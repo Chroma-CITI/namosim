@@ -90,7 +90,7 @@ class BinaryOccupancyGrid:
 
     def deactivate_entities(self, uids):
         for uid in uids:
-            if uid not in self.deactivated_entities_cells_sets:
+            if uid not in self.deactivated_entities_cells_sets and uid in self.cells_sets:
                 self.deactivated_entities_cells_sets[uid] = self.cells_sets[uid]
                 for cell in self.cells_sets[uid]:
                     self.grid[cell[0]][cell[1]] -= 1

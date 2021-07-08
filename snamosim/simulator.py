@@ -589,11 +589,11 @@ class Simulator:
                 action_results[agent_uid] = ar.DynamicCollisionFailure(action, collides_with)
             else:
                 if action_dynamically_collides and ignore_collisions:
-                    self.simulation_log.append("At step {}: Dynamic collision ignored, entities: {}".format(
-                        step_count, {
+                    self.simulation_log.append(utils.BasicLog(
+                        'Dynamic collision ignored, entities: {}'.format({
                             self.ref_world.entities[uid].name: {self.ref_world.entities[uid2].name for uid2 in uids}
                             for uid, uids in collides_with.items()
-                        }
+                        }), step_count
                     ))
 
                 # SUCCESS
