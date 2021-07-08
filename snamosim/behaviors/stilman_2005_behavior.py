@@ -630,7 +630,7 @@ class Plan:
 
 
 class DynamicPlan(Plan):
-    # DEBUGGING_WAIT_TIME_GENERATOR = [13, 18, 6, 17, 9, 5, 12]
+    DEBUGGING_WAIT_TIME_GENERATOR = []
 
     def __init__(self):
         Plan.__init__(self)
@@ -692,8 +692,10 @@ class DynamicPlan(Plan):
 
     def postpone(self, t_min, t_max, step_count):
         self.is_postponed = True
-        # self.wait_counter = self.DEBUGGING_WAIT_TIME_GENERATOR.pop(0)
-        self.wait_counter = random.randint(t_min, t_max)
+        if self.DEBUGGING_WAIT_TIME_GENERATOR:
+            self.wait_counter = self.DEBUGGING_WAIT_TIME_GENERATOR.pop(0)
+        else:
+            self.wait_counter = random.randint(t_min, t_max)
         self.postponements_history[step_count] = self.wait_counter
 
     def unpostpone(self, step_count):
@@ -1011,6 +1013,9 @@ class Stilman2005Behavior(BaselineBehavior):
                 if plan.exists():
                     conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                     if conflicts:
+                        self.simulation_log.append(utils.BasicLog(
+                            "Agent {}: A new plan has been computed ignoring dynamic obstacles but has conflicts with them: {}".format(self._robot_name, conflicts), step_count
+                        ))
                         if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
                             conflicting_uids = {conflict.obstacle_uid for conflict in conflicts}
                             new_dynamic_entities = dynamic_entities.difference(conflicting_uids)
@@ -1029,6 +1034,9 @@ class Stilman2005Behavior(BaselineBehavior):
 
                             if plan.exists():
                                 conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
+                                self.simulation_log.append(utils.BasicLog(
+                                    "Agent {}: A new plan has been computed with conflicting obstacles but still has conflicts: {}".format(self._robot_name, conflicts), step_count
+                                ))
                                 if conflicts:
                                     plan.postpone(t_min, t_max, step_count)
                                     self.simulation_log.append(utils.BasicLog(
@@ -1230,7 +1238,6 @@ class Stilman2005Behavior(BaselineBehavior):
                 current_or_neighbor_in_free_space = cur_cell_obs_uid == 0 or neighbor_cell_obs_uid == 0
                 transition_is_valid = (
                     cur_and_neighbor_not_in_mult_obs
-                    and cur_cell_obs_uid not in forbidden_obstacles
                     and (current_or_neighbor_in_free_space or cur_cell_obs_uid == neighbor_cell_obs_uid)
                     and neighbor_cell_obs_uid != current.first_obstacle_uid
                 )
@@ -1272,7 +1279,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         else:
                             # The neighbor is in multiple obstacles, which is forbidden
                             pass
-            if neighbor is not None and neighbor not in close_set:
+            if neighbor is not None and neighbor not in close_set and neighbor.first_obstacle_uid not in forbidden_obstacles:
                 neighbors.append(neighbor)
                 tentative_gscores.append(
                     current_gscore + g_function(
