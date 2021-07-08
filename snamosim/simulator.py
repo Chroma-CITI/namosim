@@ -4,6 +4,8 @@ import json
 import jsonpickle
 import os
 import traceback
+import signal
+from contextlib import contextmanager
 
 from snamosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 
@@ -26,6 +28,31 @@ class SimulationStepResult:
         self.act_duration = act_duration
         self.action_results = action_results
         self.step_index = step_index
+
+
+class TimeoutError(Exception):
+    def __init(self):
+        pass
+
+@contextmanager
+def timeout(time):
+    # Register a function to raise a TimeoutError on the signal.
+    signal.signal(signal.SIGALRM, raise_timeout)
+    # Schedule the signal to be sent after ``time``.
+    signal.alarm(time)
+
+    try:
+        yield
+    except TimeoutError:
+        pass
+    finally:
+        # Unregister the signal so it won't be triggered
+        # if the timeout is not reached.
+        signal.signal(signal.SIGALRM, signal.SIG_IGN)
+
+
+def raise_timeout(signum, frame):
+    raise TimeoutError
 
 
 class Simulator:
@@ -139,6 +166,7 @@ class Simulator:
         run_active = True
 
         run_exceptions_traces = []
+        exception = None
 
         step_count = 0
 
@@ -155,38 +183,43 @@ class Simulator:
             self.simulation_log.append(utils.BasicLog("Starting run.", step_count))
 
             while active_agents:
-                # try:
-                # Increment simulation step count
-                step_count += 1
+                try:
+                    # Increment simulation step count
+                    step_count += 1
 
-                # Sense loop: update each agent's knowledge of the world
-                sense_durations = {}
-                self.sense(active_agents, step_count, sense_durations)
+                    # Sense loop: update each agent's knowledge of the world
+                    sense_durations = {}
+                    self.sense(active_agents, step_count, sense_durations)
 
-                # Think loop: get each agent to think about their next step
-                think_durations = {}
-                actions = self.think(active_agents, trace_polygons, step_count, think_durations)
+                    # Think loop: get each agent to think about their next step
+                    think_durations = {}
+                    with timeout(10*60):
+                        actions = self.think(active_agents, trace_polygons, step_count, think_durations)
 
-                # Act loops: Verify that each action is doable individually and together, if so, execute them
-                act_start = time.time()
-                action_results = self.act(actions, step_count)
-                act_duration = time.time() - act_start
+                    # Act loops: Verify that each action is doable individually and together, if so, execute them
+                    act_start = time.time()
+                    action_results = self.act(actions, step_count)
+                    act_duration = time.time() - act_start
 
-                self.history.append(
-                    SimulationStepResult(sense_durations, think_durations, act_duration, action_results, step_count)
-                )
+                    self.history.append(
+                        SimulationStepResult(sense_durations, think_durations, act_duration, action_results, step_count)
+                    )
 
-                # Once the simulation reference world has been modified, display the modification
-                if not self.display_sim_knowledge_only_once:
-                    self.rp.publish_sim_world(self.ref_world)
-                # except Exception as e:
-                #     if self.catch_exceptions:
-                #         tb = traceback.format_exc()
-                #         run_exceptions_traces.append(tb)
-                #         self.simulation_log.append(utils.BasicLog(tb, step_count))
-                #     else:
-                #         self.simulation_log.append(utils.BasicLog("MET A RUNTIME EXCEPTION, EXITING !", step_count))
-                #         raise e
+                    # Once the simulation reference world has been modified, display the modification
+                    if not self.display_sim_knowledge_only_once:
+                        self.rp.publish_sim_world(self.ref_world)
+                except Exception as e:
+                    if self.catch_exceptions:
+                        tb = traceback.format_exc()
+                        run_exceptions_traces.append(tb)
+                        self.simulation_log.append(utils.BasicLog(tb, step_count))
+                    else:
+                        self.simulation_log.append(utils.BasicLog("MET A RUNTIME EXCEPTION, EXITING !", step_count))
+                        run_active = False
+                        tb = traceback.format_exc()
+                        run_exceptions_traces.append(tb)
+                        exception = e
+                        break
 
             # If the simulation is set to be reset after all agents have reached their first goal,
             # and there are goals left to reach, reset the simulation world and give the agents their next goal
@@ -235,6 +268,9 @@ class Simulator:
         simulation_report_json = json.dumps(simulation_report, default=lambda o: o.__dict__, indent=4, sort_keys=True)
         with open(self.log_filepath, 'w+') as f:
             f.write(simulation_report_json)
+
+        if exception:
+            raise e
 
         return simulation_report
 
