@@ -1,6 +1,7 @@
 import time
 import copy
 import json
+import jsonpickle
 import os
 import traceback
 
@@ -16,6 +17,15 @@ from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 
 from snamosim.utils import stats_utils, utils, conversion, b2_collision, collision
+
+
+class SimulationStepResult:
+    def __init__(self, sense_durations, think_durations, act_duration, action_results, step_index):
+        self.sense_durations = sense_durations
+        self.think_durations = think_durations
+        self.act_duration = act_duration
+        self.action_results = action_results
+        self.step_index = step_index
 
 
 class Simulator:
@@ -104,18 +114,13 @@ class Simulator:
             time.sleep(2.0)
             self.rp.cleanup_sim_world()
 
+        self.history = []
+
         # Time stats
         self.agent_uid_to_think_time = {agent_uid: 0. for agent_uid in self.agent_uid_to_behavior.keys()}
         self.agent_uid_to_action_results = {agent_uid: [] for agent_uid in self.agent_uid_to_behavior.keys()}
         self.agent_uid_and_goal_to_action_results = {agent_uid: {} for agent_uid in self.agent_uid_to_behavior.keys()}
-        self.run_duration = 0.
         self.agent_uid_and_goal_to_world_snapshot = {agent_uid: [] for agent_uid in self.agent_uid_to_behavior.keys()}
-
-        self.init_nb_cc, self.init_biggest_cc_size, self.init_all_cc_sum_size, self.init_frag_percentage = \
-            stats_utils.get_connectivity_stats(
-                self.init_ref_world, self.human_inflation_radius,
-                [uid for uid, entity in self.ref_world.entities.items() if isinstance(entity, Robot)]
-            )
 
         self.catch_exceptions = False
 
@@ -155,13 +160,21 @@ class Simulator:
                 step_count += 1
 
                 # Sense loop: update each agent's knowledge of the world
-                self.sense(active_agents, step_count)
+                sense_durations = {}
+                self.sense(active_agents, step_count, sense_durations)
 
                 # Think loop: get each agent to think about their next step
-                agent_uid_to_next_action = self.think(active_agents, trace_polygons, step_count)
+                think_durations = {}
+                actions = self.think(active_agents, trace_polygons, step_count, think_durations)
 
                 # Act loops: Verify that each action is doable individually and together, if so, execute them
-                self.act(agent_uid_to_next_action, step_count)
+                act_start = time.time()
+                action_results = self.act(actions, step_count)
+                act_duration = time.time() - act_start
+
+                self.history.append(
+                    SimulationStepResult(sense_durations, think_durations, act_duration, action_results, step_count)
+                )
 
                 # Once the simulation reference world has been modified, display the modification
                 if not self.display_sim_knowledge_only_once:
@@ -196,7 +209,6 @@ class Simulator:
             json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_end" + ".json",
             svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename, "_end")
         )
-        self.run_duration = time.time() - run_start_time
         self.simulation_log.append(utils.BasicLog("Saved simulation final state.", step_count))
 
         simulation_report = self.create_simulation_report()
@@ -213,6 +225,8 @@ class Simulator:
             utils.BasicLog("Simulation report saved at: {}".format(self.log_filepath), step_count)
         )
         simulation_report["simulation_log"] = self.simulation_log
+        p = jsonpickle.Pickler()
+        simulation_report["simulation_history"] = p.flatten(self.history)
         simulation_report_json = json.dumps(simulation_report, default=lambda o: o.__dict__, indent=4, sort_keys=True)
         with open(self.log_filepath, 'w+') as f:
             f.write(simulation_report_json)
@@ -240,17 +254,23 @@ class Simulator:
             entity_uid for entity_uid, entity in self.init_ref_world.entities.items()
             if isinstance(entity, Obstacle) and entity.type in all_movable_types})
 
+        init_nb_cc, init_biggest_cc_size, init_all_cc_sum_size, init_frag_percentage = \
+            stats_utils.get_connectivity_stats(
+                self.init_ref_world, self.human_inflation_radius,
+                [uid for uid, entity in self.init_ref_world.entities.items() if isinstance(entity, Robot)]
+            )
         init_abs_social_cost = stats_utils.get_social_costs_stats(self.init_ref_world, tuple(all_movables_uids))
 
         report = {
-            "total_run_time": self.run_duration,
-            "number_of_connected_components_initial": self.init_nb_cc,
-            "biggest_free_component_size_initial": self.init_biggest_cc_size,
-            "free_space_size_initial": self.init_all_cc_sum_size,
-            "space_fragmentation_percentage_initial": self.init_frag_percentage,
+            "number_of_connected_components_initial": init_nb_cc,
+            "biggest_free_component_size_initial": init_biggest_cc_size,
+            "free_space_size_initial": init_all_cc_sum_size,
+            "space_fragmentation_percentage_initial": init_frag_percentage,
             "absolute_social_cost_initial": init_abs_social_cost,
             "agents": []
         }
+
+
 
         goal_counter = 1
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
@@ -298,13 +318,13 @@ class Simulator:
                     "space_fragmentation_percentage_after_goal": end_frag,
                     "absolute_social_cost_after_goal": end_abs_social_cost,
                     "number_of_connected_components_relative_change": stats_utils.relative_change(
-                        self.init_nb_cc, end_nb_cc),
+                        init_nb_cc, end_nb_cc),
                     "biggest_free_component_size_relative_change": stats_utils.relative_change(
-                        self.init_biggest_cc_size, end_biggest_cc_size),
+                        init_biggest_cc_size, end_biggest_cc_size),
                     "free_space_size_relative_change": stats_utils.relative_change(
-                        self.init_all_cc_sum_size, end_all_cc_sum_size),
+                        init_all_cc_sum_size, end_all_cc_sum_size),
                     "space_fragmentation_percentage_relative_change": stats_utils.relative_change(
-                        self.init_frag_percentage, end_frag, False) * 100.,
+                        init_frag_percentage, end_frag, False) * 100.,
                     "absolute_social_cost_relative_change": stats_utils.relative_change(
                         init_abs_social_cost, end_abs_social_cost)
                 }
@@ -318,23 +338,6 @@ class Simulator:
                 "goals_reports": goals_reports
             }
 
-            report["agents"].append(agent_report)
-
-        return report
-
-    def create_simulation_light_report(self):
-        report = {
-            "total_run_time": self.run_duration,
-            "agents": []
-        }
-
-        for agent_uid, behavior in self.agent_uid_to_behavior.items():
-            agent_report = {
-                "agent_uid": agent_uid,
-                "agent_name": self.ref_world.entities[agent_uid].name,
-                "agent_behavior_name": behavior.name,
-                "total_planning_time": self.agent_uid_to_think_time[agent_uid]
-            }
             report["agents"].append(agent_report)
 
         return report
@@ -434,20 +437,23 @@ class Simulator:
             svg_filepath=svg_filepath
         )
 
-    def sense(self, active_agents, step_count):
+    def sense(self, active_agents, step_count, sense_durations):
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
+                sense_start = time.time()
                 last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
                                       if self.agent_uid_to_action_results[agent_uid]
                                       else ar.ActionSuccess)
                 behavior.sense(self.ref_world, last_action_result, step_count)
+                sense_durations[agent_uid] = time.time() - sense_start
 
-    def think(self, active_agents, trace_polygons, step_count):
+    def think(self, active_agents, trace_polygons, step_count, think_durations):
         agent_uid_to_next_action = {}
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
-                planning_start_time = time.time()
+                think_start = time.time()
                 agent_next_action = behavior.think()
+                think_durations[agent_uid] = time.time() - think_start
 
                 # TODO Change goal coordinates for easier reading to goal name in log.
                 if isinstance(agent_next_action, ba.GoalsFinished):
@@ -493,10 +499,8 @@ class Simulator:
                             self.ref_world.entities[uid].name] = behavior.simulation_log
                     with open(self.log_filepath, 'w+') as f:
                         json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
-                else:
-                    # If the agent could think of a plan and its step
-                    agent_uid_to_next_action[agent_uid] = agent_next_action
-                self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
+                agent_uid_to_next_action[agent_uid] = agent_next_action
+                self.agent_uid_to_think_time[agent_uid] += time.time() - think_start
         return agent_uid_to_next_action
 
     def act(self, agent_uid_to_next_action, step_count, use_b2=False, ignore_collisions=True):
@@ -505,10 +509,9 @@ class Simulator:
             uid: a for uid, a in agent_uid_to_next_action.items()
             if isinstance(a, (ba.Translation, ba.Rotation)) and not isinstance(a, (ba.Grab, ba.Release))
         }
-        failed = {}
-        succeeded = {
+        action_results = {
             uid: ar.ActionSuccess(a, self.ref_world.entities[uid].pose)
-            for uid, a in agent_uid_to_next_action.items() if isinstance(a, ba.Wait)
+            for uid, a in agent_uid_to_next_action.items() if isinstance(a, (ba.Wait, ba.GoalSuccess, ba.GoalFailed, ba.GoalsFinished))
         }
 
         # Check if released entity is already grabbed by the right agent
@@ -516,11 +519,11 @@ class Simulator:
             if isinstance(action, ba.Release):
                 entity_uid = action.entity_uid
                 if agent_uid not in self.ref_world.entity_to_agent.inverse or entity_uid not in self.ref_world.entity_to_agent:
-                    failed[agent_uid] = ar.NotGrabbedFailure(action)
+                    action_results[agent_uid] = ar.NotGrabbedFailure(action)
                 else:
                     other_agent_uid = self.ref_world.entity_to_agent[entity_uid]
                     if other_agent_uid != agent_uid:
-                        failed[agent_uid] = ar.GrabbedByOtherFailure(action, other_agent_uid)
+                        action_results[agent_uid] = ar.GrabbedByOtherFailure(action, other_agent_uid)
                     else:
                         to_check[agent_uid] = action
 
@@ -537,16 +540,16 @@ class Simulator:
             if isinstance(action, ba.Grab):
                 entity_uid = action.entity_uid
                 if len(entity_to_grab_agents[entity_uid]) > 1:
-                    failed[agent_uid] = ar.SimultaneousGrabFailure(action, entity_to_grab_agents[entity_uid])
+                    action_results[agent_uid] = ar.SimultaneousGrabFailure(action, entity_to_grab_agents[entity_uid])
                     continue
                 if agent_uid in self.ref_world.entity_to_agent.inverse:
-                    failed[agent_uid] = ar.GrabMoreThanOneFailure(action)
+                    action_results[agent_uid] = ar.GrabMoreThanOneFailure(action)
                     continue
                 if entity_uid in self.ref_world.entity_to_agent:
                     other_agent_uid = self.ref_world.entity_to_agent[entity_uid]
                     other_releases = other_agent_uid in to_check and isinstance(to_check[other_agent_uid], ba.Release)
                     if not other_releases:
-                        failed[agent_uid] = ar.AlreadyGrabbedFailure(action, other_agent_uid)
+                        action_results[agent_uid] = ar.AlreadyGrabbedFailure(action, other_agent_uid)
                         continue
                 to_check[agent_uid] = action
 
@@ -580,7 +583,7 @@ class Simulator:
                 )
             )
             if action_dynamically_collides and not ignore_collisions:
-                failed[agent_uid] = ar.DynamicCollisionFailure(action, collides_with)
+                action_results[agent_uid] = ar.DynamicCollisionFailure(action, collides_with)
             else:
                 if action_dynamically_collides and ignore_collisions:
                     self.simulation_log.append("At step {}: Dynamic collision ignored, entities: {}".format(
@@ -610,10 +613,10 @@ class Simulator:
                         entity_new_polygon = utils.set_polygon_pose(entity.polygon, entity.pose, entity_new_pose)
                         entity.pose, entity.polygon = entity_new_pose, entity_new_polygon
 
-                succeeded[agent_uid] = ar.ActionSuccess(action, self.ref_world.entities[agent_uid].pose)
+                action_results[agent_uid] = ar.ActionSuccess(action, self.ref_world.entities[agent_uid].pose)
 
         # Save Action Result in action result history
-        for agent_uid, action_result in succeeded.items():
+        for agent_uid, action_result in action_results.items():
             self.agent_uid_to_action_results[agent_uid].append(action_result)
 
             agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
@@ -621,11 +624,5 @@ class Simulator:
                 self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
             else:
                 self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
-        for agent_uid, action_result in failed.items():
-            self.agent_uid_to_action_results[agent_uid].append(action_result)
 
-            agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
-            if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
-            else:
-                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
+        return action_results
