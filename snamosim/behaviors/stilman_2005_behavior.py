@@ -102,11 +102,11 @@ class RobotObstacleConfiguration:
 
 
 class RobotRobotConflict:  # Systematic postpone
-    def __init__(self, other_entity_uid):
-        self.other_entity_uid = other_entity_uid
+    def __init__(self, obstacle_uid):
+        self.obstacle_uid = obstacle_uid
 
     def __str__(self):
-        return "Robot-Robot conflict with obstacle uid {}.".format(self.other_entity_uid)
+        return "Robot-Robot conflict with obstacle uid {}.".format(self.obstacle_uid)
 
     def __repr__(self):
         return self.__str__()
@@ -1011,44 +1011,68 @@ class Stilman2005Behavior(BaselineBehavior):
                 if plan.exists():
                     conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                     if conflicts:
+                        if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
+                            conflicting_uids = {conflict.obstacle_uid for conflict in conflicts}
+                            new_dynamic_entities = dynamic_entities.difference(conflicting_uids)
+                            new_w_t_no_dyn = w_t.light_copy(ignored_entities=new_dynamic_entities)
+                            inflated_grid_by_robot.deactivate_entities(new_dynamic_entities)
+                            static_obs_inf_grid.deactivate_entities(new_dynamic_entities)
+                            p = self.select_connect(
+                                new_w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, goal, trans_mult, rot_mult,
+                                neighborhood=neighborhood
+                            )
+                            inflated_grid_by_robot.activate_entities(new_dynamic_entities)
+                            static_obs_inf_grid.activate_entities(new_dynamic_entities)
+                            plan.update_plan(p, step_count)
+                            self._rp.cleanup_p_opt(ns=self._robot_name)
+                            self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+
+                            if plan.exists():
+                                conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
+                                if conflicts:
+                                    plan.postpone(t_min, t_max, step_count)
+                                    self.simulation_log.append(utils.BasicLog(
+                                        "Agent {}: Postpone plan for {} steps because conflicts after computation: {}".format(
+                                            self._robot_name, plan.wait_counter, conflicts), step_count
+                                    ))
+                                return plan.pop_next_step()
+                        else:
+                            ba.GoalFailed(goal)
+                    else:
+                        return plan.pop_next_step()
+
+                if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
+                    if robot_uid in w_t.entity_to_agent.inverse:
+                        obstacle_uid = w_t.entity_to_agent.inverse[robot_uid]
+                        robot, obstacle = w_t.entities[robot_uid], w_t.entities[obstacle_uid]
+                        other_entities_polygons = {
+                            uid: e.polygon
+                            for uid, e in w_t.entities.items() if uid not in (robot_uid, obstacle_uid)
+                        }
+                        other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
+                        transit_configuration_after_release = self.get_next_transit_start_configuration(
+                            inflated_grid_by_robot, robot.pose, robot.polygon, robot_uid, obstacle_uid, obstacle.pose, b2_sim,
+                            other_entities_polygons, other_entities_aabb_tree, trans_mult, rot_mult, use_b2=False
+                        )
+                        if transit_configuration_after_release:
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Release object {} because of plan change during manipulation.".format(self._robot_name, obstacle.name), step_count
+                            ))
+                            return transit_configuration_after_release.action
+                        else:
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Could not release object {} during manipulation because no valid transit pose could be found.".format(self._robot_name, obstacle.name), step_count
+                            ))
+                    else:
                         plan.postpone(t_min, t_max, step_count)
                         self.simulation_log.append(utils.BasicLog(
-                            "Agent {}: Postpone plan for {} steps because conflicts after computation: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
+                            "Agent {}: Postponing for {} steps because no plan could be found yet.".format(self._robot_name, plan.wait_counter), step_count
                         ))
-                    return plan.pop_next_step()
+                        return plan.pop_next_step()
                 else:
-                    if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
-                        if robot_uid in w_t.entity_to_agent.inverse:
-                            obstacle_uid = w_t.entity_to_agent.inverse[robot_uid]
-                            robot, obstacle = w_t.entities[robot_uid], w_t.entities[obstacle_uid]
-                            other_entities_polygons = {
-                                uid: e.polygon
-                                for uid, e in w_t.entities.items() if uid not in (robot_uid, obstacle_uid)
-                            }
-                            other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
-                            transit_configuration_after_release = self.get_next_transit_start_configuration(
-                                inflated_grid_by_robot, robot.pose, robot.polygon, robot_uid, obstacle_uid, obstacle.pose, b2_sim,
-                                other_entities_polygons, other_entities_aabb_tree, trans_mult, rot_mult, use_b2=False
-                            )
-                            if transit_configuration_after_release:
-                                self.simulation_log.append(utils.BasicLog(
-                                    "Agent {}: Release object {} because of plan change during manipulation.".format(self._robot_name, obstacle.name), step_count
-                                ))
-                                return transit_configuration_after_release.action
-                            else:
-                                self.simulation_log.append(utils.BasicLog(
-                                    "Agent {}: Could not release object {} during manipulation because no valid transit pose could be found.".format(self._robot_name, obstacle.name), step_count
-                                ))
-                        else:
-                            plan.postpone(t_min, t_max, step_count)
-                            self.simulation_log.append(utils.BasicLog(
-                                "Agent {}: Postponing for {} steps because no plan could be found yet.".format(self._robot_name, plan.wait_counter), step_count
-                            ))
-                            return plan.pop_next_step()
-                    else:
-                        self.simulation_log.append(utils.BasicLog(
-                            "Agent {}: No plan could be found, no tries are remaining or no plan can ever be found.".format(self._robot_name), step_count
-                        ))
+                    self.simulation_log.append(utils.BasicLog(
+                        "Agent {}: No plan could be found, no tries are remaining or no plan can ever be found.".format(self._robot_name), step_count
+                    ))
 
         # If no success nor plan step returned, return failure by default
         return ba.GoalFailed(goal)
@@ -1109,10 +1133,17 @@ class Stilman2005Behavior(BaselineBehavior):
         if inflated_grid_by_robot_max.grid[goal_cell[0]][goal_cell[1]] > 1:
             return Plan(plan_error="goal_cell_in_more_than_one_movable_obstacle_error")
 
+        forbidden_obstacles = {  # Dynamic obstacles are forbidden !
+            uid for uid, entity in w_t.entities.items() if (
+                (isinstance(entity, Robot) and uid != self._robot.uid)
+                or (uid in w_t.entity_to_agent and w_t.entity_to_agent[uid] != self._robot.uid)
+            )
+        }
+
         nb_rch_calls += 1
         o_1, c_1 = self.rch(
             robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
-            inflated_grid_by_robot_max, avoid_list, neighborhood
+            inflated_grid_by_robot_max, avoid_list, forbidden_obstacles, neighborhood
         )
         while o_1 != 0:
             self.simulation_log.append(utils.BasicLog(
@@ -1161,7 +1192,7 @@ class Stilman2005Behavior(BaselineBehavior):
             nb_rch_calls += 1
             o_1, c_1 = self.rch(
                 robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
-                inflated_grid_by_robot_max, avoid_list, neighborhood
+                inflated_grid_by_robot_max, avoid_list, forbidden_obstacles, neighborhood
             )
 
         return Plan(plan_error="no_plan_found_error")
@@ -1169,7 +1200,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def rch_get_neighbors(self, current, gscore, close_set, open_queue, came_from,
                           static_obs_grid, connected_components_grid, inflated_robot_grid,
                           avoid_list, init_robot_component_uid, g_function, traversed_obstacles_ids,
-                          neighborhood=utils.TAXI_NEIGHBORHOOD):
+                          forbidden_obstacles, neighborhood=utils.TAXI_NEIGHBORHOOD):
         """
         Combined formulation from Stilman's thesis and his article. The prevlist parameter was not used because not
         in the article and a priori not helpful. Not only that, it is not properly defined, and actually does not
@@ -1199,6 +1230,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 current_or_neighbor_in_free_space = cur_cell_obs_uid == 0 or neighbor_cell_obs_uid == 0
                 transition_is_valid = (
                     cur_and_neighbor_not_in_mult_obs
+                    and cur_cell_obs_uid not in forbidden_obstacles
                     and (current_or_neighbor_in_free_space or cur_cell_obs_uid == neighbor_cell_obs_uid)
                     and neighbor_cell_obs_uid != current.first_obstacle_uid
                 )
@@ -1257,7 +1289,7 @@ class Stilman2005Behavior(BaselineBehavior):
         return neighbors, tentative_gscores
 
     def rch(self, start_cell, goal_cell,
-            static_obs_grid, connected_components_grid, inflated_robot_grid, avoid_list,
+            static_obs_grid, connected_components_grid, inflated_robot_grid, avoid_list, forbidden_obstacles,
             neighborhood=utils.TAXI_NEIGHBORHOOD):
 
         if static_obs_grid.grid[start_cell[0]][start_cell[1]] > 0:
@@ -1275,10 +1307,10 @@ class Stilman2005Behavior(BaselineBehavior):
             return 0, 0
 
         start_obstacle_uid = inflated_robot_grid.only_obstacle_uid_in_cell(start_cell)
-        if start_obstacle_uid == -1:
+        if start_obstacle_uid == -1 or start_obstacle_uid in forbidden_obstacles:
             obstacle_names = {self._world.entities[uid].name for uid in inflated_robot_grid.obstacles_uids_in_cell(start_cell)}
             self.simulation_log.append(utils.BasicLog(
-                'Agent {}: rch: The robot start cell {} in a rch call must always be at most in one obstacle, here: {}.'.format(self._robot_name, start_cell, obstacle_names), self._step_count)
+                'Agent {}: rch: The robot start cell {} in a rch call must always be at most in one obstacle and not a forbidden one, here: {}.'.format(self._robot_name, start_cell, obstacle_names), self._step_count)
             )
             return 0, 0
 
@@ -1321,7 +1353,7 @@ class Stilman2005Behavior(BaselineBehavior):
             return self.rch_get_neighbors(
                 current, gscore, close_set, open_queue, came_from,
                 static_obs_grid, connected_components_grid, inflated_robot_grid,
-                avoid_list, init_robot_component_uid, g_function, traversed_obstacles_ids, neighborhood
+                avoid_list, init_robot_component_uid, g_function, traversed_obstacles_ids, forbidden_obstacles, neighborhood
             )
 
         def exit_condition(_current, _goal):
