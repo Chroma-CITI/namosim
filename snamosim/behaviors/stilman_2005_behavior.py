@@ -705,7 +705,10 @@ class DynamicPlan(Plan):
 
     def update_plan(self, plan, step_count):
         self.plan_counter += 1
-        self.plan_history[step_count] = plan
+        if step_count in self.plan_history:
+            self.plan_history[step_count].append(plan)
+        else:
+            self.plan_history[step_count] = [plan]
 
         self.path_components = plan.path_components
         self.goal = plan.goal
@@ -1071,12 +1074,11 @@ class Stilman2005Behavior(BaselineBehavior):
                             self.simulation_log.append(utils.BasicLog(
                                 "Agent {}: Could not release object {} during manipulation because no valid transit pose could be found.".format(self._robot_name, obstacle.name), step_count
                             ))
-                    else:
-                        plan.postpone(t_min, t_max, step_count)
-                        self.simulation_log.append(utils.BasicLog(
-                            "Agent {}: Postponing for {} steps because no plan could be found yet.".format(self._robot_name, plan.wait_counter), step_count
-                        ))
-                        return plan.pop_next_step()
+                    plan.postpone(t_min, t_max, step_count)
+                    self.simulation_log.append(utils.BasicLog(
+                        "Agent {}: Postponing for {} steps because no plan could be found yet.".format(self._robot_name, plan.wait_counter), step_count
+                    ))
+                    return plan.pop_next_step()
                 else:
                     self.simulation_log.append(utils.BasicLog(
                         "Agent {}: No plan could be found, no tries are remaining or no plan can ever be found.".format(self._robot_name), step_count

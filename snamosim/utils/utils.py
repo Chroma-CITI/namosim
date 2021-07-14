@@ -149,7 +149,7 @@ class OrderedSet(collections.MutableSet):
 
 
 class CustomLogger(list):
-    def __init__(self, printout=False):
+    def __init__(self, printout=True):
         list.__init__(self)
         self.printout = printout
 

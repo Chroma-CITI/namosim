@@ -407,17 +407,17 @@ if __name__ == "__main__":
     main_dirname = os.path.join(os.path.dirname(__file__), "../../logs/04_after_the_feast/")
 
     # Aggregate and plot data
-    try:
-        with open(os.path.join(main_dirname, "synthesis.json"), "r") as f:
-            aggregated_data = json.load(f)
-    except IOError as e:
-        namo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset/")
-        snamo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset_snamo/")
-        aggregated_data = aggregate_scenarios(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failures_max=50)
-        with open(os.path.join(main_dirname, "synthesis.json"), "w") as f:
-            json.dump(aggregated_data, f)
-
-    plot_data(aggregated_data, main_dirname, nb_goals=50, show=False, padding_percentage=0.05, plot_relevant_only=True)
+    # try:
+    #     with open(os.path.join(main_dirname, "synthesis.json"), "r") as f:
+    #         aggregated_data = json.load(f)
+    # except IOError as e:
+    #     namo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset/")
+    #     snamo_logs_folder = os.path.join(main_dirname, "stilman_2005_behavior_complexified_random_goal_no_reset_snamo/")
+    #     aggregated_data = aggregate_scenarios(nb_goals, namo_logs_folder, snamo_logs_folder, nb_failures_max=50)
+    #     with open(os.path.join(main_dirname, "synthesis.json"), "w") as f:
+    #         json.dump(aggregated_data, f)
+    #
+    # plot_data(aggregated_data, main_dirname, nb_goals=50, show=False, padding_percentage=0.05, plot_relevant_only=True)
 
     # Extract problems in data
     try:
