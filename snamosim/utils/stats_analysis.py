@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import plotly.subplots as sp
 import os
 import numpy as np
-from snamosim.simulator import AgentStepStats, WorldStepStats
+from snamosim.simulator import AgentStepStats, WorldStepStats, StepStats
 
 # def aggregate_goals(scenario_report_data):
 #     # Initialize criteria
@@ -473,18 +473,10 @@ def aggregate_statistics(zipped_statistics):
     for index, step_stats_list in enumerate(zipped_statistics):
         # Aggregate stats over all agents in all simulations for this step
         aggregated_step_stats = {
-            'agents_max': AgentStepStats(),
-            'agents_sum': AgentStepStats(),
-            'agents_avg': AgentStepStats(),
-            'agents_med': AgentStepStats(),
-            'world_max': WorldStepStats(),
-            'world_sum': WorldStepStats(),
-            'world_avg': WorldStepStats(),
-            'world_med': WorldStepStats(),
-            'act_time_max': max(step_stats['act_time'] for step_stats in step_stats_list),
-            'act_time_sum': sum(step_stats['act_time'] for step_stats in step_stats_list),
-            'act_time_avg': np.average([step_stats['act_time'] for step_stats in step_stats_list]),
-            'act_time_med': np.median([step_stats['act_time'] for step_stats in step_stats_list])
+            'max': StepStats(act_time=max(step_stats['act_time'] for step_stats in step_stats_list)),
+            'sum': StepStats(act_time=sum(step_stats['act_time'] for step_stats in step_stats_list)),
+            'avg': StepStats(act_time=np.average([step_stats['act_time'] for step_stats in step_stats_list])),
+            'med': StepStats(act_time=np.median([step_stats['act_time'] for step_stats in step_stats_list]))
         }
 
         agents_stats_accross_simulations = []
@@ -494,17 +486,17 @@ def aggregate_statistics(zipped_statistics):
                 stats_per_agent_accross_simulations[agent_uid].append(agent_stats)
                 agents_stats_accross_simulations.append(agent_stats)
 
-        for key in AgentStepStats().__dict__.keys():
-            setattr(aggregated_step_stats['agents_max'], key, max([agent_stats[key] for agent_stats in agents_stats_accross_simulations]))
-            setattr(aggregated_step_stats['agents_sum'], key, sum([agent_stats[key] for agent_stats in agents_stats_accross_simulations]))
-            setattr(aggregated_step_stats['agents_avg'], key, np.average([agent_stats[key] for agent_stats in agents_stats_accross_simulations]))
-            setattr(aggregated_step_stats['agents_med'], key, np.median([agent_stats[key] for agent_stats in agents_stats_accross_simulations]))
+        for criterion in AgentStepStats().__dict__.keys():
+            setattr(aggregated_step_stats['max'].agents_stats, criterion, max([agent_stats[criterion] for agent_stats in agents_stats_accross_simulations]))
+            setattr(aggregated_step_stats['sum'].agents_stats, criterion, sum([agent_stats[criterion] for agent_stats in agents_stats_accross_simulations]))
+            setattr(aggregated_step_stats['avg'].agents_stats, criterion, np.average([agent_stats[criterion] for agent_stats in agents_stats_accross_simulations]))
+            setattr(aggregated_step_stats['med'].agents_stats, criterion, np.median([agent_stats[criterion] for agent_stats in agents_stats_accross_simulations]))
 
-        for key in WorldStepStats().__dict__.keys():
-            setattr(aggregated_step_stats['world_max'], key, max([step_stats['world_stats'][key] for step_stats in step_stats_list]))
-            setattr(aggregated_step_stats['world_sum'], key, sum([step_stats['world_stats'][key] for step_stats in step_stats_list]))
-            setattr(aggregated_step_stats['world_avg'], key, np.average([step_stats['world_stats'][key] for step_stats in step_stats_list]))
-            setattr(aggregated_step_stats['world_med'], key, np.median([step_stats['world_stats'][key] for step_stats in step_stats_list]))
+        for criterion in WorldStepStats().__dict__.keys():
+            setattr(aggregated_step_stats['max'].world_stats, criterion, max([step_stats['world_stats'][criterion] for step_stats in step_stats_list]))
+            setattr(aggregated_step_stats['sum'].world_stats, criterion, sum([step_stats['world_stats'][criterion] for step_stats in step_stats_list]))
+            setattr(aggregated_step_stats['avg'].world_stats, criterion, np.average([step_stats['world_stats'][criterion] for step_stats in step_stats_list]))
+            setattr(aggregated_step_stats['med'].world_stats, criterion, np.median([step_stats['world_stats'][criterion] for step_stats in step_stats_list]))
 
         aggregated_stats.append(aggregated_step_stats)
 
@@ -551,35 +543,28 @@ def plot_criterion(y, color="blue", dash=None):
 
 def scatter_plots_from_aggregated_statistics(aggregated_stats, color="blue", dash=None):
     aggregated_plots = {
-        'agents_max': AgentStepStats(),
-        'agents_sum': AgentStepStats(),
-        'agents_avg': AgentStepStats(),
-        'agents_med': AgentStepStats(),
-        'world_max': WorldStepStats(),
-        'world_sum': WorldStepStats(),
-        'world_avg': WorldStepStats(),
-        'world_med': WorldStepStats(),
-        'act_time_max': go.Scatter(y=[stats['act_time_max'] for stats in aggregated_stats], line=dict(color=color, dash=dash)),
-        'act_time_sum': go.Scatter(y=[stats['act_time_sum'] for stats in aggregated_stats], line=dict(color=color, dash=dash)),
-        'act_time_avg': go.Scatter(y=[stats['act_time_avg'] for stats in aggregated_stats], line=dict(color=color, dash=dash)),
-        'act_time_med': go.Scatter(y=[stats['act_time_med'] for stats in aggregated_stats], line=dict(color=color, dash=dash))
+        "max": StepStats(act_time=go.Scatter(y=[stats['max'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash))),
+        "sum": StepStats(act_time=go.Scatter(y=[stats['sum'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash))),
+        "avg": StepStats(act_time=go.Scatter(y=[stats['avg'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash))),
+        "med": StepStats(act_time=go.Scatter(y=[stats['med'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash)))
     }
 
-    for key in AgentStepStats().__dict__.keys():
-        setattr(aggregated_plots['agents_max'], key, go.Scatter(y=[getattr(stats['agents_max'], key) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['agents_sum'], key, go.Scatter(y=[getattr(stats['agents_sum'], key) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['agents_avg'], key, go.Scatter(y=[getattr(stats['agents_avg'], key) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['agents_med'], key, go.Scatter(y=[getattr(stats['agents_med'], key) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+    for criterion in AgentStepStats().__dict__.keys():
+        setattr(aggregated_plots['max'].agents_stats, criterion, go.Scatter(y=[getattr(stats['max'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+        setattr(aggregated_plots['sum'].agents_stats, criterion, go.Scatter(y=[getattr(stats['sum'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+        setattr(aggregated_plots['avg'].agents_stats, criterion, go.Scatter(y=[getattr(stats['avg'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+        setattr(aggregated_plots['med'].agents_stats, criterion, go.Scatter(y=[getattr(stats['med'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
 
-    for key in WorldStepStats().__dict__.keys():
-        setattr(aggregated_plots['world_max'], key, go.Scatter(y=[getattr(stats['world_max'], key) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['world_sum'], key, go.Scatter(y=[getattr(stats['world_sum'], key) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['world_avg'], key, go.Scatter(y=[getattr(stats['world_avg'], key) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['world_med'], key, go.Scatter(y=[getattr(stats['world_med'], key) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+    for criterion in WorldStepStats().__dict__.keys():
+        setattr(aggregated_plots['max'].world_stats, criterion, go.Scatter(y=[getattr(stats['max'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+        setattr(aggregated_plots['sum'].world_stats, criterion, go.Scatter(y=[getattr(stats['sum'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+        setattr(aggregated_plots['avg'].world_stats, criterion, go.Scatter(y=[getattr(stats['avg'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+        setattr(aggregated_plots['med'].world_stats, criterion, go.Scatter(y=[getattr(stats['med'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
 
     return aggregated_plots
 
-scenario_paths = ['/home/xia0ben/logs2/logs/0000/sim_namo_0000/2021-07-14-19h26m40s_925954/sim_results.json']
+namo_sim_results_paths = ['/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified/2021-07-21-10h42m29s_616116/sim_results.json']
+snamo_sim_results_paths = ['/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified_snamo/2021-07-21-10h52m46s_708636/sim_results.json']
 
 if __name__ == '__main__':
     # Command to clean up JSON logs from Infinite values to "Infinite" ones and allow parsing by browser
@@ -620,12 +605,19 @@ if __name__ == '__main__':
     #         # }
     #     except Exception as e:
     #         pass
+    #
+    # nb_scenarios_without_exceptions = len(scenario_paths_without_exceptions)
+    # total_nb_scenarios = len(scenario_paths_with_exceptions) + len(scenario_paths_without_exceptions)
+    #
+    # print("{} over {} scenarios were executed without exceptions.".format(nb_scenarios_without_exceptions, total_nb_scenarios))
 
-    nb_scenarios_without_exceptions = len(scenario_paths_without_exceptions)
-    total_nb_scenarios = len(scenario_paths_with_exceptions) + len(scenario_paths_without_exceptions)
-
-    print("{} over {} scenarios were executed without exceptions.".format(nb_scenarios_without_exceptions, total_nb_scenarios))
-
-    namo_sim_results_zipped_statistics = zip_statistics(scenario_paths)
+    namo_sim_results_zipped_statistics = zip_statistics(namo_sim_results_paths)
     namo_sim_results_aggregated_statistics = aggregate_statistics(namo_sim_results_zipped_statistics)
-    scatter_plots_from_aggregated_statistics(namo_sim_results_aggregated_statistics)
+    namo_scatter_plots = scatter_plots_from_aggregated_statistics(namo_sim_results_aggregated_statistics)
+
+    snamo_sim_results_zipped_statistics = zip_statistics(snamo_sim_results_paths)
+    snamo_sim_results_aggregated_statistics = aggregate_statistics(snamo_sim_results_zipped_statistics)
+    snamo_scatter_plots = scatter_plots_from_aggregated_statistics(snamo_sim_results_aggregated_statistics)
+
+    print('')
+

@@ -71,9 +71,9 @@ class WorldStepStats:
 
 
 class StepStats:
-    def __init__(self, world_stats, agents_stats, act_time):
-        self.world_stats = world_stats
-        self.agents_stats = agents_stats
+    def __init__(self, world_stats=None, agents_stats=None, act_time=0.):
+        self.world_stats = world_stats or WorldStepStats()
+        self.agents_stats = agents_stats or AgentStepStats()
         self.act_time = act_time
 
 
