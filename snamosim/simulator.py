@@ -412,7 +412,7 @@ class Simulator:
                 else:
                     agent_stats.transit_path_length += step_distance
                     agent_stats.nb_transit_steps += 1
-                agent_stats.path_length = step_distance
+                agent_stats.path_length += step_distance
 
                 robot_action_result = sim_step_result.action_results[uid]
                 robot_action = robot_action_result.action

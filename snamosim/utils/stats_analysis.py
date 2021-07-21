@@ -431,8 +431,7 @@ from snamosim.simulator import AgentStepStats, WorldStepStats, StepStats
 #             json.dump(pb_data, f)
 
 
-def zip_statistics(simulations_results_paths):
-    # First pass to get max number of steps in all simulations that we will use as baseline to complete data after
+def get_max_nb_steps(simulations_results_paths):
     max_steps = 0
     for simulation_result_path in simulations_results_paths:
         try:
@@ -444,8 +443,10 @@ def zip_statistics(simulations_results_paths):
                     pass
         except IOError as e:
             pass
+    return max_steps
 
-    # Second pass to actually zip all simulations stats together
+
+def zip_statistics(simulations_results_paths, max_steps):
     zipped_statistics = [[] for i in range(max_steps)]
     for simulation_result_path in simulations_results_paths:
         try:
@@ -541,30 +542,30 @@ def plot_criterion(y, color="blue", dash=None):
     return go.Scatter(y=y, line=dict(color=color, dash=dash))
 
 
-def scatter_plots_from_aggregated_statistics(aggregated_stats, color="blue", dash=None):
+def scatter_plots_from_aggregated_statistics(aggregated_stats, color="blue", dash=None, name=''):
     aggregated_plots = {
-        "max": StepStats(act_time=go.Scatter(y=[stats['max'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash))),
-        "sum": StepStats(act_time=go.Scatter(y=[stats['sum'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash))),
-        "avg": StepStats(act_time=go.Scatter(y=[stats['avg'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash))),
-        "med": StepStats(act_time=go.Scatter(y=[stats['med'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+        "max": StepStats(act_time=go.Scatter(y=[stats['max'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name)),
+        "sum": StepStats(act_time=go.Scatter(y=[stats['sum'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name)),
+        "avg": StepStats(act_time=go.Scatter(y=[stats['avg'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name)),
+        "med": StepStats(act_time=go.Scatter(y=[stats['med'].act_time for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name))
     }
 
     for criterion in AgentStepStats().__dict__.keys():
-        setattr(aggregated_plots['max'].agents_stats, criterion, go.Scatter(y=[getattr(stats['max'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['sum'].agents_stats, criterion, go.Scatter(y=[getattr(stats['sum'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['avg'].agents_stats, criterion, go.Scatter(y=[getattr(stats['avg'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['med'].agents_stats, criterion, go.Scatter(y=[getattr(stats['med'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+        setattr(aggregated_plots['max'].agents_stats, criterion, go.Scatter(y=[getattr(stats['max'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name))
+        setattr(aggregated_plots['sum'].agents_stats, criterion, go.Scatter(y=[getattr(stats['sum'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name))
+        setattr(aggregated_plots['avg'].agents_stats, criterion, go.Scatter(y=[getattr(stats['avg'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name))
+        setattr(aggregated_plots['med'].agents_stats, criterion, go.Scatter(y=[getattr(stats['med'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name))
 
     for criterion in WorldStepStats().__dict__.keys():
-        setattr(aggregated_plots['max'].world_stats, criterion, go.Scatter(y=[getattr(stats['max'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['sum'].world_stats, criterion, go.Scatter(y=[getattr(stats['sum'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['avg'].world_stats, criterion, go.Scatter(y=[getattr(stats['avg'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
-        setattr(aggregated_plots['med'].world_stats, criterion, go.Scatter(y=[getattr(stats['med'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash)))
+        setattr(aggregated_plots['max'].world_stats, criterion, go.Scatter(y=[getattr(stats['max'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name))
+        setattr(aggregated_plots['sum'].world_stats, criterion, go.Scatter(y=[getattr(stats['sum'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name))
+        setattr(aggregated_plots['avg'].world_stats, criterion, go.Scatter(y=[getattr(stats['avg'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name))
+        setattr(aggregated_plots['med'].world_stats, criterion, go.Scatter(y=[getattr(stats['med'].world_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name))
 
     return aggregated_plots
 
-namo_sim_results_paths = ['/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified/2021-07-21-10h42m29s_616116/sim_results.json']
-snamo_sim_results_paths = ['/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified_snamo/2021-07-21-10h52m46s_708636/sim_results.json']
+namo_sim_results_paths = ['/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified/2021-07-21-13h07m04s_496500/sim_results.json', '/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified/2021-07-21-13h07m34s_394861/sim_results.json']
+snamo_sim_results_paths = ['/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified_snamo/2021-07-21-13h08m39s_847827/sim_results.json', '/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified_snamo/2021-07-21-13h10m01s_982533/sim_results.json']
 
 if __name__ == '__main__':
     # Command to clean up JSON logs from Infinite values to "Infinite" ones and allow parsing by browser
@@ -611,13 +612,36 @@ if __name__ == '__main__':
     #
     # print("{} over {} scenarios were executed without exceptions.".format(nb_scenarios_without_exceptions, total_nb_scenarios))
 
-    namo_sim_results_zipped_statistics = zip_statistics(namo_sim_results_paths)
+    max_steps = get_max_nb_steps(namo_sim_results_paths + snamo_sim_results_paths)
+
+    namo_sim_results_zipped_statistics = zip_statistics(namo_sim_results_paths, max_steps)
     namo_sim_results_aggregated_statistics = aggregate_statistics(namo_sim_results_zipped_statistics)
-    namo_scatter_plots = scatter_plots_from_aggregated_statistics(namo_sim_results_aggregated_statistics)
+    namo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(namo_sim_results_aggregated_statistics, name='NAMO')
 
-    snamo_sim_results_zipped_statistics = zip_statistics(snamo_sim_results_paths)
+    snamo_sim_results_zipped_statistics = zip_statistics(snamo_sim_results_paths, max_steps)
     snamo_sim_results_aggregated_statistics = aggregate_statistics(snamo_sim_results_zipped_statistics)
-    snamo_scatter_plots = scatter_plots_from_aggregated_statistics(snamo_sim_results_aggregated_statistics)
+    snamo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(snamo_sim_results_aggregated_statistics, color='green', name='S-NAMO')
 
-    print('')
+    for aggregation_operation, namo_scatter_plots in namo_operations_to_scatter_plots.items():
+        snamo_scatter_plots = snamo_operations_to_scatter_plots[aggregation_operation]
 
+        nb_criteria = 1 + len(AgentStepStats().__dict__) + len(WorldStepStats().__dict__)
+
+        fig = sp.make_subplots(
+            rows=nb_criteria, cols=1,
+            subplot_titles=['act_time']+AgentStepStats().__dict__.keys()+WorldStepStats().__dict__.keys()
+        )
+
+        fig.append_trace(namo_scatter_plots.act_time, row=1, col=1)
+        fig.append_trace(snamo_scatter_plots.act_time, row=1, col=1)
+
+        for index, criterion in enumerate(AgentStepStats().__dict__.keys()):
+            fig.append_trace(getattr(namo_scatter_plots.agents_stats, criterion), row=1+1+index, col=1)
+            fig.append_trace(getattr(snamo_scatter_plots.agents_stats, criterion), row=1+1+index, col=1)
+
+        for index, criterion in enumerate(WorldStepStats().__dict__.keys()):
+            fig.append_trace(getattr(namo_scatter_plots.world_stats, criterion), row=1+1+len(AgentStepStats().__dict__.keys())+index, col=1)
+            fig.append_trace(getattr(snamo_scatter_plots.world_stats, criterion), row=1+1+len(AgentStepStats().__dict__.keys())+index, col=1)
+
+        fig.update_layout(height=12000, title_text=aggregation_operation, showlegend=False)
+        fig.show()
