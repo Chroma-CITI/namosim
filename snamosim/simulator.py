@@ -74,24 +74,13 @@ class StepStats:
     def __init__(self, world_stats, agents_stats, act_time):
         self.world_stats = world_stats
         self.agents_stats = agents_stats
-
         self.act_time = act_time
-
-        self.agents_stats_max = AgentStepStats()
-        self.agents_stats_sum = AgentStepStats()
-        self.agents_stats_avg = AgentStepStats()
-        self.agents_stats_med = AgentStepStats()
-
-        for key in AgentStepStats().__dict__.keys():
-            setattr(self.agents_stats_max, key, max(getattr(agent_stats, key) for agent_stats in self.agents_stats.values()))
-            setattr(self.agents_stats_sum, key, sum(getattr(agent_stats, key) for agent_stats in self.agents_stats.values()))
-            setattr(self.agents_stats_avg, key, np.average([getattr(agent_stats, key) for agent_stats in self.agents_stats.values()]))
-            setattr(self.agents_stats_med, key, np.median([getattr(agent_stats, key) for agent_stats in self.agents_stats.values()]))
 
 
 class TimeoutError(Exception):
     def __init(self):
         pass
+
 
 @contextmanager
 def timeout(time):
@@ -302,7 +291,7 @@ class Simulator:
 
         simulation_report = self.create_simulation_report()
         if run_exceptions_traces:
-            simulation_report['Exceptions'] = run_exceptions_traces
+            simulation_report['exceptions'] = run_exceptions_traces
 
         simulation_report["agents_logs"] = {}
         for uid, behavior in self.agent_uid_to_behavior.items():
@@ -366,7 +355,7 @@ class Simulator:
                 world_stats=WorldStepStats(
                     init_nb_cc, init_biggest_cc_size, init_all_cc_sum_size, init_frag_percentage, init_abs_social_cost
                 ),
-                agents_stats={uid: AgentStepStats() for uid in self.agent_uid_to_behavior.keys()},
+                agents_stats={replay_world.entities[uid].name: AgentStepStats() for uid in self.agent_uid_to_behavior.keys()},
                 act_time=0.
             )
         ]
@@ -410,7 +399,9 @@ class Simulator:
             # Compute agents stats
             prev_agents_stats = stats[-1].agents_stats
             agents_stats = copy.deepcopy(prev_agents_stats)
-            for uid, agent_stats in agents_stats.items():
+            for name, agent_stats in agents_stats.items():
+                uid = replay_world.get_entity_uid_from_name(name)
+
                 if uid not in sim_step_result.action_results:
                     continue
 
@@ -480,7 +471,7 @@ class Simulator:
 
             prev_agent_poses = {uid: replay_world.entities[uid].pose for uid in self.agent_uid_to_behavior.keys()}
 
-        p = jsonpickle.Pickler()
+        p = jsonpickle.Pickler(unpicklable=False)
         report = {"stats": p.flatten(stats)}
 
         return report

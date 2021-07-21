@@ -119,7 +119,7 @@ def get_social_costs_stats(world, entities_to_compute_social_cost_for, ):
         for cell in entity_cell_set:
             absolute_social_cost += abs_social_costmap[cell[0]][cell[1]]
 
-    return absolute_social_cost
+    return float(absolute_social_cost)
 
 
 def relative_change(init_value, end_value, return_percentage=True):
