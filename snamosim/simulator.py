@@ -437,8 +437,30 @@ class Simulator:
                     step_index = sim_step_result.step_index
                     if step_index in current_dynamic_plan.conflicts_history:
                         conflicts = current_dynamic_plan.conflicts_history[step_index]
-                        agent_stats.nb_conflicts += len(conflicts)
+
+                        # Filter redundant conflicts
+                        filtered_conflicts = []
+                        robot_robot_uids, robot_obstacle_uids, stolen_uids, concurrent_uids = set(), set(), set(), set()
                         for conflict in conflicts:
+                            if isinstance(conflict, stilman_2005_behavior.RobotRobotConflict):
+                                if conflict.obstacle_uid not in robot_robot_uids:
+                                    filtered_conflicts.append(conflict)
+                                robot_robot_uids.add(conflict.obstacle_uid)
+                            elif isinstance(conflict, stilman_2005_behavior.RobotObstacleConflict):
+                                if conflict.obstacle_uid not in robot_obstacle_uids:
+                                    filtered_conflicts.append(conflict)
+                                robot_obstacle_uids.add(conflict.obstacle_uid)
+                            elif isinstance(conflict, stilman_2005_behavior.StolenMovableConflict):
+                                if conflict.obstacle_uid not in stolen_uids:
+                                    filtered_conflicts.append(conflict)
+                                stolen_uids.add(conflict.obstacle_uid)
+                            elif isinstance(conflict, stilman_2005_behavior.ConcurrentGrabConflict):
+                                if conflict.obstacle_uid not in concurrent_uids:
+                                    filtered_conflicts.append(conflict)
+                                concurrent_uids.add(conflict.obstacle_uid)
+
+                        agent_stats.nb_conflicts += len(filtered_conflicts)
+                        for conflict in filtered_conflicts:
                             if isinstance(conflict, stilman_2005_behavior.RobotRobotConflict):
                                 agent_stats.nb_robot_robot_conflicts += 1
                             elif isinstance(conflict, stilman_2005_behavior.RobotObstacleConflict):
