@@ -634,7 +634,6 @@ class DynamicPlan(Plan):
 
     def __init__(self):
         Plan.__init__(self)
-        self.is_postponed = False
         self.wait_counter = 0
         self.plan_counter = 0
 
@@ -642,6 +641,10 @@ class DynamicPlan(Plan):
         self.conflicts_history = {}
         self.postponements_history = {}
         self.unpostponements_history = []
+
+    @property
+    def is_postponed(self):
+        return self.wait_counter > 0
 
     def was_last_step_success(self, w_t, last_action_result):
         # TODO Check if robot state (position and grab) are coherent with next step's preconditions
@@ -666,13 +669,7 @@ class DynamicPlan(Plan):
         return self.plan_counter < nb_max_tries
 
     def should_postponement_be_over(self):
-        if self.wait_counter <= 0:
-            self.is_postponed = False
-            self.wait_counter = 0
-            return True
-        else:
-            self.is_postponed = True
-            return False
+        return self.wait_counter <= 1
 
     def can_even_be_found(self):
         if self.plan_error and self.plan_error is "start_or_goal_cell_in_static_obstacle_error":
@@ -682,16 +679,14 @@ class DynamicPlan(Plan):
     # Actions
     def pop_next_step(self):
         if self.is_postponed:
-            if self.wait_counter > 0:
-                self.wait_counter -= 1
-                return ba.Wait()
-            else:
-                self.is_postponed = False
-                self.wait_counter = 0
-        return Plan.pop_next_step(self)
+            self.wait_counter -= 1
+            return ba.Wait()
+        try:
+            return Plan.pop_next_step(self)
+        except Exception as e:
+            print(e)
 
     def postpone(self, t_min, t_max, step_count):
-        self.is_postponed = True
         if self.DEBUGGING_WAIT_TIME_GENERATOR:
             self.wait_counter = self.DEBUGGING_WAIT_TIME_GENERATOR.pop(0)
         else:
@@ -699,7 +694,6 @@ class DynamicPlan(Plan):
         self.postponements_history[step_count] = self.wait_counter
 
     def unpostpone(self, step_count):
-        self.is_postponed = False
         self.wait_counter = 0
         self.unpostponements_history.append(step_count)
 
@@ -709,6 +703,8 @@ class DynamicPlan(Plan):
             self.plan_history[step_count].append(plan)
         else:
             self.plan_history[step_count] = [plan]
+
+        self.wait_counter = 0
 
         self.path_components = plan.path_components
         self.goal = plan.goal
