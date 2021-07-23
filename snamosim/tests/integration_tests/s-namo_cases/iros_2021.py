@@ -22,21 +22,7 @@ class IROS2021Tests(unittest.TestCase):
         sim.run()
 
     def test_single_generated_scenario_pair(self):
-        timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
-        sim_namo = Simulator(
-            simulation_file_path=os.path.join(
-                self.path_to_folder, "after_the_feast/", "2_robots/", "50_goals/", "0000/", "sim_namo_0000.json"
-            ),
-            timestring=timestring
-        )
-        sim_namo_report = sim_namo.run()
-        sim_snamo = Simulator(
-            simulation_file_path=os.path.join(
-                self.path_to_folder, "after_the_feast/", "2_robots/", "50_goals/", "0000/", "sim_snamo_0000.json"
-            ),
-            timestring=timestring
-        )
-        sim_snamo_report = sim_snamo.run()
+        self.namo_and_snamo('0000')
 
     def namo_and_snamo(self, scenario_id):
         timestring = datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
