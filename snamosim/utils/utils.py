@@ -1069,4 +1069,4 @@ def is_close(a, b, rel_tol=1e-09):
 
 
 def angle_is_close(a, b, rel_tol=1e-09):
-    return is_close(a, b, rel_tol) or is_close(abs(a - 360.), b, rel_tol) or is_close(a, abs(b - 360.), rel_tol)
+    return is_close(a, b, rel_tol) or is_close(a - 360., b, rel_tol) or is_close(a, b - 360., rel_tol)
