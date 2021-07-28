@@ -1084,7 +1084,7 @@ class Stilman2005Behavior(BaselineBehavior):
         return ba.GoalFailed(goal)
 
     def select_connect(self, w_t, static_obs_inf_grid, inflated_grid_by_robot_max, b2_sim, r_f, trans_mult, rot_mult,
-                       ccs_data=None, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, nb_self_calls=0, nb_rch_calls=0):
+                       ccs_data=None, prev_list=set(), neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, nb_self_calls=0, nb_rch_calls=0):
         """
         High Level Planner _select_connect (SC).
         It makes use of _rch and _manip_search in a greedy heuristic search with backtracking.
@@ -1122,11 +1122,6 @@ class Stilman2005Behavior(BaselineBehavior):
                 inflated_grid_by_robot_max.grid, inflated_grid_by_robot_max.d_width,
                 inflated_grid_by_robot_max.d_height, neighborhood
             )
-        else:
-            ccs_data = connectivity.update_ccs_and_grid(
-                ccs_data, inflated_grid_by_robot_max.grid, inflated_grid_by_robot_max.d_width,
-                inflated_grid_by_robot_max.d_height, neighborhood
-            )
         connected_components_grid = ccs_data.grid
         self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd, ns=self._robot_name)
 
@@ -1149,7 +1144,7 @@ class Stilman2005Behavior(BaselineBehavior):
         nb_rch_calls += 1
         o_1, c_1 = self.rch(
             robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
-            inflated_grid_by_robot_max, avoid_list, forbidden_obstacles, neighborhood
+            inflated_grid_by_robot_max, avoid_list, prev_list, forbidden_obstacles, neighborhood
         )
         while o_1 != 0:
             self.simulation_log.append(utils.BasicLog(
@@ -1160,7 +1155,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
             c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
             w_t_plus_2, tho_m = self.manip_search_procedure(
-                w_t, o_1, c_1, ccs_data, r_f, b2_sim, inflated_grid_by_robot_max, trans_mult, rot_mult
+                w_t, o_1, c_1, ccs_data, prev_list, r_f, b2_sim, inflated_grid_by_robot_max, trans_mult, rot_mult
             )
 
             if tho_m is not None:
@@ -1173,7 +1168,8 @@ class Stilman2005Behavior(BaselineBehavior):
                 prev_cells_sets = inflated_grid_by_robot_max.polygon_update({o_1: w_t_plus_2.entities[o_1].polygon})
                 future_plan = self.select_connect(
                     w_t_plus_2, static_obs_inf_grid, inflated_grid_by_robot_max, self.b2_sim, r_f, trans_mult, rot_mult,
-                    ccs_data, neighborhood, nb_self_calls=nb_self_calls+1, nb_rch_calls=nb_rch_calls
+                    ccs_data=ccs_data, prev_list=(prev_list if c_1 == 0 else prev_list.union({c_1})),
+                    neighborhood=neighborhood, nb_self_calls=nb_self_calls+1, nb_rch_calls=nb_rch_calls
                 )
                 inflated_grid_by_robot_max.cells_sets_update(prev_cells_sets)
                 if not future_plan.plan_error:
@@ -1198,14 +1194,14 @@ class Stilman2005Behavior(BaselineBehavior):
             nb_rch_calls += 1
             o_1, c_1 = self.rch(
                 robot_cell, goal_cell, static_obs_inf_grid, connected_components_grid,
-                inflated_grid_by_robot_max, avoid_list, forbidden_obstacles, neighborhood
+                inflated_grid_by_robot_max, avoid_list, prev_list, forbidden_obstacles, neighborhood
             )
 
         return Plan(plan_error="no_plan_found_error")
 
     def rch_get_neighbors(self, current, gscore, close_set, open_queue, came_from,
                           static_obs_grid, connected_components_grid, inflated_robot_grid,
-                          avoid_list, init_robot_component_uid, g_function, traversed_obstacles_ids,
+                          avoid_list, prev_list, g_function, traversed_obstacles_ids,
                           forbidden_obstacles, neighborhood=utils.TAXI_NEIGHBORHOOD):
         """
         Combined formulation from Stilman's thesis and his article. The prevlist parameter was not used because not
@@ -1246,11 +1242,11 @@ class Stilman2005Behavior(BaselineBehavior):
                 neighbor_cell_in_free_space = neighbor_cell_component_uid > 0
                 if path_has_traversed_first_obstacle:
                     if neighbor_cell_in_free_space:
-                        neighbor_cell_not_in_robot_component_nor_avoid_list = (
-                            neighbor_cell_component_uid != init_robot_component_uid
+                        neighbor_cell_not_in_prev_component_nor_avoid_list = (
+                            neighbor_cell_component_uid not in prev_list
                             and (current.first_obstacle_uid, neighbor_cell_component_uid) not in avoid_list
                         )
-                        if neighbor_cell_not_in_robot_component_nor_avoid_list:
+                        if neighbor_cell_not_in_prev_component_nor_avoid_list:
                             neighbor = RCHConfiguration(
                                 neighbor_cell, current.first_obstacle_uid, neighbor_cell_component_uid
                             )
@@ -1294,7 +1290,7 @@ class Stilman2005Behavior(BaselineBehavior):
         return neighbors, tentative_gscores
 
     def rch(self, start_cell, goal_cell,
-            static_obs_grid, connected_components_grid, inflated_robot_grid, avoid_list, forbidden_obstacles,
+            static_obs_grid, connected_components_grid, inflated_robot_grid, avoid_list, prev_list, forbidden_obstacles,
             neighborhood=utils.TAXI_NEIGHBORHOOD):
 
         if static_obs_grid.grid[start_cell[0]][start_cell[1]] > 0:
@@ -1328,7 +1324,6 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # TODO Create custom exceptions for above
 
-        init_robot_component_uid = 0 if start_obstacle_uid > 0 else connected_components_grid[start_cell[0]][start_cell[1]]
         sqrt_of_2_times_res = utils.SQRT_OF_2 * inflated_robot_grid.res
         goal_real = utils.grid_to_real(
             goal_cell[0], goal_cell[1], inflated_robot_grid.res, inflated_robot_grid.grid_pose
@@ -1358,7 +1353,7 @@ class Stilman2005Behavior(BaselineBehavior):
             return self.rch_get_neighbors(
                 current, gscore, close_set, open_queue, came_from,
                 static_obs_grid, connected_components_grid, inflated_robot_grid,
-                avoid_list, init_robot_component_uid, g_function, traversed_obstacles_ids, forbidden_obstacles, neighborhood
+                avoid_list, prev_list, g_function, traversed_obstacles_ids, forbidden_obstacles, neighborhood
             )
 
         def exit_condition(_current, _goal):
@@ -1377,7 +1372,7 @@ class Stilman2005Behavior(BaselineBehavior):
         else:
             return 0, 0
 
-    def manip_search(self, w_t, o_1, c_1, ccs_data, r_f, b2_sim, inflated_grid_by_robot_max,
+    def manip_search(self, w_t, o_1, c_1, ccs_data,  prev_list,r_f, b2_sim, inflated_grid_by_robot_max,
                      trans_mult, rot_mult, check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
@@ -1395,6 +1390,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         robot = w_t_plus_2.entities[self._robot.uid]
         robot_uid, robot_pose, robot_polygon, robot_name = robot.uid, robot.pose, robot.polygon, robot.name
+        robot_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose)
         robot_min_inflation_radius = utils.get_inscribed_radius(robot_polygon)
         robot_max_inflation_radius = utils.get_circumscribed_radius(robot_polygon)
 
@@ -1409,10 +1405,13 @@ class Stilman2005Behavior(BaselineBehavior):
 
         goal_pose, goal_cell = r_f, utils.real_to_grid(r_f[0], r_f[1], res, inflated_grid_by_robot_max.grid_pose)
 
+        r_cc = ccs_data.grid[robot_cell[0]][robot_cell[1]]
+        r_acc_ccs = prev_list if r_cc == 0 else prev_list.union({r_cc})
+
         # Get accessible sampled navigation points around obstacle
         transfer_start_configs_to_cost, transfer_start_to_prev_transit_end = self.get_transfer_start_to_transit_end_and_cost(
             robot_polygon, robot_pose, robot_uid, obstacle_uid, other_entities_polygons, other_entities_aabb_tree,
-            inflated_grid_by_robot_max, ccs_data,
+            inflated_grid_by_robot_max, ccs_data, r_acc_ccs,
             obstacle_pose, obstacle_polygon, trans_mult, rot_mult
         )
 
@@ -1483,7 +1482,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return w_t_plus_2, tho_m
 
-    def focused_manip_search(self, w_t, o_1, c_1, ccs_data, r_f, b2_sim, inflated_grid_by_robot_max,
+    def focused_manip_search(self, w_t, o_1, c_1, ccs_data, prev_list, r_f, b2_sim, inflated_grid_by_robot_max,
                              trans_mult, rot_mult, check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
@@ -1500,6 +1499,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         robot = w_t_plus_2.entities[self._robot.uid]
         robot_uid, robot_pose, robot_name = robot.uid, robot.pose, robot.name
+        robot_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose)
         robot_polygon = robot.polygon
         robot_min_inflation_radius = utils.get_inscribed_radius(robot_polygon)
         robot_max_inflation_radius = utils.get_circumscribed_radius(robot_polygon)
@@ -1511,10 +1511,13 @@ class Stilman2005Behavior(BaselineBehavior):
 
         goal_pose, goal_cell = r_f, utils.real_to_grid(r_f[0], r_f[1], res, inflated_grid_by_robot_max.grid_pose)
 
+        r_cc = ccs_data.grid[robot_cell[0]][robot_cell[1]]
+        r_acc_ccs = prev_list if r_cc == 0 else prev_list.union({r_cc})
+
         # Get accessible sampled navigation points around obstacle
         transfer_start_configs_to_cost, transfer_start_to_prev_transit_end = self.get_transfer_start_to_transit_end_and_cost(
             robot_polygon, robot_pose, robot_uid, obstacle_uid, other_entities_polygons, other_entities_aabb_tree,
-            inflated_grid_by_robot_max, ccs_data,
+            inflated_grid_by_robot_max, ccs_data, r_acc_ccs,
             obstacle_pose, obstacle_polygon, trans_mult, rot_mult
         )
 
@@ -1782,8 +1785,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def get_transfer_start_to_transit_end_and_cost(self, robot_polygon, robot_pose, robot_uid, obstacle_uid,
                                                    other_entities_polygons, other_entities_aabb_tree,
-                                                   inflated_grid_by_robot_max,
-                                                   ccs_data, obstacle_pose, obstacle_polygon, trans_mult, rot_mult):
+                                                   inflated_grid_by_robot_max, ccs_data, r_acc_ccs,
+                                                   obstacle_pose, obstacle_polygon, trans_mult, rot_mult):
         robot_cell = utils.real_to_grid(
             robot_pose[0], robot_pose[1], inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose
         )
@@ -1817,8 +1820,6 @@ class Stilman2005Behavior(BaselineBehavior):
             return transfer_start_configs_to_cost, transfer_start_to_prev_transit_end
 
         # General case otherwise
-        c_r_acc = ccs_data.grid[robot_cell[0]][robot_cell[1]]
-
         transit_end_robot_poses, transfer_start_robot_poses = self.get_transit_end_and_transfer_start_poses(
             obstacle_polygon, inflated_grid_by_robot_max
         )
@@ -1835,10 +1836,14 @@ class Stilman2005Behavior(BaselineBehavior):
                 inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose
             )
 
-            cell_in_grid = utils.is_in_matrix(transit_end_cell, *ccs_data.grid.shape)
+            cell_in_grid = utils.is_in_matrix(transit_end_cell, *inflated_grid_by_robot_max.grid.shape)
             if not cell_in_grid:
                 continue
-            cell_in_robot_accessible_space = ccs_data.grid[transit_end_cell[0]][transit_end_cell[1]] == c_r_acc
+
+            cell_in_robot_accessible_space = (
+                inflated_grid_by_robot_max.grid[transit_end_cell[0]][transit_end_cell[1]] == 0
+                and ccs_data.grid[transit_end_cell[0]][transit_end_cell[1]] in r_acc_ccs
+            )
             if not cell_in_robot_accessible_space:
                 continue
 
