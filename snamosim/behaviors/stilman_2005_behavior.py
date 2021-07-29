@@ -1125,6 +1125,9 @@ class Stilman2005Behavior(BaselineBehavior):
         connected_components_grid = ccs_data.grid
         self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd, ns=self._robot_name)
 
+        r_cc = ccs_data.grid[robot_cell[0]][robot_cell[1]]
+        prev_list = prev_list if r_cc == 0 else prev_list.union({r_cc})
+
         if inflated_grid_by_robot_max.only_obstacle_uid_in_cell(robot_cell) == -1:
             return Plan(plan_error="start_cell_in_several_movable_obstacles_error")
 
@@ -1372,7 +1375,7 @@ class Stilman2005Behavior(BaselineBehavior):
         else:
             return 0, 0
 
-    def manip_search(self, w_t, o_1, c_1, ccs_data,  prev_list,r_f, b2_sim, inflated_grid_by_robot_max,
+    def manip_search(self, w_t, o_1, c_1, ccs_data, prev_list, r_f, b2_sim, inflated_grid_by_robot_max,
                      trans_mult, rot_mult, check_new_local_opening_before_global=True):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
@@ -1405,13 +1408,10 @@ class Stilman2005Behavior(BaselineBehavior):
 
         goal_pose, goal_cell = r_f, utils.real_to_grid(r_f[0], r_f[1], res, inflated_grid_by_robot_max.grid_pose)
 
-        r_cc = ccs_data.grid[robot_cell[0]][robot_cell[1]]
-        r_acc_ccs = prev_list if r_cc == 0 else prev_list.union({r_cc})
-
         # Get accessible sampled navigation points around obstacle
         transfer_start_configs_to_cost, transfer_start_to_prev_transit_end = self.get_transfer_start_to_transit_end_and_cost(
             robot_polygon, robot_pose, robot_uid, obstacle_uid, other_entities_polygons, other_entities_aabb_tree,
-            inflated_grid_by_robot_max, ccs_data, r_acc_ccs,
+            inflated_grid_by_robot_max, ccs_data, prev_list,
             obstacle_pose, obstacle_polygon, trans_mult, rot_mult
         )
 
@@ -1511,13 +1511,10 @@ class Stilman2005Behavior(BaselineBehavior):
 
         goal_pose, goal_cell = r_f, utils.real_to_grid(r_f[0], r_f[1], res, inflated_grid_by_robot_max.grid_pose)
 
-        r_cc = ccs_data.grid[robot_cell[0]][robot_cell[1]]
-        r_acc_ccs = prev_list if r_cc == 0 else prev_list.union({r_cc})
-
         # Get accessible sampled navigation points around obstacle
         transfer_start_configs_to_cost, transfer_start_to_prev_transit_end = self.get_transfer_start_to_transit_end_and_cost(
             robot_polygon, robot_pose, robot_uid, obstacle_uid, other_entities_polygons, other_entities_aabb_tree,
-            inflated_grid_by_robot_max, ccs_data, r_acc_ccs,
+            inflated_grid_by_robot_max, ccs_data, prev_list,
             obstacle_pose, obstacle_polygon, trans_mult, rot_mult
         )
 
