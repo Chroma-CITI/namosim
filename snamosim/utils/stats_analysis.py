@@ -564,8 +564,8 @@ def scatter_plots_from_aggregated_statistics(aggregated_stats, color="blue", das
 
     return aggregated_plots
 
-namo_sim_results_paths = ['/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified/2021-07-21-13h07m04s_496500/sim_results.json', '/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified/2021-07-21-13h07m34s_394861/sim_results.json']
-snamo_sim_results_paths = ['/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified_snamo/2021-07-21-13h08m39s_847827/sim_results.json', '/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified_snamo/2021-07-21-13h10m01s_982533/sim_results.json']
+namo_sim_results_paths = ['/home/xia0ben/INRIA/Code/s-namo-sim/logs/04_after_the_feast/stilman_2005_behavior_multi_robots_complexified/2021-08-05-11h29m04s_224164/sim_results.json']
+snamo_sim_results_paths = []
 
 if __name__ == '__main__':
     # Command to clean up JSON logs from Infinite values to "Infinite" ones and allow parsing by browser
@@ -614,34 +614,40 @@ if __name__ == '__main__':
 
     max_steps = get_max_nb_steps(namo_sim_results_paths + snamo_sim_results_paths)
 
-    namo_sim_results_zipped_statistics = zip_statistics(namo_sim_results_paths, max_steps)
-    namo_sim_results_aggregated_statistics = aggregate_statistics(namo_sim_results_zipped_statistics)
-    namo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(namo_sim_results_aggregated_statistics, name='NAMO')
+    if namo_sim_results_paths:
+        namo_sim_results_zipped_statistics = zip_statistics(namo_sim_results_paths, max_steps)
+        namo_sim_results_aggregated_statistics = aggregate_statistics(namo_sim_results_zipped_statistics)
+        namo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(namo_sim_results_aggregated_statistics, name='NAMO')
 
-    snamo_sim_results_zipped_statistics = zip_statistics(snamo_sim_results_paths, max_steps)
-    snamo_sim_results_aggregated_statistics = aggregate_statistics(snamo_sim_results_zipped_statistics)
-    snamo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(snamo_sim_results_aggregated_statistics, color='green', name='S-NAMO')
+    if snamo_sim_results_paths:
+        snamo_sim_results_zipped_statistics = zip_statistics(snamo_sim_results_paths, max_steps)
+        snamo_sim_results_aggregated_statistics = aggregate_statistics(snamo_sim_results_zipped_statistics)
+        snamo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(snamo_sim_results_aggregated_statistics, color='green', name='S-NAMO')
 
     for aggregation_operation, namo_scatter_plots in namo_operations_to_scatter_plots.items():
-        snamo_scatter_plots = snamo_operations_to_scatter_plots[aggregation_operation]
+        if snamo_sim_results_paths:
+            snamo_scatter_plots = snamo_operations_to_scatter_plots[aggregation_operation]
 
         nb_criteria = 1 + len(AgentStepStats().__dict__) + len(WorldStepStats().__dict__)
 
         fig = sp.make_subplots(
             rows=nb_criteria, cols=1,
-            subplot_titles=['act_time']+AgentStepStats().__dict__.keys()+WorldStepStats().__dict__.keys()
+            subplot_titles=['act_time']+list(AgentStepStats().__dict__.keys())+list(WorldStepStats().__dict__.keys())
         )
 
         fig.append_trace(namo_scatter_plots.act_time, row=1, col=1)
-        fig.append_trace(snamo_scatter_plots.act_time, row=1, col=1)
+        if snamo_sim_results_paths:
+            fig.append_trace(snamo_scatter_plots.act_time, row=1, col=1)
 
         for index, criterion in enumerate(AgentStepStats().__dict__.keys()):
             fig.append_trace(getattr(namo_scatter_plots.agents_stats, criterion), row=1+1+index, col=1)
-            fig.append_trace(getattr(snamo_scatter_plots.agents_stats, criterion), row=1+1+index, col=1)
+            if snamo_sim_results_paths:
+                fig.append_trace(getattr(snamo_scatter_plots.agents_stats, criterion), row=1+1+index, col=1)
 
         for index, criterion in enumerate(WorldStepStats().__dict__.keys()):
             fig.append_trace(getattr(namo_scatter_plots.world_stats, criterion), row=1+1+len(AgentStepStats().__dict__.keys())+index, col=1)
-            fig.append_trace(getattr(snamo_scatter_plots.world_stats, criterion), row=1+1+len(AgentStepStats().__dict__.keys())+index, col=1)
+            if snamo_sim_results_paths:
+                fig.append_trace(getattr(snamo_scatter_plots.world_stats, criterion), row=1+1+len(AgentStepStats().__dict__.keys())+index, col=1)
 
         fig.update_layout(height=12000, title_text=aggregation_operation, showlegend=False)
         fig.show()
