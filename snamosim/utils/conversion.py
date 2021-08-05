@@ -50,7 +50,7 @@ def add_shapely_geometry_to_svg(shapely_geometry, uname, style, svg_data, svg_gr
     svg_group.appendChild(new_path)
 
 
-def svg_pathd_to_shapely_geometry(svg_path, scaling_value=1.):
+def svg_pathd_to_shapely_geometry(svg_path, scaling_value=1., precision=1e9):
     parse_result = parse_path(svg_path)
     geom_pts = parse_result.vertices * scaling_value
     geom_pts[:, 1] = -geom_pts[:, 1]  # Mirror
@@ -60,10 +60,10 @@ def svg_pathd_to_shapely_geometry(svg_path, scaling_value=1.):
     pts_set = set()
     dedup_geom_pts = []
     for pt in geom_pts:
-        pt_tuple = tuple(pt)
+        pt_tuple = (round(pt[0] * precision), round(pt[1] * precision))
         if pt_tuple not in pts_set:
             pts_set.add(pt_tuple)
-            dedup_geom_pts.append(pt_tuple)
+            dedup_geom_pts.append(pt)
 
     # or on y-axis
     if len(dedup_geom_pts) >= 3:
