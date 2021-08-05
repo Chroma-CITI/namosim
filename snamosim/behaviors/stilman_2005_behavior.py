@@ -300,14 +300,16 @@ class TransferPath:
                         main_uid=robot_uid, other_polygons=other_entities_polygons,
                         polygon_sequence=[self.robot_path.polygons[0], self.robot_path.polygons[1]],
                         action_sequence=[collision.convert_action(self.grab_action, self.robot_path.poses[0])],
-                        bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree
+                        bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree,
+                        ignored_entities=previously_moved_entities_uids
                     )
                 if robot_uid in collides_with:
                     for uid in collides_with[robot_uid]:
                         if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
-                            conflicts.append(RobotRobotConflict(uid))
-                            if exit_early_for_any_conflict:
-                                return conflicts
+                            if counter <= check_horizon:
+                                conflicts.append(RobotRobotConflict(uid))
+                                if exit_early_for_any_conflict:
+                                    return conflicts
                         else:
                             conflicts.append(RobotObstacleConflict(uid))
                             if exit_early_for_any_conflict or exit_early_only_for_long_term_conflicts:
@@ -327,7 +329,8 @@ class TransferPath:
                         main_uid=robot_uid, other_polygons=other_entities_polygons,
                         polygon_sequence=[self.robot_path.polygons[-2], self.robot_path.polygons[-1]],
                         action_sequence=[collision.convert_action(self.release_action, self.robot_path.poses[-2])],
-                        bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree
+                        bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree,
+                        ignored_entities=previously_moved_entities_uids
                     )
                 if robot_uid in collides_with:
                     for uid in collides_with[robot_uid]:
