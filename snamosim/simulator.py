@@ -423,10 +423,10 @@ class Simulator:
                     elif isinstance(robot_action, ba.Wait):
                         agent_stats.nb_wait_steps += 1
                     elif isinstance(robot_action, ba.GoalSuccess):
-                        agent_stats.nb_goals = + 1
+                        agent_stats.nb_goals += 1
                         agent_stats.nb_successful_goals += 1
                     elif isinstance(robot_action, ba.GoalFailed):
-                        agent_stats.nb_goals =+ 1
+                        agent_stats.nb_goals += 1
                         agent_stats.nb_failed_goals += 1
 
                 # TODO Find a way to ditch the self.saved_goals variable
@@ -498,7 +498,7 @@ class Simulator:
 
         return report
 
-    def initialize_agents_goals(self, goals_geometries):
+    def initialize_agents_goals(self, goals_geometries, max_nb_goals=float('inf')):
         agent_uid_to_goals = {}
         for agent_to_behavior_config in self.config["agents_behaviors"]:
             agent_name = agent_to_behavior_config["agent_name"]
@@ -512,7 +512,9 @@ class Simulator:
                 agent_navigation_goals = []
 
                 if "navigation_goals" in behavior_config:
-                    for config_goal in behavior_config["navigation_goals"]:
+                    for count, config_goal in enumerate(behavior_config["navigation_goals"]):
+                        if count > max_nb_goals:
+                            break
                         if config_goal["name"] in goals_geometries:
                             agent_navigation_goals.append(goals_geometries[config_goal["name"]])
 
