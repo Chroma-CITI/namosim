@@ -1133,7 +1133,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         c_0 = ccs_data.grid[robot_cell[0]][robot_cell[1]]
         prev_list = prev_list if c_0 == 0 else prev_list.union({c_0})
-        r_acc_cells = connectivity.bfs_init(
+        r_acc_cells = set() if inflated_grid_by_robot_max.grid[robot_cell[0]][robot_cell[1]] > 0 else connectivity.bfs_init(
             inflated_grid_by_robot_max.grid, inflated_grid_by_robot_max.d_width,
             inflated_grid_by_robot_max.d_height, robot_cell, neighborhood
         ).visited
