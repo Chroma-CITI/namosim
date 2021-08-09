@@ -7,6 +7,7 @@ import traceback
 import signal
 from contextlib import contextmanager
 import numpy as np
+import random
 
 import snamosim.behaviors.stilman_2005_behavior as stilman_2005_behavior
 from snamosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
@@ -128,6 +129,8 @@ class Simulator:
         self.simulation_log.append(utils.BasicLog("Simulation file successfully loaded", 0))
 
         # Save general simulation parameters
+        self.random_seed = self.config.get('random_seed', 10)
+        random.seed(self.random_seed)
         self.provide_walls = self.config["provide_walls"]
         self.display_sim_knowledge_only_once = self.config["display_sim_knowledge_only_once"]
         self.reset_after_first_goal = (
@@ -303,6 +306,7 @@ class Simulator:
             utils.BasicLog("Simulation report saved at: {}".format(self.log_filepath), step_count)
         )
         simulation_report["simulation_log"] = self.simulation_log
+        simulation_report['random_seed'] = self.random_seed
 
         p = jsonpickle.Pickler()
         simulation_report["simulation_history"] = p.flatten(self.history)
