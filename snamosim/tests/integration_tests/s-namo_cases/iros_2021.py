@@ -52,6 +52,8 @@ class IROS2021Tests(unittest.TestCase):
         import time
         import psutil
 
+        print('Starting test for 10 hours.')
+
         nb_cpu = multiprocessing.cpu_count()
 
         start_time = time.time()
@@ -65,6 +67,7 @@ class IROS2021Tests(unittest.TestCase):
 
         while (now_time - start_time) < (5. * 60. * 60.) and scenario_counter < self.MAX_SCENARIO:
             if use_computer and len(current_processes) < nb_cpu - 1:
+                print('Execute test for scenario {}'.format(scenario_counter))
                 process = multiprocessing.Process(target=self.namo_and_snamo, args=(("{:0" + str(len(str(nb_scenarios))) + "d}").format(scenario_counter),))
                 current_processes.append(process)
                 process.start()
