@@ -11,6 +11,8 @@ from datetime import datetime
 
 
 class IROS2021Tests(unittest.TestCase):
+    MIN_SCENARIO = 0
+    MAX_SCENARIO = 1000
 
     def setUp(self):
         self.path_to_folder = os.path.join(os.path.dirname(__file__), "../../../../data/simulations/iros_2021/")
@@ -59,9 +61,9 @@ class IROS2021Tests(unittest.TestCase):
         use_computer = True
 
         nb_scenarios = 1000
-        scenario_counter = 0
+        scenario_counter = self.MIN_SCENARIO
 
-        while (now_time - start_time) < (5. * 60. * 60.):
+        while (now_time - start_time) < (5. * 60. * 60.) and scenario_counter < self.MAX_SCENARIO:
             if use_computer and len(current_processes) < nb_cpu - 1:
                 process = multiprocessing.Process(target=self.namo_and_snamo, args=(("{:0" + str(len(str(nb_scenarios))) + "d}").format(scenario_counter),))
                 current_processes.append(process)
@@ -97,4 +99,8 @@ class IROS2021Tests(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        IROS2021Tests.MIN_SCENARIO = sys.argv.pop()
+        IROS2021Tests.MAX_SCENARIO = sys.argv.pop()
+    print('Received args : {}, {}'.format(IROS2021Tests.MIN_SCENARIO, IROS2021Tests.MAX_SCENARIO))
     unittest.main()
