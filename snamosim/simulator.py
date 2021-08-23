@@ -6,6 +6,7 @@ import os
 import traceback
 import signal
 from contextlib import contextmanager
+import numpy as np
 import random
 
 import snamosim.behaviors.stilman_2005_behavior as stilman_2005_behavior
@@ -121,6 +122,7 @@ class Simulator:
         abs_path_to_main_sim_logs_dir = os.path.join(os.path.dirname(__file__), rel_path_to_main_sim_logs_dir)
         self.abs_path_to_logs_dir = os.path.join(abs_path_to_main_sim_logs_dir, self.sim_start_timestring + "/")
         os.makedirs(self.abs_path_to_logs_dir)
+        os.makedirs(self.abs_path_to_logs_dir + "simulation/")
         self.simulation_log = utils.CustomLogger()
 
         self.simulation_log.append(utils.BasicLog("Simulation file successfully loaded", 0))
@@ -155,7 +157,7 @@ class Simulator:
         self.simulation_log.append(utils.BasicLog("World file successfully loaded.", 0))
 
         self.init_ref_world.save_to_files(
-            json_filepath=self.abs_path_to_logs_dir + self.simulation_filename + ".json",
+            json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + ".json",
             svg_filepath=self.init_ref_world.init_geometry_filename
         )
         self.ref_world = copy.deepcopy(self.init_ref_world)
@@ -286,7 +288,7 @@ class Simulator:
 
         # - Save world end state as SVG+JSON
         self.ref_world.save_to_files(
-            json_filepath=self.abs_path_to_logs_dir + self.simulation_filename + "_end" + ".json",
+            json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_end" + ".json",
             svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename, "_end")
         )
         self.simulation_log.append(utils.BasicLog("Saved simulation final state.", step_count))
@@ -574,7 +576,7 @@ class Simulator:
             + "_after_goal_" + str(goal_counter)
             + "_of_" + self.ref_world.entities[agent_uid].name
         )
-        json_filepath = self.abs_path_to_logs_dir + self.simulation_filename + suffix + ".json"
+        json_filepath = self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + suffix + ".json"
         svg_filepath = utils.append_suffix(self.init_ref_world.init_geometry_filename, suffix)
         svg_data = world_snapshot.to_svg()
 
