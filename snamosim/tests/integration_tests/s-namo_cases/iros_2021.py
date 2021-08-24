@@ -1,5 +1,4 @@
 import sys
-import logging
 
 if "/home/brenault/s-namo-sim-private" not in sys.path:
     sys.path.append("/home/brenault/s-namo-sim-private")
@@ -37,6 +36,10 @@ class IROS2021Tests(unittest.TestCase):
                 timestring=timestring
             )
             sim_namo_report = sim_namo.run()
+        except Exception as e:
+            print(e)
+
+        try:
             sim_snamo = Simulator(
                 simulation_file_path=os.path.join(
                     self.path_to_folder, "after_the_feast/", "2_robots/", "50_goals/", scenario_id + "/", "sim_snamo_" + scenario_id + ".json"
@@ -66,7 +69,7 @@ class IROS2021Tests(unittest.TestCase):
         scenario_counter = self.MIN_SCENARIO
 
         while (now_time - start_time) < (5. * 60. * 60.) and (scenario_counter < self.MAX_SCENARIO or current_processes):
-            if use_computer and len(current_processes) < nb_cpu - 1:
+            if use_computer and len(current_processes) < nb_cpu - 1 and scenario_counter < self.MAX_SCENARIO:
                 print('Execute test for scenario {}'.format(scenario_counter))
                 process = multiprocessing.Process(target=self.namo_and_snamo, args=(("{:0" + str(len(str(nb_scenarios))) + "d}").format(scenario_counter),))
                 current_processes.append(process)
