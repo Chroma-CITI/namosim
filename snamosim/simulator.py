@@ -152,7 +152,7 @@ class Simulator:
         if self.pickle_saved_data:
             def pickle_save(obj, filepath):
                 filepath += ".pickle"
-                with open(filepath, 'w+') as f:
+                with open(filepath, 'wb') as f:
                     pickle.dump(obj, f)
             self.save = pickle_save
         else:
