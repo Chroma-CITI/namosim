@@ -6,7 +6,7 @@ import os
 import traceback
 import signal
 from contextlib import contextmanager
-import numpy as np
+import pickle
 import random
 
 import snamosim.behaviors.stilman_2005_behavior as stilman_2005_behavior
@@ -141,6 +141,29 @@ class Simulator:
             utils.BasicLog("Created log folders at:{}".format(str(self.abs_path_to_logs_dir)), 0)
         )
 
+        self.save_init_world_state = True
+        self.save_intermediate_world_states = False
+        self.save_end_world_state = True
+        self.save_stats = True
+        self.save_history = False
+        self.save_logs = True
+        self.pickle_saved_data = True
+
+        if self.pickle_saved_data:
+            def pickle_save(obj, filepath):
+                filepath += ".pickle"
+                with open(filepath, 'w+') as f:
+                    pickle.dump(obj, f)
+            self.save = pickle_save
+        else:
+            def json_save(obj, filepath):
+                filepath += ".json"
+                p = jsonpickle.Pickler(unpicklable=False)
+                flattened_obj = p.flatten(obj)
+                with open(filepath, 'w+') as f:
+                    json.dump(flattened_obj, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
+            self.save = json_save
+
         # Reinitialize rviz display
 
         agents_names = [a_to_b_config["agent_name"] for a_to_b_config in self.config["agents_behaviors"]]
@@ -156,10 +179,11 @@ class Simulator:
 
         self.simulation_log.append(utils.BasicLog("World file successfully loaded.", 0))
 
-        self.init_ref_world.save_to_files(
-            json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + ".json",
-            svg_filepath=self.init_ref_world.init_geometry_filename
-        )
+        if self.save_init_world_state:
+            self.init_ref_world.save_to_files(
+                json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + ".json",
+                svg_filepath=self.init_ref_world.init_geometry_filename
+            )
         self.ref_world = copy.deepcopy(self.init_ref_world)
 
         # Associate autonomous agents with goals and behaviors
@@ -281,56 +305,55 @@ class Simulator:
         # - Save exception traces
         if run_exceptions_traces:
             exceptions = {'exceptions': run_exceptions_traces}
-            exceptions_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "exceptions.json")
-            with open(exceptions_filepath, 'w+') as f:
-                json.dump(exceptions, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
+            exceptions_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "exceptions")
+            self.save(exceptions, exceptions_filepath)
             self.simulation_log.append(utils.BasicLog("Saved exceptions at: {}".format(exceptions_filepath), step_count))
 
         # - Save world end state as SVG+JSON
-        self.ref_world.save_to_files(
-            json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_end" + ".json",
-            svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename, "_end")
-        )
-        self.simulation_log.append(utils.BasicLog("Saved simulation final state.", step_count))
+        if self.save_end_world_state:
+            self.ref_world.save_to_files(
+                json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_end" + ".json",
+                svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename, "_end")
+            )
+            self.simulation_log.append(utils.BasicLog("Saved simulation final state.", step_count))
 
         # - Save stats
-        stats = self.create_simulation_report()
-        stats_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "stats.json")
-        with open(stats_filepath, 'w+') as f:
-            json.dump(stats, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
-        self.simulation_log.append(utils.BasicLog("Saved stats at: {}".format(stats_filepath), step_count))
+        if self.save_stats:
+            stats = self.create_simulation_report()
+            stats_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "stats")
+            self.save(stats, stats_filepath)
+            self.simulation_log.append(utils.BasicLog("Saved stats at: {}".format(stats_filepath), step_count))
 
         # - Save simulation history
         # TODO Remove this temporary measure for a better separation between scenario generation and execution
-        history = {}
-        history["temp_goals"] = self.saved_goals
-        history['random_seed'] = self.random_seed
-        p = jsonpickle.Pickler()
-        history["simulation_history"] = p.flatten(self.history)
-        history["agent_plans_history"] = {
-            agent_uid: p.flatten(dict(behavior.goal_to_plans)) for agent_uid, behavior in self.agent_uid_to_behavior.items()
-        }
-        history_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "history.json")
-        with open(history_filepath, 'w+') as f:
-            json.dump(history, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
-        self.simulation_log.append(utils.BasicLog("Saved history at: {}".format(history_filepath), step_count))
+        if self.save_history:
+            history = {}
+            history["temp_goals"] = self.saved_goals
+            history['random_seed'] = self.random_seed
+            history["simulation_history"] = self.history
+            history["agent_plans_history"] = {
+                agent_uid: dict(behavior.goal_to_plans) for agent_uid, behavior in self.agent_uid_to_behavior.items()
+            }
+            history_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "history")
+            self.save(history, history_filepath)
+            self.simulation_log.append(utils.BasicLog("Saved history at: {}".format(history_filepath), step_count))
 
         # - Save simulation and agents logs
-        logs = {}
-        logs["simulation_log"] = self.simulation_log
-        logs["agents_logs"] = {}
-        for uid, behavior in self.agent_uid_to_behavior.items():
-            logs["agents_logs"][self.ref_world.entities[uid].name] = behavior.simulation_log
-        logs_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "logs.json")
-        with open(logs_filepath, 'w+') as f:
-            json.dump(logs, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
+        if self.save_logs:
+            logs = {}
+            logs["simulation_log"] = self.simulation_log
+            logs["agents_logs"] = {}
+            for uid, behavior in self.agent_uid_to_behavior.items():
+                logs["agents_logs"][self.ref_world.entities[uid].name] = behavior.simulation_log
+            logs_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "logs")
+            self.save(logs, logs_filepath)
 
         if exception:
             for exception_trace in run_exceptions_traces:
                 print(exception_trace)
             raise exception
 
-        return stats
+        return self.history
 
     def _create_robot_world_from_sim_world(self):
         entities = dict()
@@ -504,8 +527,7 @@ class Simulator:
 
             prev_agent_poses = {uid: replay_world.entities[uid].pose for uid in self.agent_uid_to_behavior.keys()}
 
-        p = jsonpickle.Pickler(unpicklable=False)
-        report = {"stats": p.flatten(stats)}
+        report = {"stats": stats}
 
         return report
 
@@ -632,7 +654,8 @@ class Simulator:
                         utils.BasicLog("Agent {} finished executing all its goals.".format(self.ref_world.entities[agent_uid].name), step_count)
                     )
                 elif isinstance(agent_next_action, ba.GoalFailed):
-                    self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
+                    if self.save_intermediate_world_states:
+                        self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
                     self.simulation_log.append(
                         utils.BasicLog(
                             "{} failed executing goal {}.".format(
@@ -643,7 +666,8 @@ class Simulator:
                     )
                 elif isinstance(agent_next_action, ba.GoalSuccess):
                     # If the agent reached its current goal
-                    self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
+                    if self.save_intermediate_world_states:
+                        self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
                     self.simulation_log.append(
                         utils.BasicLog(
                             "Agent {} successfully executed goal {}.".format(
