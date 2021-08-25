@@ -84,7 +84,7 @@ class IROS2021Tests(unittest.TestCase):
             connected_users = psutil.users()
             other_connected_users = False
             for user in connected_users:
-                if user.name not in ["brenault", "xia0ben"]:
+                if user.name not in ["brenault", "xia0ben", "vdiuser"]:
                     use_computer = False
                     other_connected_users = True
 
@@ -93,7 +93,6 @@ class IROS2021Tests(unittest.TestCase):
                 for process in current_processes:
                     process.terminate()
                 current_processes = []
-
 
             time.sleep(1.)
             now_time = time.time()
