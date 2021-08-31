@@ -18,7 +18,7 @@ class IROS2021Tests(unittest.TestCase):
 
     def test_single_generated_scenario(self):
         sim = Simulator(simulation_file_path=os.path.join(
-            self.path_to_folder, "after_the_feast/", "2_robots/", "50_goals/", "0000/", "sim_namo_0000.json")
+            self.path_to_folder, "after_the_feast/", "4_robots/", "25_goals/", "0000/", "sim_namo_0000.json")
         )
         sim.run()
 
@@ -31,7 +31,7 @@ class IROS2021Tests(unittest.TestCase):
         try:
             sim_namo = Simulator(
                 simulation_file_path=os.path.join(
-                    self.path_to_folder, "after_the_feast/", "2_robots/", "50_goals/", scenario_id + "/", "sim_namo_" + scenario_id + ".json"
+                    self.path_to_folder, "after_the_feast/", "4_robots/", "25_goals/", scenario_id + "/", "sim_namo_" + scenario_id + ".json"
                 ),
                 timestring=timestring
             )
@@ -42,7 +42,7 @@ class IROS2021Tests(unittest.TestCase):
         try:
             sim_snamo = Simulator(
                 simulation_file_path=os.path.join(
-                    self.path_to_folder, "after_the_feast/", "2_robots/", "50_goals/", scenario_id + "/", "sim_snamo_" + scenario_id + ".json"
+                    self.path_to_folder, "after_the_feast/", "4_robots/", "25_goals/", scenario_id + "/", "sim_snamo_" + scenario_id + ".json"
                 ),
                 timestring=timestring
             )
