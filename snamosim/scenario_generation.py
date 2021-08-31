@@ -139,7 +139,7 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
                 utils.rotate_then_translate_polygon(
                     base_robot_orientation_polygon,
                     *utils.get_translation_and_rotation(base_robot_pose, initial_robot_poses[i]),
-                    rotation_center=(initial_robot_poses[i][0], initial_robot_poses[i][1])
+                    rotation_center=(base_robot_pose[0], base_robot_pose[1])
                 ),
                 robot_id + "_direction", svg_base_robot_direction.getAttribute('style'), svg_data, robot_group, scale=0.01
             )
@@ -158,7 +158,7 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
                     utils.rotate_then_translate_polygon(
                         base_robot_orientation_polygon,
                         *utils.get_translation_and_rotation(base_robot_pose, goal_pose),
-                        rotation_center=(goal_pose[0], goal_pose[1])
+                        rotation_center=(base_robot_pose[0], base_robot_pose[1])
                     ),
                     goal_id + "_direction", svg_base_goal_direction.getAttribute('style'), svg_data, goal_group, scale=0.01
                 )
@@ -301,5 +301,5 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
 if __name__ == "__main__":
     generate_scenarios_alternatives(
         base_svg_filepath="../data/simulations/iros_2021/after_the_feast/after_the_feast_base.svg",
-        nb_robots=2, nb_goals_per_robot=50, grid_res=0.1, nb_scenarios=1000
+        nb_robots=1, nb_goals_per_robot=1, grid_res=0.1, nb_scenarios=1
     )
