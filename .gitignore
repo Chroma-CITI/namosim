@@ -107,7 +107,7 @@ venv.bak/
 .idea
 
 # Logs
-logs/
+logs*/
 
 # Temporary folder
 tmp/
