@@ -17,7 +17,7 @@ def get_map_bounds(polygons):
     return map_min_x, map_min_y, map_max_x, map_max_y
 
 
-def sample_poses_uniform(obstacles_polygons, robot_polygon, robot_pose, nb_poses=1, grid=None):
+def sample_poses_uniform(obstacles_polygons, robot_polygon, robot_pose, nb_poses=1, grid=None, no_collisions_between_poses=False):
     # Make AABB Tree from polygons
     aabb_tree = collision.polygons_to_aabb_tree(obstacles_polygons)
 
@@ -25,6 +25,9 @@ def sample_poses_uniform(obstacles_polygons, robot_polygon, robot_pose, nb_poses
     map_min_x, map_min_y, map_max_x, map_max_y = get_map_bounds(obstacles_polygons)
 
     generated_poses = []
+
+    if no_collisions_between_poses:
+        generated_polygons = []
 
     while len(generated_poses) < nb_poses:
         rand_pose = (
@@ -37,14 +40,24 @@ def sample_poses_uniform(obstacles_polygons, robot_polygon, robot_pose, nb_poses
             if grid.grid[rand_cell[0]][rand_cell[1]] != 0:
                 continue
         robot_polygon_at_rand_pose = utils.set_polygon_pose(robot_polygon, robot_pose, rand_pose)
-        potential_collision_uids = aabb_tree.overlap_values(collision.polygon_to_aabb(robot_polygon_at_rand_pose))
+        robot_aabb_at_rand_pose = collision.polygon_to_aabb(robot_polygon_at_rand_pose)
+        potential_collision_uids = aabb_tree.overlap_values(robot_aabb_at_rand_pose)
         pose_collides = False
         for uid in potential_collision_uids:
             if obstacles_polygons[uid].intersects(robot_polygon_at_rand_pose):
                 pose_collides = True
                 break
+
+        if no_collisions_between_poses:
+            for polygon in generated_polygons:
+                if polygon.intersects(robot_polygon_at_rand_pose):
+                    pose_collides = True
+                    break
+
         if not pose_collides:
             generated_poses.append(rand_pose)
+            if no_collisions_between_poses:
+                generated_polygons.append(robot_polygon_at_rand_pose)
     return generated_poses
 
 
@@ -113,7 +126,8 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
         scenario_id = ("{:0" + str(len(str(nb_scenarios))) + "d}").format(c_scenario)
 
         initial_robot_poses = sample_poses_uniform(
-            polygons_for_init_poses, base_robot_polygon, base_robot_pose, nb_poses=nb_robots, grid=all_obstacles_grid
+            polygons_for_init_poses, base_robot_polygon, base_robot_pose, nb_poses=nb_robots, grid=all_obstacles_grid,
+            no_collisions_between_poses=True
         )
         goals_poses_for_robots = []
         for i in range(nb_robots):
