@@ -9,10 +9,11 @@ from shapely import affinity
 SVG_PATH_ATTRIBUTES_WHITELIST = ["id", "d", "style"]
 
 OBSTACE_TRACE_STYLE = 'fill:#000000;fill-opacity:0.05231688;fill-rule:evenodd;stroke:#f1c232;stroke-width:1;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1'
+UNKNOWN_ENTITY_STYLE = 'fill:#674ea7;fill-rule:evenodd'
 MOVABLE_ENTITY_STYLE = 'fill:#f1c232;fill-rule:evenodd'
 FIXED_ENTITY_STYLE = 'fill:#000000;fill-rule:evenodd'
 ROBOT_ENTITY_STYLE = 'fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-opacity:1'
-GOAL_STYLE = 'fill:none;fill-rule:evenodd;stroke:#1155cc;stroke-width:3.5999999;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1'
+GOAL_STYLE = 'fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1'
 POSE_STYLE = 'fill:none;stroke:#1155cc;stroke-width:3.5999999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1'
 
 
@@ -29,25 +30,20 @@ def add_group(svg_data, group_id, parent=None, is_layer=True):
     return new_group
 
 
-def add_shapely_geometry_to_svg_with_projection(shapely_geometry, scaling_value, map_width, map_height, uname, style, svg_data, svg_group):
-    projected_geometry = affinity.translate(
-        shapely_geometry, map_width / 2., -map_height / 2.
-    ) # TODO Take rotation into account
-    pathd = shapely_geometry_to_svg_pathd(projected_geometry, scaling_value)
-    new_path = svg_data.createElement('svg:path')
-    new_path.setAttribute('id', uname)
-    new_path.setAttribute('d', pathd)
-    new_path.setAttribute('style', style)
-    svg_group.appendChild(new_path)
-
-
-def add_shapely_geometry_to_svg(shapely_geometry, uname, style, svg_data, svg_group, scale=1.):
+def add_shapely_geometry_to_svg(shapely_geometry, uname, style, svg_data, svg_group=None, scale=1., map_width=None, map_height=None):
+    if map_width and map_height:
+        shapely_geometry = affinity.translate(
+            shapely_geometry, map_width / 2., -map_height / 2.
+        )  # TODO Take rotation into account
     pathd = shapely_geometry_to_svg_pathd(shapely_geometry, scale)
     new_path = svg_data.createElement('svg:path')
     new_path.setAttribute('id', uname)
     new_path.setAttribute('d', pathd)
     new_path.setAttribute('style', style)
-    svg_group.appendChild(new_path)
+    if svg_group:
+        svg_group.appendChild(new_path)
+    else:
+        svg_data.childNodes[0].appendChild(new_path)
 
 
 def svg_pathd_to_shapely_geometry(svg_path, scaling_value=1., precision=1e9):

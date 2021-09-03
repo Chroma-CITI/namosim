@@ -20,7 +20,7 @@ class Entity:
         self.pose = tuple(pose)
         self.full_geometry_acquired = full_geometry_acquired
         self.is_being_manipulated = False
-        self.movability = movability
+        self.movability = movability  # Either "unknown", "static", "fixed" or "movable"
 
     def within(self, other_entity):
         return self.polygon.within(other_entity.polygon)
