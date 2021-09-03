@@ -1,6 +1,8 @@
 import os
 import json
 import pickle
+import time
+import multiprocessing
 import plotly.graph_objects as go
 import plotly.subplots as sp
 import numpy as np
@@ -22,20 +24,29 @@ def get_max_nb_steps(simulations_results_paths):
     return max_steps
 
 
-def zip_statistics(simulations_results_paths, max_steps):
-    zipped_statistics = [[] for i in range(max_steps)]
-    for simulation_result_path in simulations_results_paths:
+def get_max_nb_steps_multiprocessing(simulations_results_paths, return_list):
+    max_steps = get_max_nb_steps(simulations_results_paths)
+    return_list.append(max_steps)
+
+
+def zip_statistics(scenarios_stats_paths, max_steps, start=0, stop=None):
+    if stop is None:
+        stop = max_steps
+    zipped_statistics = [[] for i in range(stop-start)]
+
+    for scenario_stats_path in scenarios_stats_paths:
         try:
-            with open(simulation_result_path, "rb") as f:
+            with open(scenario_stats_path, "rb") as f:
                 try:
-                    sim_results = pickle.load(f)
-                    last_index, last_stepstats = 0, sim_results['stats'][0]
-                    for index, stepstats in enumerate(sim_results['stats']):
-                        zipped_statistics[index].append(stepstats)
-                        last_index, last_stepstats = index, stepstats
-                    nb_steps_to_replicate = max_steps - len(sim_results['stats'])
-                    for i in range(nb_steps_to_replicate):
-                        zipped_statistics[last_index + i + 1].append(last_stepstats)
+                    stats = pickle.load(f)['stats']
+                    last_stepstats = stats[-1]
+
+                    for counter, index in enumerate(range(start, stop)):
+                        if index < len(stats):
+                            stepstats = stats[index]
+                            zipped_statistics[counter].append(stepstats)
+                        else:
+                            zipped_statistics[counter].append(last_stepstats)
                 except Exception as e:
                     pass
         except IOError as e:
@@ -127,6 +138,10 @@ def aggregate_statistics(zipped_statistics, start_index=0, end_index=None):
         aggregated_stats.append(aggregated_step_stats)
 
     return aggregated_stats
+
+
+def aggregate_statistics_multiprocessing(scenarios_stats_paths, max_steps, start, stop, return_dict, key):
+    return_dict[key] = aggregate_statistics(zip_statistics(scenarios_stats_paths, max_steps, start, stop))
 
 
 # def aggregate_statistics_by_agent(zipped_statistics):
@@ -222,11 +237,11 @@ def scatter_plots_from_aggregated_statistics(aggregated_stats, color="blue", fil
             go.Scatter(y=[getattr(stats['avg'].agents_stats, criterion) for stats in aggregated_stats], line=dict(color=color, dash=dash), name=name, mode='lines'),
             go.Scatter(
                 name='Upper', mode='lines', marker=dict(color=color), line=dict(width=0),
-                showlegend=False, y=avg_criterion + std_criterion
+                showlegend=False, y=upper_criterion
             ),
             go.Scatter(
                 name='Lower', marker=dict(color=color), line=dict(width=0), mode='lines',
-                fillcolor=fillcolor, fill='tonexty', showlegend=False, y=avg_criterion - std_criterion
+                fillcolor=fillcolor, fill='tonexty', showlegend=False, y=lower_criterion
             )
         ])
         setattr(aggregated_plots['med'].agents_stats, criterion, [
@@ -262,11 +277,11 @@ def scatter_plots_from_aggregated_statistics(aggregated_stats, color="blue", fil
             go.Scatter(y=avg_criterion, line=dict(color=color, dash=dash), name=name, mode='lines'),
             go.Scatter(
                 name='Upper', mode='lines', marker=dict(color=color), line=dict(width=0),
-                showlegend=False, y=avg_criterion + std_criterion
+                showlegend=False, y=upper_criterion
             ),
             go.Scatter(
                 name='Lower', marker=dict(color=color), line=dict(width=0), mode='lines',
-                fillcolor=fillcolor, fill='tonexty', showlegend=False, y=avg_criterion - std_criterion
+                fillcolor=fillcolor, fill='tonexty', showlegend=False, y=lower_criterion
             )
         ])
         setattr(aggregated_plots['med'].world_stats, criterion, [
@@ -295,8 +310,15 @@ def scatter_plots_from_aggregated_statistics(aggregated_stats, color="blue", fil
 if __name__ == '__main__':
     # Command to clean up JSON logs from Infinite values to "Infinite" ones and allow parsing by browser
     # find ./ -name 'sim_results.json' -exec sed -i 's/""Infinity""/"Infinity"/g' {} \;
+    nb_cpu = multiprocessing.cpu_count()
+    nb_usable_cpus = 4  # nb_cpu - 1
 
-    MAIN_FOLDER = "/home/xia0ben/INRIA/Code/s-namo-sim/logs_1000_full/"
+    manager = multiprocessing.Manager()
+
+    nb_steps_per_aggregation_op_2 = 1000
+    nb_steps_per_aggregation_op_1 = 1000
+
+    MAIN_FOLDER = "/home/xia0ben/INRIA/Code/s-namo-sim/logs/citi_2_50/"
     scenarios_ids = {
         name for name in os.listdir(MAIN_FOLDER) if os.path.isdir(os.path.join(MAIN_FOLDER, name))
     }
@@ -305,6 +327,10 @@ if __name__ == '__main__':
     paths_without_exceptions = []
 
     namo_sim_results_paths, snamo_sim_results_paths = [], []
+
+    print('----------------------------------------------------------')
+    print('Loading scenarios stats and displaying problematic files :')
+    print('----------------------------------------------------------')
 
     for scenario_id in scenarios_ids:
         namo_folder = os.path.join(MAIN_FOLDER, scenario_id, "sim_namo_" + scenario_id)
@@ -353,42 +379,159 @@ if __name__ == '__main__':
 
     ##############
 
-    max_steps = get_max_nb_steps(namo_sim_results_paths + snamo_sim_results_paths)
+    all_paths = namo_sim_results_paths + snamo_sim_results_paths
 
-    # Zip statistics per simulation step
-    namo_sim_results_zipped_statistics = zip_statistics(namo_sim_results_paths, max_steps)
-    if snamo_sim_results_paths:
-        snamo_sim_results_zipped_statistics = zip_statistics(snamo_sim_results_paths, max_steps)
+    print('----------------------------------------------------------')
+    print('Computing max number of steps accross all {} scenarios :'.format(len(all_paths)))
+    print('----------------------------------------------------------')
 
-    # Aggregate first and last step statistics for table
-    first_namo_stats = aggregate_statistics(namo_sim_results_zipped_statistics, start_index=0, end_index=1)[0]
-    last_namo_stats = aggregate_statistics(
-        namo_sim_results_zipped_statistics,
-        start_index=len(namo_sim_results_zipped_statistics)-1, end_index=len(namo_sim_results_zipped_statistics)
-    )[0]
+    paths_per_process= len(all_paths) // nb_usable_cpus
+    left_paths_nb = len(all_paths) % nb_usable_cpus
+    max_nb_steps_list = manager.list()
+    processes = []
+    last_index = 0
+    for i in range(nb_usable_cpus):
+        start, stop = last_index, last_index + paths_per_process
+        if left_paths_nb > 0:
+            stop += 1
+            left_paths_nb -= 1
+        last_index = stop
+        paths_for_process = all_paths[start:stop]
+        process = multiprocessing.Process(
+            target=get_max_nb_steps_multiprocessing, args=(paths_for_process, max_nb_steps_list)
+        )
+        processes.append(process)
+        process.start()
+    for process in processes:
+        process.join()
 
-    if snamo_sim_results_paths:
-        first_snamo_stats = aggregate_statistics(snamo_sim_results_zipped_statistics, start_index=0, end_index=1)[0]
-        last_snamo_stats = aggregate_statistics(
-            snamo_sim_results_zipped_statistics,
-            start_index=len(snamo_sim_results_zipped_statistics) - 1, end_index=len(snamo_sim_results_zipped_statistics)
-        )[0]
+    max_steps = max(max_nb_steps_list)
 
-    for criterion in AgentStepStats().__dict__.keys():
-        setattr(aggregated_step_stats['min'].agents_stats, criterion,
-                min([getattr(agent_stats, criterion) for agent_stats in agents_stats_accross_simulations]))
+    print('----------------------------------------------------------')
+    print('Max number of steps is {}.'.format(max_steps))
+    print('----------------------------------------------------------')
 
-    for criterion in WorldStepStats().__dict__.keys():
-        setattr(aggregated_step_stats['min'].world_stats, criterion,
-                min([getattr(step_stats.world_stats, criterion) for step_stats in step_stats_list]))
+    print('----------------------------------------------------------')
+    print('Zipping and aggregating S-NAMO results by packs of {}:'.format(nb_steps_per_aggregation_op_2))
+    print('----------------------------------------------------------')
+
+    # time_start_2 = time.time()
+    # snamo_aggregated_stats = []
+    # for i in range(0, max_steps, nb_steps_per_aggregation_op_2):
+    #     start, stop = i, i + nb_steps_per_aggregation_op_2
+    #     stop = max_steps if stop > max_steps else stop
+    #     print('Aggregating stats from steps {} to {}...'.format(start, stop-1))
+    #     snamo_aggregated_stats += aggregate_statistics(zip_statistics(snamo_sim_results_paths, max_steps, start, stop))
+    #     print('Aggregated stats from steps {} to {}.'.format(start, stop-1))
+    # time_2 = time.time() - time_start_2
+
+    time_start_1 = time.time()
+    processes = []
+    snamo_aggregated_stats_dict = manager.dict()
+    last_index = 0
+    counter = 0
+    while last_index < max_steps:
+        if len(processes) < nb_usable_cpus:
+            start, stop = last_index, last_index + nb_steps_per_aggregation_op_1
+            stop = max_steps if stop > max_steps else stop
+            last_index = stop
+            print('Aggregating stats from steps {} to {}...'.format(start, stop - 1))
+            process = multiprocessing.Process(
+                target=aggregate_statistics_multiprocessing,
+                args=(snamo_sim_results_paths, max_steps, start, stop, snamo_aggregated_stats_dict, counter)
+            )
+            counter += 1
+            processes.append(process)
+            process.start()
+        else:
+            for index, process in enumerate(processes):
+                if not process.is_alive():
+                    process.terminate()
+                    del processes[index]
+            time.sleep(1.)
+    for process in processes:
+        process.join()
+    snamo_aggregated_stats = [stepstats for key in range(counter) for stepstats in snamo_aggregated_stats_dict[key]]
+    time_1 = time.time() - time_start_1
+
+    print('----------------------------------------------------------')
+    print('Zipping and aggregating NAMO results by packs of {}:'.format(nb_steps_per_aggregation_op_1))
+    print('----------------------------------------------------------')
+
+    time_start_2 = time.time()
+    processes = []
+    namo_aggregated_stats_dict = manager.dict()
+    last_index = 0
+    counter = 0
+    while last_index < max_steps:
+        if len(processes) < nb_usable_cpus:
+            start, stop = last_index, last_index + nb_steps_per_aggregation_op_1
+            stop = max_steps if stop > max_steps else stop
+            last_index = stop
+            print('Aggregating stats from steps {} to {}...'.format(start, stop-1))
+            process = multiprocessing.Process(
+                target=aggregate_statistics_multiprocessing,
+                args=(namo_sim_results_paths, max_steps, start, stop, namo_aggregated_stats_dict, counter)
+            )
+            counter += 1
+            processes.append(process)
+            process.start()
+        else:
+            for index, process in enumerate(processes):
+                if not process.is_alive():
+                    process.terminate()
+                    del processes[index]
+            time.sleep(1.)
+    for process in processes:
+        process.join()
+    namo_aggregated_stats = [stepstats for key in range(counter) for stepstats in namo_aggregated_stats_dict[key]]
+    time_2 = time.time() - time_start_2
+
+    print('time_1: {}, time_2: {}'.format(time_1, time_2))
+
+    # # WIP !!! Aggregate first and last step statistics for table
+    # first_namo_stats = aggregate_statistics(namo_sim_results_zipped_statistics, start_index=0, end_index=1)[0]
+    # last_namo_stats = aggregate_statistics(
+    #     namo_sim_results_zipped_statistics,
+    #     start_index=len(namo_sim_results_zipped_statistics)-1, end_index=len(namo_sim_results_zipped_statistics)
+    # )[0]
+    #
+    # if snamo_sim_results_paths:
+    #     first_snamo_stats = aggregate_statistics(snamo_sim_results_zipped_statistics, start_index=0, end_index=1)[0]
+    #     last_snamo_stats = aggregate_statistics(
+    #         snamo_sim_results_zipped_statistics,
+    #         start_index=len(snamo_sim_results_zipped_statistics) - 1, end_index=len(snamo_sim_results_zipped_statistics)
+    #     )[0]
+    #
+    # for criterion in AgentStepStats().__dict__.keys():
+    #     setattr(aggregated_step_stats['min'].agents_stats, criterion,
+    #             min([getattr(agent_stats, criterion) for agent_stats in agents_stats_accross_simulations]))
+    #
+    # for criterion in WorldStepStats().__dict__.keys():
+    #     setattr(aggregated_step_stats['min'].world_stats, criterion,
+    #             min([getattr(step_stats.world_stats, criterion) for step_stats in step_stats_list]))
+    # # WIP !!! Aggregate first and last step statistics for table
 
     # Aggregate statistics for plots
-    namo_sim_results_aggregated_statistics = aggregate_statistics(namo_sim_results_zipped_statistics)
-    namo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(namo_sim_results_aggregated_statistics, name='NAMO')
+
+    # current_processes = []
+    # step_increment = 100
+    # for i in range(0, max_steps, step_increment):
+    #     if len(current_processes) < nb_cpu - 1:
+    #         process = multiprocessing.Process(target=aggregate_statistics, args=(namo_sim_results_zipped_statistics))
+    #         current_processes.append(process)
+    #         process.start()
+    #     else:
+    #         time.sleep(0.1)
+
+    print('----------------------------------------------------------')
+    print('Aggregation completed. Generating plots...')
+    print('----------------------------------------------------------')
+
+    namo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(namo_aggregated_stats, name='NAMO')
 
     if snamo_sim_results_paths:
-        snamo_sim_results_aggregated_statistics = aggregate_statistics(snamo_sim_results_zipped_statistics)
-        snamo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(snamo_sim_results_aggregated_statistics, color='green', fillcolor="rgba(0, 128, 0, .1)", name='S-NAMO')
+        snamo_operations_to_scatter_plots = scatter_plots_from_aggregated_statistics(snamo_aggregated_stats, color='green', fillcolor="rgba(0, 128, 0, .1)", name='S-NAMO')
 
     for aggregation_operation, namo_scatter_plots in namo_operations_to_scatter_plots.items():
         if snamo_sim_results_paths:
@@ -423,3 +566,7 @@ if __name__ == '__main__':
 
         fig.update_layout(height=12000, title_text=aggregation_operation, showlegend=False, hovermode="x")
         fig.show()
+
+    print('----------------------------------------------------------')
+    print('Generated plots.')
+    print('----------------------------------------------------------')
