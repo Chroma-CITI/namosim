@@ -745,7 +745,7 @@ class Plan:
                 if exit_early_only_for_long_term_conflicts and conflicts:
                     is_there_long_term_conflict = any([
                         (isinstance(conflict, RobotObstacleConflict)
-                            or (isinstance(conflict, StolenMovableConflict) and not conflict.is_grabbed))
+                            or (isinstance(conflict, StolenMovableConflict)))
                         for conflict in conflicts
                     ])
                     if is_there_long_term_conflict:
