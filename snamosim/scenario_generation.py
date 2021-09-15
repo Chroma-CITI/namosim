@@ -315,5 +315,5 @@ def generate_scenarios_alternatives(base_svg_filepath, nb_robots, nb_goals_per_r
 if __name__ == "__main__":
     generate_scenarios_alternatives(
         base_svg_filepath="../data/simulations/iros_2021/after_the_feast/after_the_feast_base.svg",
-        nb_robots=1, nb_goals_per_robot=1, grid_res=0.1, nb_scenarios=1
+        nb_robots=4, nb_goals_per_robot=25, grid_res=0.1, nb_scenarios=1000
     )

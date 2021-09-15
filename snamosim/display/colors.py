@@ -78,6 +78,12 @@ init_diameter_inflated_polygon_color = ColorRGBA(*hex_to_rgba("#aa88dc7a"))
 target_diameter_inflated_polygon_color = ColorRGBA(*hex_to_rgba("#aa24641a"))
 transit_path_color = ColorRGBA(*hex_to_rgba("#ff6d9eeb"))
 transfer_path_color = ColorRGBA(*hex_to_rgba("#ffe06666"))
+
+robot_color_r2 = ColorRGBA(*hex_to_rgba("#ffeb6ddd"))
+robot_border_color_r2 = ColorRGBA(*hex_to_rgba("#ffcc11b2"))
+transit_path_color_r2 = ColorRGBA(*hex_to_rgba("#ffeb6ddd"))
+transfer_path_color_r2 = ColorRGBA(*hex_to_rgba("#ff6deb7b"))
+
 flashy_green = ColorRGBA(*hex_to_rgba("#ff25ff00"))
 flashy_cyan = ColorRGBA(*hex_to_rgba("#ff85ffff"))
 flashy_purple = ColorRGBA(*hex_to_rgba("#ffff00ff"))

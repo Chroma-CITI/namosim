@@ -36,8 +36,9 @@ class SimulationStepResult:
 class AgentStepStats:
     def __init__(self, transit_path_length=0., transfer_path_length=0., path_length=0., nb_transfers=0,
                  nb_successful_goals=0, nb_failed_goals=0, nb_goals=0, nb_conflicts=0, nb_robot_robot_conflicts=0,
-                 nb_robot_obstacle_conflicts=0, nb_stolen_movable_conflicts=0, nb_concurrent_grab_conflicts=0,
-                 nb_wait_steps=0, nb_transit_steps=0, nb_transfer_steps=0, nb_of_postponements=0,
+                 nb_robot_obstacle_conflicts=0, nb_stolen_movable_conflicts=0, nb_stealing_movable_conflicts=0,
+                 nb_concurrent_grab_conflicts=0, nb_simultaneous_space_access_conflicts=0,
+                 nb_wait_steps=0, nb_transit_steps=0, nb_transfer_steps=0, nb_steps=0, nb_of_postponements=0,
                  nb_of_unpostponements=0, nb_of_plan_computations=0, sense_time=0., think_time=0.):
         self.transit_path_length = transit_path_length
         self.transfer_path_length = transfer_path_length
@@ -50,10 +51,13 @@ class AgentStepStats:
         self.nb_robot_robot_conflicts = nb_robot_robot_conflicts
         self.nb_robot_obstacle_conflicts = nb_robot_obstacle_conflicts
         self.nb_stolen_movable_conflicts = nb_stolen_movable_conflicts
+        self.nb_stealing_movable_conflicts = nb_stealing_movable_conflicts
         self.nb_concurrent_grab_conflicts = nb_concurrent_grab_conflicts
+        self.nb_simultaneous_space_access_conflicts = nb_simultaneous_space_access_conflicts
         self.nb_wait_steps = nb_wait_steps
         self.nb_transit_steps = nb_transit_steps
         self.nb_transfer_steps = nb_transfer_steps
+        self.nb_steps = nb_steps
         self.nb_of_postponements = nb_of_postponements
         self.nb_of_unpostponements = nb_of_unpostponements
         self.nb_of_plan_computations = nb_of_plan_computations
@@ -105,7 +109,7 @@ def raise_timeout(signum, frame):
 
 
 class Simulator:
-    def __init__(self, simulation_file_path, goals=None, timestring=None):
+    def __init__(self, simulation_file_path, simulation_log_stub="", goals=None, timestring=None):
         # Load simulation file and initialize logs
         if timestring:
             self.sim_start_timestring = timestring
@@ -118,7 +122,7 @@ class Simulator:
             os.path.normpath(os.path.abspath(os.path.join(simulation_file_abs_path, '..'))))
         self.simulation_filename = os.path.splitext(os.path.basename(simulation_file_abs_path))[0]
 
-        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', sim_file_parent_dirname, self.simulation_filename)
+        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', simulation_log_stub, sim_file_parent_dirname, self.simulation_filename)
         abs_path_to_main_sim_logs_dir = os.path.join(os.path.dirname(__file__), rel_path_to_main_sim_logs_dir)
         self.abs_path_to_logs_dir = os.path.join(abs_path_to_main_sim_logs_dir, self.sim_start_timestring + "/")
         os.makedirs(self.abs_path_to_logs_dir)
@@ -442,10 +446,8 @@ class Simulator:
                 step_distance = utils.euclidean_distance(prev_agent_poses[uid], replay_world.entities[uid].pose)
                 if uid in replay_world.entity_to_agent.inverse:
                     agent_stats.transfer_path_length += step_distance
-                    agent_stats.nb_transfer_steps += 1
                 else:
                     agent_stats.transit_path_length += step_distance
-                    agent_stats.nb_transit_steps += 1
                 agent_stats.path_length += step_distance
 
                 robot_action_result = sim_step_result.action_results[uid]
@@ -454,14 +456,23 @@ class Simulator:
                 if isinstance(robot_action_result, ar.ActionSuccess):
                     if isinstance(robot_action, ba.Grab):
                         agent_stats.nb_transfers += 1
+                        agent_stats.nb_transfer_steps += 1
+                        agent_stats.nb_steps += 1
                     elif isinstance(robot_action, ba.Wait):
                         agent_stats.nb_wait_steps += 1
+                        agent_stats.nb_steps += 1
                     elif isinstance(robot_action, ba.GoalSuccess):
                         agent_stats.nb_goals += 1
                         agent_stats.nb_successful_goals += 1
                     elif isinstance(robot_action, ba.GoalFailed):
                         agent_stats.nb_goals += 1
                         agent_stats.nb_failed_goals += 1
+                    elif isinstance(robot_action, (ba.Translation, ba.Rotation, ba.Release)):
+                        agent_stats.nb_steps += 1
+                        if uid in replay_world.entity_to_agent.inverse:
+                            agent_stats.nb_transfer_steps += 1
+                        else:
+                            agent_stats.nb_transit_steps += 1
 
                 # TODO Find a way to ditch the self.saved_goals variable
                 if not isinstance(robot_action, (ba.GoalResult, ba.GoalsFinished)):
@@ -469,40 +480,21 @@ class Simulator:
                     current_dynamic_plan = self.agent_uid_to_behavior[uid].goal_to_plans[current_goal]
 
                     step_index = sim_step_result.step_index
-                    if step_index in current_dynamic_plan.conflicts_history:
-                        conflicts = current_dynamic_plan.conflicts_history[step_index]
-
-                        # Filter redundant conflicts
-                        filtered_conflicts = []
-                        robot_robot_uids, robot_obstacle_uids, stolen_uids, concurrent_uids = set(), set(), set(), set()
-                        for conflict in conflicts:
-                            if isinstance(conflict, stilman_2005_behavior.RobotRobotConflict):
-                                if conflict.obstacle_uid not in robot_robot_uids:
-                                    filtered_conflicts.append(conflict)
-                                robot_robot_uids.add(conflict.obstacle_uid)
-                            elif isinstance(conflict, stilman_2005_behavior.RobotObstacleConflict):
-                                if conflict.obstacle_uid not in robot_obstacle_uids:
-                                    filtered_conflicts.append(conflict)
-                                robot_obstacle_uids.add(conflict.obstacle_uid)
-                            elif isinstance(conflict, stilman_2005_behavior.StolenMovableConflict):
-                                if conflict.obstacle_uid not in stolen_uids:
-                                    filtered_conflicts.append(conflict)
-                                stolen_uids.add(conflict.obstacle_uid)
-                            elif isinstance(conflict, stilman_2005_behavior.ConcurrentGrabConflict):
-                                if conflict.obstacle_uid not in concurrent_uids:
-                                    filtered_conflicts.append(conflict)
-                                concurrent_uids.add(conflict.obstacle_uid)
-
-                        agent_stats.nb_conflicts += len(filtered_conflicts)
-                        for conflict in filtered_conflicts:
-                            if isinstance(conflict, stilman_2005_behavior.RobotRobotConflict):
-                                agent_stats.nb_robot_robot_conflicts += 1
-                            elif isinstance(conflict, stilman_2005_behavior.RobotObstacleConflict):
-                                agent_stats.nb_robot_obstacle_conflicts += 1
-                            elif isinstance(conflict, stilman_2005_behavior.StolenMovableConflict):
-                                agent_stats.nb_stolen_movable_conflicts += 1
-                            elif isinstance(conflict, stilman_2005_behavior.ConcurrentGrabConflict):
-                                agent_stats.nb_concurrent_grab_conflicts += 1
+                    if step_index in current_dynamic_plan.new_conflicts_history:
+                        conflict = current_dynamic_plan.new_conflicts_history[step_index]
+                        agent_stats.nb_conflicts += 1
+                        if isinstance(conflict, stilman_2005_behavior.RobotRobotConflict):
+                            agent_stats.nb_robot_robot_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.RobotObstacleConflict):
+                            agent_stats.nb_robot_obstacle_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.StolenMovableConflict):
+                            agent_stats.nb_stolen_movable_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.StealingMovableConflict):
+                            agent_stats.nb_stealing_movable_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.ConcurrentGrabConflict):
+                            agent_stats.nb_concurrent_grab_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.SimultaneousSpaceAccess):
+                            agent_stats.nb_simultaneous_space_access_conflicts += 1
 
                     if step_index in current_dynamic_plan.postponements_history:
                         agent_stats.nb_of_postponements += 1
@@ -510,12 +502,8 @@ class Simulator:
                     if step_index in current_dynamic_plan.unpostponements_history:
                         agent_stats.nb_of_unpostponements += 1
 
-                    if step_index in current_dynamic_plan.plan_history:
-                        plans = current_dynamic_plan.plan_history[step_index]
-                        if isinstance(plans, list):
-                            agent_stats.nb_of_plan_computations += len(plans)
-                        else:
-                            agent_stats.nb_of_plan_computations += 1
+                    if current_dynamic_plan.new_replan_history and step_index in current_dynamic_plan.new_replan_history:
+                        agent_stats.nb_of_plan_computations += 1
 
                 agent_stats.sense_time += sim_step_result.sense_durations[uid]
                 agent_stats.think_time += sim_step_result.think_durations[uid]

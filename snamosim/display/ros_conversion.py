@@ -74,9 +74,13 @@ def world_to_marker_array(world, robot_uid=None, entities_to_ignore=tuple()):
     for entity in world.entities.values():
         if entity.uid not in entities_to_ignore:
             if isinstance(entity, Robot):
+                robot_color = snamosim.display.colors.robot_color
+                robot_border_color = snamosim.display.colors.robot_border_color
+                if entity.name == 'robot_1':
+                    robot_color = snamosim.display.colors.robot_color_r2
+                    robot_border_color = snamosim.display.colors.robot_border_color_r2
                 markers = markers + entity_to_markers(
-                    entity, "/robot", entity.uid, cfg.main_frame_id, snamosim.display.colors.robot_color,
-                    snamosim.display.colors.robot_border_color,
+                    entity, "/robot", entity.uid, cfg.main_frame_id, robot_color, robot_border_color,
                     snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty, cfg.entities_z_index,
                     cfg.border_width, cfg.text_height, add_border=False, add_text=False)
 
@@ -227,14 +231,18 @@ def real_path_to_ros_path(real_path):
     return ros_path
 
 
-def plan_to_markerarray(plan, frame_id):
+def plan_to_markerarray(plan, frame_id, ns):
     markerarray = MarkerArray()
     markers = []
     p_id = 0
     for component in plan.path_components:
         current_color = snamosim.display.colors.transit_path_color
+        if ns == "robot_1":
+            current_color = snamosim.display.colors.transit_path_color_r2
         if component.is_transfer:
             current_color = snamosim.display.colors.transfer_path_color
+            if ns == "robot_1":
+                current_color = snamosim.display.colors.transfer_path_color_r2
         marker = real_path_to_linestrip(
             component.robot_path.poses, '/plan', p_id, frame_id, current_color, cfg.path_line_width, cfg.path_line_z_index)
         markers.append(marker)

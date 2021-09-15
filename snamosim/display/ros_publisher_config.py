@@ -2,7 +2,7 @@
 rate = 500
 
 # Deactivate GUI
-deactivate_gui = True
+deactivate_gui = False
 
 # Simulation topics names (without namespace)
 sim_knowledge_topic = "/knowledge"
@@ -61,4 +61,4 @@ path_line_z_index = 0.0
 fov_line_width = 0.05
 border_width = 0.08
 text_height = 0.2
-path_line_width = 0.05
+path_line_width = 0.1

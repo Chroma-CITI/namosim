@@ -103,7 +103,7 @@ class RobotObstacleConfiguration:
 
 
 class RobotRobotConflict:  # Systematic postpone
-    def __init__(self, obstacle_uid):
+    def __init__(self, obstacle_uid=0):
         self.obstacle_uid = obstacle_uid
 
     def __str__(self):
@@ -125,22 +125,42 @@ class RobotObstacleConflict:  # Systematic immediate replan
 
 
 class StolenMovableConflict:  # If Movable is in grabbed state, postpone, else immediate replan
-    def __init__(self, obstacle_uid, is_grabbed, thief_uid=None):
+    def __init__(self, obstacle_uid):
         self.obstacle_uid = obstacle_uid
-        self.is_grabbed = is_grabbed
+
+    def __str__(self):
+        return "Stolen Movable conflict concerning obstacle uid {}.".format(self.obstacle_uid)
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class StealingMovableConflict:  # If Movable is in grabbed state, postpone, else immediate replan
+    def __init__(self, obstacle_uid, thief_uid=None):
+        self.obstacle_uid = obstacle_uid
         self.thief_uid = thief_uid
 
     def __str__(self):
-        return "Stolen Movable conflict concerning obstacle uid {}{}.".format(
-            self.obstacle_uid, ("" if not self.is_grabbed else " grabbed by {}".format(self.thief_uid))
+        return "Stolen Movable conflict concerning obstacle uid {} by robot uid {}.".format(
+            self.obstacle_uid, self.thief_uid
         )
 
     def __repr__(self):
         return self.__str__()
 
 
+class SimultaneousSpaceAccess:  # Systematic postpone
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return ""
+
+    def __repr__(self):
+        return self.__str__()
+
 class ConcurrentGrabConflict:  # Systematic postpone
-    def __init__(self, obstacle_uid, concurrent_agents_uids=tuple()):
+    def __init__(self, obstacle_uid=0, concurrent_agents_uids=tuple()):
         self.obstacle_uid = obstacle_uid
         self.concurrent_agents_uids = concurrent_agents_uids
 
@@ -283,10 +303,10 @@ class TransferPath:
                     if not obstacle_at_start_pose or self.obstacle_uid in world.entity_to_agent:
                         if self.obstacle_uid in world.entity_to_agent:
                             conflicts.append(
-                                StolenMovableConflict(self.obstacle_uid, True,
-                                                      world.entity_to_agent[self.obstacle_uid]))
+                                StealingMovableConflict(self.obstacle_uid, world.entity_to_agent[self.obstacle_uid])
+                            )
                         else:
-                            conflicts.append(StolenMovableConflict(self.obstacle_uid, False, None))
+                            conflicts.append(StolenMovableConflict(self.obstacle_uid))
                             if exit_early_only_for_long_term_conflicts:
                                 return conflicts
                         if exit_early_for_any_conflict:
@@ -766,6 +786,9 @@ class DynamicPlan(Plan):
         self.wait_counter = 0
         self.plan_counter = 0
 
+        self.new_replan_history = None
+        self.new_conflicts_history = {}
+
         self.plan_history = {}
         self.conflicts_history = {}
         self.postponements_history = {}
@@ -795,7 +818,10 @@ class DynamicPlan(Plan):
         return conflicts
 
     def has_tries_remaining(self, nb_max_tries):
-        return self.plan_counter < nb_max_tries
+        if self.new_replan_history:
+            return len(self.new_replan_history) < nb_max_tries
+        else:
+            return True
 
     def should_postponement_be_over(self):
         return self.wait_counter <= 1
@@ -1050,9 +1076,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def must_replan_now(self, conflicts):
         for conflict in conflicts:
-            if isinstance(conflict, (ConcurrentGrabConflict, RobotObstacleConflict)):
-                return True
-            elif isinstance(conflict, StolenMovableConflict) and not conflict.is_grabbed:
+            if isinstance(conflict, (StolenMovableConflict, RobotObstacleConflict)):
                 return True
         return False
 
@@ -1067,8 +1091,8 @@ class Stilman2005Behavior(BaselineBehavior):
         try_compute_plan = False
         if plan.exists():
             if plan.was_last_step_success(w_t, self._last_action_result):
+                conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                 if plan.is_postponed:
-                    conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                     if not conflicts:
                         self.simulation_log.append(utils.BasicLog(
                             "Agent {}: Unpostponing plan.".format(self._robot_name), step_count
@@ -1080,6 +1104,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             self.simulation_log.append(utils.BasicLog(
                                 "Agent {}: Try compute plan because conflicts during postponement (with {} steps left) that require immediate replanning: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
                             ))
+                            plan.new_conflicts_history[step_count] = conflicts[0]
                             try_compute_plan = True
                         elif plan.should_postponement_be_over():
                             self.simulation_log.append(utils.BasicLog(
@@ -1089,7 +1114,6 @@ class Stilman2005Behavior(BaselineBehavior):
                         else:
                             return plan.pop_next_step()
                 else:
-                    conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
                     if not conflicts:
                         return plan.pop_next_step()
                     else:
@@ -1097,8 +1121,10 @@ class Stilman2005Behavior(BaselineBehavior):
                             self.simulation_log.append(utils.BasicLog(
                                 "Agent {}: Try compute plan because conflicts during normal execution: {}".format(self._robot_name, conflicts), step_count
                             ))
+                            plan.new_conflicts_history[step_count] = conflicts[0]
                             try_compute_plan = True
                         else:
+                            plan.new_conflicts_history[step_count] = conflicts[0]
                             plan.postpone(t_min, t_max, step_count)
                             self.simulation_log.append(utils.BasicLog(
                                 "Agent {}: Postpone plan for {} steps because conflicts during normal execution: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
@@ -1108,6 +1134,10 @@ class Stilman2005Behavior(BaselineBehavior):
                 self.simulation_log.append(utils.BasicLog(
                     "Agent {}: Try compute plan because last step execution failed.".format(self._robot_name), step_count
                 ))
+                if isinstance(self._last_action_result, ar.DynamicCollisionFailure):
+                    plan.new_conflicts_history[step_count] = SimultaneousSpaceAccess()
+                else:
+                    plan.new_conflicts_history[step_count] = ConcurrentGrabConflict()
                 try_compute_plan = True
         else:
             if plan.is_postponed:
@@ -1120,6 +1150,10 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if try_compute_plan:
             if plan.has_tries_remaining(try_max):
+                if plan.new_replan_history is None:
+                    plan.new_replan_history = set()
+                else:
+                    plan.new_replan_history.add(step_count)
                 # TODO Move all this to Plan.compute_plan method
                 dynamic_entities = {
                     uid for uid, entity in w_t.entities.items() if (
@@ -1164,10 +1198,11 @@ class Stilman2005Behavior(BaselineBehavior):
 
                             if plan.exists():
                                 conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov)
-                                self.simulation_log.append(utils.BasicLog(
-                                    "Agent {}: A new plan has been computed with conflicting obstacles but still has conflicts: {}".format(self._robot_name, conflicts), step_count
-                                ))
                                 if conflicts:
+                                    self.simulation_log.append(utils.BasicLog(
+                                        "Agent {}: A new plan has been computed with conflicting obstacles but still has conflicts: {}".format(self._robot_name, conflicts), step_count
+                                    ))
+                                    plan.new_conflicts_history[step_count] = conflicts[0]
                                     plan.postpone(t_min, t_max, step_count)
                                     self.simulation_log.append(utils.BasicLog(
                                         "Agent {}: Postpone plan for {} steps because conflicts after computation: {}".format(
@@ -1201,6 +1236,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 self.simulation_log.append(utils.BasicLog(
                                     "Agent {}: Could not release object {} during manipulation because no valid transit pose could be found.".format(self._robot_name, obstacle.name), step_count
                                 ))
+                        plan.new_conflicts_history[step_count] = conflicts[0]
                         plan.postpone(t_min, t_max, step_count)
                         self.simulation_log.append(utils.BasicLog(
                             "Agent {}: Postponing for {} steps because no plan could be found yet.".format(self._robot_name, plan.wait_counter), step_count

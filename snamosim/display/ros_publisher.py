@@ -623,7 +623,7 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic
         if plan and plan.path_components:
             if self.is_activated(full_topic):
-                self.publish(full_topic, conv.plan_to_markerarray(plan, cfg.main_frame_id))
+                self.publish(full_topic, conv.plan_to_markerarray(plan, cfg.main_frame_id, ns))
 
     def cleanup_p_opt(self, ns=''):
         full_topic = cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic
@@ -808,9 +808,12 @@ class RosPublisher(with_metaclass(Singleton)):
             if q_goal is not None:
                 polygon_at_goal_pose = affinity.translate(polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
                 # ros_pose = pose_to_ros_pose_stamped(q_goal)
+                color = colors.robot_border_color
+                if ns == 'robot_1':
+                    color = colors.robot_border_color_r2
                 marker_array = MarkerArray(markers=[
                     conv.polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, cfg.main_frame_id,
-                                               colors.robot_border_color, cfg.fov_z_index, cfg.border_width)])
+                                               color, cfg.fov_z_index, cfg.border_width)])
                 # pose_to_arrow(q_goal, "/pose", 0, self.frame_id, self.robot_border_color,
                 #               self.entities_z_index, 0.5, 0.2, 0.0)])
                 self.publish(full_topic, marker_array)

@@ -54,6 +54,24 @@ def zip_statistics(scenarios_stats_paths, max_steps, start=0, stop=None):
     return zipped_statistics
 
 
+def zip_initial_and_final_statistics(scenarios_stats_paths):
+    initial_stats, final_stats = [], []
+
+    for scenario_stats_path in scenarios_stats_paths:
+        try:
+            with open(scenario_stats_path, "rb") as f:
+                try:
+                    stats = pickle.load(f)['stats']
+                    init, final = stats[0], stats[-1]
+                    initial_stats.append(init)
+                    final_stats.append(final)
+                except Exception as e:
+                    pass
+        except IOError as e:
+            pass
+    return [initial_stats, final_stats]
+
+
 def aggregate_statistics_dict(zipped_statistics):
     # Generate stats
     aggregated_stats = []
@@ -318,7 +336,7 @@ if __name__ == '__main__':
     nb_steps_per_aggregation_op_2 = 1000
     nb_steps_per_aggregation_op_1 = 1000
 
-    MAIN_FOLDER = "/home/xia0ben/INRIA/Code/s-namo-sim/logs/citi_2_50/"
+    MAIN_FOLDER = "/home/xia0ben/INRIA/Code/s-namo-sim/logs/citi_2r_50g"
     scenarios_ids = {
         name for name in os.listdir(MAIN_FOLDER) if os.path.isdir(os.path.join(MAIN_FOLDER, name))
     }
@@ -379,10 +397,74 @@ if __name__ == '__main__':
 
     ##############
 
-    all_paths = namo_sim_results_paths + snamo_sim_results_paths
-
     print('----------------------------------------------------------')
-    print('Computing max number of steps accross all {} scenarios :'.format(len(all_paths)))
+    print('Zipping, aggregating and saving NAMO + S-NAMO results in initial and final state:')
+    print('----------------------------------------------------------')
+
+    namo_init_final_stats = aggregate_statistics(zip_initial_and_final_statistics(namo_sim_results_paths))
+    snamo_init_final_stats = aggregate_statistics(zip_initial_and_final_statistics(snamo_sim_results_paths))
+
+    namo_init_avg, namo_final_avg = namo_init_final_stats[0]['avg'], namo_init_final_stats[1]['avg']
+    snamo_init_avg, snamo_final_avg = snamo_init_final_stats[0]['avg'], snamo_init_final_stats[1]['avg']
+
+    namo_init_std, namo_final_std = namo_init_final_stats[0]['std'], namo_init_final_stats[1]['std']
+    snamo_init_std, snamo_final_std = snamo_init_final_stats[0]['std'], snamo_init_final_stats[1]['std']
+
+    print("Scenario                                                             & Conflicts           & R-R                 &  R-O                &  S-O                & Unpostponements                           & Recomputations         & Wait Steps            & Successes                    & $L_{transfer}$                                          & Transfers           & $T_{planning}$    \\\\")
+    print("                                                                     &                     & Conflicts           &  Conflicts          &  Conflicts          & / Postponements                           &                        & / Total Steps         & / Goals                      & / $L_{total}$                                           &                     & (s)               \\\\")
+    print("                                                                     &                     &                     &                     &                     &                                           &                        &                       &                              & (m) / (m)                                               &                     &                   \\\\ \hline")
+
+    print("AtF - 2                                                              &                     &                     &                     &                     &                                           &                        &                       &                              &                                                         &                     &                   \\\\")
+    print("C-NAMO                                                               & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} / {:.0f} $\pm$ {:.0f} &  {:.0f} $\pm$ {:.0f}   &  {:.0f} $\pm$ {:.0f}  & {:.0f} $\pm$ {:.0f} / {:.0f} & {:.1f} $\pm$ {:.1f} / {:.1f} $\pm$ {:.1f}               & {:.0f} $\pm$ {:.0f} & {:.1f} $\pm$ {:.1f} \\\\".format(
+        namo_final_avg.agents_stats.nb_conflicts, namo_final_std.agents_stats.nb_conflicts,
+        namo_final_avg.agents_stats.nb_robot_robot_conflicts, namo_final_std.agents_stats.nb_robot_robot_conflicts,
+        namo_final_avg.agents_stats.nb_robot_obstacle_conflicts, namo_final_std.agents_stats.nb_robot_obstacle_conflicts,
+        namo_final_avg.agents_stats.nb_stolen_movable_conflicts, namo_final_std.agents_stats.nb_stolen_movable_conflicts,
+        namo_final_avg.agents_stats.nb_of_unpostponements, namo_final_std.agents_stats.nb_of_unpostponements, namo_final_avg.agents_stats.nb_of_postponements, namo_final_std.agents_stats.nb_of_postponements,
+        namo_final_avg.agents_stats.nb_of_plan_computations, namo_final_std.agents_stats.nb_of_plan_computations,
+        namo_final_avg.agents_stats.nb_wait_steps, namo_final_std.agents_stats.nb_wait_steps,  # ADD TOTAL NUMBER OF STEPS METRIC ONCE ITS BEEN COMPUTED
+        namo_final_avg.agents_stats.nb_successful_goals, namo_final_std.agents_stats.nb_successful_goals, namo_final_avg.agents_stats.nb_goals,
+        namo_final_avg.agents_stats.transfer_path_length, namo_final_std.agents_stats.transfer_path_length, namo_final_avg.agents_stats.path_length, namo_final_std.agents_stats.path_length,
+        namo_final_avg.agents_stats.nb_transfers, namo_final_std.agents_stats.nb_transfers,
+        namo_final_avg.agents_stats.think_time, namo_final_std.agents_stats.think_time
+    ))
+    print("SC-NAMO                                                              & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} / {:.0f} $\pm$ {:.0f} &  {:.0f} $\pm$ {:.0f}   &  {:.0f} $\pm$ {:.0f}  & {:.0f} $\pm$ {:.0f} / {:.0f} & {:.1f} $\pm$ {:.1f} / {:.1f} $\pm$ {:.1f}               & {:.0f} $\pm$ {:.0f} & {:.1f} $\pm$ {:.1f} \\\\ \hline".format(
+        snamo_final_avg.agents_stats.nb_conflicts, snamo_final_std.agents_stats.nb_conflicts,
+        snamo_final_avg.agents_stats.nb_robot_robot_conflicts, snamo_final_std.agents_stats.nb_robot_robot_conflicts,
+        snamo_final_avg.agents_stats.nb_robot_obstacle_conflicts, snamo_final_std.agents_stats.nb_robot_obstacle_conflicts,
+        snamo_final_avg.agents_stats.nb_stolen_movable_conflicts, snamo_final_std.agents_stats.nb_stolen_movable_conflicts,
+        snamo_final_avg.agents_stats.nb_of_unpostponements, snamo_final_std.agents_stats.nb_of_unpostponements, snamo_final_avg.agents_stats.nb_of_postponements, snamo_final_std.agents_stats.nb_of_postponements,
+        snamo_final_avg.agents_stats.nb_of_plan_computations, snamo_final_std.agents_stats.nb_of_plan_computations,
+        snamo_final_avg.agents_stats.nb_wait_steps, snamo_final_std.agents_stats.nb_wait_steps,  # ADD TOTAL NUMBER OF STEPS METRIC ONCE ITS BEEN COMPUTED
+        snamo_final_avg.agents_stats.nb_successful_goals, snamo_final_std.agents_stats.nb_successful_goals, snamo_final_avg.agents_stats.nb_goals,
+        snamo_final_avg.agents_stats.transfer_path_length, snamo_final_std.agents_stats.transfer_path_length, snamo_final_avg.agents_stats.path_length, snamo_final_std.agents_stats.path_length,
+        snamo_final_avg.agents_stats.nb_transfers, snamo_final_std.agents_stats.nb_transfers,
+        snamo_final_avg.agents_stats.think_time, snamo_final_std.agents_stats.think_time
+    ))
+
+    print("Scenario                                                             & $Ncc(W^{t_{init}})$          & $C^{acc}_{h}(W^{t_{init}})$          & $ST(W^{t_{init}})$  \\\\")
+    print("                                                                     & / $Ncc(W^{t_{end}})$         & / $C^{acc}_{h}(W^{t_{end}})$         & / $ST(W^{t_{end}})$ \\\\ \hline")
+
+    print("AtF - 2                                                              & {:.0f}                       & {:.0f}                               & {:.0f}                 \\\\".format(
+        namo_init_avg.world_stats.nb_components,
+        namo_init_avg.world_stats.free_space_size,
+        namo_init_avg.world_stats.absolute_social_cost
+    ))
+    print("C-NAMO                                                               & / {:.1f} $\pm$ {:.1f}        & / {:.0f} $\pm$ {:.0f}                & / {:.0f} $\pm$ {:.0f}      \\\\".format(
+        namo_final_avg.world_stats.nb_components, namo_final_std.world_stats.nb_components,
+        namo_final_avg.world_stats.free_space_size, namo_final_std.world_stats.free_space_size,
+        namo_final_avg.world_stats.absolute_social_cost, namo_final_std.world_stats.absolute_social_cost
+    ))
+    print("SC-NAMO                                                              & / {:.1f} $\pm$ {:.1f}        & / {:.0f} $\pm$ {:.0f}                & / {:.0f} $\pm$ {:.0f}      \\\\ \hline".format(
+        snamo_final_avg.world_stats.nb_components, snamo_final_std.world_stats.nb_components,
+        snamo_final_avg.world_stats.free_space_size, snamo_final_std.world_stats.free_space_size,
+        snamo_final_avg.world_stats.absolute_social_cost, snamo_final_std.world_stats.absolute_social_cost
+    ))
+
+
+    all_paths = namo_sim_results_paths + snamo_sim_results_paths
+    print('----------------------------------------------------------')
+    print('Computing max number of steps accross all {} scenarios...'.format(len(all_paths)))
     print('----------------------------------------------------------')
 
     paths_per_process= len(all_paths) // nb_usable_cpus
@@ -488,41 +570,6 @@ if __name__ == '__main__':
     time_2 = time.time() - time_start_2
 
     print('time_1: {}, time_2: {}'.format(time_1, time_2))
-
-    # # WIP !!! Aggregate first and last step statistics for table
-    # first_namo_stats = aggregate_statistics(namo_sim_results_zipped_statistics, start_index=0, end_index=1)[0]
-    # last_namo_stats = aggregate_statistics(
-    #     namo_sim_results_zipped_statistics,
-    #     start_index=len(namo_sim_results_zipped_statistics)-1, end_index=len(namo_sim_results_zipped_statistics)
-    # )[0]
-    #
-    # if snamo_sim_results_paths:
-    #     first_snamo_stats = aggregate_statistics(snamo_sim_results_zipped_statistics, start_index=0, end_index=1)[0]
-    #     last_snamo_stats = aggregate_statistics(
-    #         snamo_sim_results_zipped_statistics,
-    #         start_index=len(snamo_sim_results_zipped_statistics) - 1, end_index=len(snamo_sim_results_zipped_statistics)
-    #     )[0]
-    #
-    # for criterion in AgentStepStats().__dict__.keys():
-    #     setattr(aggregated_step_stats['min'].agents_stats, criterion,
-    #             min([getattr(agent_stats, criterion) for agent_stats in agents_stats_accross_simulations]))
-    #
-    # for criterion in WorldStepStats().__dict__.keys():
-    #     setattr(aggregated_step_stats['min'].world_stats, criterion,
-    #             min([getattr(step_stats.world_stats, criterion) for step_stats in step_stats_list]))
-    # # WIP !!! Aggregate first and last step statistics for table
-
-    # Aggregate statistics for plots
-
-    # current_processes = []
-    # step_increment = 100
-    # for i in range(0, max_steps, step_increment):
-    #     if len(current_processes) < nb_cpu - 1:
-    #         process = multiprocessing.Process(target=aggregate_statistics, args=(namo_sim_results_zipped_statistics))
-    #         current_processes.append(process)
-    #         process.start()
-    #     else:
-    #         time.sleep(0.1)
 
     print('----------------------------------------------------------')
     print('Aggregation completed. Generating plots...')
