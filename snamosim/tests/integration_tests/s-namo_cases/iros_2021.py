@@ -67,12 +67,12 @@ class IROS2021Tests(unittest.TestCase):
         use_computer = True
 
         scenario_folders = [
-            "citi/2_robots/50_goals/",
             "after_the_feast/1_robots/100_goals/",
             "after_the_feast/2_robots/50_goals/",
             "after_the_feast/4_robots/25_goals/",
             "after_the_feast/5_robots/20_goals/",
-            "after_the_feast/10_robots/10_goals/"
+            "after_the_feast/10_robots/10_goals/",
+            "citi/2_robots/50_goals/"
         ]
 
         for scenario_folder in scenario_folders:
