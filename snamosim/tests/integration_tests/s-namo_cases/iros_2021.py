@@ -67,7 +67,7 @@ class IROS2021Tests(unittest.TestCase):
         use_computer = True
 
         scenario_folders = [
-            "after_the_feast/1_robots/100_goals/",
+            # "after_the_feast/1_robots/100_goals/",
             "after_the_feast/2_robots/50_goals/",
             "after_the_feast/4_robots/25_goals/",
             "after_the_feast/5_robots/20_goals/",
@@ -112,10 +112,10 @@ class IROS2021Tests(unittest.TestCase):
                 time.sleep(1.)
                 now_time = time.time()
 
-            for index, process in enumerate(current_processes):
-                process.terminate()
+        for index, process in enumerate(current_processes):
+            process.terminate()
 
-            os.system("pkill -9 python3")
+        os.system("pkill -9 python3")
 
 
 if __name__ == '__main__':
