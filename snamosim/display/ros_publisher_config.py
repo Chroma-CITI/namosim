@@ -2,7 +2,7 @@
 rate = 500
 
 # Deactivate GUI
-deactivate_gui = False
+deactivate_gui = True
 
 # Simulation topics names (without namespace)
 sim_knowledge_topic = "/knowledge"
