@@ -336,7 +336,7 @@ if __name__ == '__main__':
     nb_steps_per_aggregation_op_2 = 1000
     nb_steps_per_aggregation_op_1 = 1000
 
-    MAIN_FOLDER = "/home/xia0ben/INRIA/Code/s-namo-sim/logs/citi_2r_50g"
+    MAIN_FOLDER = "/home/xia0ben/INRIA/Code/s-namo-sim/logs/SESSION_2/after_the_feast/5_robots/20_goals"
     scenarios_ids = {
         name for name in os.listdir(MAIN_FOLDER) if os.path.isdir(os.path.join(MAIN_FOLDER, name))
     }
@@ -410,34 +410,34 @@ if __name__ == '__main__':
     namo_init_std, namo_final_std = namo_init_final_stats[0]['std'], namo_init_final_stats[1]['std']
     snamo_init_std, snamo_final_std = snamo_init_final_stats[0]['std'], snamo_init_final_stats[1]['std']
 
-    print("Scenario                                                             & Conflicts           & R-R                 &  R-O                &  S-O                & Unpostponements                           & Recomputations         & Wait Steps            & Successes                    & $L_{transfer}$                                          & Transfers           & $T_{planning}$    \\\\")
-    print("                                                                     &                     & Conflicts           &  Conflicts          &  Conflicts          & / Postponements                           &                        & / Total Steps         & / Goals                      & / $L_{total}$                                           &                     & (s)               \\\\")
-    print("                                                                     &                     &                     &                     &                     &                                           &                        &                       &                              & (m) / (m)                                               &                     &                   \\\\ \hline")
+    print("Scenario                                                             & Conflicts           & R-R                 & Postponements                             & Recomputations         & Wait Steps          & Total Steps         & Successes                    & $L_{transfer}$      &  $L_{total}$        & Transfers           & $T_{planning}$    \\\\")
+    print("                                                                     &                     & Conflicts           &                                           &                        &                     &                     & / Goals                      & (m)                 &     (m)             &                     & (s)               \\\\")
+    print("                                                                     &                     &                     &                                           &                        &                     &                     &                              &                     &                     &                     &                   \\\\ \hline")
 
-    print("AtF - 2                                                              &                     &                     &                     &                     &                                           &                        &                       &                              &                                                         &                     &                   \\\\")
-    print("C-NAMO                                                               & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} / {:.0f} $\pm$ {:.0f} &  {:.0f} $\pm$ {:.0f}   &  {:.0f} $\pm$ {:.0f}  & {:.0f} $\pm$ {:.0f} / {:.0f} & {:.1f} $\pm$ {:.1f} / {:.1f} $\pm$ {:.1f}               & {:.0f} $\pm$ {:.0f} & {:.1f} $\pm$ {:.1f} \\\\".format(
+    print("AtF - 2                                                              &                     &                     &                                           &                        &                     &                     &                              &                     &                     &                     &                   \\\\")
+    print("C-NAMO                                                               & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f}                       &  {:.0f} $\pm$ {:.0f}   & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} / {:.0f} & {:.1f} $\pm$ {:.1f} & {:.1f} $\pm$ {:.1f} & {:.0f} $\pm$ {:.0f} & {:.1f} $\pm$ {:.1f} \\\\".format(
         namo_final_avg.agents_stats.nb_conflicts, namo_final_std.agents_stats.nb_conflicts,
         namo_final_avg.agents_stats.nb_robot_robot_conflicts, namo_final_std.agents_stats.nb_robot_robot_conflicts,
-        namo_final_avg.agents_stats.nb_robot_obstacle_conflicts, namo_final_std.agents_stats.nb_robot_obstacle_conflicts,
-        namo_final_avg.agents_stats.nb_stolen_movable_conflicts, namo_final_std.agents_stats.nb_stolen_movable_conflicts,
-        namo_final_avg.agents_stats.nb_of_unpostponements, namo_final_std.agents_stats.nb_of_unpostponements, namo_final_avg.agents_stats.nb_of_postponements, namo_final_std.agents_stats.nb_of_postponements,
+        namo_final_avg.agents_stats.nb_of_postponements, namo_final_std.agents_stats.nb_of_postponements,
         namo_final_avg.agents_stats.nb_of_plan_computations, namo_final_std.agents_stats.nb_of_plan_computations,
-        namo_final_avg.agents_stats.nb_wait_steps, namo_final_std.agents_stats.nb_wait_steps,  # ADD TOTAL NUMBER OF STEPS METRIC ONCE ITS BEEN COMPUTED
+        namo_final_avg.agents_stats.nb_wait_steps, namo_final_std.agents_stats.nb_wait_steps,
+        namo_final_avg.agents_stats.nb_steps, namo_final_std.agents_stats.nb_steps,
         namo_final_avg.agents_stats.nb_successful_goals, namo_final_std.agents_stats.nb_successful_goals, namo_final_avg.agents_stats.nb_goals,
-        namo_final_avg.agents_stats.transfer_path_length, namo_final_std.agents_stats.transfer_path_length, namo_final_avg.agents_stats.path_length, namo_final_std.agents_stats.path_length,
+        namo_final_avg.agents_stats.transfer_path_length, namo_final_std.agents_stats.transfer_path_length,
+        namo_final_avg.agents_stats.path_length, namo_final_std.agents_stats.path_length,
         namo_final_avg.agents_stats.nb_transfers, namo_final_std.agents_stats.nb_transfers,
         namo_final_avg.agents_stats.think_time, namo_final_std.agents_stats.think_time
     ))
-    print("SC-NAMO                                                              & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} / {:.0f} $\pm$ {:.0f} &  {:.0f} $\pm$ {:.0f}   &  {:.0f} $\pm$ {:.0f}  & {:.0f} $\pm$ {:.0f} / {:.0f} & {:.1f} $\pm$ {:.1f} / {:.1f} $\pm$ {:.1f}               & {:.0f} $\pm$ {:.0f} & {:.1f} $\pm$ {:.1f} \\\\ \hline".format(
+    print("SC-NAMO                                                              & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f}                       &  {:.0f} $\pm$ {:.0f}   & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} & {:.0f} $\pm$ {:.0f} / {:.0f} & {:.1f} $\pm$ {:.1f} & {:.1f} $\pm$ {:.1f} & {:.0f} $\pm$ {:.0f} & {:.1f} $\pm$ {:.1f} \\\\ \hline".format(
         snamo_final_avg.agents_stats.nb_conflicts, snamo_final_std.agents_stats.nb_conflicts,
         snamo_final_avg.agents_stats.nb_robot_robot_conflicts, snamo_final_std.agents_stats.nb_robot_robot_conflicts,
-        snamo_final_avg.agents_stats.nb_robot_obstacle_conflicts, snamo_final_std.agents_stats.nb_robot_obstacle_conflicts,
-        snamo_final_avg.agents_stats.nb_stolen_movable_conflicts, snamo_final_std.agents_stats.nb_stolen_movable_conflicts,
-        snamo_final_avg.agents_stats.nb_of_unpostponements, snamo_final_std.agents_stats.nb_of_unpostponements, snamo_final_avg.agents_stats.nb_of_postponements, snamo_final_std.agents_stats.nb_of_postponements,
+        snamo_final_avg.agents_stats.nb_of_postponements, snamo_final_std.agents_stats.nb_of_postponements,
         snamo_final_avg.agents_stats.nb_of_plan_computations, snamo_final_std.agents_stats.nb_of_plan_computations,
-        snamo_final_avg.agents_stats.nb_wait_steps, snamo_final_std.agents_stats.nb_wait_steps,  # ADD TOTAL NUMBER OF STEPS METRIC ONCE ITS BEEN COMPUTED
+        snamo_final_avg.agents_stats.nb_wait_steps, snamo_final_std.agents_stats.nb_wait_steps,
+        snamo_final_avg.agents_stats.nb_steps, snamo_final_std.agents_stats.nb_steps,
         snamo_final_avg.agents_stats.nb_successful_goals, snamo_final_std.agents_stats.nb_successful_goals, snamo_final_avg.agents_stats.nb_goals,
-        snamo_final_avg.agents_stats.transfer_path_length, snamo_final_std.agents_stats.transfer_path_length, snamo_final_avg.agents_stats.path_length, snamo_final_std.agents_stats.path_length,
+        snamo_final_avg.agents_stats.transfer_path_length, snamo_final_std.agents_stats.transfer_path_length,
+        snamo_final_avg.agents_stats.path_length, snamo_final_std.agents_stats.path_length,
         snamo_final_avg.agents_stats.nb_transfers, snamo_final_std.agents_stats.nb_transfers,
         snamo_final_avg.agents_stats.think_time, snamo_final_std.agents_stats.think_time
     ))
