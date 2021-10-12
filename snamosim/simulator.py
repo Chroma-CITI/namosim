@@ -20,6 +20,7 @@ from snamosim.display.ros_publisher import RosPublisher
 from snamosim.worldreps.entity_based.world import World
 from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.obstacle import Obstacle
+from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 
 from snamosim.utils import stats_utils, utils, conversion, b2_collision, collision
 
@@ -249,11 +250,17 @@ class Simulator:
             step_count = 0
 
             self.simulation_log.append(utils.BasicLog("Starting run.", step_count))
+            self.rp.publish_message("Sim steps: {}".format(step_count),
+                                    pose=(0., self.ref_world.dd.grid_pose[1] + self.ref_world.dd.height + 0.25, 0.),
+                                    font_size=0.5)
+
+            print("")
 
             while active_agents:
                 try:
                     # Increment simulation step count
                     step_count += 1
+                    self.rp.publish_message("Sim steps: {}".format(step_count), pose=(0., self.ref_world.dd.grid_pose[1] + self.ref_world.dd.height + 0.25, 0.), font_size=0.5)
 
                     # Sense loop: update each agent's knowledge of the world
                     sense_durations = {}
@@ -697,9 +704,9 @@ class Simulator:
             if isinstance(action, ba.Grab):
                 entity_uid = action.entity_uid
                 if entity_uid in entity_to_grab_agents:
-                    entity_to_grab_agents[entity_uid].add(entity_uid)
+                    entity_to_grab_agents[entity_uid].add(agent_uid)
                 else:
-                    entity_to_grab_agents[entity_uid] = {entity_uid}
+                    entity_to_grab_agents[entity_uid] = {agent_uid}
         for agent_uid, action in agent_uid_to_next_action.items():
             if isinstance(action, ba.Grab):
                 entity_uid = action.entity_uid
@@ -721,7 +728,9 @@ class Simulator:
         if use_b2:
             collides_with = self.b2_sim.simulate_simple_kinematics([to_check], apply=True)
         else:
-            collides_with = collision.csv_simulate_simple_kinematics(self.ref_world, to_check, apply=True, ignore_collisions=ignore_collisions)
+            collides_with = collision.csv_simulate_simple_kinematics(
+                self.ref_world, to_check, apply=True, ignore_collisions=ignore_collisions, extra_transit_check=False
+            )
 
         # Finish separating succeeded and failed actions, and apply result to world state on success
         for agent_uid, action in to_check.items():

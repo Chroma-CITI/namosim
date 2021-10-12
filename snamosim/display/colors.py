@@ -79,6 +79,15 @@ target_diameter_inflated_polygon_color = ColorRGBA(*hex_to_rgba("#aa24641a"))
 transit_path_color = ColorRGBA(*hex_to_rgba("#ff6d9eeb"))
 transfer_path_color = ColorRGBA(*hex_to_rgba("#ffe06666"))
 
+r0_light_blue = ColorRGBA(*hex_to_rgba("#ff6d9eeb"))
+r0_dark_blue = ColorRGBA(*hex_to_rgba("#ff3c78d8"))
+r1_light_green = ColorRGBA(*hex_to_rgba("#ff93c47d"))
+r1_dark_green = ColorRGBA(*hex_to_rgba("#ff6aa84f"))
+r2_light_pink = ColorRGBA(*hex_to_rgba("#ff8e7cc3"))
+r2_dark_pink = ColorRGBA(*hex_to_rgba("#ff674ea7"))
+r3_light_red = ColorRGBA(*hex_to_rgba("#ffe06666"))
+r3_dark_red = ColorRGBA(*hex_to_rgba("#ffcc0000"))
+
 robot_color_r2 = ColorRGBA(*hex_to_rgba("#ffeb6ddd"))
 robot_border_color_r2 = ColorRGBA(*hex_to_rgba("#ffcc11b2"))
 transit_path_color_r2 = ColorRGBA(*hex_to_rgba("#ffeb6ddd"))
@@ -93,6 +102,7 @@ flashy_dark_cyan = ColorRGBA(*hex_to_rgba("#ff007777"))
 dark_purple = ColorRGBA(*hex_to_rgba("#ff8e7cc3"))
 dark_brown = ColorRGBA(*hex_to_rgba("#ffc3a87c"))
 dark_blue = ColorRGBA(*hex_to_rgba("ff7ca5c3"))
+black = ColorRGBA(*hex_to_rgba("#ff000000"))
 
 
 if __name__ == '__main__':

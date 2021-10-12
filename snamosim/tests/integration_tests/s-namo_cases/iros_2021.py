@@ -21,19 +21,68 @@ class IROS2021Tests(unittest.TestCase):
         self.path_to_folder = os.path.join(os.path.dirname(__file__), "../../../../data/simulations/iros_2021/")
         self.logging_folder = os.path.join(os.path.dirname(__file__), "../../../../logs/")
 
-    # def test_basic_with_opening_namo(self):
-    #     sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/sim_namo.json"))
-    #     report = sim.run()
-    #
-    # def test_basic_with_opening_snamo(self):
-    #     sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/sim_snamo.json"))
-    #     report = sim.run()
-    #
-    # def test_single_namo_scenario(self):
-    #     namo_report = self.run_scenario(scenario_id='0000', scenario_type='namo')
-    #
-    # def test_single_snamo_scenario(self):
-    #     snamo_report = self.run_scenario(scenario_id='0000', scenario_type='snamo')
+    # INTRO
+    def test_basic_with_opening_namo(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/02_basic_with_opening_namo.json"))
+        report = sim.run()
+
+    def test_basic_with_opening_snamo(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/02_basic_with_opening_snamo.json"))
+        report = sim.run()
+
+    # CONFLICTS
+    def test_robot_robot(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/conflicts/robot_robot.json"))
+        report = sim.run()
+
+    def test_robot_obstacle(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/conflicts/robot_obstacle.json"))
+        report = sim.run()
+
+    def test_stolen_stealing_obstacle(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/conflicts/stolen_obstacle.json"))
+        report = sim.run()
+
+    def test_simultaneous_grab(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/conflicts/simultaneous_grab.json"))
+        report = sim.run()
+
+    def test_simultaneous_space_access(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/conflicts/simultaneous_space_access.json"))
+        report = sim.run()
+
+    # RESULTS
+    ## INT
+    def test_int_2r_50g_namo_scenario(self):
+        namo_report = self.run_scenario(scenario_folder="after_the_feast/2_robots/50_goals/", scenario_id='000', scenario_type='namo')
+
+    def test_int_2r_50g_snamo_scenario(self):
+        snamo_report = self.run_scenario(scenario_folder="after_the_feast/2_robots/50_goals/", scenario_id='000', scenario_type='snamo')
+
+    def test_int_4r_25g_namo_scenario(self):
+        namo_report = self.run_scenario(scenario_folder="after_the_feast/4_robots/25_goals/", scenario_id='000', scenario_type='namo')
+
+    def test_int_4r_25g_snamo_scenario(self):
+        snamo_report = self.run_scenario(scenario_folder="after_the_feast/4_robots/25_goals/", scenario_id='000', scenario_type='snamo')
+
+    def test_int_5r_20g_namo_scenario(self):
+        namo_report = self.run_scenario(scenario_folder="after_the_feast/5_robots/20_goals/", scenario_id='000', scenario_type='namo')
+
+    def test_int_5r_20g_snamo_scenario(self):
+        snamo_report = self.run_scenario(scenario_folder="after_the_feast/5_robots/20_goals/", scenario_id='000', scenario_type='snamo')
+
+    def test_int_10r_10g_namo_scenario(self):
+        namo_report = self.run_scenario(scenario_folder="after_the_feast/10_robots/10_goals/", scenario_id='000', scenario_type='namo')
+
+    def test_int_10r_10g_snamo_scenario(self):
+        snamo_report = self.run_scenario(scenario_folder="after_the_feast/10_robots/10_goals/", scenario_id='000', scenario_type='snamo')
+
+    ## CITI
+    def test_citi_2r_50g_namo_scenario(self):
+        namo_report = self.run_scenario(scenario_folder="citi/2_robots/50_goals/", scenario_id='000', scenario_type='namo')
+
+    def test_citi_2r_50g_snamo_scenario(self):
+        snamo_report = self.run_scenario(scenario_folder="citi/2_robots/50_goals/", scenario_id='000', scenario_type='snamo')
 
     def run_scenario(self, scenario_folder="after_the_feast/4_robots/25_goals/", scenario_id="0000", timestring=datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f"), scenario_type='namo'):
         try:

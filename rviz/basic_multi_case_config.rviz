@@ -9,9 +9,13 @@ Panels:
         - /Group1
         - /Group1/Simulator Knowledge1
         - /Group1/Simulator Knowledge1/Messages1
-        - /Group1/robot_01
+        - /Group1/robot_01/Robot Simulated Actions1
+        - /Group1/robot_01/Robot Simulated Actions1/Namespaces1
         - /Group1/robot_01/Combined Costmap1
+        - /Group1/robot_01/Conflicts_check1
         - /Group1/robot_11
+        - /Group1/robot_11/Robot Simulated Actions1
+        - /Group1/robot_11/Robot Simulated Actions1/Namespaces1
         - /Group1/robot_011/Robot Simulated Actions1
         - /Group1/robot_011/Robot Simulated Actions1/Namespaces1
       Splitter Ratio: 0.606060624
@@ -166,7 +170,20 @@ Visualization Manager:
               Marker Topic: /robot_0/sim
               Name: Robot Simulated Actions
               Namespaces:
-                {}
+                /blocking_areas/init: false
+                /blocking_areas/target: false
+                /diameter_inflated_polygon/init: false
+                /diameter_inflated_polygon/target: false
+                /manip_search/close_set: true
+                /manip_search/current/obstacle/polygon: true
+                /manip_search/current/obstacle/pose: true
+                /manip_search/current/robot/polygon: true
+                /manip_search/current/robot/pose: true
+                /manip_search_neighbors: true
+                /rch_came_from: true
+                /rch_close_set: true
+                /rch_current_cell: true
+                /rch_current_cell_neighbors: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -232,6 +249,7 @@ Visualization Manager:
               Marker Topic: /robot_0/plan
               Name: p_opt
               Namespaces:
+                /end_obstacles: true
                 /plan: true
               Queue Size: 100
               Value: true
@@ -298,6 +316,17 @@ Visualization Manager:
               Unreliable: false
               Use Rainbow: true
               Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /robot_0/conflicts_check
+              Name: Conflicts_check
+              Namespaces:
+                /transfer_horizon_csv_polygons: true
+                /transit_conflicting_cells: true
+                /transit_conflicting_entities_cells: true
+                /transit_horizon_cells: true
+              Queue Size: 100
+              Value: true
           Enabled: true
           Name: robot_0
         - Class: rviz/Group
@@ -333,7 +362,20 @@ Visualization Manager:
               Marker Topic: /robot_1/sim
               Name: Robot Simulated Actions
               Namespaces:
-                {}
+                /blocking_areas/init: false
+                /blocking_areas/target: false
+                /diameter_inflated_polygon/init: false
+                /diameter_inflated_polygon/target: false
+                /manip_search/close_set: true
+                /manip_search/current/obstacle/polygon: true
+                /manip_search/current/obstacle/pose: true
+                /manip_search/current/robot/polygon: true
+                /manip_search/current/robot/pose: true
+                /manip_search_neighbors: true
+                /rch_came_from: true
+                /rch_close_set: true
+                /rch_current_cell: true
+                /rch_current_cell_neighbors: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -399,6 +441,7 @@ Visualization Manager:
               Marker Topic: /robot_1/plan
               Name: p_opt
               Namespaces:
+                /end_obstacles: true
                 /plan: true
               Queue Size: 100
               Value: true
@@ -429,7 +472,7 @@ Visualization Manager:
               Color: 200; 200; 200
               Color Layer: elevation
               Color Transformer: IntensityLayer
-              Enabled: true
+              Enabled: false
               Height Layer: elevation
               Height Transformer: Flat
               History Length: 1
@@ -443,7 +486,7 @@ Visualization Manager:
               Topic: /robot_1/combined_costmap
               Unreliable: false
               Use Rainbow: true
-              Value: true
+              Value: false
             - Alpha: 0.400000006
               Autocompute Intensity Bounds: true
               Class: grid_map_rviz_plugin/GridMap
@@ -465,6 +508,17 @@ Visualization Manager:
               Unreliable: false
               Use Rainbow: true
               Value: false
+            - Class: rviz/MarkerArray
+              Enabled: true
+              Marker Topic: /robot_1/conflicts_check
+              Name: Conflicts check
+              Namespaces:
+                /transfer_horizon_csv_polygons: true
+                /transit_conflicting_cells: true
+                /transit_conflicting_entities_cells: true
+                /transit_horizon_cells: true
+              Queue Size: 100
+              Value: true
           Enabled: true
           Name: robot_1
         - Class: rviz/Group

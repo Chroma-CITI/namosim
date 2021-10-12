@@ -431,7 +431,7 @@ def csv_check_collisions(main_uid, other_polygons, polygon_sequence, action_sequ
         return False, collides_with, aabb_tree, csv_polygons, intersections, bb_vertices
 
 
-def csv_simulate_simple_kinematics(world, agent_uid_to_next_action, apply=False, bb_type='minimum_rotated_rectangle', ignore_collisions=False):
+def csv_simulate_simple_kinematics(world, agent_uid_to_next_action, apply=False, bb_type='minimum_rotated_rectangle', ignore_collisions=False, extra_transit_check=False):
     # Apply each action to get polygon after for robot and obstacle if relevant
     # and compute CSV for each
     # and check that no CSV intersects with other entities beyond those that are moving this round
@@ -508,6 +508,12 @@ def csv_simulate_simple_kinematics(world, agent_uid_to_next_action, apply=False,
         merge_collides_with(collides_with, check_static_collision(
             uid, csv_polygon, uid_to_csv_polygon, csv_aabb_tree, ignored_uids=checked_uids.union(associated_uid)
         ))
+
+    # If option activated, check that no new polygon's discretized cell is the center cell of another robot in transit
+    # utils.accurate_rasterize_in_grid(
+    #     new_polygon, self.res, self.grid_pose, self.d_width, self.d_height, fill=fill
+    # )
+    # discretized_polygons = {uid: utils. for uid, polygon in new_polygons.items()}
 
     if apply:
         for agent_uid, action in agent_uid_to_next_action.items():

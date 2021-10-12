@@ -1,14 +1,15 @@
 # Target display rate (in Hz)
-rate = 500
+rate = 100
 
 # Deactivate GUI
-deactivate_gui = True
+deactivate_gui = False
 
 # Simulation topics names (without namespace)
 sim_knowledge_topic = "/knowledge"
 sim_costmap_topic = "/costmap"
 sim_social_costmap_topic = '/social_costmap'
 sim_connected_components_topic = "/connected_components"
+sim_latest_message_topic = "/messages"
 
 # Robot topics names (without namespace)
 min_max_inflated_polygons_topic = "/compute_c_0_c1/min_max_inflated_polygons"
@@ -39,6 +40,7 @@ test_connected_components_topic = "/test/connected_components"
 robot_sim_world_topic = "/sim/world"
 combined_costmap_topic = "/combined_costmap"
 plan_topic = "/plan"
+conflicts_check_topic = "/conflicts_check"
 
 default_queue_size = 10
 

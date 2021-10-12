@@ -75,6 +75,8 @@ class RosPublisher(with_metaclass(Singleton)):
                 '/simulation' + cfg.test_gridmap_topic, GridMap, queue_size=cfg.default_queue_size)
             self.publishers['/simulation' + cfg.test_connected_components_topic] = rospy.Publisher(
                 '/simulation' + cfg.test_connected_components_topic, GridMap, queue_size=cfg.default_queue_size)
+            self.publishers['/simulation' + cfg.sim_latest_message_topic] = rospy.Publisher(
+                '/simulation' + cfg.sim_latest_message_topic, MarkerArray, queue_size=cfg.default_queue_size)
 
         other_namespaces = [ns for ns in top_level_namespaces if ns != 'simulation']
 
@@ -136,6 +138,8 @@ class RosPublisher(with_metaclass(Singleton)):
                 full_ns + cfg.combined_costmap_topic, GridMap, queue_size=cfg.default_queue_size)
             self.publishers[full_ns + cfg.plan_topic] = rospy.Publisher(
                 full_ns + cfg.plan_topic, MarkerArray, queue_size=cfg.default_queue_size)
+            self.publishers[full_ns + cfg.conflicts_check_topic] = rospy.Publisher(
+                full_ns + cfg.conflicts_check_topic, MarkerArray, queue_size=cfg.default_queue_size)
 
         # HACK: Necessary because ROS1 pub/sub system is not really reliable : wait a second for subscribers to listen
         time.sleep(cfg.hack_duration_wait)
@@ -808,9 +812,13 @@ class RosPublisher(with_metaclass(Singleton)):
             if q_goal is not None:
                 polygon_at_goal_pose = affinity.translate(polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
                 # ros_pose = pose_to_ros_pose_stamped(q_goal)
-                color = colors.robot_border_color
-                if ns == 'robot_1':
-                    color = colors.robot_border_color_r2
+                color = colors.r0_dark_blue
+                if ns == "robot_1":
+                    color = colors.r1_dark_green
+                elif ns == "robot_2":
+                    color = colors.r2_dark_pink
+                elif ns == "robot_3":
+                    color = colors.r3_dark_red
                 marker_array = MarkerArray(markers=[
                     conv.polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, cfg.main_frame_id,
                                                color, cfg.fov_z_index, cfg.border_width)])
@@ -825,11 +833,102 @@ class RosPublisher(with_metaclass(Singleton)):
 
     # endregion
 
+    # region MESSAGE TEXT
+    def publish_message(self, message, pose=(0., 0., 0.), font_size=1.):
+        if self.is_activated("/simulation" + cfg.sim_latest_message_topic):
+            marker_array = MarkerArray(markers=[conv.string_to_text_marker(
+                message=message, pose=pose, ns="", p_id=0, z_index=cfg.fov_z_index,
+                font_size=font_size, frame_id=cfg.main_frame_id, color=colors.black
+            )])
+            self.publish("/simulation" + cfg.sim_latest_message_topic, marker_array)
+
+    def cleanup_message(self):
+        if self.is_activated("/simulation" + cfg.sim_latest_message_topic):
+            marker_array = MarkerArray(markers=[conv.string_to_text_marker(
+                message="_", pose=(0., 0., 0.), ns="", p_id=0, z_index=cfg.fov_z_index,
+                font_size=.01, frame_id=cfg.main_frame_id, color=colors.black
+            )])
+            self.publish("/simulation" + cfg.sim_latest_message_topic, marker_array)
+    # endregion
+
+    # region CONFLICTS CHECK
+    def publish_transit_horizon_cells(self, poses, start_index, end_index, check_horizon, inflated_grid_by_robot, ns):
+        full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
+        if self.is_activated(full_topic):
+            horizon_cells = set()
+            for counter, index in enumerate(range(start_index, end_index)):
+                if counter > check_horizon:
+                    break
+
+                pose = poses[index]
+                cell = utils.real_to_grid(pose[0], pose[1], inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose)
+                horizon_cells.add(cell)
+            cube_list_marker = conv.grid_cells_to_cube_list_markers(
+                horizon_cells, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose,
+                colors.flashy_green, z_index=0.02, ns="/transit_horizon_cells"
+            )
+            marker_array = MarkerArray(markers=[cube_list_marker])
+            self.publish(full_topic, marker_array)
+
+    def publish_transit_conflicting_cells(self, conflicting_cells, inflated_grid_by_robot, ns):
+        full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
+        if self.is_activated(full_topic):
+            cube_list_marker = conv.grid_cells_to_cube_list_markers(
+                conflicting_cells, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose,
+                colors.flashy_red, z_index=0.03, ns="/transit_conflicting_cells"
+            )
+            marker_array = MarkerArray(markers=[cube_list_marker])
+            self.publish(full_topic, marker_array)
+
+    def publish_transit_conflicting_polygons_cells(self, conflicting_entities_cells, inflated_grid_by_robot, ns):
+        full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
+        if self.is_activated(full_topic):
+            cube_list_marker = conv.grid_cells_to_cube_list_markers(
+                conflicting_entities_cells, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose,
+                colors.flashy_cyan, z_index=-0.16, ns="/transit_conflicting_entities_cells"
+            )
+            marker_array = MarkerArray(markers=[cube_list_marker])
+            self.publish(full_topic, marker_array)
+
+    def publish_transfer_horizon_convex_polygons(self, robot_csv_polygons, obstacle_csv_polygons, start_index, end_index, check_horizon, ns):
+        full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
+        if self.is_activated(full_topic):
+            subspace = "/transfer_horizon_csv_polygons"
+            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id, ns=subspace))
+
+            horizon_csv_polygons = []
+            for counter, index in enumerate(range(start_index, end_index)):
+                if counter > check_horizon:
+                    break
+                key = (index,)
+                horizon_csv_polygons.append(robot_csv_polygons[key])
+                if key in obstacle_csv_polygons:
+                    horizon_csv_polygons.append(obstacle_csv_polygons[key])
+            markers = []
+            for p_id, polygon in enumerate(horizon_csv_polygons):
+                marker = conv.polygon_to_triangle_list(polygon, subspace, p_id, frame_id=cfg.main_frame_id, color=colors.flashy_green, z_index=-0.06)
+                markers.append(marker)
+            marker_array = MarkerArray(markers=markers)
+            self.publish(full_topic, marker_array)
+
+    def publish_transfer_conflicting_intersections(self):
+        pass
+
+    def publish_transfer_conflicting_convex_polygons(self):
+        pass
+
+    def cleanup_conflicts_checks(self, ns):
+        full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
+        if self.is_activated(full_topic):
+            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
+    # endregion
+
     # region EXTRA COMBINED CLEANUP METHODS
 
     def cleanup_all(self):
         if 'simulation' in self.top_level_namespaces:
             self.cleanup_sim_world()
+            self.cleanup_message()
 
         other_namespaces = [ns for ns in self.top_level_namespaces if ns != 'simulation']
 
@@ -849,5 +948,6 @@ class RosPublisher(with_metaclass(Singleton)):
             self.cleanup_grid_path(ns=ns)
             self.cleanup_grid_map(ns=ns)
             self.cleanup_combined_costmap(ns=ns)
+            self.cleanup_conflicts_checks(ns=ns)
 
     # endregion
