@@ -620,6 +620,30 @@ class TransitPath:
         return len(self.actions)
 
 
+class EvasionTransitPath(TransitPath):
+    def __init__(self, robot_path, actions, phys_cost=None, social_cost=0., weight=1.):
+        TransitPath.__init__(self, robot_path, actions, phys_cost, social_cost, weight)
+        self.evasion_goal_pose = robot_path.poses[-1]
+        self.transit_configuration_after_release = None
+        self.release_executed = False
+
+    def set_wait(self, nb_wait_steps):
+        for i in range(nb_wait_steps):
+            self.actions.append(ba.Wait())
+            self.robot_path.poses.append(self.robot_path.poses[-1])
+
+    def set_transit_configuration_after_release(self, transit_configuration_after_release):
+        # TODO Fix this hack for better management of this non-mandatory first release action
+        self.transit_configuration_after_release = transit_configuration_after_release
+        self.release_executed = False
+
+    def pop_next_step(self):
+        if self.transit_configuration_after_release and not self.release_executed:
+            self.release_executed = True
+            return self.transit_configuration_after_release.action
+        else:
+            return TransitPath.pop_next_step(self)
+
 class RecoveryPath:
     def __init__(self, robot_path, actions, phys_cost=None, social_cost=0., weight=1.):
         if len(robot_path.polygons) != len(robot_path.poses) != len(actions) + 1:
@@ -851,9 +875,35 @@ class Plan:
         """
         current_component = self.path_components[self.component_index]
         if current_component.is_fully_executed():
-            self.component_index += 1
+            if self.component_index < len(self.path_components) - 1:
+                self.component_index += 1
             current_component = self.path_components[self.component_index]
         return current_component.pop_next_step()
+
+    def is_evading(self):
+        return self.exists() and isinstance(self.path_components[self.component_index], EvasionTransitPath)
+
+    def is_evasion_over(self):
+        return self.is_evading() and self.path_components[self.component_index].is_fully_executed()
+
+
+class Timer:
+    def __init__(self, start_time=0, duration=0, is_running=False):
+        self.start_time = start_time
+        self.duration = duration
+        self.is_running = is_running
+
+    def start_timer(self, start_time, duration):
+        self.start_time = start_time
+        self.duration = duration
+        self.is_running = True
+
+    def is_timer_over(self, current_time):
+        if current_time - self.start_time >= self.duration:
+            self.is_running = False
+            return True
+        else:
+            return False
 
 
 class DynamicPlan(Plan):
@@ -864,13 +914,19 @@ class DynamicPlan(Plan):
         self.wait_counter = 0
         self.plan_counter = 0
 
-        self.new_replan_history = None
+        self.new_replan_history = set()
         self.new_conflicts_history = {}
+
+        self.current_conflicts = []
 
         self.plan_history = {}
         self.conflicts_history = {}
         self.postponements_history = {}
         self.unpostponements_history = []
+
+        self.forbidden_evasion_cells = set()
+
+        self.timer = Timer()
 
     @property
     def is_postponed(self):
@@ -888,12 +944,16 @@ class DynamicPlan(Plan):
             apply_strict_horizon=apply_strict_horizon, exit_early_for_any_conflict=exit_early_for_any_conflict,
             exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts, rp=rp, robot_name=robot_name
         )
-        if conflicts:
-            if step_count in self.conflicts_history:
-                self.conflicts_history[step_count] += conflicts
-            else:
-                self.conflicts_history[step_count] = conflicts
+        self.current_conflicts += conflicts
         return conflicts
+
+    def save_conflicts(self, step_count):
+        if self.current_conflicts:
+            if step_count in self.conflicts_history:
+                self.conflicts_history[step_count] += self.current_conflicts
+            else:
+                self.conflicts_history[step_count] = self.current_conflicts
+        self.current_conflicts = []
 
     def has_tries_remaining(self, nb_max_tries):
         if self.new_replan_history:
@@ -914,21 +974,39 @@ class DynamicPlan(Plan):
         if self.is_postponed:
             self.wait_counter -= 1
             return ba.Wait()
-        try:
-            return Plan.pop_next_step(self)
-        except Exception as e:
-            print(e)
+        return Plan.pop_next_step(self)
 
-    def postpone(self, t_min, t_max, step_count):
-        if self.DEBUGGING_WAIT_TIME_GENERATOR:
-            self.wait_counter = self.DEBUGGING_WAIT_TIME_GENERATOR.pop(0)
+    def new_postpone(self, t_min, t_max, step_count, conflicts, simulation_log, robot_name):
+        if self.timer.is_running:
+            if self.timer.is_timer_over(step_count):
+                simulation_log.append(utils.BasicLog(
+                    "Agent {}: Resetting plan because conflicts still exist after full postponement is over: {}.".format(
+                        robot_name, conflicts), step_count
+                ))
+                self.update_plan(Plan([]), step_count)
+            else:
+                return ba.Wait()
         else:
-            self.wait_counter = random.randint(t_min, t_max)
-        self.postponements_history[step_count] = self.wait_counter
+            simulation_log.append(utils.BasicLog(
+                "Agent {}: Starting postponement of current plan for {} steps because conflicts: {}.".format(
+                    robot_name, t_max, conflicts), step_count
+            ))
+            self.timer.start_timer(step_count, t_max)
+            self.postponements_history[step_count] = t_max
+            return ba.Wait()
 
-    def unpostpone(self, step_count):
-        self.wait_counter = 0
-        self.unpostponements_history.append(step_count)
+    # def postpone(self, t_min, t_max, step_count):
+    #     if self.DEBUGGING_WAIT_TIME_GENERATOR:
+    #         self.wait_counter = self.DEBUGGING_WAIT_TIME_GENERATOR.pop(0)
+    #     else:
+    #         self.wait_counter = random.randint(t_min, t_max)
+    #     self.wait_counter = t_max  # TODO - Reconsider the computation of the wait time
+    #     self.postponements_history[
+    #         step_count] = self.wait_counter
+
+    # def unpostpone(self, step_count):
+    #     self.wait_counter = 0
+    #     self.unpostponements_history.append(step_count)
 
     def update_plan(self, plan, step_count):
         self.plan_counter += 1
@@ -1055,7 +1133,7 @@ class Stilman2005Behavior(BaselineBehavior):
         # Initialize overall Box2D world simulation
         self.b2_sim = b2_collision.B2Sim(self._world.entities)
 
-        self.replan_count = 10
+        self.replan_count = 20
         self.goal_to_plans = OrderedDict()
 
         self.action_space_reduction= 'only_r_acc_then_c_1_x'  # ['none', 'only_r_acc', 'only_r_acc_then_c_1_x']
@@ -1073,14 +1151,13 @@ class Stilman2005Behavior(BaselineBehavior):
             static_obs_polygons, self._world.dd.res, neighborhood=self.neighborhood,
             params=self.static_obs_inf_grid.params
         )
-        other_entities_polygons = {
-            uid: e.polygon for uid, e in self._world.entities.items() if e.uid != self._robot.uid
-        }
+        all_entities_polygons = {uid: e.polygon for uid, e in self._world.entities.items()}
         self.inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
-            other_entities_polygons, self._world.dd.res, self.robot_max_inflation_radius,
+            all_entities_polygons, self._world.dd.res, self.robot_max_inflation_radius,
             neighborhood=self.neighborhood,
             params=self.static_obs_inf_grid.params
         )  # TODO Make sure static and generalist grid share same width and height (occurs naturally if map borders are static, but not otherwise)
+        self.inflated_grid_by_robot.deactivate_entities({self._robot.uid})
 
         # Initialize social costmap as None for computation in first think
         self._social_costmap = None
@@ -1117,6 +1194,17 @@ class Stilman2005Behavior(BaselineBehavior):
     def get_current_goal(self):
         return self._q_goal
 
+    def potential_deadlocks(self, current_conflicts, dynamic_plan, current_step):
+        return {
+            conflict
+            for past_step, past_conflicts_at_step in dynamic_plan.conflicts_history.items()
+            for conflict in current_conflicts
+            if (
+                conflict in past_conflicts_at_step
+                and [replan_step for replan_step in dynamic_plan.new_replan_history if replan_step >= past_step]
+            )
+        }
+
     def sense(self, ref_world, last_action_result, step_count):
         # Update baseline world representation (polygons)
         BaselineBehavior.sense(self, ref_world, last_action_result, step_count)
@@ -1147,12 +1235,13 @@ class Stilman2005Behavior(BaselineBehavior):
             else:
                 return ba.GoalsFinished()
 
-        next_step = self.new_local_coordination_strategy(
+        next_step = self.full_coordination_strategy(
             self._world, self.static_obs_inf_grid, self.inflated_grid_by_robot, self.b2_sim,
             self._robot_uid, self._q_goal, self._p_opt, self.check_horizon, self.replan_count,
             self.min_nb_steps_to_wait, self.max_nb_steps_to_wait, self.position_tolerance, self.angular_tolerance,
             self.neighborhood, self._step_count, self.trans_mult, self.rot_mult, self.action_space_reduction
         )
+        self._p_opt.save_conflicts(self._step_count)
 
         if isinstance(next_step, (ba.GoalSuccess, ba.GoalFailed)):
             self._rp.cleanup_conflicts_checks(ns=self._robot_name)
@@ -1174,177 +1263,448 @@ class Stilman2005Behavior(BaselineBehavior):
                 return True
         return False
 
-    def new_local_coordination_strategy(self, w_t, static_obs_inf_grid, inflated_grid_by_robot, b2_sim,
-                                        robot_uid, goal, plan, fov, try_max, t_min, t_max, pos_tol, ang_tol,
-                                        neighborhood, step_count, trans_mult, rot_mult, action_space_reduction):
+    # def before_icra_local_coordination_strategy(self, w_t, static_obs_inf_grid, inflated_grid_by_robot, b2_sim,
+    #                                             robot_uid, goal, plan, fov, try_max, t_min, t_max, pos_tol, ang_tol,
+    #                                             neighborhood, step_count, trans_mult, rot_mult, action_space_reduction):
+    #     # If current robot pose is close enough to goal, return Success
+    #     if self.is_goal_reached(w_t.entities[robot_uid].pose, goal, pos_tol, ang_tol):
+    #         return ba.GoalSuccess(goal)
+    #
+    #     # Try to compute and/or execute a plan to reach the goal
+    #     try_compute_plan = False
+    #     conflicts = []
+    #     if plan.exists():
+    #         if plan.was_last_step_success(w_t, self._last_action_result):
+    #             conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov, rp=self._rp, robot_name=self._robot_name)
+    #             if plan.is_postponed:
+    #                 if not conflicts:
+    #                     self.simulation_log.append(utils.BasicLog(
+    #                         "Agent {}: Unpostponing plan.".format(self._robot_name), step_count
+    #                     ))
+    #                     plan.unpostpone(step_count)
+    #                     return plan.pop_next_step()
+    #                 else:
+    #                     if self.must_replan_now(conflicts):
+    #                         self.simulation_log.append(utils.BasicLog(
+    #                             "Agent {}: Try compute plan because conflicts during postponement (with {} steps left) that require immediate replanning: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
+    #                         ))
+    #                         plan.new_conflicts_history[step_count] = conflicts[0]
+    #                         try_compute_plan = True
+    #                     elif plan.should_postponement_be_over():
+    #                         self.simulation_log.append(utils.BasicLog(
+    #                             "Agent {}: Try compute plan because postponement should be over and there are conflicts: {}".format(self._robot_name, conflicts), step_count
+    #                         ))
+    #                         try_compute_plan = True
+    #                     else:
+    #                         return plan.pop_next_step()
+    #             else:
+    #                 if not conflicts:
+    #                     if plan.is_evasion_over():
+    #                         try_compute_plan = True
+    #                     else:
+    #                         return plan.pop_next_step()
+    #                 else:
+    #                     if self.must_replan_now(conflicts):
+    #                         self.simulation_log.append(utils.BasicLog(
+    #                             "Agent {}: Try compute plan because conflicts during normal execution: {}".format(self._robot_name, conflicts), step_count
+    #                         ))
+    #                         plan.new_conflicts_history[step_count] = conflicts[0]
+    #                         try_compute_plan = True
+    #                     else:
+    #                         plan.new_conflicts_history[step_count] = conflicts[0]
+    #                         plan.postpone(t_min, t_max, step_count)
+    #                         self.simulation_log.append(utils.BasicLog(
+    #                             "Agent {}: Postpone plan for {} steps because conflicts during normal execution: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
+    #                         ))
+    #                         return plan.pop_next_step()
+    #         else:
+    #             self.simulation_log.append(utils.BasicLog(
+    #                 "Agent {}: Postpone plan because last step execution failed.".format(self._robot_name), step_count
+    #             ))
+    #             if isinstance(self._last_action_result, ar.DynamicCollisionFailure):
+    #                 plan.new_conflicts_history[step_count] = SimultaneousSpaceAccess()
+    #             else:
+    #                 plan.new_conflicts_history[step_count] = ConcurrentGrabConflict()
+    #             plan.postpone(t_min, t_max, step_count)
+    #             return plan.pop_next_step()
+    #     else:
+    #         if plan.is_postponed:
+    #             return plan.pop_next_step()
+    #         else:
+    #             self.simulation_log.append(utils.BasicLog(
+    #                 "Agent {}: Try compute plan because there is no plan yet.".format(self._robot_name), step_count
+    #             ))
+    #             try_compute_plan = True
+    #
+    #     if try_compute_plan:
+    #         if plan.has_tries_remaining(try_max):
+    #             # potential_deadlocks = self.potential_deadlocks(conflicts, plan)
+    #             # if potential_deadlocks and self.use_social_cost:
+    #             #     self.simulation_log.append(utils.BasicLog(
+    #             #         "Agent {}: Potential deadlocks detected.".format(self._robot_name),
+    #             #         step_count
+    #             #     ))
+    #             #     evasion_path = self.compute_evasion(inflated_grid_by_robot, w_t, robot_uid, potential_deadlocks)  # TODO
+    #             #     if evasion_path:
+    #             #         self.simulation_log.append(utils.BasicLog(
+    #             #             "Agent {}: Executing evasion path.".format(self._robot_name),
+    #             #             step_count
+    #             #         ))
+    #             #         plan.update_plan(Plan([evasion_path], goal, self._robot_uid), step_count)  # TODO
+    #             #         self._rp.cleanup_p_opt(ns=self._robot_name)
+    #             #         self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+    #             #         return plan.pop_next_step()
+    #
+    #             if plan.new_replan_history is None:
+    #                 plan.new_replan_history = set()
+    #             else:
+    #                 plan.new_replan_history.add(step_count)
+    #             # TODO Move all this to Plan.compute_plan method
+    #             dynamic_entities = {
+    #                 uid for uid, entity in w_t.entities.items() if (
+    #                     (isinstance(entity, Robot) and uid != robot_uid)
+    #                     or (uid in w_t.entity_to_agent and w_t.entity_to_agent[uid] != robot_uid)
+    #                 )
+    #             }
+    #             w_t_no_dyn = w_t.light_copy(ignored_entities=dynamic_entities)
+    #             inflated_grid_by_robot.deactivate_entities(dynamic_entities)
+    #             static_obs_inf_grid.deactivate_entities(dynamic_entities)
+    #             p = self.select_connect(
+    #                 w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, goal, trans_mult, rot_mult,
+    #                 neighborhood=neighborhood, action_space_reduction=action_space_reduction
+    #             )
+    #             inflated_grid_by_robot.activate_entities(dynamic_entities)
+    #             static_obs_inf_grid.activate_entities(dynamic_entities)
+    #             plan.update_plan(p, step_count)
+    #             self._rp.cleanup_p_opt(ns=self._robot_name)
+    #             self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+    #
+    #             if plan.exists():
+    #                 conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov, rp=self._rp, robot_name=self._robot_name)
+    #                 if conflicts:
+    #                     self.simulation_log.append(utils.BasicLog(
+    #                         "Agent {}: A new plan has been computed ignoring dynamic obstacles but has conflicts with them: {}".format(self._robot_name, conflicts), step_count
+    #                     ))
+    #                     if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
+    #                         conflicting_uids = {conflict.obstacle_uid for conflict in conflicts}
+    #                         new_dynamic_entities = dynamic_entities.difference(conflicting_uids)
+    #                         new_w_t_no_dyn = w_t.light_copy(ignored_entities=new_dynamic_entities)
+    #                         inflated_grid_by_robot.deactivate_entities(new_dynamic_entities)
+    #                         static_obs_inf_grid.deactivate_entities(new_dynamic_entities)
+    #                         p = self.select_connect(
+    #                             new_w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, goal, trans_mult, rot_mult,
+    #                             neighborhood=neighborhood, action_space_reduction=action_space_reduction
+    #                         )
+    #                         inflated_grid_by_robot.activate_entities(new_dynamic_entities)
+    #                         static_obs_inf_grid.activate_entities(new_dynamic_entities)
+    #
+    #                         if p.exists():
+    #                             plan.update_plan(p, step_count)
+    #                             self._rp.cleanup_p_opt(ns=self._robot_name)
+    #                             self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+    #
+    #                             conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov, rp=self._rp, robot_name=self._robot_name)
+    #                             if conflicts:
+    #                                 self.simulation_log.append(utils.BasicLog(
+    #                                     "Agent {}: A new plan has been computed with conflicting obstacles but still has conflicts: {}".format(
+    #                                         self._robot_name, conflicts), step_count
+    #                                 ))
+    #                                 plan.new_conflicts_history[step_count] = conflicts[0]
+    #
+    #                                 potential_deadlocks = self.potential_deadlocks(conflicts, plan)  # TODO
+    #                                 if potential_deadlocks and self.use_social_cost:
+    #                                     self.simulation_log.append(utils.BasicLog(
+    #                                         "Agent {}: Potential deadlocks detected.".format(self._robot_name),
+    #                                         step_count
+    #                                     ))
+    #                                     evasion_path = self.compute_evasion(inflated_grid_by_robot, w_t, robot_uid, potential_deadlocks)  # TODO
+    #                                     if evasion_path:
+    #                                         self.simulation_log.append(utils.BasicLog(
+    #                                             "Agent {}: Executing evasion path.".format(self._robot_name),
+    #                                             step_count
+    #                                         ))
+    #                                         plan.update_plan(Plan([evasion_path], goal, self._robot_uid), step_count)  # TODO
+    #                                         self._rp.cleanup_p_opt(ns=self._robot_name)
+    #                                         self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+    #                                         return plan.pop_next_step()
+    #                                     else:
+    #                                         plan.postpone(t_min, t_max, step_count)
+    #                                         self.simulation_log.append(utils.BasicLog(
+    #                                             "Agent {}: Postpone plan for {} steps because conflicts after computation: {}".format(
+    #                                                 self._robot_name, plan.wait_counter, conflicts), step_count
+    #                                         ))
+    #                                 else:
+    #                                     plan.postpone(t_min, t_max, step_count)
+    #                                     self.simulation_log.append(utils.BasicLog(
+    #                                         "Agent {}: Postpone plan for {} steps because conflicts after computation: {}".format(
+    #                                             self._robot_name, plan.wait_counter, conflicts), step_count
+    #                                     ))
+    #
+    #                             return plan.pop_next_step()
+    #                         else:
+    #                             potential_deadlocks = self.potential_deadlocks(conflicts, plan)
+    #                             if potential_deadlocks and self.use_social_cost:
+    #                                 self.simulation_log.append(utils.BasicLog(
+    #                                     "Agent {}: Potential deadlocks detected.".format(self._robot_name),
+    #                                     step_count
+    #                                 ))
+    #                                 evasion_path = self.compute_evasion(inflated_grid_by_robot, w_t, robot_uid, potential_deadlocks)  # TODO
+    #                                 if evasion_path:
+    #                                     self.simulation_log.append(utils.BasicLog(
+    #                                         "Agent {}: Executing evasion path.".format(self._robot_name),
+    #                                         step_count
+    #                                     ))
+    #                                     plan.update_plan(Plan([evasion_path], goal, self._robot_uid), step_count)  # TODO
+    #                                     self._rp.cleanup_p_opt(ns=self._robot_name)
+    #                                     self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+    #                                     return plan.pop_next_step()
+    #                     else:
+    #                         ba.GoalFailed(goal)
+    #                 else:
+    #                     return plan.pop_next_step()
+    #
+    #                 if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
+    #                     if robot_uid in w_t.entity_to_agent.inverse:
+    #                         obstacle_uid = w_t.entity_to_agent.inverse[robot_uid]
+    #                         robot, obstacle = w_t.entities[robot_uid], w_t.entities[obstacle_uid]
+    #                         other_entities_polygons = {
+    #                             uid: e.polygon
+    #                             for uid, e in w_t.entities.items() if uid not in (robot_uid, obstacle_uid)
+    #                         }
+    #                         other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
+    #                         transit_configuration_after_release = self.get_next_transit_start_configuration(
+    #                             inflated_grid_by_robot, robot.pose, robot.polygon, robot_uid, obstacle_uid, obstacle.pose, b2_sim,
+    #                             other_entities_polygons, other_entities_aabb_tree, trans_mult, rot_mult, use_b2=False
+    #                         )
+    #                         if transit_configuration_after_release:
+    #                             self.simulation_log.append(utils.BasicLog(
+    #                                 "Agent {}: Release object {} because of plan change during manipulation.".format(self._robot_name, obstacle.name), step_count
+    #                             ))
+    #                             return transit_configuration_after_release.action
+    #                         else:
+    #                             self.simulation_log.append(utils.BasicLog(
+    #                                 "Agent {}: Could not release object {} during manipulation because no valid transit pose could be found.".format(self._robot_name, obstacle.name), step_count
+    #                             ))
+    #                     plan.new_conflicts_history[step_count] = conflicts[0]
+    #                     plan.postpone(t_min, t_max, step_count)
+    #                     self.simulation_log.append(utils.BasicLog(
+    #                         "Agent {}: Postponing for {} steps because no plan could be found yet.".format(self._robot_name, plan.wait_counter), step_count
+    #                     ))
+    #                     return plan.pop_next_step()
+    #                 else:
+    #                     self.simulation_log.append(utils.BasicLog(
+    #                         "Agent {}: No plan could be found, no tries are remaining or no plan can ever be found.".format(self._robot_name), step_count
+    #                     ))
+    #
+    #     # If no success nor plan step returned, return failure by default
+    #     return ba.GoalFailed(goal)
+
+    def full_coordination_strategy(self, w_t, static_obs_inf_grid, inflated_grid_by_robot, b2_sim,
+                                    robot_uid, goal, plan, fov, try_max, t_min, t_max, pos_tol, ang_tol,
+                                    neighborhood, step_count, trans_mult, rot_mult, action_space_reduction):
         # If current robot pose is close enough to goal, return Success
         if self.is_goal_reached(w_t.entities[robot_uid].pose, goal, pos_tol, ang_tol):
             return ba.GoalSuccess(goal)
 
-        # Try to compute and/or execute a plan to reach the goal
-        try_compute_plan = False
-        if plan.exists():
-            if plan.was_last_step_success(w_t, self._last_action_result):
-                conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov, rp=self._rp, robot_name=self._robot_name)
-                if plan.is_postponed:
-                    if not conflicts:
-                        self.simulation_log.append(utils.BasicLog(
-                            "Agent {}: Unpostponing plan.".format(self._robot_name), step_count
-                        ))
-                        plan.unpostpone(step_count)
-                        return plan.pop_next_step()
-                    else:
-                        if self.must_replan_now(conflicts):
-                            self.simulation_log.append(utils.BasicLog(
-                                "Agent {}: Try compute plan because conflicts during postponement (with {} steps left) that require immediate replanning: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
-                            ))
-                            plan.new_conflicts_history[step_count] = conflicts[0]
-                            try_compute_plan = True
-                        elif plan.should_postponement_be_over():
-                            self.simulation_log.append(utils.BasicLog(
-                                "Agent {}: Try compute plan because postponement should be over and there are conflicts: {}".format(self._robot_name, conflicts), step_count
-                            ))
-                            try_compute_plan = True
-                        else:
-                            return plan.pop_next_step()
-                else:
-                    if not conflicts:
-                        return plan.pop_next_step()
-                    else:
-                        if self.must_replan_now(conflicts):
-                            self.simulation_log.append(utils.BasicLog(
-                                "Agent {}: Try compute plan because conflicts during normal execution: {}".format(self._robot_name, conflicts), step_count
-                            ))
-                            plan.new_conflicts_history[step_count] = conflicts[0]
-                            try_compute_plan = True
-                        else:
-                            plan.new_conflicts_history[step_count] = conflicts[0]
-                            plan.postpone(t_min, t_max, step_count)
-                            self.simulation_log.append(utils.BasicLog(
-                                "Agent {}: Postpone plan for {} steps because conflicts during normal execution: {}".format(self._robot_name, plan.wait_counter, conflicts), step_count
-                            ))
-                            return plan.pop_next_step()
-            else:
-                self.simulation_log.append(utils.BasicLog(
-                    "Agent {}: Postpone plan because last step execution failed.".format(self._robot_name), step_count
-                ))
-                if isinstance(self._last_action_result, ar.DynamicCollisionFailure):
-                    plan.new_conflicts_history[step_count] = SimultaneousSpaceAccess()
-                else:
-                    plan.new_conflicts_history[step_count] = ConcurrentGrabConflict()
-                plan.postpone(t_min, t_max, step_count)
-                return plan.pop_next_step()
+        if not plan.exists():
+            self.simulation_log.append(utils.BasicLog(
+                "Agent {}: Absence of plan requires immediate replanning.".format(self._robot_name), step_count
+            ))
+            return self.replan(
+                w_t, static_obs_inf_grid, inflated_grid_by_robot, b2_sim,
+                robot_uid, goal, plan, fov, try_max, t_min, t_max, pos_tol, ang_tol,
+                neighborhood, step_count, trans_mult, rot_mult, action_space_reduction
+            )
         else:
-            if plan.is_postponed:
-                return plan.pop_next_step()
-            else:
+            if plan.is_evasion_over():
                 self.simulation_log.append(utils.BasicLog(
-                    "Agent {}: Try compute plan because there is no plan yet.".format(self._robot_name), step_count
+                    "Agent {}: Finished evasion sequence, replanning.".format(self._robot_name), step_count
                 ))
-                try_compute_plan = True
+                return self.replan(
+                    w_t, static_obs_inf_grid, inflated_grid_by_robot, b2_sim,
+                    robot_uid, goal, plan, fov, try_max, t_min, t_max, pos_tol, ang_tol,
+                    neighborhood, step_count, trans_mult, rot_mult, action_space_reduction
+                )
 
-        if try_compute_plan:
-            if plan.has_tries_remaining(try_max):
-                if plan.new_replan_history is None:
-                    plan.new_replan_history = set()
+            conflicts = plan.get_conflicts(
+                b2_sim, w_t, inflated_grid_by_robot, step_count, fov, rp=self._rp, robot_name=self._robot_name
+            )
+            if not conflicts:
+                if plan.timer.is_running and plan.timer.is_timer_over(step_count):
+                    self.simulation_log.append(utils.BasicLog(
+                        "Agent {}: No more conflicts, unpostponing current plan.".format(
+                            self._robot_name), step_count
+                    ))
+                    plan.timer.is_running = False
+                    plan.unpostponements_history.append(step_count)
+                return plan.pop_next_step()  # Normal case, don't log
+            else:
+                if self.use_social_cost:
+                    potential_deadlocks = self.potential_deadlocks(conflicts, plan, step_count)
+                    if potential_deadlocks:
+                        if plan.timer.is_running and not plan.timer.is_timer_over(step_count):
+                            return ba.Wait()
+
+                        self.simulation_log.append(utils.BasicLog(
+                            "Agent {}: Potential deadlocks detected: {}.".format(
+                                self._robot_name, potential_deadlocks), step_count
+                        ))
+
+                        if not plan.has_tries_remaining(try_max):
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Failing goal, no tries remaining to plan an evasion.".format(
+                                    self._robot_name), step_count
+                            ))
+                            return ba.GoalFailed(goal)
+
+                        robot_cells = utils.accurate_rasterize_in_grid(
+                            w_t.entities[robot_uid].polygon, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose,
+                            inflated_grid_by_robot.d_width, inflated_grid_by_robot.d_height, fill=True
+                        )
+                        plan.forbidden_evasion_cells.update(set(robot_cells))
+                        evasion_path = self.compute_evasion(inflated_grid_by_robot, w_t, robot_uid, potential_deadlocks, plan.forbidden_evasion_cells)
+                        if evasion_path:
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Executing evasion path.".format(self._robot_name), step_count
+                            ))
+                            plan.update_plan(Plan([evasion_path], goal, self._robot_uid), step_count)
+                            self._rp.cleanup_p_opt(ns=self._robot_name)
+                            self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+                            return plan.pop_next_step()
+                        else:
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: I can not or should not evade, postponing...".format(
+                                    self._robot_name, potential_deadlocks), step_count
+                            ))
+                            return plan.new_postpone(t_min, t_max, step_count, conflicts, self.simulation_log, self._robot_name)
+                if not self.must_replan_now(conflicts):
+                    return plan.new_postpone(t_min, t_max, step_count, conflicts, self.simulation_log, self._robot_name)
                 else:
-                    plan.new_replan_history.add(step_count)
-                # TODO Move all this to Plan.compute_plan method
-                dynamic_entities = {
-                    uid for uid, entity in w_t.entities.items() if (
+                    self.simulation_log.append(utils.BasicLog(
+                        "Agent {}: Detected conflicts require immediate replanning".format(self._robot_name), step_count
+                    ))
+                    return self.replan(
+                        w_t, static_obs_inf_grid, inflated_grid_by_robot, b2_sim,
+                        robot_uid, goal, plan, fov, try_max, t_min, t_max, pos_tol, ang_tol,
+                        neighborhood, step_count, trans_mult, rot_mult, action_space_reduction
+                    )
+
+    def replan(self, w_t, static_obs_inf_grid, inflated_grid_by_robot, b2_sim,
+               robot_uid, goal, plan, fov, try_max, t_min, t_max, pos_tol, ang_tol,
+               neighborhood, step_count, trans_mult, rot_mult, action_space_reduction):
+        if not plan.has_tries_remaining(try_max):
+            self.simulation_log.append(utils.BasicLog(
+                "Agent {}: Failing goal, no tries remaining to plan even while ignoring dynamic obstacles.".format(
+                    self._robot_name), step_count
+            ))
+            return ba.GoalFailed(goal)
+        else:
+            plan.new_replan_history.add(step_count)
+
+            # I - Compute plan (ignoring dynamic obstacles) and set it to current plan
+            dynamic_entities = {
+                uid for uid, entity in w_t.entities.items() if (
                         (isinstance(entity, Robot) and uid != robot_uid)
                         or (uid in w_t.entity_to_agent and w_t.entity_to_agent[uid] != robot_uid)
-                    )
-                }
-                w_t_no_dyn = w_t.light_copy(ignored_entities=dynamic_entities)
-                inflated_grid_by_robot.deactivate_entities(dynamic_entities)
-                static_obs_inf_grid.deactivate_entities(dynamic_entities)
-                p = self.select_connect(
-                    w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, goal, trans_mult, rot_mult,
-                    neighborhood=neighborhood, action_space_reduction=action_space_reduction
                 )
-                inflated_grid_by_robot.activate_entities(dynamic_entities)
-                static_obs_inf_grid.activate_entities(dynamic_entities)
-                plan.update_plan(p, step_count)
-                self._rp.cleanup_p_opt(ns=self._robot_name)
-                self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+            }
+            w_t_no_dyn = w_t.light_copy(ignored_entities=dynamic_entities)
+            inflated_grid_by_robot.deactivate_entities(dynamic_entities)
+            static_obs_inf_grid.deactivate_entities(dynamic_entities)
+            p = self.select_connect(
+                w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, goal, trans_mult, rot_mult,
+                neighborhood=neighborhood, action_space_reduction=action_space_reduction
+            )
+            inflated_grid_by_robot.activate_entities(dynamic_entities)
+            static_obs_inf_grid.activate_entities(dynamic_entities)
+            plan.update_plan(p, step_count)
+            self._rp.cleanup_p_opt(ns=self._robot_name)
+            self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
 
-                if plan.exists():
-                    conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov, rp=self._rp, robot_name=self._robot_name)
-                    if conflicts:
+            if not plan.exists():
+                self.simulation_log.append(utils.BasicLog(
+                    "Agent {}: Failing goal, no plan could be found when ignoring dynamic obstacles.".format(
+                        self._robot_name), step_count
+                ))
+                return ba.GoalFailed(goal)
+            else:
+                conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov, rp=self._rp,
+                                               robot_name=self._robot_name)
+                if not conflicts:
+                    self.simulation_log.append(utils.BasicLog(
+                        "Agent {}: Found a pure NAMO plan without conflicts with dynamic obstacles, "
+                        "executing its first step...".format(
+                            self._robot_name), step_count
+                    ))
+                    return plan.pop_next_step()
+                else:
+                    self.simulation_log.append(utils.BasicLog(
+                        "Agent {}: A new plan has been computed ignoring dynamic "
+                        "obstacles but has conflicts with them: {}".format(
+                            self._robot_name, conflicts), step_count
+                    ))
+
+                    if not(plan.has_tries_remaining(try_max) and plan.can_even_be_found()):
                         self.simulation_log.append(utils.BasicLog(
-                            "Agent {}: A new plan has been computed ignoring dynamic obstacles but has conflicts with them: {}".format(self._robot_name, conflicts), step_count
+                            "Agent {}: Failing goal, no tries remaining to plan after conflicts "
+                            "were found with the plan ignoring dynamic obstacles.".format(
+                                self._robot_name, conflicts), step_count
                         ))
-                        if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
-                            conflicting_uids = {conflict.obstacle_uid for conflict in conflicts}
-                            new_dynamic_entities = dynamic_entities.difference(conflicting_uids)
-                            new_w_t_no_dyn = w_t.light_copy(ignored_entities=new_dynamic_entities)
-                            inflated_grid_by_robot.deactivate_entities(new_dynamic_entities)
-                            static_obs_inf_grid.deactivate_entities(new_dynamic_entities)
-                            p = self.select_connect(
-                                new_w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, goal, trans_mult, rot_mult,
-                                neighborhood=neighborhood, action_space_reduction=action_space_reduction
-                            )
-                            inflated_grid_by_robot.activate_entities(new_dynamic_entities)
-                            static_obs_inf_grid.activate_entities(new_dynamic_entities)
-
-                            if p.exists():
-                                plan.update_plan(p, step_count)
-                                self._rp.cleanup_p_opt(ns=self._robot_name)
-                                self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
-
-                                conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov, rp=self._rp, robot_name=self._robot_name)
-                                if conflicts:
-                                    self.simulation_log.append(utils.BasicLog(
-                                        "Agent {}: A new plan has been computed with conflicting obstacles but still has conflicts: {}".format(self._robot_name, conflicts), step_count
-                                    ))
-                                    plan.new_conflicts_history[step_count] = conflicts[0]
-                                    plan.postpone(t_min, t_max, step_count)
-                                    self.simulation_log.append(utils.BasicLog(
-                                        "Agent {}: Postpone plan for {} steps because conflicts after computation: {}".format(
-                                            self._robot_name, plan.wait_counter, conflicts), step_count
-                                    ))
-                                return plan.pop_next_step()
-                        else:
-                            ba.GoalFailed(goal)
+                        return ba.GoalFailed(goal)
                     else:
-                        return plan.pop_next_step()
+                        # II - Compute plan (with conflicting dynamic obstacles as static)
+                        conflicting_uids = {conflict.obstacle_uid for conflict in conflicts}
+                        new_dynamic_entities = dynamic_entities.difference(conflicting_uids)
+                        new_w_t_no_dyn = w_t.light_copy(ignored_entities=new_dynamic_entities)
+                        inflated_grid_by_robot.deactivate_entities(new_dynamic_entities)
+                        static_obs_inf_grid.deactivate_entities(new_dynamic_entities)
+                        main_robot_inflation = utils.get_circumscribed_radius(w_t.entities[robot_uid].polygon)
+                        polygons_tmp = {}
+                        for conflicting_uid in conflicting_uids:
+                            polygons_tmp[conflicting_uid] = new_w_t_no_dyn.entities[conflicting_uid].polygon
+                            new_w_t_no_dyn.entities[conflicting_uid].polygon = new_w_t_no_dyn.entities[conflicting_uid].polygon.buffer(main_robot_inflation, join_style=2)
+                            inflated_grid_by_robot.polygon_update({conflicting_uid: new_w_t_no_dyn.entities[conflicting_uid].polygon})
+                        p = self.select_connect(
+                            new_w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, b2_sim, goal, trans_mult,
+                            rot_mult,
+                            neighborhood=neighborhood, action_space_reduction=action_space_reduction
+                        )
+                        for conflicting_uid, prev_polygon in polygons_tmp.items():
+                            inflated_grid_by_robot.polygon_update({conflicting_uid: prev_polygon})
+                        inflated_grid_by_robot.activate_entities(new_dynamic_entities)
+                        static_obs_inf_grid.activate_entities(new_dynamic_entities)
 
-                    if plan.has_tries_remaining(try_max) and plan.can_even_be_found():
-                        if robot_uid in w_t.entity_to_agent.inverse:
-                            obstacle_uid = w_t.entity_to_agent.inverse[robot_uid]
-                            robot, obstacle = w_t.entities[robot_uid], w_t.entities[obstacle_uid]
-                            other_entities_polygons = {
-                                uid: e.polygon
-                                for uid, e in w_t.entities.items() if uid not in (robot_uid, obstacle_uid)
-                            }
-                            other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
-                            transit_configuration_after_release = self.get_next_transit_start_configuration(
-                                inflated_grid_by_robot, robot.pose, robot.polygon, robot_uid, obstacle_uid, obstacle.pose, b2_sim,
-                                other_entities_polygons, other_entities_aabb_tree, trans_mult, rot_mult, use_b2=False
-                            )
-                            if transit_configuration_after_release:
+                        if not p.exists():
+                            self.simulation_log.append(utils.BasicLog(
+                                "Agent {}: Postponing for {} steps, could not find a plan avoiding the conflicting "
+                                "dynamic obstacles of the pure NAMO plan.".format(
+                                    self._robot_name, t_max), step_count
+                            ))
+                            return plan.new_postpone(t_min, t_max, step_count, conflicts, self.simulation_log, self._robot_name)
+                        else:
+
+                            plan.update_plan(p, step_count)
+                            self._rp.cleanup_p_opt(ns=self._robot_name)
+                            self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+
+                            conflicts = plan.get_conflicts(b2_sim, w_t, inflated_grid_by_robot, step_count, fov,
+                                                           rp=self._rp, robot_name=self._robot_name)
+                            if conflicts:
                                 self.simulation_log.append(utils.BasicLog(
-                                    "Agent {}: Release object {} because of plan change during manipulation.".format(self._robot_name, obstacle.name), step_count
+                                    "Agent {}: Postponing for {} steps, a new plan has been computed avoiding the "
+                                    "conflicting dynamic obstacles of the pure NAMO plan, but has other conflicts: {}".format(
+                                        self._robot_name, t_max, conflicts), step_count
                                 ))
-                                return transit_configuration_after_release.action
+                                plan.new_conflicts_history[step_count] = conflicts[0]
+                                return plan.new_postpone(t_min, t_max, step_count, conflicts, self.simulation_log, self._robot_name)
                             else:
                                 self.simulation_log.append(utils.BasicLog(
-                                    "Agent {}: Could not release object {} during manipulation because no valid transit pose could be found.".format(self._robot_name, obstacle.name), step_count
+                                    "Agent {}: Found a new plan that does not have conflicts with the dynamic obstacles "
+                                    "conflicting with the pure NAMO plan, executing its first step...".format(
+                                        self._robot_name), step_count
                                 ))
-                        plan.new_conflicts_history[step_count] = conflicts[0]
-                        plan.postpone(t_min, t_max, step_count)
-                        self.simulation_log.append(utils.BasicLog(
-                            "Agent {}: Postponing for {} steps because no plan could be found yet.".format(self._robot_name, plan.wait_counter), step_count
-                        ))
-                        return plan.pop_next_step()
-                    else:
-                        self.simulation_log.append(utils.BasicLog(
-                            "Agent {}: No plan could be found, no tries are remaining or no plan can ever be found.".format(self._robot_name), step_count
-                        ))
 
-        # If no success nor plan step returned, return failure by default
-        return ba.GoalFailed(goal)
+                                return plan.pop_next_step()
 
     def select_connect(self, w_t, static_obs_inf_grid, inflated_grid_by_robot_max, b2_sim, r_f, trans_mult, rot_mult,
                        ccs_data=None, prev_list=set(), neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -1426,7 +1786,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         return Plan([recovery_path], r_f, self._robot_uid).append(future_plan)
         ################################################################
 
-        simple_path_to_goal = self.find_path(r_t, r_f, inflated_grid_by_robot_max, robot.polygon)
+        simple_path_to_goal = self.find_path(r_t, r_f, w_t, inflated_grid_by_robot_max, robot.polygon)
         if simple_path_to_goal:
             # If the goal is in the same free space component as the robot in simulated w_t
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
@@ -1517,7 +1877,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 )
                 inflated_grid_by_robot_max.cells_sets_update(prev_cells_sets)
                 if not future_plan.plan_error:
-                    tho_n = self.find_path(r_t, tho_m.robot_path.poses[0], inflated_grid_by_robot_max, robot.polygon)
+                    tho_n = self.find_path(r_t, tho_m.robot_path.poses[0], w_t, inflated_grid_by_robot_max, robot.polygon)
                     if not tho_n:
                         raise ValueError("It should not be possible not to find a transit path when the transfer path is found.")
                     plan_components = [tho_n, tho_m] if tho_n.actions else [tho_m]
@@ -2440,6 +2800,7 @@ class Stilman2005Behavior(BaselineBehavior):
             translation_vector=(-1. * (grid.inflation_radius + 1.5 * grid.res), 0.), entity_uid=obstacle_uid
         )
         new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
+        old_cell = utils.real_to_grid(robot_pose[0], robot_pose[1], grid.res, grid.grid_pose)
         cell = utils.real_to_grid(new_robot_pose[0], new_robot_pose[1], grid.res, grid.grid_pose)
 
         if utils.is_in_matrix(cell, grid.d_width, grid.d_height):
@@ -2504,7 +2865,10 @@ class Stilman2005Behavior(BaselineBehavior):
             has_new_local_opening = True
 
         if has_new_local_opening:
-            inflated_grid_by_robot_max.polygon_update(new_or_updated_polygons={obstacle_uid: new_obstacle_polygon})
+            obstacle_initially_deactivated = obstacle_uid in inflated_grid_by_robot_max.deactivated_entities_cells_sets
+            if obstacle_initially_deactivated:
+                inflated_grid_by_robot_max.activate_entities({obstacle_uid})
+            previous_cells_sets = inflated_grid_by_robot_max.polygon_update(new_or_updated_polygons={obstacle_uid: new_obstacle_polygon})
 
             if not c_1_cells_set or (c_1_cells_set and goal_cell in c_1_cells_set):
                 cell_in_c_1 = goal_cell
@@ -2518,7 +2882,9 @@ class Stilman2005Behavior(BaselineBehavior):
                     except StopIteration:
                         # Note: using the the exception detection is the pythonic way it seems (no has_next)
                         # No opening because c_1_cells_set is entirely inaccessible to the robot after manipulation
-                        inflated_grid_by_robot_max.cells_sets_update(removed_cells_sets={obstacle_uid})
+                        inflated_grid_by_robot_max.cells_sets_update(new_or_updated_cells_sets=previous_cells_sets)
+                        if obstacle_initially_deactivated:
+                            inflated_grid_by_robot_max.deactivate_entities({obstacle_uid})
                         has_new_global_opening, skipped_global_opening_check = False, False
                         return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
 
@@ -2530,8 +2896,9 @@ class Stilman2005Behavior(BaselineBehavior):
                 neighborhood, check_diag_neighbors=False
             )
 
-            inflated_grid_by_robot_max.cells_sets_update(removed_cells_sets={obstacle_uid})
-
+            inflated_grid_by_robot_max.cells_sets_update(new_or_updated_cells_sets=previous_cells_sets)
+            if obstacle_initially_deactivated:
+                inflated_grid_by_robot_max.deactivate_entities({obstacle_uid})
             skipped_global_opening_check = False
 
             return has_new_global_opening, has_new_local_opening, skipped_global_opening_check
@@ -2800,7 +3167,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def new_sorted_cells_by_combined_cost(self, inflated_grid_by_obstacle,
                                           robot_polygon, robot_pose,
                                           obstacle_pose, goal_pose):
-        # Initialize some need variables
+        # Initialize some needed variables
         obstacle_cell = utils.real_to_grid(
             obstacle_pose[0], obstacle_pose[1],
             inflated_grid_by_obstacle.res, inflated_grid_by_obstacle.grid_pose
@@ -2922,6 +3289,164 @@ class Stilman2005Behavior(BaselineBehavior):
                 debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
 
         return cells_sorted_by_combined_cost, sorted_cell_to_combined_cost
+
+    def compute_evasion(self, inflated_grid_by_robot_max, w_t, main_robot_uid, potential_deadlocks, forbidden_evasion_cells, use_combined_cost=True):
+        # Compute evasion for main robot
+        main_robot = w_t.entities[main_robot_uid]
+        main_robot_evasion_cell_social_cost, main_robot_evasion_path = self.compute_evasion_for_one(
+            w_t, inflated_grid_by_robot_max, main_robot, forbidden_evasion_cells, use_combined_cost, return_path=True
+        )
+
+        if not main_robot_evasion_path:
+            return None
+        else:
+            # If this robot is able to evade, it must check if it should by comparing its evasion path with the one of
+            # other robots.
+            other_robots_uids = {
+                potential_deadlock.obstacle_uid
+                for potential_deadlock in potential_deadlocks if isinstance(potential_deadlock, RobotRobotConflict)
+            }
+            inflated_grid_by_robot_max.polygon_update(new_or_updated_polygons={main_robot_uid: main_robot.polygon})
+
+            other_robot_evasion_path_max_duration = 0
+            for robot_uid in other_robots_uids:
+                # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
+                #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
+                inflated_grid_by_robot_max.deactivate_entities({robot_uid})
+                other_robot = w_t.entities[robot_uid]
+                inflated_grid_by_robot_max.activate_entities({main_robot_uid})
+                other_robot_evasion_cell_social_cost = self.compute_evasion_for_one(
+                    w_t, inflated_grid_by_robot_max, other_robot, forbidden_evasion_cells, use_combined_cost, return_path=False
+                )
+                inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
+                if other_robot_evasion_cell_social_cost < main_robot_evasion_cell_social_cost:
+                    inflated_grid_by_robot_max.activate_entities({robot_uid})
+                    return None
+                elif other_robot_evasion_cell_social_cost == main_robot_evasion_cell_social_cost:
+                    if other_robot.pose[0] < main_robot.pose[0] and other_robot.pose[1] < main_robot.pose[1]:
+                        inflated_grid_by_robot_max.activate_entities({robot_uid})
+                        return None
+                real_path = graph_search.real_to_grid_search_a_star(other_robot.pose, main_robot.pose, inflated_grid_by_robot_max)
+                if real_path:
+                    phys_cost = 0.
+                    raw_path_iterator = iter(real_path)
+                    prev_step = next(raw_path_iterator)
+                    for cur_step in raw_path_iterator:
+                        phys_cost += self.g(prev_step, cur_step, is_transfer=False)
+                    other_robot_exchange_path = TransitPath.from_poses(real_path, other_robot.polygon, other_robot.pose, phys_cost)
+
+                    other_robot_evasion_path_max_duration = max(
+                        other_robot_evasion_path_max_duration, len(other_robot_exchange_path.actions)
+                    )
+                inflated_grid_by_robot_max.activate_entities({robot_uid})
+            main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
+            # main_robot_evasion_path.set_wait(100)
+            return main_robot_evasion_path
+
+
+    def compute_evasion_for_one(self, w_t, inflated_grid_by_robot_max, robot, forbidden_evasion_cells, use_combined_cost=False, return_path=False):
+        # If the robot is currently holding an object, try to release it first to find a valid transit starting configuration
+        transit_configuration_after_release = None
+        if robot.uid in w_t.entity_to_agent.inverse:
+            obstacle_uid = w_t.entity_to_agent.inverse[robot.uid]
+            obstacle = w_t.entities[obstacle_uid]
+            other_entities_polygons = {
+                uid: e.polygon
+                for uid, e in w_t.entities.items() if uid not in (robot.uid, obstacle_uid)
+            }
+            other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
+            transit_configuration_after_release = self.get_next_transit_start_configuration(
+                inflated_grid_by_robot_max, robot.pose, robot.polygon, robot.uid, obstacle_uid, obstacle.pose, None,
+                other_entities_polygons, other_entities_aabb_tree, 100., 1., use_b2=False
+            )
+            if not transit_configuration_after_release:
+                # Could not release obstacle during manipulation because no valid transit pose could be found.
+                if return_path:
+                    return 0., None
+                else:
+                    return 0.
+
+        # Compute shortest path to each cell of current component of robot
+        robot_polygon = robot.polygon
+        robot_pose = robot.pose
+        robot_cell = utils.real_to_grid(
+            robot_pose[0], robot_pose[1], inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose
+        )
+        if transit_configuration_after_release:
+            robot_polygon = transit_configuration_after_release.polygon
+            robot_pose = transit_configuration_after_release.floating_point_pose
+            robot_cell = transit_configuration_after_release.cell_in_grid
+
+        _, _, came_from, _, gscore, _ = graph_search.grid_search_dijkstra(
+            robot_cell, None, inflated_grid_by_robot_max.grid,
+            inflated_grid_by_robot_max.d_width, inflated_grid_by_robot_max.d_height
+        )
+
+        if not came_from:
+            # If the robot was in an obstacle, no evasion is possible
+            if return_path:
+                return 0., None
+            else:
+                return 0.
+        else:
+            accessible_cells = []
+            social_cost = []
+            distance_cost = []
+            for cell, value in gscore.items():
+                if cell not in forbidden_evasion_cells:
+                    accessible_cells.append(cell)
+                    social_cost.append(self._social_costmap[cell[0]][cell[1]])
+                    distance_cost.append(value)
+            social_cost = np.array(social_cost)
+            distance_cost = np.array(distance_cost)
+
+            if not use_combined_cost:
+                min_social_cost_index = np.argmin(social_cost)
+                evasion_cell = accessible_cells[min_social_cost_index]
+            else:
+                normalized_social_cost = (social_cost - np.min(social_cost)) / np.ptp(social_cost)
+                normalized_distance_cost = (distance_cost - np.min(distance_cost)) / np.ptp(distance_cost)
+                combined_cost = (
+                        (self.w_social * normalized_social_cost + self.w_obs * normalized_distance_cost)
+                        / (self.w_social + self.w_obs)
+                )
+                min_combined_cost_index = np.argmin(combined_cost)
+                evasion_cell = accessible_cells[min_combined_cost_index]
+
+                # publish_combined_cost_grid = True
+                # if publish_combined_cost_grid:
+                #     combined_costmap = np.zeros((inflated_grid_by_robot_max.d_width, inflated_grid_by_robot_max.d_height))
+                #     for cell, combined_cost in zip(accessible_cells, combined_cost):
+                #         combined_costmap[cell[0]][cell[1]] = combined_cost
+                #     self._rp.publish_grid_map(combined_costmap, inflated_grid_by_robot_max.res, ns=self._robot_name)
+                #
+                # self._rp.cleanup_multigoal_a_star_close_set(ns=self._robot_name)
+                # self._rp.cleanup_grid_map(ns=self._robot_name)
+
+            if not return_path:
+                return self._social_costmap[evasion_cell[0]][evasion_cell[1]]
+            else:
+                raw_cell_path = graph_search.reconstruct_path(came_from, evasion_cell)
+                real_path = utils.grid_path_to_real_path(
+                    raw_cell_path, robot_pose, None, inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose
+                )
+
+                phys_cost = 0.
+                real_path_iterator = iter(real_path)
+                prev_step = next(real_path_iterator)
+                for cur_step in real_path_iterator:
+                    phys_cost += self.g(prev_step, cur_step, is_transfer=False)
+
+                evasion_goal_pose = real_path[-1]
+
+                evasion_transit_path = EvasionTransitPath.from_poses(
+                    real_path, robot_polygon, robot_pose, phys_cost
+                )
+
+                if transit_configuration_after_release:
+                    evasion_transit_path.set_transit_configuration_after_release(transit_configuration_after_release)
+
+                return self._social_costmap[evasion_cell[0]][evasion_cell[1]], evasion_transit_path
 
     def h(self, r_i, r_j):
         translation_cost = self.translation_factor * utils.euclidean_distance(r_j, r_i)
