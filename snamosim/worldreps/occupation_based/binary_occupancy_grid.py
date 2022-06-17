@@ -68,23 +68,29 @@ class BinaryOccupancyGrid:
 
         if new_or_updated_cells_sets is not None:
             for uid, new_cells_set in new_or_updated_cells_sets.items():
-                if uid in self.cells_sets:
-                    prev_cells = self.cells_sets[uid]
-                    for cell in prev_cells:
-                        self.grid[cell[0]][cell[1]] -= 1
-                    prev_cells_sets[uid] = prev_cells
+                if uid in self.deactivated_entities_cells_sets:
+                    self.deactivated_entities_cells_sets[uid] = new_cells_set
+                else:
+                    if uid in self.cells_sets:
+                        prev_cells = self.cells_sets[uid]
+                        for cell in prev_cells:
+                            self.grid[cell[0]][cell[1]] -= 1
+                        prev_cells_sets[uid] = prev_cells
 
-                self.cells_sets[uid] = new_cells_set
-                for cell in new_cells_set:
-                    self.grid[cell[0]][cell[1]] += 1
+                    self.cells_sets[uid] = new_cells_set
+                    for cell in new_cells_set:
+                        self.grid[cell[0]][cell[1]] += 1
 
         if removed_cells_sets is not None:
             for uid in removed_cells_sets:
-                prev_cells = self.cells_sets[uid]
-                del self.cells_sets[uid]
-                for cell in prev_cells:
-                    self.grid[cell[0]][cell[1]] -= 1
-                prev_cells_sets[uid] = prev_cells
+                if uid in self.deactivated_entities_cells_sets:
+                    del self.deactivated_entities_cells_sets[uid]
+                else:
+                    prev_cells = self.cells_sets[uid]
+                    del self.cells_sets[uid]
+                    for cell in prev_cells:
+                        self.grid[cell[0]][cell[1]] -= 1
+                    prev_cells_sets[uid] = prev_cells
 
         return prev_cells_sets
 
