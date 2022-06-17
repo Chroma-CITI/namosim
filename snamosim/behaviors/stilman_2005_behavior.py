@@ -551,6 +551,15 @@ class TransitPath:
         # Compute and display horizon cells
         rp.publish_transit_horizon_cells(self.robot_path.poses, self.action_index, len(self.actions) + 1, check_horizon, inflated_grid_by_robot, robot_name)
 
+        robot_polygon = world.entities[robot_uid].polygon
+        main_robot_inflation = utils.get_circumscribed_radius(robot_polygon)
+        circles_to_avoid = {}
+        for uid, e in world.entities.items():
+            if isinstance(e, Robot) and uid != robot_uid:
+                r_avoid = utils.get_circumscribed_radius(
+                    e.polygon) + main_robot_inflation + 0.1  # Remove harcoded value
+                circles_to_avoid[uid]= utils.Circle(e.pose[0], e.pose[1], r_avoid)
+
         # Check for RobotRobot conflicts within horizon, and RobotObstacle conflicts even beyond
         conflicting_cells = set()
         conflicting_entities_cells = set()
@@ -2694,8 +2703,15 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return neighbors, tentative_g_scores
 
-    def find_path(self, robot_pose, goal_pose, inflated_grid_by_robot, robot_polygon):
-        real_path = graph_search.real_to_grid_search_a_star(robot_pose, goal_pose, inflated_grid_by_robot)
+    def find_path(self, robot_pose, goal_pose, w_t, inflated_grid_by_robot, robot_polygon):
+        # main_robot_inflation = utils.get_circumscribed_radius(robot_polygon)
+        # circles_to_avoid = []
+        # for uid, e in w_t.entities.items():
+        #     if isinstance(e, Robot) and uid != self._robot_uid:
+        #         r_avoid = utils.get_circumscribed_radius(e.polygon) + main_robot_inflation + 0.1  # Remove harcoded value
+        #         circles_to_avoid.append(utils.Circle(e.pose[0], e.pose[1], r_avoid))
+
+        real_path = graph_search.real_to_grid_search_a_star(robot_pose, goal_pose, inflated_grid_by_robot)  #, circles_to_avoid=circles_to_avoid)
         if real_path:
             phys_cost = 0.
             raw_path_iterator = iter(real_path)
