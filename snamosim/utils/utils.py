@@ -172,6 +172,7 @@ class BasicLog:
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
+
 def euclidean_distance(a, b):
     return math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
 
@@ -307,12 +308,13 @@ def real_pose_to_fixed_precision_pose(real_pose, trans_mult, rot_mult):
 
 def yaw_from_direction(direction_vector, radians=False):
     # TODO Replace this by atan2(y, x) with direction vector (x, y)
-    if direction_vector[1] < 0:
-        yaw = 2 * math.pi - math.acos(
-            direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
-    else:
-        yaw = math.acos(
-            direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
+    # if direction_vector[1] < 0:
+    #     yaw = 2 * math.pi - math.acos(
+    #         direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
+    # else:
+    #     yaw = math.acos(
+    #         direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
+    yaw = math.atan2(direction_vector[1], direction_vector[0])
     if radians:
         return yaw
     else:
@@ -350,11 +352,12 @@ def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
                 real_path.append(new_pose)
         previous_pose = new_pose
 
-    last_direction_vector = (goal_pose[0] - real_path[-1][0], goal_pose[1] - real_path[-1][1])
-    last_real_yaw = yaw_from_direction(last_direction_vector)
-    real_path.append((real_path[-1][0], real_path[-1][1], last_real_yaw))
-    real_path.append((goal_pose[0], goal_pose[1], last_real_yaw))
-    real_path.append(goal_pose)
+    if goal_pose:
+        last_direction_vector = (goal_pose[0] - real_path[-1][0], goal_pose[1] - real_path[-1][1])
+        last_real_yaw = yaw_from_direction(last_direction_vector)
+        real_path.append((real_path[-1][0], real_path[-1][1], last_real_yaw))
+        real_path.append((goal_pose[0], goal_pose[1], last_real_yaw))
+        real_path.append(goal_pose)
     return real_path
 
 
@@ -1070,3 +1073,20 @@ def is_close(a, b, rel_tol=1e-09):
 
 def angle_is_close(a, b, rel_tol=1e-09):
     return is_close(a, b, rel_tol) or is_close(a - 360., b, rel_tol) or is_close(a, b - 360., rel_tol)
+
+
+# def circle_to_cells(x, y, r, res, grid_pose, neighborhood=CHESSBOARD_NEIGHBORHOOD):
+#     start_cell = real_to_grid(x, y, res, grid_pose)
+#
+
+class Circle:
+    def __init__(self, x, y, r):
+        self.x = x
+        self.y = y
+        self.r = r
+
+    def intersects(self, x, y):
+        return euclidean_distance((self.x, self.y), (x, y)) <= self.r
+
+    def tuple_intersects(self, position):
+        return euclidean_distance((self.x, self.y), position) <= self.r
