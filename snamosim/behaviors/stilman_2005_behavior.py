@@ -103,11 +103,30 @@ class RobotObstacleConfiguration:
 
 
 class RobotRobotConflict:  # Systematic postpone
-    def __init__(self, obstacle_uid=0):
+    def __init__(self, obstacle_uid, obstacle_pose, robot_pose):
+        # TODO Add a self.moved_obstacle_uid and self.moved_obstacle_pose in this class
+        #  or create child class with these, to avoid conflict confusion if they are compared
+        #  in a context where the robot is in a transfer path and needs to compute a recovery
+        #  path in case of deadlock.
         self.obstacle_uid = obstacle_uid
+        self.obstacle_pose = utils.real_pose_to_fixed_precision_pose(obstacle_pose, 100., 1.)
+        self.robot_pose = utils.real_pose_to_fixed_precision_pose(robot_pose, 100., 1.)
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, RobotRobotConflict)
+            and self.obstacle_uid == other.obstacle_uid
+            and self.obstacle_pose==other.obstacle_pose
+            and self.robot_pose == other.robot_pose
+        )
+
+    def __hash__(self):
+        return hash((self.obstacle_uid, self.obstacle_pose, self.robot_pose))
 
     def __str__(self):
-        return "Robot-Robot conflict with obstacle uid {}.".format(self.obstacle_uid)
+        return "Robot-Robot conflict with obstacle uid {} (obstacle pose: {}; robot pose {}).".format(
+            self.obstacle_uid, self.obstacle_pose, self.robot_pose
+        )
 
     def __repr__(self):
         return self.__str__()
@@ -331,7 +350,9 @@ class TransferPath:
                     for uid in collides_with[robot_uid]:
                         if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
                             if counter <= check_horizon:
-                                conflicts.append(RobotRobotConflict(uid))
+                                conflicts.append(
+                                    RobotRobotConflict(uid, world.entities[uid].pose, self.robot_path.poses[0])
+                                )
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         else:
@@ -360,7 +381,9 @@ class TransferPath:
                     for uid in collides_with[robot_uid]:
                         if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
                             if counter <= check_horizon:
-                                conflicts.append(RobotRobotConflict(uid))
+                                conflicts.append(
+                                    RobotRobotConflict(uid, world.entities[uid].pose, self.robot_path.poses[-2])
+                                )
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         else:
@@ -385,7 +408,9 @@ class TransferPath:
                         for uid in colliding_uids:
                             if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
                                 if counter <= check_horizon:
-                                    conflicts.append(RobotRobotConflict(uid))
+                                    conflicts.append(
+                                        RobotRobotConflict(uid, world.entities[uid].pose, robot_pose)
+                                    )
                                     if exit_early_for_any_conflict:
                                         return conflicts
                             else:
@@ -404,7 +429,9 @@ class TransferPath:
                         for uid in collides_with[robot_uid]:
                             if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
                                 if counter <= check_horizon:
-                                    conflicts.append(RobotRobotConflict(uid))
+                                    conflicts.append(
+                                        RobotRobotConflict(uid, world.entities[uid].pose, self.robot_path.poses[index])
+                                    )
                                     if exit_early_for_any_conflict:
                                         return conflicts
                             else:
@@ -422,7 +449,9 @@ class TransferPath:
                         for uid in collides_with[self.obstacle_uid]:
                             if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
                                 if counter <= check_horizon:
-                                    conflicts.append(RobotRobotConflict(uid))
+                                    conflicts.append(
+                                        RobotRobotConflict(uid, world.entities[uid].pose, self.robot_path.poses[index])
+                                    )
                                     if exit_early_for_any_conflict:
                                         return conflicts
                             else:
@@ -531,12 +560,29 @@ class TransitPath:
 
             pose = self.robot_path.poses[index]
             cell = utils.real_to_grid(pose[0], pose[1], inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose)
+
+            if counter == 1:
+                for uid, circle in circles_to_avoid.items():
+                    if circle.intersects(pose[0], pose[1]):
+                        conflicts.append(
+                            RobotRobotConflict(uid, world.entities[uid].pose, pose)
+                        )
+                        conflicting_cells.add(cell)
+                        conflicting_entities_cells.update(inflated_grid_by_robot.cells_sets[uid])
+                        if exit_early_for_any_conflict:
+                            rp.publish_transit_conflicting_cells(conflicting_cells, inflated_grid_by_robot, robot_name)
+                            rp.publish_transit_conflicting_polygons_cells(conflicting_entities_cells,
+                                                                          inflated_grid_by_robot, robot_name)
+                            return conflicts
+
             if inflated_grid_by_robot.grid[cell[0]][cell[1]] != 0:
                 colliding_obstacles = inflated_grid_by_robot.obstacles_uids_in_cell(cell)
                 for uid in colliding_obstacles:
                     if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
                         if counter <= check_horizon:
-                            conflicts.append(RobotRobotConflict(uid))
+                            conflicts.append(
+                                RobotRobotConflict(uid, world.entities[uid].pose, pose)
+                            )
                             conflicting_cells.add(cell)
                             conflicting_entities_cells.update(inflated_grid_by_robot.cells_sets[uid])
                             if exit_early_for_any_conflict:
@@ -646,7 +692,9 @@ class RecoveryPath:
                     for uid in colliding_uids:
                         if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
                             if counter <= check_horizon:
-                                conflicts.append(RobotRobotConflict(uid))
+                                conflicts.append(
+                                    RobotRobotConflict(uid, world.entities[uid].pose, robot_pose)
+                                )
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         else:
@@ -665,7 +713,9 @@ class RecoveryPath:
                     for uid in collides_with[robot_uid]:
                         if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
                             if counter <= check_horizon:
-                                conflicts.append(RobotRobotConflict(uid))
+                                conflicts.append(
+                                    RobotRobotConflict(uid, world.entities[uid].pose, self.robot_path.poses[index])
+                                )
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         else:
