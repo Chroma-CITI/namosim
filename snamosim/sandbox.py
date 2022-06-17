@@ -87,7 +87,7 @@ def generate_after_the_feast_scenarios_from_simulation_results():
     scenarios_from_simulation_results(
         scenario_original_filepath=os.path.join(
             os.path.dirname(__file__),
-            "../data/simulations/s-namo_cases/04_after_the_feast/stilman_2005_behavior_complexified_random_goal_no_reset.json"
+            "../data/simulations/namo-socials/04_after_the_feast/stilman_2005_behavior_complexified_random_goal_no_reset.json"
         ),
         scenario_logs_dir_filepath=os.path.join(
             os.path.dirname(__file__),
@@ -95,17 +95,17 @@ def generate_after_the_feast_scenarios_from_simulation_results():
         ),
         temp_simulations_dir_filepath=os.path.join(
             os.path.dirname(__file__),
-            "../tmp/simulations/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset/"
+            "../tmp/simulations/namo-socials/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset/"
         ),
         temp_worlds_dir_filepath=os.path.join(
             os.path.dirname(__file__),
-            "../tmp/worlds/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset/"
+            "../tmp/worlds/namo-socials/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset/"
         )
     )
     scenarios_from_simulation_results(
         scenario_original_filepath=os.path.join(
             os.path.dirname(__file__),
-            "../data/simulations/s-namo_cases/04_after_the_feast/stilman_2005_behavior_complexified_random_goal_no_reset_snamo.json"
+            "../data/simulations/namo-socials/04_after_the_feast/stilman_2005_behavior_complexified_random_goal_no_reset_snamo.json"
         ),
         scenario_logs_dir_filepath=os.path.join(
             os.path.dirname(__file__),
@@ -113,10 +113,10 @@ def generate_after_the_feast_scenarios_from_simulation_results():
         ),
         temp_simulations_dir_filepath=os.path.join(
             os.path.dirname(__file__),
-            "../tmp/simulations/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/"
+            "../tmp/simulations/namo-socials/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/"
         ),
         temp_worlds_dir_filepath=os.path.join(
             os.path.dirname(__file__),
-            "../tmp/worlds/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/"
+            "../tmp/worlds/namo-socials/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/"
         )
     )

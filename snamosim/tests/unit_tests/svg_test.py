@@ -4,7 +4,7 @@ import svgelements  # Last update jan 18 2021
 
 
 def open_svg_convert_to_shapely_and_display_in_mplt():
-    with open('/home/xia0ben/INRIA/Code/s-namo-sim/data/worlds/s-namo_cases/04_after_the_feast/04_after_the_feast_complexified_4_robots.svg') as f:
+    with open('/home/xia0ben/INRIA/Code/s-namo-sim/data/worlds/namo-socials/04_after_the_feast/04_after_the_feast_complexified_4_robots.svg') as f:
         svg_data = svgelements.SVG.parse(f)
         svg_data.
 

@@ -69,7 +69,7 @@
 #         self.entities = {}
 #         self.joints = {}
 #
-#         simulation_file_abs_path = '/home/xia0ben/INRIA/Code/s-namo-sim/data/simulations/s-namo_cases/02_basic_with_opening/stilman_2005_behavior.json'
+#         simulation_file_abs_path = '/home/xia0ben/INRIA/Code/s-namo-sim/data/simulations/namo-socials/02_basic_with_opening/stilman_2005_behavior.json'
 #         with open(simulation_file_abs_path) as f:
 #             self.config = json.load(f)
 #         world_file_path = self.config["files"]["world_file"]

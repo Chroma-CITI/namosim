@@ -51,6 +51,43 @@ class NAMOMultiTests(unittest.TestCase):
         sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/conflicts/simultaneous_space_access.json"))
         report = sim.run()
 
+    # DEALOCKS
+    # def test_2_sym_rooms_corridor_deadlock_namo(self):
+    #     sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"2_sym_rooms_corridor_deadlock/2_sym_rooms_corridor_deadlock_namo.json"))
+    #     report = sim.run()
+
+    def test_2_sym_rooms_corridor_deadlock_snamo(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"2_sym_rooms_corridor_deadlock/2_sym_rooms_corridor_deadlock_snamo.json"))
+        report = sim.run()
+
+    def test_2_sym_rooms_corridor_with_obstacle_deadlock_snamo(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"2_sym_rooms_corridor_with_obstacle_deadlock/2_sym_rooms_corridor_with_obstacle_deadlock_snamo.json"))
+        report = sim.run()
+
+    # def test_2_asym_right_rooms_corridor_deadlock_namo(self):
+    #     sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"2_asym_right_rooms_corridor_deadlock/2_asym_right_rooms_corridor_deadlock_namo.json"))
+    #     report = sim.run()
+
+    def test_2_asym_right_rooms_corridor_deadlock_snamo(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"2_asym_right_rooms_corridor_deadlock/2_asym_right_rooms_corridor_deadlock_snamo.json"))
+        report = sim.run()
+
+    # def test_2_asym_left_rooms_corridor_deadlock_namo(self):
+    #     sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"2_asym_left_rooms_corridor_deadlock/2_asym_left_rooms_corridor_deadlock_namo.json"))
+    #     report = sim.run()
+
+    def test_2_asym_left_rooms_corridor_deadlock_snamo(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"2_asym_left_rooms_corridor_deadlock/2_asym_left_rooms_corridor_deadlock_snamo.json"))
+        report = sim.run()
+
+    # def test_3_rooms_and_robots_corridor_deadlocks_namo(self):
+    #     sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"3_rooms_and_robots_corridor_deadlocks/3_rooms_and_robots_corridor_deadlocks_namo.json"))
+    #     report = sim.run()
+
+    def test_3_rooms_and_robots_corridor_deadlocks_snamo(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"3_rooms_and_robots_corridor_deadlocks/3_rooms_and_robots_corridor_deadlocks_snamo.json"))
+        report = sim.run()
+
     # RESULTS
     ## INT
     def test_int_2r_50g_namo_scenario(self):
@@ -171,7 +208,7 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         arg_1 = int(sys.argv.pop())
         arg_2 = int(sys.argv.pop())
-        IROS2021Tests.MAX_SCENARIO = max(arg_1, arg_2)
-        IROS2021Tests.MIN_SCENARIO = min(arg_1, arg_2)
-    print('Received args : {}, {}'.format(IROS2021Tests.MIN_SCENARIO, IROS2021Tests.MAX_SCENARIO))
+        NAMOMultiTests.MAX_SCENARIO = max(arg_1, arg_2)
+        NAMOMultiTests.MIN_SCENARIO = min(arg_1, arg_2)
+    print('Received args : {}, {}'.format(NAMOMultiTests.MIN_SCENARIO, NAMOMultiTests.MAX_SCENARIO))
     unittest.main()
