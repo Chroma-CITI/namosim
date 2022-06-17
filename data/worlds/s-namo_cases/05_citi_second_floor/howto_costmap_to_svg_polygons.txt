@@ -1,6 +1,0 @@
-1. Clean up costmap image so that it actually represents free and occupied space. Create forgotten openings. Make sure that there are no occupied zones that would get transformed into self-intersecting polygons (see https://en.wikipedia.org/wiki/Polygon).
-2. Use QGIS to import costmap image as raster layer, polygonize using GDAL-based tool: https://gis.stackexchange.com/questions/238565/creating-polygons-from-black-white-map-or-points-using-qgis
-3. Clean up the produced polygons: remove duplicates, and self-intersecting polygons if there are some.
-4. Export the newly created vector layer in a shp file.
-5. Use https://mapshaper.org/ to convert the shp file into a svg.
-6. Edit the svg to give the polygons proper ids.
