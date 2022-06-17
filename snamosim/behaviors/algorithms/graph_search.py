@@ -311,6 +311,9 @@ def new_generic_dijkstra(start, exit_condition, get_neighbors):
 def grid_search_dijkstra(start, goal, grid, width, height, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, check_diag_neighbors=False):
     is_chess_neighborhood = neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
+    if grid[start[0]][start[1]] > 0:
+        return False, start, dict(), set(), dict(), []
+
     if is_chess_neighborhood:
         if check_diag_neighbors:
             def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
