@@ -9,7 +9,6 @@ import multiprocessing
 import time
 from pathfinding.core.grid import Grid
 
-from snamosim.behaviors.algorithms import a_star_restart
 NB_USABLE_CORES = multiprocessing.cpu_count() - 1
 
 ASTAR_PBS = {
@@ -143,7 +142,7 @@ class GraphSearchTest(unittest.TestCase):
     def setUp(self):
         self.dirname = os.path.dirname(os.path.realpath(__file__))
         self.benchmarks_dirname = os.path.join(
-            self.dirname, '../../../data/gridsearch-dataset/www.movingai.com/benchmarks'
+            self.dirname, '../../../data/thirdparties/gridsearch-dataset/www.movingai.com/benchmarks'
         )
         self.dao_dataset_path = os.path.join(self.benchmarks_dirname, 'dao')
         print('Loading dao dataset...')
@@ -161,7 +160,7 @@ class GraphSearchTest(unittest.TestCase):
         # map_progressbar.update(map_counter)
     def for_scenario(self, map_name, my_map, scenario, scenario_counter,
                      # path_finding_algorithm=None,
-                     path_finding_algorithm=graph_search.grid_search_a_star,
+                     path_finding_algorithm=graph_search.grid_search_dijkstra,
                      log_start=False, log_success=False):
         if log_start:
             print('Testing for map {}, scenario {} : {}'.format(map_name, scenario_counter, str(scenario)))
@@ -178,7 +177,8 @@ class GraphSearchTest(unittest.TestCase):
                 grid=my_map['matrix'],
                 width=my_map['matrix'].shape[0],
                 height=my_map['matrix'].shape[1],
-                chess_neighborhood=True
+                neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                check_diag_neighbors=True
             )
             if path_found:
                 raw_path = graph_search.reconstruct_path(came_from, end_cell)
@@ -200,21 +200,6 @@ class GraphSearchTest(unittest.TestCase):
                     self.assertTrue(path_found)
                 except AssertionError as e:
                     print('Path could not be found for Map {}, Scenario {}.'.format(map_name, scenario_counter))
-        else:
-            path = a_star_restart.find_path(scenario.start_cell, scenario.goal_cell, my_map['matrix'])
-            measured_length = sum(
-                [utils.chebyshev_distance(cur_cell, path[i + 1]) for i, cur_cell in enumerate(path[:-1])]
-            )
-            try:
-                self.assertAlmostEqual(scenario.length, measured_length, places=2)
-                if log_success:
-                    print('Map {}, Scenario {} successful.'.format(map_name, scenario_counter, str(scenario)))
-            except AssertionError as e:
-                print(
-                    'Path found for Map {}, Scenario {}, but found cost <{}> not equal to expected cost <{}>'.format(
-                        map_name, scenario_counter, measured_length, scenario.length
-                    )
-                )
 
         # scenario_progressbar.update(scenario_counter)
 
