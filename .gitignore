@@ -107,31 +107,10 @@ venv.bak/
 .idea
 
 # Logs
-logs/
+logs*/
 
 # Temporary folder
 tmp/
 
-# Grid maps dataset for tests from https://www.movingai.com/benchmarks/
-data/gridsearch-dataset/www.movingai.com/
-
-# RUBE Json dataset for tests
-data/rube_json_dataset/
-
-# Automatically generated scenarios for after_the_feast
-data/worlds/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset/
-data/worlds/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/
-
-data/simulations/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset/
-data/simulations/s-namo_cases/04_after_the_feast/variations-stilman_2005_behavior_complexified_random_goal_no_reset_snamo/
-
-# Problems file
-data/problems_first_series.json
-data/problems_second_series.json
-
-# Do not upload IROS 2021 Data for now
-data/simulations/iros_2021/after_the_feast/2_robots
-data/simulations/iros_2021/basic_with_opening
-data/simulations/iros_2021/citi
-data/simulations/iros_2021/cpe_third_floor
-data/simulations/iros_2021/crossing
+# Data files (ought to be in different repository/data storage)
+data/

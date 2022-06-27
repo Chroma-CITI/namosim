@@ -587,6 +587,54 @@ class B2WorldDecoder(json.JSONDecoder):
         #    print "No key '" + key + "' in dict '" + dict_source["name"] + "'"
 
 
+# def copy_b2_body(self, b2_body):
+#     """
+#     Helper function to create a copy of a body.
+#     :param b2_body:
+#     :type b2_body:
+#     :return:
+#     :rtype:
+#     """
+#     # Create body definition
+#     body_def = Box2D.b2BodyDef()
+#     body_def.allowSleep = b2_body.sleepingAllowed
+#     body_def.angularDamping = b2_body.angularDamping
+#     body_def.angularVelocity = b2_body.angularVelocity
+#     body_def.bullet = b2_body.bullet
+#     body_def.active = b2_body.active
+#     body_def.fixedRotation = b2_body.fixedRotation
+#     body_def.linearDamping = b2_body.linearDamping
+#     body_def.linearVelocity = b2_body.linearVelocity
+#     body_def.position = b2_body.position
+#     body_def.gravityScale = b2_body.gravityScale
+#     body_def.type = b2_body.type
+#     body_def.userData = b2_body.userData
+#
+#     # Create body
+#     copy_body = self.b2_world.CreateBody(body_def)
+#
+#     # Add body fixtures
+#     for fixture in body_def.fixtures:
+#         if isinstance(fixture, Box2D.b2Fixture):
+#             pass
+#
+#         # Create and fill fixture definition
+#         fixture_def = Box2D.b2FixtureDef()
+#         fixture_def.density = fixture.density
+#         fixture_def.categoryBits = fixture.filterData.categoryBits
+#         fixture_def.maskBits = fixture.filterData.maskBits
+#         fixture_def.groupIndex = fixture.filterData.groupIndex
+#         fixture_def.friction = fixture.friction
+#         fixture_def.restitution = fixture.restitution
+#         fixture_def.isSensor = fixture.sensor
+#         fixture_def.shape = fixture.shape
+#         fixture_def.userData = fixture.userData
+#
+#         # Create fixture
+#         copy_body.CreateFixture(fixture_def)
+#
+#     return copy_body
+
 if __name__ == "__main__":
     # 1. Empty world test
     empty_world_filepath = "empty_world_test.json"

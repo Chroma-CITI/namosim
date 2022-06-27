@@ -7,7 +7,7 @@ import mapbox_earcut as earcut
 import rospy
 from shapely.geometry import Polygon
 
-import snamosim.display.colors
+import snamosim.display.colors as colors
 from snamosim.display import tf_replacement
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Pose, Quaternion, Point, Vector3, PoseArray, PoseStamped
@@ -74,22 +74,32 @@ def world_to_marker_array(world, robot_uid=None, entities_to_ignore=tuple()):
     for entity in world.entities.values():
         if entity.uid not in entities_to_ignore:
             if isinstance(entity, Robot):
+                robot_color = colors.r0_light_blue
+                robot_border_color = colors.r0_dark_blue
+                if entity.name == "robot_1":
+                    robot_color = colors.r1_light_green
+                    robot_border_color = colors.r1_dark_green
+                elif entity.name == "robot_2":
+                    robot_color = colors.r2_light_pink
+                    robot_border_color = colors.r2_dark_pink
+                elif entity.name == "robot_3":
+                    robot_color = colors.r3_light_red
+                    robot_border_color = colors.r3_dark_red
                 markers = markers + entity_to_markers(
-                    entity, "/robot", entity.uid, cfg.main_frame_id, snamosim.display.colors.robot_color,
-                    snamosim.display.colors.robot_border_color,
-                    snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty, cfg.entities_z_index,
+                    entity, "/robot", entity.uid, cfg.main_frame_id, robot_color, robot_border_color,
+                    colors.text_color_on_filling, colors.text_color_on_empty, cfg.entities_z_index,
                     cfg.border_width, cfg.text_height, add_border=False, add_text=False)
 
                 for sensor in entity.sensors:
                     if isinstance(sensor, SFOVSensor):
                         markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/s_fov", 0,
                                                              cfg.main_frame_id,
-                                                             snamosim.display.colors.s_fov_border_color, cfg.fov_z_index,
+                                                             colors.s_fov_border_color, cfg.fov_z_index,
                                                              cfg.fov_line_width))
                     elif isinstance(sensor, GFOVSensor):
                         markers.append(polygon_to_line_strip(sensor.fov_polygon, "/robot/g_fov", 0,
                                                              cfg.main_frame_id,
-                                                             snamosim.display.colors.g_fov_border_color, cfg.fov_z_index,
+                                                             colors.g_fov_border_color, cfg.fov_z_index,
                                                              cfg.fov_line_width))
 
             if isinstance(entity, Obstacle):
@@ -99,29 +109,29 @@ def world_to_marker_array(world, robot_uid=None, entities_to_ignore=tuple()):
                 if movable:
                     markers = markers + entity_to_markers(
                         entity, "/obstacles", entity.uid, cfg.main_frame_id,
-                        snamosim.display.colors.movable_obstacle_color,
-                        snamosim.display.colors.movable_obstacle_border_color,
-                        snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty,
+                        colors.movable_obstacle_color,
+                        colors.movable_obstacle_border_color,
+                        colors.text_color_on_filling, colors.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
                 elif unmovable:
                     markers = markers + entity_to_markers(
                         entity, "/obstacles", entity.uid, cfg.main_frame_id,
-                        snamosim.display.colors.unmovable_obstacle_color,
-                        snamosim.display.colors.unmovable_obstacle_border_color,
-                        snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty,
+                        colors.unmovable_obstacle_color,
+                        colors.unmovable_obstacle_border_color,
+                        colors.text_color_on_filling, colors.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
                 elif unknown:
                     markers = markers + entity_to_markers(
                         entity, "/obstacles", entity.uid, cfg.main_frame_id,
-                        snamosim.display.colors.unknown_obstacle_color,
-                        snamosim.display.colors.unknown_obstacle_border_color,
-                        snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty,
+                        colors.unknown_obstacle_color,
+                        colors.unknown_obstacle_border_color,
+                        colors.text_color_on_filling, colors.text_color_on_empty,
                         cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
     for taboo in world.taboo_zones.values():
         markers = markers + entity_to_markers(
-            taboo, "/taboos", taboo.uid, cfg.main_frame_id, snamosim.display.colors.taboo_color,
-            snamosim.display.colors.taboo_border_color,
-            snamosim.display.colors.text_color_on_filling, snamosim.display.colors.text_color_on_empty, cfg.taboos_z_index,
+            taboo, "/taboos", taboo.uid, cfg.main_frame_id, colors.taboo_color,
+            colors.taboo_border_color,
+            colors.text_color_on_filling, colors.text_color_on_empty, cfg.taboos_z_index,
             cfg.border_width, cfg.text_height, add_border=False, add_text=False)
     marker_array.markers = markers
     return marker_array
@@ -227,17 +237,34 @@ def real_path_to_ros_path(real_path):
     return ros_path
 
 
-def plan_to_markerarray(plan, frame_id):
+def plan_to_markerarray(plan, frame_id, ns):
     markerarray = MarkerArray()
     markers = []
     p_id = 0
     for component in plan.path_components:
-        current_color = snamosim.display.colors.transit_path_color
+        current_color = colors.r0_light_blue
+        if ns == "robot_1":
+            current_color = colors.r1_light_green
+        elif ns == "robot_2":
+            current_color = colors.r2_light_pink
+        elif ns == "robot_3":
+            current_color = colors.r3_light_red
         if component.is_transfer:
-            current_color = snamosim.display.colors.transfer_path_color
-        marker = real_path_to_linestrip(
+            current_color = colors.r0_dark_blue
+            if ns == "robot_1":
+                current_color = colors.r1_dark_green
+            elif ns == "robot_2":
+                current_color = colors.r2_dark_pink
+            elif ns == "robot_3":
+                current_color = colors.r3_dark_red
+            obstacle_end_polygon_marker = polygon_to_line_strip(
+                component.obstacle_path.polygons[-1], '/end_obstacles', p_id, frame_id, current_color,
+                cfg.path_line_z_index, cfg.border_width
+            )
+            markers.append(obstacle_end_polygon_marker)
+        path_marker = real_path_to_linestrip(
             component.robot_path.poses, '/plan', p_id, frame_id, current_color, cfg.path_line_width, cfg.path_line_z_index)
-        markers.append(marker)
+        markers.append(path_marker)
         p_id += 1
     markerarray.markers = markers
     return markerarray
@@ -419,3 +446,14 @@ def publish_once(publisher, msg):
                 rospy.logwarn(
                     "Publishing data on " + publisher.name + ", but no one is listening, waiting...")
                 last_time = rospy.Time.now()
+
+
+def string_to_text_marker(
+        message="", pose=(0., 0., 0.), ns="", p_id=0, z_index=0., font_size=1., frame_id='/map', color=colors.black):
+    marker = Marker(
+        type=Marker.TEXT_VIEW_FACING, ns=ns, id=p_id,
+        pose=Pose(Point(pose[0], pose[1], z_index), geom_quat_from_yaw(pose[2])),
+        points=[Point(pose[0], pose[1], z_index)], scale=Vector3(0., 0., font_size),
+        header=Header(frame_id=frame_id, stamp=rospy.Time.now()), color=color, text=message
+    )
+    return marker

@@ -1,6 +1,3 @@
-from snamosim.worldreps.entity_based.obstacle import Obstacle
-
-import numpy as np
 import copy
 
 
@@ -9,29 +6,31 @@ class OmniscientSensor:
         self.parent_uid = None
 
     def update_from_fov(self, reference_world, target_world):
-        robot_pose = reference_world.entities[self.parent_uid].pose
-        for entity_uid, reference_entity in reference_world.entities.items():
-            if entity_uid != self.parent_uid:
-                if entity_uid in target_world.entities:
-                    target_entity = target_world.entities[entity_uid]
-                    if reference_entity.full_geometry_acquired:
-                        translation = [reference_entity.pose[0] - target_entity.pose[0],
-                                       reference_entity.pose[1] - target_entity.pose[1]]
-                        rotation = (reference_entity.pose[2] - target_entity.pose[2]) % 360.
-                        # Only apply translation if there is one
-                        if not all(np.isclose(translation, [0., 0.], rtol=0.00001)):
-                            target_world.translate_entity(entity_uid, translation)
-                        # Only apply rotation if there is one
-                        if rotation != 0:
-                            target_world.rotate_entity(entity_uid, rotation)
-                else:
-                    target_world.add_entity(reference_entity.light_copy())
+        # Add
+        uids_to_add = set(reference_world.entities.keys()).difference(target_world.entities.keys())
+        for uid in uids_to_add:
+            target_world.add_entity(reference_world.entities[uid].light_copy())
 
-    def translate(self, xoff, yoff):
-        pass
+        # Update
+        uids_to_potentially_update = set(reference_world.entities.keys()).intersection(target_world.entities.keys())
+        uids_to_update = set()
+        for uid in uids_to_potentially_update :
+            ref_entity = reference_world.entities[uid]
+            target_entity = target_world.entities[uid]
+            if target_entity.pose != ref_entity.pose:
+                target_entity.pose = ref_entity.pose
+                target_entity.polygon = ref_entity.polygon
+                uids_to_update.add(uid)
 
-    def rotate(self,angle, rot_center='centroid'):
-        pass
+        # Remove
+        uids_to_remove = set(target_world.entities.keys()).difference(reference_world.entities.keys())
+        for uid in uids_to_remove:
+            target_world.remove_entity(uid)
+
+        # Copy all grab data from reference world
+        target_world.entity_to_agent = copy.deepcopy(reference_world.entity_to_agent)
+
+        return uids_to_add, uids_to_update, uids_to_remove
 
     def to_json(self):
         return {"type": "omniscient"}

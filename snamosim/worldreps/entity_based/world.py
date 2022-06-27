@@ -5,14 +5,14 @@ import json
 import numpy as np
 
 import shapely.affinity as affinity
-from shapely.geometry import Polygon, Point, box, LineString
+from shapely.geometry import Polygon, box, LineString
 from shapely.ops import cascaded_union
+from bidict import bidict
 
 import snamosim.utils.utils as utils
 import snamosim.utils.conversion as conversion
 from snamosim.worldreps.entity_based.custom_exceptions import EntityPlacementException
 from snamosim.worldreps.discretization_data import DiscretizationData
-from snamosim.display.ros_publisher import RosPublisher
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.taboo import Taboo
@@ -25,12 +25,12 @@ from snamosim.worldreps.entity_based.sensors.omniscient_sensor import Omniscient
 class World:
     SCALING_CONSTANT = 1. / 3.5433
 
-    def __init__(self, entities=None, dd=None, taboo_zones=None, goals=None,
-                 probabilist_occupancy_grids=None, binary_occupancy_grids=None, binary_inflated_occupancy_grids=None,
-                 social_topological_occupation_cost_grids=None, connected_components_grids=None, geometry_scale=1.,
-                 init_geometry_filename="/world_name_placeholder.svg", init_geometry_file=None):
+    def __init__(self, entities=None, entities_to_agent=None, dd=None, taboo_zones=None, goals=None, geometry_scale=1.,
+                 init_json_filename="world_name_placeholder.json", init_json_file=None,
+                 init_geometry_filename="world_name_placeholder.svg", init_geometry_file=None):
 
-        self.entities = entities if entities is not None else dict()
+        self.entities = entities or dict()
+        self.entity_to_agent = entities_to_agent or bidict()
 
         self.dd = dd
 
@@ -42,15 +42,11 @@ class World:
             conversion.set_all_id_attributes_as_ids(init_geometry_file)
             conversion.clean_attributes(init_geometry_file)
         self.init_geometry_filename = init_geometry_filename
+        self.init_geometry_file = init_geometry_file
+        self.init_json_filename = init_json_filename
 
-        self.taboo_zones = taboo_zones if taboo_zones is not None else dict()
-        self.goals = goals if goals is not None else dict()
-
-        self._probabilist_occupancy_grids = probabilist_occupancy_grids if probabilist_occupancy_grids is not None else dict()
-        self._binary_occupancy_grids = binary_occupancy_grids if binary_occupancy_grids is not None else dict()
-        self._binary_inflated_occupancy_grids = binary_inflated_occupancy_grids if binary_inflated_occupancy_grids is not None else dict()
-        self._social_topological_occupation_cost_grids = social_topological_occupation_cost_grids if social_topological_occupation_cost_grids is not None else dict()
-        self._connected_components_grids = connected_components_grids if connected_components_grids is not None else dict()
+        self.taboo_zones = taboo_zones or dict()
+        self.goals = goals or dict()
 
     # Constructor
     @classmethod
@@ -106,6 +102,8 @@ class World:
             geometry_scale=scaling_value,
             init_geometry_filename=init_geometry_filename,
             init_geometry_file=init_geometry_file,
+            init_json_filename=abs_path_to_file,
+            init_json_file=config,
             dd=dd
         )
 
@@ -155,14 +153,16 @@ class World:
                     elif sensor_data["type"] == "omniscient":
                         sensors.append(OmniscientSensor())
 
-                new_robot = Robot(name=entity_data["name"],
-                                  full_geometry_acquired=True,
-                                  polygon=polygon,
-                                  pose=tuple(pose),
-                                  sensors=sensors,
-                                  push_only_list=entity_data["push_only_list"],
-                                  force_pushes_only=entity_data["force_pushes_only"],
-                                  movable_whitelist=entity_data["movable_whitelist"])
+                new_robot = Robot(
+                    name=entity_data["name"],
+                    full_geometry_acquired=True,
+                    polygon=polygon,
+                    pose=tuple(pose),
+                    sensors=sensors,
+                    push_only_list=entity_data["push_only_list"],
+                    force_pushes_only=entity_data["force_pushes_only"],
+                    movable_whitelist=entity_data["movable_whitelist"]
+                )
                 if not first_robot:
                     first_robot = new_robot
 
@@ -173,11 +173,14 @@ class World:
 
                 world.add_entity(new_robot)
             else:
-                new_object = Obstacle(name=entity_data["name"],
-                                      polygon=polygon,
-                                      pose=pose,
-                                      type_in=entity_data["type"],
-                                      full_geometry_acquired=True)
+                new_object = Obstacle(
+                    name=entity_data["name"],
+                    polygon=polygon,
+                    pose=pose,
+                    type_in=entity_data["type"],
+                    full_geometry_acquired=True,
+                    movability="static" if entity_data["type"] in ["wall", "pillar", "table"] else "unknown"
+                )
 
                 world.add_entity(new_object)
 
@@ -227,13 +230,14 @@ class World:
         world.update_dd()
 
         goals_node = init_geometry_file.getElementById("goals")
-        goals_node.parentNode.removeChild(goals_node)
+        if goals_node:
+            goals_node.parentNode.removeChild(goals_node)
 
         return world
 
-    def save_to_files(self, json_filepath, svg_filepath=None, json_data=None, svg_data=None):
-        if not svg_filepath:
-            svg_filepath = "./" + self.init_geometry_filename
+    def save_to_files(self, json_filepath=None, svg_filepath=None, json_data=None, svg_data=None):
+        json_filepath = json_filepath or "./" + self.init_json_filename
+        svg_filepath = svg_filepath or "./" + self.init_geometry_filename
         working_directory = os.path.dirname(json_filepath)
         abs_svg_filepath = os.path.join(working_directory, svg_filepath)
 
@@ -277,62 +281,83 @@ class World:
         if self.init_geometry_file:
             svg_data = copy.deepcopy(self.init_geometry_file)
             init_geometries_ids = {path.getAttribute("id") for path in svg_data.getElementsByTagName('path')}
-            current_geometries_ids_and_polygons = self.get_current_geometries_ids_and_polygon()
-            current_geometries_ids = set(current_geometries_ids_and_polygons.keys())
+            current_geometries_names_to_ids = {entity.name: uid for uid, entity in self.entities.items()}
+            # The 4 following lines are a hack to compensate for the fact the geometries are not associated with entity
+            # for uid, entity in self.entities.items():
+            #     if isinstance(entity, Robot):
+            #         current_geometries_names_to_ids[entity.name + "_shape"] = uid
+            #         current_geometries_names_to_ids[entity.name + "_direction"] = uid
+            current_geometries_names = set(current_geometries_names_to_ids.keys())
 
-            new_geometries_ids = current_geometries_ids.difference(init_geometries_ids)
-            deleted_geometries_ids = init_geometries_ids.difference(current_geometries_ids)
-            updated_geometries_ids = init_geometries_ids.intersection(current_geometries_ids)
+            new_geometries_names = current_geometries_names.difference(init_geometries_ids)
+            deleted_geometries_names = init_geometries_ids.difference(current_geometries_names)
+            updated_geometries_names = init_geometries_ids.intersection(current_geometries_names)
 
-            for geometry_id in new_geometries_ids:
-                pass
-                # raise NotImplementedError("TODO : use bootstrap SVG data to build new SVG paths from scratch")
-            for geometry_id in deleted_geometries_ids:
-                xml_element = svg_data.getElementById(geometry_id)
+            for geometry_name in new_geometries_names:
+                entity = self.entities[current_geometries_names_to_ids[geometry_name]]
+                if isinstance(entity, Obstacle):
+                    if entity.movability == "static" or entity.movability == "unmovable":
+                        style = conversion.FIXED_ENTITY_STYLE
+                    elif entity.movability == "movable":
+                        style = conversion.MOVABLE_ENTITY_STYLE
+                    elif entity.movability == "unknown":
+                        style = conversion.UNKNOWN_ENTITY_STYLE
+                    else:
+                        raise NotImplementedError(
+                            "Can only export new obstacles entities that have a 'movability' attribute of "
+                            "value ['static', 'unmovable', 'movable', 'unknown'], got {}.".format(
+                                entity.movability
+                            )
+                        )
+                    conversion.add_shapely_geometry_to_svg(
+                        entity.polygon, entity.name, style, svg_data,
+                        scale=self.scaling_value, map_width=self.dd.width, map_height=self.dd.height
+                    )
+                elif isinstance(entity, Robot):
+                    robot_group = conversion.add_group(svg_data, entity.name, is_layer=False)
+                    # Add robot shape
+                    conversion.add_shapely_geometry_to_svg(
+                        entity.polygon, entity.name + "_shape", conversion.ROBOT_ENTITY_STYLE, svg_data, robot_group,
+                        scale=self.scaling_value, map_width=self.dd.width, map_height=self.dd.height
+                    )
+                    # Add robot direction shape
+                    radius = utils.get_inscribed_radius(entity.polygon)
+                    point_a = np.array([entity.pose[0], entity.pose[1]])
+                    point_b = point_a + np.array(utils.direction_from_yaw(entity.pose[2])) * radius
+                    direction_linestring = LineString([point_a, point_b])
+                    conversion.add_shapely_geometry_to_svg(
+                        direction_linestring, entity.name + "_direction", conversion.GOAL_STYLE, svg_data, robot_group,
+                        scale=self.scaling_value, map_width=self.dd.width, map_height=self.dd.height
+                    )
+                else:
+                    raise NotImplementedError(
+                        "Only entities of class [Robot, Obstacle] can be created in SVG file for now."
+                    ) # TODO Add creation of new SVG goals
+            for geometry_name in deleted_geometries_names:
+                xml_element = svg_data.getElementById(geometry_name)
                 xml_element.parentNode.removeChild(xml_element)
-            for geometry_id in updated_geometries_ids:
-                geometry = affinity.translate(
-                    current_geometries_ids_and_polygons[geometry_id], self.dd.width / 2., -self.dd.height / 2.)
+            for geometry_name in updated_geometries_names:
+                entity = self.entities[current_geometries_names_to_ids[geometry_name]]
+                geometry = affinity.translate(entity.polygon, self.dd.width / 2., -self.dd.height / 2.)
                 new_svg_path = conversion.shapely_geometry_to_svg_pathd(geometry, self.scaling_value)
-                svg_data.getElementById(geometry_id).setAttribute('d', new_svg_path)
+                svg_data.getElementById(geometry_name).setAttribute('d', new_svg_path)
         else:
             raise NotImplementedError("TODO : use bootstrap SVG data to build new SVG file from scratch")
         return svg_data
 
     def add_entity(self, new_entity):
-        for obj in self.entities.values():
-            is_within = new_entity.within(obj)
-            if is_within:
-                raise EntityPlacementException("Entity {} would be within entity {}. Cannot load world.".format(
-                    new_entity.name, obj.name))
+        # for obj in self.entities.values():
+        #     is_within = new_entity.within(obj)
+        #     if is_within:
+        #         raise EntityPlacementException("Entity {} would be within entity {}. Cannot load world.".format(
+        #             new_entity.name, obj.name))
         self.entities[new_entity.uid] = new_entity
 
     def remove_entity(self, entity_uid):
-        removed_entity = self.entities[entity_uid]
         if entity_uid in self.entities:
             del self.entities[entity_uid]
         else:
             raise KeyError("Warning, you tried to remove an entity that is not registered in this world !")
-
-    def remove_entities(self, entities_uids):
-        for entity_uid in entities_uids:
-            self.remove_entity(entity_uid)
-
-    def translate_entity(self, entity_uid, translation):
-        entity = self.entities[entity_uid]
-        prev_entity = copy.deepcopy(entity)
-        entity.translate(translation[0], translation[1], self.dd.res)
-
-    def rotate_entity(self, entity_uid, rotation, rot_center='centroid'):
-        entity = self.entities[entity_uid]
-        prev_entity = copy.deepcopy(entity)
-        entity.rotate(rotation, rot_center)
-
-    def set_entity_polygon(self, entity_uid, polygon, full_geometry_acquired=False):
-        entity = self.entities[entity_uid]
-        prev_entity = copy.deepcopy(entity)
-        entity.set_polygon(polygon)
-        entity.full_geometry_acquired = full_geometry_acquired
 
     def get_map_bounds(self):
         if len(self.entities) == 0:
@@ -361,16 +386,6 @@ class World:
         if new_hash != self.dd.saved_hash:
             self.dd.saved_hash = new_hash
 
-    @staticmethod
-    def _has_not_ignored_entity_changed(entities_to_ignore, prev_entities, next_entities):
-        for entity_uid, entity in prev_entities.items():
-            if entity_uid not in entities_to_ignore:
-                return True
-        for entity_uid, entity in next_entities.items():
-            if entity_uid not in entities_to_ignore:
-                return True
-        return False
-
     # TO DEPRECATE
     def get_entity_uid_from_name(self, name):
         for entity_uid, entity in self.entities.items():
@@ -378,31 +393,11 @@ class World:
                 return entity_uid
         raise LookupError("Could not find an entity in this world with name : {name}.".format(name=name))
 
-    # TO DEPRECATE
-    def agg_grid_cost_for_entities(self, entities_uids, grid, aggregation_function=sum):
-        entities_cells = set()
-        for entity_uid in entities_uids:
-            entities_cells = entities_cells.union(self.entities[entity_uid].get_discrete_cells_set(
-                self.dd.inflation_radius, self.dd.res, self.dd.grid_pose, self.dd.d_width, self.dd.d_height))
-        RosPublisher().publish_social_cells(entities_cells, self.dd.res, self.dd.grid_pose)
-        cells_values = [grid[cell[0]][cell[1]] for cell in entities_cells]
-        return aggregation_function(cells_values)
-
-    def get_current_geometries_ids_and_polygon(self):
-        current_geometries_ids_and_polygons = {}
-        for entity in self.entities.values():
-            current_geometries_ids_and_polygons[entity.name] = entity.polygon
-            radius = utils.get_inscribed_radius(entity.polygon)
-            if isinstance(entity, Robot):
-                point_a = np.array([entity.pose[0], entity.pose[1]])
-                point_b = point_a + np.array(utils.direction_from_yaw(entity.pose[2])) * radius
-                current_geometries_ids_and_polygons[entity.name + "_dir"] = LineString([point_a, point_b])
-        # for goal in self.goals.values():
-        #     current_geometries_ids_and_polygons[goal.name] = goal.polygon
-        #     radius = utils.get_inscribed_radius(goal.polygon)
-        #     point_a = np.array([goal.pose[0], goal.pose[1]])
-        #     point_b = point_a + np.array(utils.direction_from_yaw(goal.pose[2])) * radius
-        #     current_geometries_ids_and_polygons[goal.name + "_dir"] = LineString([point_a, point_b])
-        # for taboo in self.taboo_zones.values():
-        #     current_geometries_ids_and_polygons[taboo.name] = taboo.polygon
-        return current_geometries_ids_and_polygons
+    def light_copy(self, ignored_entities=tuple()):
+        return World(
+            entities={uid: entity.light_copy() for uid, entity in self.entities.items() if uid not in ignored_entities},
+            entities_to_agent=copy.deepcopy(self.entity_to_agent), dd=copy.deepcopy(self.dd),
+            taboo_zones=copy.deepcopy(self.taboo_zones), goals=copy.deepcopy(self.goals),
+            geometry_scale=self.geometry_scale, init_geometry_filename=self.init_geometry_filename,
+            init_geometry_file=self.init_geometry_file
+        )

@@ -45,34 +45,70 @@ class BinaryOccupancyGrid:
         self.cells_sets = dict()
         self.grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
 
-        self.update(new_polygons=polygons, fill=fill)
+        self.deactivated_entities_cells_sets = {}
 
-    def update(self, new_polygons=None, removed_polygons=None, fill=True):
+        self.polygon_update(new_or_updated_polygons=polygons, fill=fill)
+
+    def polygon_update(self, new_or_updated_polygons=None, removed_polygons=None, fill=True):
         fill_polygons = self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
-        if new_polygons is not None:
-            for uid, new_polygon in new_polygons.items():
-                if uid in self.cells_sets:
+        new_or_updated_cells_sets = {
+            uid: utils.accurate_rasterize_in_grid(
+                new_polygon, self.res, self.grid_pose, self.d_width, self.d_height, fill=fill
+            )
+            for uid, new_polygon in new_or_updated_polygons.items()
+        }
+
+        return self.cells_sets_update(new_or_updated_cells_sets, removed_polygons, fill)
+
+    def cells_sets_update(self, new_or_updated_cells_sets=None, removed_cells_sets=None, fill=True):
+        fill_polygons = self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
+
+        prev_cells_sets = {}
+
+        if new_or_updated_cells_sets is not None:
+            for uid, new_cells_set in new_or_updated_cells_sets.items():
+                if uid in self.deactivated_entities_cells_sets:
+                    self.deactivated_entities_cells_sets[uid] = new_cells_set
+                else:
+                    if uid in self.cells_sets:
+                        prev_cells = self.cells_sets[uid]
+                        for cell in prev_cells:
+                            self.grid[cell[0]][cell[1]] -= 1
+                        prev_cells_sets[uid] = prev_cells
+
+                    self.cells_sets[uid] = new_cells_set
+                    for cell in new_cells_set:
+                        self.grid[cell[0]][cell[1]] += 1
+
+        if removed_cells_sets is not None:
+            for uid in removed_cells_sets:
+                if uid in self.deactivated_entities_cells_sets:
+                    del self.deactivated_entities_cells_sets[uid]
+                else:
                     prev_cells = self.cells_sets[uid]
+                    del self.cells_sets[uid]
                     for cell in prev_cells:
                         self.grid[cell[0]][cell[1]] -= 1
+                    prev_cells_sets[uid] = prev_cells
 
-                # new_cells = utils.polygon_to_discrete_cells_set(
-                #     new_polygon, self.res, self.grid_pose, self.d_width, self.d_height, fill=fill_polygons
-                # )
-                new_cells = utils.accurate_rasterize_in_grid(
-                    new_polygon, self.res, self.grid_pose, self.d_width, self.d_height, fill=fill
-                )
-                self.cells_sets[uid] = new_cells
-                for cell in new_cells:
-                    self.grid[cell[0]][cell[1]] += 1
+        return prev_cells_sets
 
-        if removed_polygons is not None:
-            for uid in removed_polygons:
-                prev_cells = self.cells_sets[uid]
-                del self.cells_sets[uid]
-                for cell in prev_cells:
+    def deactivate_entities(self, uids):
+        for uid in uids:
+            if uid not in self.deactivated_entities_cells_sets and uid in self.cells_sets:
+                self.deactivated_entities_cells_sets[uid] = self.cells_sets[uid]
+                for cell in self.cells_sets[uid]:
                     self.grid[cell[0]][cell[1]] -= 1
+                del self.cells_sets[uid]
+
+    def activate_entities(self, uids):
+        for uid in uids:
+            if uid in self.deactivated_entities_cells_sets:
+                self.cells_sets[uid] = self.deactivated_entities_cells_sets[uid]
+                del self.deactivated_entities_cells_sets[uid]
+                for cell in self.cells_sets[uid]:
+                    self.grid[cell[0]][cell[1]] += 1
 
     def only_obstacle_uid_in_cell(self, cell):
         """
@@ -93,6 +129,9 @@ class BinaryOccupancyGrid:
                     return uid
             raise RuntimeError('It should be impossible for an occupied cell of the grid to not be in any cells set.')
 
+    def obstacles_uids_in_cell(self, cell):
+        return {uid for uid, cell_set in self.cells_sets.items() if cell in cell_set}
+
 
 class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
     def __init__(self, polygons, res, inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -101,12 +140,12 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
 
         BinaryOccupancyGrid.__init__(self, polygons, res, neighborhood, params, fill)
 
-    def update(self, new_polygons=None, removed_polygons=None, fill=True):
-        if new_polygons:
+    def polygon_update(self, new_or_updated_polygons=None, removed_polygons=None, fill=True):
+        if new_or_updated_polygons:
             inflated_polygons = {
                 uid: polygon.buffer(self.inflation_radius)
-                for uid, polygon in new_polygons.items()
+                for uid, polygon in new_or_updated_polygons.items()
             }
-            BinaryOccupancyGrid.update(self, inflated_polygons, removed_polygons, fill=fill)
+            return BinaryOccupancyGrid.polygon_update(self, inflated_polygons, removed_polygons, fill=fill)
         else:
-            BinaryOccupancyGrid.update(self, new_polygons, removed_polygons)
+            return BinaryOccupancyGrid.polygon_update(self, new_or_updated_polygons, removed_polygons)

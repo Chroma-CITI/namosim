@@ -69,29 +69,21 @@ class GrabMoreThanOneFailure(ActionFailure):
         return "Action failed because the agent is already grabbing something."
 
 
-class StaticCollisionFailure(ActionFailure):
-    def __init__(self, action, obstacle_in_collision_1, obstacle_in_collision_2, intersection_polygon):
+class SimultaneousGrabFailure(ActionFailure):
+    def __init__(self, action, other_agents_uids):
         ActionFailure.__init__(self, action)
-        self.obstacle_in_collision_1 = obstacle_in_collision_1
-        self.obstacle_in_collision_2 = obstacle_in_collision_2
-        self.intersection_polygon = intersection_polygon
+        self.other_agents_uids = other_agents_uids
 
     def __str__(self):
-        return "Action failed," \
-               "because of collision between {coll_obs_1} and {coll_obs_2}".format(
-                    coll_obs_1=self.obstacle_in_collision_1,
-                    coll_obs_2=self.obstacle_in_collision_2)
+        return "Action failed because several agents {} tried to grab the same entity in the same time step.".format(
+            self.other_agents_uids
+        )
 
 
 class DynamicCollisionFailure(ActionFailure):
-    def __init__(self, action, obstacle_in_collision_1, obstacle_in_collision_2, intersection_polygon):
+    def __init__(self, action, colliding_entities_uids):
         ActionFailure.__init__(self, action)
-        self.obstacle_in_collision_1 = obstacle_in_collision_1
-        self.obstacle_in_collision_2 = obstacle_in_collision_2
-        self.intersection_polygon = intersection_polygon
+        self.colliding_entities_uids = colliding_entities_uids
 
     def __str__(self):
-        return "Action failed," \
-               "because of collision between {coll_obs_1} and {coll_obs_2} when they were both moving".format(
-                    coll_obs_1=self.obstacle_in_collision_1,
-                    coll_obs_2=self.obstacle_in_collision_2)
+        return "Action failed, because of collision between {}.".format(self.colliding_entities_uids)

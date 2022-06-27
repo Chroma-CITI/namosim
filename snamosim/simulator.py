@@ -1,16 +1,15 @@
 import time
 import copy
 import json
+import jsonpickle
 import os
-import random
-import numpy as np
 import traceback
-from bidict import bidict
-from shapely import affinity
-from shapely.geometry import LineString
+import signal
+from contextlib import contextmanager
+import pickle
+import random
 
-# from snamosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
-# from snamosim.behaviors.wu_levihn_2014_behavior import WuLevihn2014Behavior
+import snamosim.behaviors.stilman_2005_behavior as stilman_2005_behavior
 from snamosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 
 import snamosim.behaviors.plan.basic_actions as ba
@@ -21,45 +20,154 @@ from snamosim.display.ros_publisher import RosPublisher
 from snamosim.worldreps.entity_based.world import World
 from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.obstacle import Obstacle
-
-from snamosim.utils import stats_utils, utils, conversion, collision
-
 from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInflatedOccupancyGrid
+
+from snamosim.utils import stats_utils, utils, conversion, b2_collision, collision
+
+
+class SimulationStepResult:
+    def __init__(self, sense_durations, think_durations, act_duration, action_results, step_index):
+        self.sense_durations = sense_durations
+        self.think_durations = think_durations
+        self.act_duration = act_duration
+        self.action_results = action_results
+        self.step_index = step_index
+
+
+class AgentStepStats:
+    def __init__(self, transit_path_length=0., transfer_path_length=0., path_length=0., nb_transfers=0,
+                 nb_successful_goals=0, nb_failed_goals=0, nb_goals=0, nb_conflicts=0, nb_robot_robot_conflicts=0,
+                 nb_robot_obstacle_conflicts=0, nb_stolen_movable_conflicts=0, nb_stealing_movable_conflicts=0,
+                 nb_concurrent_grab_conflicts=0, nb_simultaneous_space_access_conflicts=0,
+                 nb_wait_steps=0, nb_transit_steps=0, nb_transfer_steps=0, nb_steps=0, nb_of_postponements=0,
+                 nb_of_unpostponements=0, nb_of_plan_computations=0, sense_time=0., think_time=0.):
+        self.transit_path_length = transit_path_length
+        self.transfer_path_length = transfer_path_length
+        self.path_length = path_length
+        self.nb_transfers = nb_transfers
+        self.nb_successful_goals = nb_successful_goals
+        self.nb_failed_goals = nb_failed_goals
+        self.nb_goals = nb_goals
+        self.nb_conflicts = nb_conflicts
+        self.nb_robot_robot_conflicts = nb_robot_robot_conflicts
+        self.nb_robot_obstacle_conflicts = nb_robot_obstacle_conflicts
+        self.nb_stolen_movable_conflicts = nb_stolen_movable_conflicts
+        self.nb_stealing_movable_conflicts = nb_stealing_movable_conflicts
+        self.nb_concurrent_grab_conflicts = nb_concurrent_grab_conflicts
+        self.nb_simultaneous_space_access_conflicts = nb_simultaneous_space_access_conflicts
+        self.nb_wait_steps = nb_wait_steps
+        self.nb_transit_steps = nb_transit_steps
+        self.nb_transfer_steps = nb_transfer_steps
+        self.nb_steps = nb_steps
+        self.nb_of_postponements = nb_of_postponements
+        self.nb_of_unpostponements = nb_of_unpostponements
+        self.nb_of_plan_computations = nb_of_plan_computations
+        self.sense_time = sense_time
+        self.think_time = think_time
+
+
+class WorldStepStats:
+    def __init__(self, nb_components=0, biggest_component_size=0, free_space_size=0,
+                 fragmentation=0., absolute_social_cost=0.):
+        self.nb_components = nb_components
+        self.biggest_component_size = biggest_component_size
+        self.free_space_size = free_space_size
+        self.fragmentation = fragmentation
+        self.absolute_social_cost = absolute_social_cost
+
+
+class StepStats:
+    def __init__(self, world_stats=None, agents_stats=None, act_time=0.):
+        self.world_stats = world_stats or WorldStepStats()
+        self.agents_stats = agents_stats or AgentStepStats()
+        self.act_time = act_time
+
+
+class TimeoutError(Exception):
+    def __init(self):
+        pass
+
+
+@contextmanager
+def timeout(time):
+    # Register a function to raise a TimeoutError on the signal.
+    signal.signal(signal.SIGALRM, raise_timeout)
+    # Schedule the signal to be sent after ``time``.
+    signal.alarm(time)
+
+    try:
+        yield
+    except TimeoutError:
+        pass
+    finally:
+        # Unregister the signal so it won't be triggered
+        # if the timeout is not reached.
+        signal.signal(signal.SIGALRM, signal.SIG_IGN)
+
+
+def raise_timeout(signum, frame):
+    raise TimeoutError
 
 
 class Simulator:
-    def __init__(self, simulation_file_path, goals=None, timestring=None):
-        self.simulation_log = utils.CustomLogger(printout=False)
-
-        # Import YAML world configuration file
+    def __init__(self, simulation_file_path, simulation_log_stub="", goals=None, timestring=None):
+        # Load simulation file and initialize logs
         if timestring:
             self.sim_start_timestring = timestring
         else:
             self.sim_start_timestring = utils.timestamp_string()
-
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
-
         with open(simulation_file_abs_path) as f:
             self.config = json.load(f)
-
-        self.simulation_log.append(utils.BasicLog("Simulation file successfully loaded", 0))
-
-        # Save general simulation parameters
-        self.provide_walls = self.config["provide_walls"]
-        self.display_sim_knowledge_only_once = self.config["display_sim_knowledge_only_once"]
-        self.reset_after_first_goal = False if not "reset_after_first_goal" in self.config else self.config["reset_after_first_goal"]
-        self.human_inflation_radius = 0.55/2.  # [m]
-        simulation_file_parent_dirname = os.path.basename(
+        sim_file_parent_dirname = os.path.basename(
             os.path.normpath(os.path.abspath(os.path.join(simulation_file_abs_path, '..'))))
         self.simulation_filename = os.path.splitext(os.path.basename(simulation_file_abs_path))[0]
 
-        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', simulation_file_parent_dirname, self.simulation_filename)
+        rel_path_to_main_sim_logs_dir = os.path.join('../logs/', simulation_log_stub, sim_file_parent_dirname, self.simulation_filename)
         abs_path_to_main_sim_logs_dir = os.path.join(os.path.dirname(__file__), rel_path_to_main_sim_logs_dir)
         self.abs_path_to_logs_dir = os.path.join(abs_path_to_main_sim_logs_dir, self.sim_start_timestring + "/")
         os.makedirs(self.abs_path_to_logs_dir)
         os.makedirs(self.abs_path_to_logs_dir + "simulation/")
+        self.simulation_log = utils.CustomLogger()
 
-        self.simulation_log.append(utils.BasicLog("Created log folders at:{}".format(str(self.abs_path_to_logs_dir)), 0))
+        self.simulation_log.append(utils.BasicLog("Simulation file successfully loaded", 0))
+
+        # Save general simulation parameters
+        self.random_seed = self.config.get('random_seed', 10)
+        random.seed(self.random_seed)
+        self.provide_walls = self.config["provide_walls"]
+        self.display_sim_knowledge_only_once = self.config["display_sim_knowledge_only_once"]
+        self.reset_after_first_goal = (
+            False if "reset_after_first_goal" not in self.config else self.config["reset_after_first_goal"]
+        )
+        self.human_inflation_radius = 0.55/2.  # [m]
+
+        self.simulation_log.append(
+            utils.BasicLog("Created log folders at:{}".format(str(self.abs_path_to_logs_dir)), 0)
+        )
+
+        self.save_init_world_state = True
+        self.save_intermediate_world_states = False
+        self.save_end_world_state = True
+        self.save_stats = True
+        self.save_history = False
+        self.save_logs = True
+        self.pickle_saved_data = True
+
+        if self.pickle_saved_data:
+            def pickle_save(obj, filepath):
+                filepath += ".pickle"
+                with open(filepath, 'wb') as f:
+                    pickle.dump(obj, f)
+            self.save = pickle_save
+        else:
+            def json_save(obj, filepath):
+                filepath += ".json"
+                p = jsonpickle.Pickler(unpicklable=False)
+                flattened_obj = p.flatten(obj)
+                with open(filepath, 'w+') as f:
+                    json.dump(flattened_obj, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
+            self.save = json_save
 
         # Reinitialize rviz display
 
@@ -76,20 +184,26 @@ class Simulator:
 
         self.simulation_log.append(utils.BasicLog("World file successfully loaded.", 0))
 
-        self.init_ref_world.save_to_files(
-            json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + ".json",
-            svg_filepath=self.init_ref_world.init_geometry_filename
-        )
+        if self.save_init_world_state:
+            self.init_ref_world.save_to_files(
+                json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + ".json",
+                svg_filepath=self.init_ref_world.init_geometry_filename
+            )
         self.ref_world = copy.deepcopy(self.init_ref_world)
 
         # Associate autonomous agents with goals and behaviors
         self.goals_geometries = {goal.name: goal.pose for goal in self.init_ref_world.goals.values()}
         if goals:
             self.saved_goals = goals
-            self.agent_uid_to_goals = {self.ref_world.get_entity_uid_from_name(agent_name): gls for agent_name, gls in goals.items()}
+            self.agent_uid_to_goals = {
+                self.ref_world.get_entity_uid_from_name(agent_name): gls for agent_name, gls in goals.items()
+            }
         else:
             self.agent_uid_to_goals = self.initialize_agents_goals(self.goals_geometries)
-            self.saved_goals = {self.ref_world.entities[agent_uid].name: copy.deepcopy(goals) for agent_uid, goals in self.agent_uid_to_goals.items()}
+            self.saved_goals = {
+                self.ref_world.entities[agent_uid].name: copy.deepcopy(goals)
+                for agent_uid, goals in self.agent_uid_to_goals.items()
+            }
 
         if self.reset_after_first_goal:
             # Only give first goal if reset after first goal
@@ -106,34 +220,22 @@ class Simulator:
             time.sleep(2.0)
             self.rp.cleanup_sim_world()
 
+        self.history = []
+
         # Time stats
-        self.agent_uid_to_think_time = {agent_uid: 0. for agent_uid in self.agent_uid_to_behavior.keys()}
-        self.agent_uid_to_action_results = {agent_uid: [] for agent_uid in self.agent_uid_to_behavior.keys()}
-        self.agent_uid_and_goal_to_action_results = {agent_uid: {} for agent_uid in self.agent_uid_to_behavior.keys()}
-        self.run_duration = 0.
         self.agent_uid_and_goal_to_world_snapshot = {agent_uid: [] for agent_uid in self.agent_uid_to_behavior.keys()}
 
-        self.init_nb_cc, self.init_biggest_cc_size, self.init_all_cc_sum_size, self.init_frag_percentage = \
-            stats_utils.get_connectivity_stats(
-                self.init_ref_world, self.human_inflation_radius,
-                [uid for uid, entity in self.ref_world.entities.items() if isinstance(entity, Robot)]
-            )
-
-        self.catch_exceptions = True
+        self.catch_exceptions = False
 
         self.simulation_log.append(utils.BasicLog("Simulation successfully loaded.", 0))
-        self.log_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "sim_results.json")
+
+        self.b2_sim = b2_collision.B2Sim(self.ref_world.entities)
 
     def run(self):
-        simulation_report = {"temp_goals": self.saved_goals}
-        with open(self.log_filepath, 'w+') as f:
-            json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
-
-        run_start_time = time.time()
-
         run_active = True
 
         run_exceptions_traces = []
+        exception = None
 
         step_count = 0
 
@@ -144,25 +246,39 @@ class Simulator:
             self.rp.publish_sim_world(self.ref_world)
 
             trace_polygons = []
-            attached_entity_to_robot = bidict()
 
             step_count = 0
 
             self.simulation_log.append(utils.BasicLog("Starting run.", step_count))
+            self.rp.publish_message("Sim steps: {}".format(step_count),
+                                    pose=(0., self.ref_world.dd.grid_pose[1] + self.ref_world.dd.height + 0.25, 0.),
+                                    font_size=0.5)
+
+            print("")
 
             while active_agents:
                 try:
                     # Increment simulation step count
                     step_count += 1
+                    self.rp.publish_message("Sim steps: {}".format(step_count), pose=(0., self.ref_world.dd.grid_pose[1] + self.ref_world.dd.height + 0.25, 0.), font_size=0.5)
 
                     # Sense loop: update each agent's knowledge of the world
-                    self.sense(active_agents, step_count)
+                    sense_durations = {}
+                    self.sense(active_agents, step_count, sense_durations)
 
                     # Think loop: get each agent to think about their next step
-                    agent_uid_to_next_action = self.think(active_agents, trace_polygons, step_count)
+                    think_durations = {}
+                    with timeout(10*60):
+                        actions = self.think(active_agents, trace_polygons, step_count, think_durations)
 
                     # Act loops: Verify that each action is doable individually and together, if so, execute them
-                    self.act(agent_uid_to_next_action, attached_entity_to_robot, trace_polygons, step_count)
+                    act_start = time.time()
+                    action_results = self.act(actions, step_count)
+                    act_duration = time.time() - act_start
+
+                    self.history.append(
+                        SimulationStepResult(sense_durations, think_durations, act_duration, action_results, step_count)
+                    )
 
                     # Once the simulation reference world has been modified, display the modification
                     if not self.display_sim_knowledge_only_once:
@@ -174,7 +290,11 @@ class Simulator:
                         self.simulation_log.append(utils.BasicLog(tb, step_count))
                     else:
                         self.simulation_log.append(utils.BasicLog("MET A RUNTIME EXCEPTION, EXITING !", step_count))
-                        raise e
+                        run_active = False
+                        tb = traceback.format_exc()
+                        run_exceptions_traces.append(tb)
+                        exception = e
+                        break
 
             # If the simulation is set to be reset after all agents have reached their first goal,
             # and there are goals left to reach, reset the simulation world and give the agents their next goal
@@ -193,30 +313,58 @@ class Simulator:
                 run_active = False
 
         # Save simulation results
-        self.ref_world.save_to_files(
-            json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_end" + ".json",
-            svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename, "_end")
-        )
-        self.run_duration = time.time() - run_start_time
-        self.simulation_log.append(utils.BasicLog("Saved simulation final state.", step_count))
-
-        simulation_report = self.create_simulation_report()
+        # - Save exception traces
         if run_exceptions_traces:
-            simulation_report['Exceptions'] = json.dumps(run_exceptions_traces)
+            exceptions = {'exceptions': run_exceptions_traces}
+            exceptions_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "exceptions")
+            self.save(exceptions, exceptions_filepath)
+            self.simulation_log.append(utils.BasicLog("Saved exceptions at: {}".format(exceptions_filepath), step_count))
 
-        simulation_report["agents_logs"] = {}
-        for uid, behavior in self.agent_uid_to_behavior.items():
-            simulation_report["agents_logs"][self.ref_world.entities[uid].name] = behavior.simulation_log
+        # - Save world end state as SVG+JSON
+        if self.save_end_world_state:
+            self.ref_world.save_to_files(
+                json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_end" + ".json",
+                svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename, "_end")
+            )
+            self.simulation_log.append(utils.BasicLog("Saved simulation final state.", step_count))
 
+        # - Save stats
+        if self.save_stats:
+            stats = self.create_simulation_report()
+            stats_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "stats")
+            self.save(stats, stats_filepath)
+            self.simulation_log.append(utils.BasicLog("Saved stats at: {}".format(stats_filepath), step_count))
+
+        # - Save simulation history
         # TODO Remove this temporary measure for a better separation between scenario generation and execution
-        simulation_report["temp_goals"] = self.saved_goals
-        self.simulation_log.append(utils.BasicLog("Simulation report saved at: {}".format(self.log_filepath), step_count))
-        simulation_report["simulation_log"] = self.simulation_log
-        simulation_report_json = json.dumps(simulation_report, default=lambda o: o.__dict__, indent=4, sort_keys=True)
-        with open(self.log_filepath, 'w+') as f:
-            f.write(simulation_report_json)
+        if self.save_history:
+            history = {}
+            history["temp_goals"] = self.saved_goals
+            history['random_seed'] = self.random_seed
+            history["simulation_history"] = self.history
+            history["agent_plans_history"] = {
+                agent_uid: dict(behavior.goal_to_plans) for agent_uid, behavior in self.agent_uid_to_behavior.items()
+            }
+            history_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "history")
+            self.save(history, history_filepath)
+            self.simulation_log.append(utils.BasicLog("Saved history at: {}".format(history_filepath), step_count))
 
-        return simulation_report
+        # - Save simulation and agents logs
+        if self.save_logs:
+            logs = {}
+            logs["simulation_log"] = self.simulation_log
+            logs["agents_logs"] = {}
+            for uid, behavior in self.agent_uid_to_behavior.items():
+                logs["agents_logs"][self.ref_world.entities[uid].name] = behavior.simulation_log
+            logs_filepath = os.path.join(os.path.dirname(self.abs_path_to_logs_dir), "logs")
+            self.save(logs, logs_filepath)
+
+        if exception:
+            for exception_trace in run_exceptions_traces:
+                print(exception_trace)
+            raise exception
+
+        return self.history
 
     def _create_robot_world_from_sim_world(self):
         entities = dict()
@@ -235,193 +383,150 @@ class Simulator:
             if isinstance(entity, Robot):
                 all_movable_types.update(set(entity.movable_whitelist))
 
-        all_movables_uids = tuple({
+        all_movables_uids = {
             entity_uid for entity_uid, entity in self.init_ref_world.entities.items()
-            if isinstance(entity, Obstacle) and entity.type in all_movable_types})
+            if isinstance(entity, Obstacle) and entity.type in all_movable_types}
 
+        init_nb_cc, init_biggest_cc_size, init_all_cc_sum_size, init_frag_percentage = \
+            stats_utils.get_connectivity_stats(
+                self.init_ref_world, self.human_inflation_radius,
+                [uid for uid, entity in self.init_ref_world.entities.items() if isinstance(entity, Robot)]
+            )
         init_abs_social_cost = stats_utils.get_social_costs_stats(self.init_ref_world, tuple(all_movables_uids))
 
-        report = {
-            "total_run_time": self.run_duration,
-            "number_of_connected_components_initial": self.init_nb_cc,
-            "biggest_free_component_size_initial": self.init_biggest_cc_size,
-            "free_space_size_initial": self.init_all_cc_sum_size,
-            "space_fragmentation_percentage_initial": self.init_frag_percentage,
-            "absolute_social_cost_initial": init_abs_social_cost,
-            "agents": []
-        }
-
-        goal_counter = 1
-        for agent_uid, behavior in self.agent_uid_to_behavior.items():
-            goals_reports = []
-
-            goal_world_snapshots = self.agent_uid_and_goal_to_world_snapshot[agent_uid]
-
-            for counter, goal_world_snapshot in enumerate(goal_world_snapshots):
-                goal = goal_world_snapshot["goal"]
-                goal_status = goal_world_snapshot["goal_status"]
-                world_snapshot = goal_world_snapshot["world_snapshot"]
-                actions_results_to_goal = self.agent_uid_and_goal_to_action_results[agent_uid][goal]
-                transit_path_length, transfer_path_length = stats_utils.get_total_path_lengths(actions_results_to_goal)
-
-                # world_snapshot.save_to_files(
-                #     json_filepath=self.abs_path_to_logs_dir + "simulation/" + self.simulation_filename + "_after_goal_" + str(
-                #         goal_counter) + ".json",
-                #     svg_filepath=utils.append_suffix(self.init_ref_world.init_geometry_filename,
-                #                                      "_after_goal_" + str(goal_counter))
-                # )
-                goal_counter += 1
-
-                end_nb_cc, end_biggest_cc_size, end_all_cc_sum_size, end_frag_percentage = stats_utils.get_connectivity_stats(
-                    world_snapshot, self.human_inflation_radius,
-                    [uid for uid, entity in world_snapshot.entities.items() if isinstance(entity, Robot)]
+        replay_world = copy.deepcopy(self.init_ref_world)
+        stats = [
+            StepStats(
+                world_stats=WorldStepStats(
+                    init_nb_cc, init_biggest_cc_size, init_all_cc_sum_size, init_frag_percentage, init_abs_social_cost
+                ),
+                agents_stats={replay_world.entities[uid].name: AgentStepStats() for uid in self.agent_uid_to_behavior.keys()},
+                act_time=0.
+            )
+        ]
+        prev_agent_poses = {uid: replay_world.entities[uid].pose for uid in self.agent_uid_to_behavior.keys()}
+        for sim_step_result in self.history:
+            # Only repeat successful actions when replaying the simulation
+            successful_actions = {
+                uid: action_result.action for uid, action_result in sim_step_result.action_results.items()
+                if (
+                    isinstance(action_result, ar.ActionSuccess)
+                    and isinstance(action_result.action, (ba.Rotation, ba.Translation, ba.Grab, ba.Release))
                 )
-
-                end_abs_social_cost = stats_utils.get_social_costs_stats(world_snapshot, all_movables_uids)
-
-                total_path_length = transit_path_length + transfer_path_length
-
-                nb_reallocated_obstacles = stats_utils.get_nb_reallocated_obstacles(self.init_ref_world, world_snapshot)
-
-                goal_report = {
-                    "goal": goal,
-                    "goal_status": goal_status,
-                    "number_of_transferred_obstacles": stats_utils.get_nb_transferred_obstacles(actions_results_to_goal),
-                    "number_of_reallocated_obstacles": nb_reallocated_obstacles,
-                    "total_path_length": total_path_length,
-                    "transit_path_length": transit_path_length,
-                    "transfer_path_length": transfer_path_length,
-                    "transit_transfer_ratio": (
-                        1. if transfer_path_length == 0. else transit_path_length / transfer_path_length),
-                    "transfer_percentage": (
-                        0. if total_path_length == 0. else transfer_path_length / total_path_length * 100),
-                    "number_of_connected_components_after_goal": end_nb_cc,
-                    "biggest_free_component_size_after_goal": end_biggest_cc_size,
-                    "free_space_size_after_goal": end_all_cc_sum_size,
-                    "space_fragmentation_percentage_after_goal": end_frag_percentage,
-                    "absolute_social_cost_after_goal": end_abs_social_cost,
-                    "number_of_connected_components_relative_change": stats_utils.relative_change(
-                        self.init_nb_cc, end_nb_cc),
-                    "biggest_free_component_size_relative_change": stats_utils.relative_change(
-                        self.init_biggest_cc_size, end_biggest_cc_size),
-                    "free_space_size_relative_change": stats_utils.relative_change(
-                        self.init_all_cc_sum_size, end_all_cc_sum_size),
-                    "space_fragmentation_percentage_relative_change": stats_utils.relative_change(
-                        self.init_frag_percentage, end_frag_percentage, False) * 100.,
-                    "absolute_social_cost_relative_change": stats_utils.relative_change(
-                        init_abs_social_cost, end_abs_social_cost)
-                }
-                goals_reports.append(goal_report)
-
-            agent_report = {
-                "agent_uid": agent_uid,
-                "agent_name": self.ref_world.entities[agent_uid].name,
-                "agent_behavior_name": behavior.name,
-                "total_planning_time": self.agent_uid_to_think_time[agent_uid],
-                "goals_reports": goals_reports
             }
 
-            report["agents"].append(agent_report)
+            collision.csv_simulate_simple_kinematics(replay_world, successful_actions, apply=True, ignore_collisions=True)
+            for agent_uid, action in successful_actions.items():
+                if isinstance(action, ba.Grab):
+                    replay_world.entity_to_agent[action.entity_uid] = agent_uid
+                if isinstance(action, ba.Release):
+                    del replay_world.entity_to_agent[action.entity_uid]
+
+            # Compute world state stats ignoring all dynamic obstacles (robots and grabbed obstacles, typically)
+            # Only when a release action happens, otherwise preserve previous stats
+            if any([isinstance(action, ba.Release) for action in successful_actions.values()]):
+                end_nb_cc, end_biggest_cc_size, end_all_cc_sum_size, end_frag = stats_utils.get_connectivity_stats(
+                    replay_world, self.human_inflation_radius,
+                    [
+                        uid for uid, entity in replay_world.entities.items()
+                        if isinstance(entity, Robot) or uid in replay_world.entity_to_agent.keys()
+                    ]
+                )
+                end_abs_social_cost = stats_utils.get_social_costs_stats(
+                    replay_world, all_movables_uids.difference(set(replay_world.entity_to_agent.keys()))
+                )
+                world_stats = WorldStepStats(
+                    end_nb_cc, end_biggest_cc_size, end_all_cc_sum_size, end_frag, end_abs_social_cost
+                )
+            else:
+                world_stats = stats[-1].world_stats
+
+            # Compute agents stats
+            prev_agents_stats = stats[-1].agents_stats
+            agents_stats = copy.deepcopy(prev_agents_stats)
+            for name, agent_stats in agents_stats.items():
+                uid = replay_world.get_entity_uid_from_name(name)
+
+                if uid not in sim_step_result.action_results:
+                    continue
+
+                step_distance = utils.euclidean_distance(prev_agent_poses[uid], replay_world.entities[uid].pose)
+                if uid in replay_world.entity_to_agent.inverse:
+                    agent_stats.transfer_path_length += step_distance
+                else:
+                    agent_stats.transit_path_length += step_distance
+                agent_stats.path_length += step_distance
+
+                robot_action_result = sim_step_result.action_results[uid]
+                robot_action = robot_action_result.action
+
+                if isinstance(robot_action_result, ar.ActionSuccess):
+                    if isinstance(robot_action, ba.Grab):
+                        agent_stats.nb_transfers += 1
+                        agent_stats.nb_transfer_steps += 1
+                        agent_stats.nb_steps += 1
+                    elif isinstance(robot_action, ba.Wait):
+                        agent_stats.nb_wait_steps += 1
+                        agent_stats.nb_steps += 1
+                    elif isinstance(robot_action, ba.GoalSuccess):
+                        agent_stats.nb_goals += 1
+                        agent_stats.nb_successful_goals += 1
+                    elif isinstance(robot_action, ba.GoalFailed):
+                        agent_stats.nb_goals += 1
+                        agent_stats.nb_failed_goals += 1
+                    elif isinstance(robot_action, (ba.Translation, ba.Rotation, ba.Release)):
+                        agent_stats.nb_steps += 1
+                        if uid in replay_world.entity_to_agent.inverse:
+                            agent_stats.nb_transfer_steps += 1
+                        else:
+                            agent_stats.nb_transit_steps += 1
+
+                # TODO Find a way to ditch the self.saved_goals variable
+                if not isinstance(robot_action, (ba.GoalResult, ba.GoalsFinished)):
+                    current_goal = self.saved_goals[replay_world.entities[uid].name][agent_stats.nb_goals]
+                    current_dynamic_plan = self.agent_uid_to_behavior[uid].goal_to_plans[current_goal]
+
+                    step_index = sim_step_result.step_index
+                    if step_index in current_dynamic_plan.new_conflicts_history:
+                        conflict = current_dynamic_plan.new_conflicts_history[step_index]
+                        agent_stats.nb_conflicts += 1
+                        if isinstance(conflict, stilman_2005_behavior.RobotRobotConflict):
+                            agent_stats.nb_robot_robot_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.RobotObstacleConflict):
+                            agent_stats.nb_robot_obstacle_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.StolenMovableConflict):
+                            agent_stats.nb_stolen_movable_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.StealingMovableConflict):
+                            agent_stats.nb_stealing_movable_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.ConcurrentGrabConflict):
+                            agent_stats.nb_concurrent_grab_conflicts += 1
+                        elif isinstance(conflict, stilman_2005_behavior.SimultaneousSpaceAccess):
+                            agent_stats.nb_simultaneous_space_access_conflicts += 1
+
+                    if step_index in current_dynamic_plan.postponements_history:
+                        agent_stats.nb_of_postponements += 1
+
+                    if step_index in current_dynamic_plan.unpostponements_history:
+                        agent_stats.nb_of_unpostponements += 1
+
+                    if step_index in current_dynamic_plan.new_replan_history:
+                        agent_stats.nb_of_plan_computations += 1
+
+                agent_stats.sense_time += sim_step_result.sense_durations[uid]
+                agent_stats.think_time += sim_step_result.think_durations[uid]
+
+            # Update act_time
+            act_time = stats[-1].act_time + sim_step_result.act_duration
+
+            stats.append(StepStats(world_stats, agents_stats, act_time))
+
+            prev_agent_poses = {uid: replay_world.entities[uid].pose for uid in self.agent_uid_to_behavior.keys()}
+
+        report = {"stats": stats}
 
         return report
 
-    def create_simulation_light_report(self):
-        report = {
-            "total_run_time": self.run_duration,
-            "agents": []
-        }
-
-        for agent_uid, behavior in self.agent_uid_to_behavior.items():
-            agent_report = {
-                "agent_uid": agent_uid,
-                "agent_name": self.ref_world.entities[agent_uid].name,
-                "agent_behavior_name": behavior.name,
-                "total_planning_time": self.agent_uid_to_think_time[agent_uid]
-            }
-            report["agents"].append(agent_report)
-
-        return report
-
-    @staticmethod
-    def sample_poses_uniform(world, agent_uid, nb_poses=1, sample_in_movable=True, sample_in_agents=True):
-        map_min_x, map_min_y, map_max_x, map_max_y = world.get_map_bounds()
-        agent = world.entities[agent_uid]
-
-        uids_to_filter = {
-            uid for uid, entity in world.entities.items()
-            if (
-                uid == agent_uid
-                or (
-                    sample_in_movable and isinstance(entity, Obstacle)
-                    and agent.deduce_movability(entity.type) == 'movable'
-                )
-                or (sample_in_agents and isinstance(entity, Robot))
-            )
-        }
-
-        other_entities = [entity for uid, entity in world.entities.items() if uid not in uids_to_filter]
-
-        generated_poses = []
-
-        while len(generated_poses) < nb_poses:
-            pose_collides = True
-            while pose_collides:
-                rand_pose = (
-                    random.uniform(map_min_x, map_max_x),
-                    random.uniform(map_min_y, map_max_y),
-                    random.uniform(0., 360.)
-                )
-                translation, rotation = utils.get_translation_and_rotation(agent.pose, rand_pose)
-                expected_polygon = affinity.rotate(
-                        affinity.translate(agent.polygon, translation[0], translation[1]), rotation
-                )
-                pose_collides = utils.polygon_collides_with_entities(expected_polygon, other_entities)
-                if not pose_collides:
-                    generated_poses.append(rand_pose)
-        return generated_poses
-
-    def sample_poses_on_grid(self, world, agent_uid, nb_poses, sample_in_movable=True, sample_in_agents=True):
-        agent = world.entities[agent_uid]
-
-        uids_to_filter = {
-            uid for uid, entity in world.entities.items()
-            if (
-                uid == agent_uid
-                or (
-                    sample_in_movable and isinstance(entity, Obstacle)
-                    and agent.deduce_movability(entity.type) == 'movable'
-                )
-                or (sample_in_agents and isinstance(entity, Robot))
-            )
-        }
-
-        other_entities_polygons = {
-            uid: entity.polygon for uid, entity in world.entities.items() if uid not in uids_to_filter
-        }
-        agent_max_inflation_radius = utils.get_circumscribed_radius(agent.polygon)
-
-        bin_inf_occ_grid = BinaryInflatedOccupancyGrid(
-            other_entities_polygons, world.dd.res, agent_max_inflation_radius,
-            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
-        )
-
-        grid = bin_inf_occ_grid.grid
-        self.temp_att_grid = grid
-        free_cells = list(zip(*np.where(grid == 0)))
-
-        generated_poses = []
-
-        while free_cells and len(generated_poses) < nb_poses:
-            random_free_cell = random.choice(free_cells)
-            free_cells.remove(random_free_cell)
-            random_theta = random.uniform(0., 360.)
-            rand_pose = utils.grid_pose_to_real_pose(
-                (random_free_cell[0], random_free_cell[1], random_theta), bin_inf_occ_grid.res, bin_inf_occ_grid.grid_pose
-            )
-            generated_poses.append(rand_pose)
-        return generated_poses
-
-    def initialize_agents_goals(self, goals_geometries):
+    def initialize_agents_goals(self, goals_geometries, max_nb_goals=float('inf')):
         agent_uid_to_goals = {}
         for agent_to_behavior_config in self.config["agents_behaviors"]:
             agent_name = agent_to_behavior_config["agent_name"]
@@ -435,34 +540,11 @@ class Simulator:
                 agent_navigation_goals = []
 
                 if "navigation_goals" in behavior_config:
-                    for config_goal in behavior_config["navigation_goals"]:
+                    for count, config_goal in enumerate(behavior_config["navigation_goals"]):
+                        if count > max_nb_goals:
+                            break
                         if config_goal["name"] in goals_geometries:
                             agent_navigation_goals.append(goals_geometries[config_goal["name"]])
-
-                if "randomization" in behavior_config:
-                    randomization_config = behavior_config["randomization"]
-                    if "randomize_existing_navigation_goals" in randomization_config:
-                        if "goal_multiplier" in randomization_config:
-                            agent_navigation_goals *= randomization_config["goal_multiplier"]
-                        random.shuffle(agent_navigation_goals)
-                    elif "generate_random_goals" in randomization_config:
-                        nb_goals_to_generate = 1
-                        if "nb_goals_to_generate" in randomization_config:
-                            nb_goals_to_generate = randomization_config["nb_goals_to_generate"]
-
-                        randomization_types = ["discrete", "uniform"]
-                        sampling_function = self.sample_poses_on_grid
-                        if "randomization_type" in randomization_config:
-                            randomization_type = randomization_config["randomization_type"]
-                            if randomization_type not in randomization_types:
-                                raise ValueError("Randomization can only be one of : {}".format(randomization_types))
-                            if randomization_type == "discrete":
-                                sampling_function = self.sample_poses_on_grid
-                            elif randomization_type == "uniform":
-                                sampling_function = self.sample_poses_uniform
-
-                        agent_navigation_goals = sampling_function(self.ref_world, agent_uid, nb_goals_to_generate)
-                        # TODO: Add the generated goals to world !
 
                 agent_uid_to_goals[agent_uid] = agent_navigation_goals
 
@@ -483,26 +565,18 @@ class Simulator:
                 behavior_config = agent_to_behavior_config["behavior"]
                 agent_behavior_name = behavior_config["name"]
 
-                # if agent_behavior_name == "navigation_only_behavior":
-                #     agent_world = self._create_robot_world_from_sim_world()
-                #     self.rp.cleanup_robot_world()
-                #     agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
-                #         agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
-                # elif agent_behavior_name == "wu_levihn_2014_behavior":
-                #     agent_world = self._create_robot_world_from_sim_world()
-                #     self.rp.cleanup_robot_world()
-                #     agent_uid_to_behavior[agent_uid] = WuLevihn2014Behavior(
-                #         agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
                 if agent_behavior_name == "stilman_2005_behavior":
                     agent_world = copy.deepcopy(self.ref_world)
                     self.rp.cleanup_robot_world()
                     agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
                         agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
                 else:
-                    raise NotImplementedError("You tried to associate entity '{agent_name}' with a behavior named"
-                                              "'{b_name}' that is not implemented yet."
-                                              "Maybe you mispelled something ?".format(
-                        agent_name=agent_name, b_name=agent_behavior_name))
+                    raise NotImplementedError(
+                        "You tried to associate entity '{agent_name}' with a behavior named"
+                        "'{b_name}' that is not implemented yet."
+                        "Maybe you mispelled something ?".format(
+                            agent_name=agent_name, b_name=agent_behavior_name)
+                    )
         return agent_uid_to_behavior
 
     def save_world_snapshot(self, agent_uid, action, trace_polygons, step_count):
@@ -523,45 +597,21 @@ class Simulator:
         svg_filepath = utils.append_suffix(self.init_ref_world.init_geometry_filename, suffix)
         svg_data = world_snapshot.to_svg()
 
-        # conversion.add_shapely_geometry_to_svg(
-        #     utils.set_polygon_pose(
-        #         self.ref_world.entities[agent_uid].polygon, self.ref_world.entities[agent_uid].pose, action.goal
-        #     ),
-        #     self.ref_world.scaling_value,
-        #     self.ref_world.dd.width,
-        #     self.ref_world.dd.height,
-        #     'goal_generated_' + str(goal_counter),
-        #     conversion.GOAL_STYLE,
-        #     svg_data
-        # )
-
-        # TODO ADD ORIENTATION GEOMETRY
-        # conversion.add_shapely_geometry_to_svg(
-        #     utils.set_polygon_pose(
-        #         self.ref_world[agent_uid].polygon, self.ref_world[agent_uid].pose, action.goal
-        #     ),
-        #     self.ref_world.scaling_value,
-        #     self.ref_world.dd.grid_pose,
-        #     'goal_generated_' + str(goal_counter) + '_dir',
-        #     conversion.GOAL_STYLE,
-        #     svg_data
-        # )
-
         new_group = svg_data.createElement('svg:g')
         new_group.setAttribute('id', "traces"+suffix)
         new_group.setAttribute('inkscape:groupmode', "layer")
         new_group.setAttribute('inkscape:label', "traces"+suffix)
         svg_data.childNodes[0].appendChild(new_group)
         for polygon in trace_polygons:
-            conversion.add_shapely_geometry_to_svg_with_projection(
+            conversion.add_shapely_geometry_to_svg(
                 polygon,
-                self.ref_world.scaling_value,
-                self.ref_world.dd.width,
-                self.ref_world.dd.height,
                 'goal_generated_' + str(goal_counter),
                 conversion.OBSTACE_TRACE_STYLE,
                 svg_data,
-                new_group
+                new_group,
+                self.ref_world.scaling_value,
+                self.ref_world.dd.width,
+                self.ref_world.dd.height
             )
         del trace_polygons[:len(trace_polygons)]
 
@@ -573,390 +623,169 @@ class Simulator:
             svg_filepath=svg_filepath
         )
 
-    def sense(self, active_agents, step_count):
+    def sense(self, active_agents, step_count, sense_durations):
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
-                last_action_result = (self.agent_uid_to_action_results[agent_uid][-1]
-                                      if self.agent_uid_to_action_results[agent_uid]
-                                      else ar.ActionSuccess)
+                sense_start = time.time()
+                last_action_result = (
+                    self.history[-1].action_results[agent_uid] if (self.history and agent_uid in self.history[-1].action_results) else ar.ActionSuccess
+                )
                 behavior.sense(self.ref_world, last_action_result, step_count)
+                sense_durations[agent_uid] = time.time() - sense_start
 
-    def think(self, active_agents, trace_polygons, step_count):
+    def think(self, active_agents, trace_polygons, step_count, think_durations):
         agent_uid_to_next_action = {}
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
-                planning_start_time = time.time()
+                think_start = time.time()
                 agent_next_action = behavior.think()
+                think_durations[agent_uid] = time.time() - think_start
 
                 # TODO Change goal coordinates for easier reading to goal name in log.
                 if isinstance(agent_next_action, ba.GoalsFinished):
                     # If the agent has executed all of its goals, remove it from the active agents
                     active_agents.remove(agent_uid)
                     self.simulation_log.append(
-                        utils.BasicLog("{} finished executed all its goals.".format(agent_uid), step_count)
+                        utils.BasicLog("Agent {} finished executing all its goals.".format(self.ref_world.entities[agent_uid].name), step_count)
                     )
                 elif isinstance(agent_next_action, ba.GoalFailed):
-                    self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
+                    if self.save_intermediate_world_states:
+                        self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
                     self.simulation_log.append(
                         utils.BasicLog(
-                            "{} failed executing goal {}.".format(self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)),
+                            "{} failed executing goal {}.".format(
+                                self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)
+                            ),
                             step_count
                         )
                     )
-                    simulation_report = {"temp_goals": self.saved_goals, "simulation_log": self.simulation_log}
-                    simulation_report["agents_logs"] = {}
-                    for uid, behavior in self.agent_uid_to_behavior.items():
-                        simulation_report["agents_logs"][
-                            self.ref_world.entities[uid].name] = behavior.simulation_log
-                    with open(self.log_filepath, 'w+') as f:
-                        json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
-                    if agent_next_action.goal not in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                        self.agent_uid_and_goal_to_action_results[agent_uid][agent_next_action.goal] = []
                 elif isinstance(agent_next_action, ba.GoalSuccess):
                     # If the agent reached its current goal
-                    self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
+                    if self.save_intermediate_world_states:
+                        self.save_world_snapshot(agent_uid, agent_next_action, trace_polygons, step_count)
                     self.simulation_log.append(
                         utils.BasicLog(
-                            "{} successfully executed goal {}.".format(self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)),
+                            "Agent {} successfully executed goal {}.".format(
+                                self.ref_world.entities[agent_uid].name, str(agent_next_action.goal)
+                            ),
                             step_count
                         )
                     )
-                    simulation_report = {"temp_goals": self.saved_goals, "simulation_log": self.simulation_log}
-                    simulation_report["agents_logs"] = {}
-                    for uid, behavior in self.agent_uid_to_behavior.items():
-                        simulation_report["agents_logs"][
-                            self.ref_world.entities[uid].name] = behavior.simulation_log
-                    with open(self.log_filepath, 'w+') as f:
-                        json.dump(simulation_report, f, default=lambda o: o.__dict__, indent=4, sort_keys=True)
-                else:
-                    # If the agent could think of a plan and its step
-                    agent_uid_to_next_action[agent_uid] = agent_next_action
-                self.agent_uid_to_think_time[agent_uid] += time.time() - planning_start_time
+                agent_uid_to_next_action[agent_uid] = agent_next_action
         return agent_uid_to_next_action
 
-    def act(self, agent_uid_to_next_action, attached_entity_to_robot, trace_polygons, step_count):
-        # TODO ADD VERIFICATION IF OBSTACLE IS STILL MANIPULABLE ?
-
-        agent_uid_to_doable_action = {
-            uid: action for uid, action in agent_uid_to_next_action.items() if isinstance(action, ba.Wait)
+    def act(self, agent_uid_to_next_action, step_count, use_b2=False, ignore_collisions=True):
+        # Only Grab and Release actions require further checks, and Wait actions are necessarily valid
+        to_check = {
+            uid: a for uid, a in agent_uid_to_next_action.items()
+            if isinstance(a, (ba.Translation, ba.Rotation)) and not isinstance(a, (ba.Grab, ba.Release))
         }
-        agent_uid_to_impossible_action_result = {}
-
-        # 1. Check static geometrical validity of MOVEMENT actions:
-        #    (GOTOPOSE, TRANSLATION, ROTATION, GRAB, RELEASE)
-        transition_polygons = {}
-        agent_uid_to_movement_actions = {
-            uid: action for uid, action in agent_uid_to_next_action.items()
-            if isinstance(action, (ba.GoToPose, ba.Translation, ba.Rotation))
+        action_results = {
+            uid: ar.ActionSuccess(a, self.ref_world.entities[uid].pose)
+            for uid, a in agent_uid_to_next_action.items() if isinstance(a, (ba.Wait, ba.GoalSuccess, ba.GoalFailed, ba.GoalsFinished))
         }
-        agent_uid_to_statically_doable_action = {}
-        for agent_uid, next_action in agent_uid_to_movement_actions.items():
-            # If there is an actual action to be executed
-            attached_entity_uid = (
-                None if agent_uid not in attached_entity_to_robot.inverse
-                else attached_entity_to_robot.inverse[agent_uid]
-            )
-            to_be_attached_entity_uid = (
-                None if not isinstance(next_action, (ba.Grab, ba.Release)) else next_action.entity_uid
-            )
-            other_entities = {
-                uid: entity
-                for uid, entity in self.ref_world.entities.items()
-                if uid != agent_uid and uid != attached_entity_uid and uid != to_be_attached_entity_uid
-            }
-            other_polygons = {uid: e.polygon for uid, e in other_entities.items()}
-            other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_polygons)
-            agent = self.ref_world.entities[agent_uid]
 
-            if isinstance(next_action, ba.GoToPose):
-                collision_polygon = LineString([agent.pose, next_action.pose]).buffer(
-                    utils.get_circumscribed_radius(agent.polygon))
-                collision_aabb = collision.polygon_to_aabb(collision_polygon)
-                potential_collision_uids = other_entities_aabb_tree.overlap_values(collision_aabb)
-                agent_collides = False
-                for uid in potential_collision_uids:
-                    if other_polygons[uid].intersects(collision_polygon):
-                        agent_collides = True
-                        agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
-                            next_action, agent_uid, uid, other_polygons[uid].intersection(collision_polygon)
-                        )
-                        self.simulation_log.append(
-                            utils.BasicLog(
-                                'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                                    agent_uid, self.ref_world.entities[agent_uid].name, uid,
-                                    self.ref_world.entities[uid].name
-                                ),
-                                step_count
-                            )
-                        )
-                        break
-                if not agent_collides:
-                    agent_uid_to_statically_doable_action[agent_uid] = next_action
-                    transition_polygons[agent_uid] = collision_polygon
-            elif isinstance(next_action, (ba.Rotation, ba.Translation)):
-                converted_action = ba.convert_action(next_action, agent.pose)
-                agent_polygon_sequence = [agent.polygon, converted_action.apply(agent.polygon)]
-                agent_collides, agent_collision_data, _ = collision.csv_check_collisions(
-                    other_polygons, agent_polygon_sequence, [converted_action],
-                    'minimum_rotated_rectangle', other_entities_aabb_tree, [0, 1]
-                )
-                if agent_collides:
-                    agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
-                        next_action, agent_uid,
-                        agent_collision_data[(0, 1)]['colliding_polygon_uid'],
-                        agent_collision_data[(0, 1)]['intersection_polygon']
-                    )
-                    self.simulation_log.append(
-                        utils.BasicLog(
-                            'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                                agent_uid, self.ref_world.entities[agent_uid].name,
-                                agent_collision_data[(0,1)]['colliding_polygon_uid'],
-                                self.ref_world.entities[agent_collision_data[(0,1)]['colliding_polygon_uid']].name
-                            ),
-                            step_count
-                        )
-                    )
+        # Check if released entity is already grabbed by the right agent
+        for agent_uid, action in agent_uid_to_next_action.items():
+            if isinstance(action, ba.Release):
+                entity_uid = action.entity_uid
+                if agent_uid not in self.ref_world.entity_to_agent.inverse or entity_uid not in self.ref_world.entity_to_agent:
+                    action_results[agent_uid] = ar.NotGrabbedFailure(action)
                 else:
-                    if attached_entity_uid:
-                        att_entity = self.ref_world.entities[attached_entity_uid]
-                        att_entity_polygon_sequence = [
-                            att_entity.polygon, converted_action.apply(att_entity.polygon)]
-                        att_entity_collides, att_entity_collision_data, _ = collision.csv_check_collisions(
-                            other_polygons, att_entity_polygon_sequence, [converted_action],
-                            'minimum_rotated_rectangle', other_entities_aabb_tree, [0, 1]
-                        )
-                        if att_entity_collides:
-                            agent_uid_to_impossible_action_result[agent_uid] = ar.StaticCollisionFailure(
-                                next_action, attached_entity_uid,
-                                att_entity_collision_data[(0, 1)]['colliding_polygon_uid'],
-                                att_entity_collision_data[(0, 1)]['intersection_polygon']
-                            )
-                            self.simulation_log.append(
-                                utils.BasicLog(
-                                    'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                                        attached_entity_uid, self.ref_world.entities[attached_entity_uid].name,
-                                        att_entity_collision_data[(0, 1)]['colliding_polygon_uid'],
-                                        self.ref_world.entities[att_entity_collision_data[(0, 1)]['colliding_polygon_uid']].name
-                                    ),
-                                    step_count
-                                )
-                            )
-                        else:
-                            transition_polygons[agent_uid] = agent_collision_data[(0, 1)]['csv_polygon']
-                            transition_polygons[attached_entity_uid] = att_entity_collision_data[(0, 1)]['csv_polygon']
-                            agent_uid_to_statically_doable_action[agent_uid] = next_action
+                    other_agent_uid = self.ref_world.entity_to_agent[entity_uid]
+                    if other_agent_uid != agent_uid:
+                        action_results[agent_uid] = ar.GrabbedByOtherFailure(action, other_agent_uid)
                     else:
-                        transition_polygons[agent_uid] = agent_collision_data[(0, 1)]['csv_polygon']
-                        agent_uid_to_statically_doable_action[agent_uid] = next_action
-            else:
-                raise TypeError('Provided action type is not supported.')
+                        to_check[agent_uid] = action
 
-        # 2. Check dynamic (transitionnal) geometrical validity of MOVEMENT actions:
-        #    (GOTOPOSE, TRANSLATION, ROTATION, GRAB, RELEASE)
-        for agent_uid, action in agent_uid_to_statically_doable_action.items():
-            attached_entity_uid = (
-                None if agent_uid not in attached_entity_to_robot.inverse
-                else attached_entity_to_robot.inverse[agent_uid]
+        # Check if grabbed entity not already grabbed by another, and if about to be released by another
+        entity_to_grab_agents = {}
+        for agent_uid, action in agent_uid_to_next_action.items():
+            if isinstance(action, ba.Grab):
+                entity_uid = action.entity_uid
+                if entity_uid in entity_to_grab_agents:
+                    entity_to_grab_agents[entity_uid].add(agent_uid)
+                else:
+                    entity_to_grab_agents[entity_uid] = {agent_uid}
+        for agent_uid, action in agent_uid_to_next_action.items():
+            if isinstance(action, ba.Grab):
+                entity_uid = action.entity_uid
+                if len(entity_to_grab_agents[entity_uid]) > 1:
+                    action_results[agent_uid] = ar.SimultaneousGrabFailure(action, entity_to_grab_agents[entity_uid])
+                    continue
+                if agent_uid in self.ref_world.entity_to_agent.inverse:
+                    action_results[agent_uid] = ar.GrabMoreThanOneFailure(action)
+                    continue
+                if entity_uid in self.ref_world.entity_to_agent:
+                    other_agent_uid = self.ref_world.entity_to_agent[entity_uid]
+                    other_releases = other_agent_uid in to_check and isinstance(to_check[other_agent_uid], ba.Release)
+                    if not other_releases:
+                        action_results[agent_uid] = ar.AlreadyGrabbedFailure(action, other_agent_uid)
+                        continue
+                to_check[agent_uid] = action
+
+        # Check actions regarding dynamic collisions and apply the valid ones using Box2D
+        if use_b2:
+            collides_with = self.b2_sim.simulate_simple_kinematics([to_check], apply=True)
+        else:
+            collides_with = collision.csv_simulate_simple_kinematics(
+                self.ref_world, to_check, apply=True, ignore_collisions=ignore_collisions, extra_transit_check=False
             )
-            to_be_attached_entity_uid = (
-                None if not isinstance(action, (ba.Grab, ba.Release)) else action.entity_uid
+
+        # Finish separating succeeded and failed actions, and apply result to world state on success
+        for agent_uid, action in to_check.items():
+            action_dynamically_collides = (
+                (  # The agent associated with the action collides
+                    (
+                        agent_uid in collides_with
+                        and not isinstance(action, ba.Grab)
+                    )
+                    or (  # Special case for Grab: ignore collision with grabbed obstacle
+                        agent_uid in collides_with
+                        and isinstance(action, ba.Grab)
+                        and (
+                            len(collides_with[agent_uid]) > 1
+                            or action.entity_uid not in collides_with[agent_uid]
+                        )
+                    )
+                )
+                or (  # The obstacle associated with the action collides
+                    agent_uid in self.ref_world.entity_to_agent.inverse
+                    and self.ref_world.entity_to_agent.inverse[agent_uid] in collides_with
+                    and not isinstance(action, ba.Release)
+                )
             )
-
-            other_transition_polygons = {
-                uid: p for uid, p in transition_polygons.items()
-                if uid != agent_uid and uid != attached_entity_uid and uid != to_be_attached_entity_uid
-            }
-            other_transitions_aabb_tree = collision.polygons_to_aabb_tree(other_transition_polygons)
-            agent_transition_polygon = transition_polygons[agent_uid]
-            agent_transition_aabb = collision.polygon_to_aabb(agent_transition_polygon)
-
-            agent_potential_collision_uids = other_transitions_aabb_tree.overlap_values(agent_transition_aabb)
-            agent_transitionnally_collides = False
-            for uid in agent_potential_collision_uids:
-                if other_transition_polygons[uid].intersects(agent_transition_polygon):
-                    agent_transitionnally_collides = True
-                    agent_uid_to_impossible_action_result[agent_uid] = ar.DynamicCollisionFailure(
-                        action, agent_uid, uid,
-                        other_transition_polygons[uid].intersection(agent_transition_polygon)
-                    )
-                    self.simulation_log.append(
-                        utils.BasicLog(
-                            'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                                agent_uid, self.ref_world.entities[agent_uid].name,
-                                uid, self.ref_world.entities[uid].name
-                            ),
-                            step_count
-                        )
-                    )
-                    break
-
-            if not agent_transitionnally_collides:
-                if attached_entity_uid:
-                    # TODO Fix Exception happening at line below (KeyError) surely caused by bad management of grabbed obstacles
-                    att_entity_transition_polygon = transition_polygons[attached_entity_uid]
-                    att_entity_transition_aabb = collision.polygon_to_aabb(att_entity_transition_polygon)
-
-                    att_entity_potential_collision_uids = other_transitions_aabb_tree.overlap_values(
-                        agent_transition_aabb)
-                    att_entity_transitionnally_collides = False
-                    for uid in att_entity_potential_collision_uids:
-                        if other_transition_polygons[uid].intersects(att_entity_transition_polygon):
-                            att_entity_transitionnally_collides = True
-                            agent_uid_to_impossible_action_result[agent_uid] = ar.DynamicCollisionFailure(
-                                action, attached_entity_uid, uid,
-                                other_transition_polygons[uid].intersection(att_entity_transition_polygon)
-                            )
-                            self.simulation_log.append(
-                                utils.BasicLog(
-                                    'Simulation static collision: Entity {} ({}) collides with entity {} ({}).'.format(
-                                        attached_entity_uid, self.ref_world.entities[attached_entity_uid].name,
-                                        uid, self.ref_world.entities[uid].name
-                                    ),
-                                    step_count
-                                )
-                            )
-                            break
-                    if not att_entity_transitionnally_collides:
-                        agent_uid_to_doable_action[agent_uid] = action
-                else:
-                    agent_uid_to_doable_action[agent_uid] = action
-
-        # 3. Check conceptual validity of RELEASE actions
-        agent_uid_to_release_action = {
-            uid: action for uid, action in agent_uid_to_doable_action.items() if
-            isinstance(action, ba.Release)
-        }
-        about_to_be_released_uids = set()
-        for agent_uid, release_action in agent_uid_to_release_action.items():
-            if release_action.entity_uid in attached_entity_to_robot:
-                agent_that_already_grabbed_entity = attached_entity_to_robot[
-                    release_action.entity_uid]
-                if agent_that_already_grabbed_entity == agent_uid:
-                    about_to_be_released_uids.add(release_action.entity_uid)
-                else:
-                    agent_uid_to_impossible_action_result[agent_uid] = ar.GrabbedByOtherFailure(
-                        release_action, agent_that_already_grabbed_entity
-                    )
-                    self.simulation_log.append(
-                        utils.BasicLog(
-                            'Entity {} ({}) could not release entity {} ({}) because grabbed by other.'.format(
-                                agent_uid, self.ref_world.entities[agent_uid].name,
-                                release_action.entity_uid, self.ref_world.entities[release_action.entity_uid].name
-                            ),
-                            step_count
-                        )
-                    )
-                    del agent_uid_to_doable_action[agent_uid]
+            if action_dynamically_collides and not ignore_collisions:
+                action_results[agent_uid] = ar.DynamicCollisionFailure(action, collides_with)
             else:
-                agent_uid_to_impossible_action_result[agent_uid] = ar.NotGrabbedFailure(release_action)
-                self.simulation_log.append(
-                    utils.BasicLog(
-                        'Entity {} ({}) could not release entity {} ({}) because not grabbed.'.format(
-                            agent_uid, self.ref_world.entities[agent_uid].name,
-                            release_action.entity_uid, self.ref_world.entities[release_action.entity_uid].name
-                        ),
-                        step_count
-                    )
-                )
-                del agent_uid_to_doable_action[agent_uid]
+                if action_dynamically_collides and ignore_collisions:
+                    self.simulation_log.append(utils.BasicLog(
+                        'Dynamic collision ignored, entities: {}'.format({
+                            self.ref_world.entities[uid].name: {self.ref_world.entities[uid2].name for uid2 in uids}
+                            for uid, uids in collides_with.items()
+                        }), step_count
+                    ))
 
-        # 4. Check conceptual validity of GRAB actions
-        agent_uid_to_grab_action = {
-            uid: action for uid, action in agent_uid_to_doable_action.items() if
-            isinstance(action, ba.Grab)
-        }
-        for agent_uid, grab_action, in agent_uid_to_grab_action.items():
-            if grab_action.entity_uid in attached_entity_to_robot:
-                if grab_action.entity_uid not in about_to_be_released_uids:
-                    agent_that_already_grabbed_entity = attached_entity_to_robot[
-                        grab_action.entity_uid]
-                    agent_uid_to_impossible_action_result[agent_uid] = ar.AlreadyGrabbedFailure(
-                        grab_action, agent_that_already_grabbed_entity
-                    )
-                    self.simulation_log.append(
-                        utils.BasicLog(
-                            'Entity {} ({}) could not grab entity {} ({}) because already grabbed.'.format(
-                                agent_uid, self.ref_world.entities[agent_uid].name,
-                                grab_action.entity_uid, self.ref_world.entities[grab_action.entity_uid].name
-                            ),
-                            step_count
-                        )
-                    )
-                    del agent_uid_to_doable_action[agent_uid]
-            elif agent_uid in attached_entity_to_robot.inverse:
-                agent_uid_to_impossible_action_result[agent_uid] = ar.GrabMoreThanOneFailure(
-                    grab_action)
-                self.simulation_log.append(
-                    utils.BasicLog(
-                        'Entity {} ({}) could not grab entity {} ({}) because trying to grab more than one.'.format(
-                            agent_uid, self.ref_world.entities[agent_uid].name,
-                            grab_action.entity_uid, self.ref_world.entities[grab_action.entity_uid].name
-                        ),
-                        step_count
-                    )
-                )
-                del agent_uid_to_doable_action[agent_uid]
-
-        # SECOND Act loop: execute all doable actions in reference simulation world, save results
-        for agent_uid, action in agent_uid_to_doable_action.items():
-            agent = self.ref_world.entities[agent_uid]
-            if isinstance(action, ba.Wait):
-                action_result = ar.ActionSuccess(action, agent.pose)
-            elif isinstance(action, ba.GoToPose):
-                agent.polygon = utils.set_polygon_pose(agent.polygon, agent.pose, action.pose)
-                agent.pose = action.pose
-                trace_polygons.append(agent.polygon)
-                action_result = ar.ActionSuccess(action, agent.pose)
-            elif isinstance(action, (ba.Translation, ba.Rotation)):
-                if isinstance(action, ba.Release):
-                    # If release, only do movement after release is done
-                    del attached_entity_to_robot[action.entity_uid]
-
-                attached_entity_uid = (
-                    None if agent_uid not in attached_entity_to_robot.inverse
-                    else attached_entity_to_robot.inverse[agent_uid]
-                )
-
-                agent.polygon = action.apply(agent.polygon, agent.pose)
-                if isinstance(action, ba.Rotation):
-                    agent.pose = action.predict_pose(agent.pose, (agent.pose[0], agent.pose[1]))
-                else:
-                    agent.pose = action.predict_pose(agent.pose, agent.pose[2])
-                trace_polygons.append(agent.polygon)
-
-                if attached_entity_uid:
-                    attached_entity = self.ref_world.entities[attached_entity_uid]
-
-                    attached_entity.polygon = action.apply(attached_entity.polygon, agent.pose)
-                    if isinstance(action, ba.Rotation):
-                        attached_entity.pose = action.predict_pose(attached_entity.pose, (agent.pose[0], agent.pose[1]))
-                    else:
-                        attached_entity.pose = action.predict_pose(attached_entity.pose, agent.pose[2])
-                    trace_polygons.append(attached_entity.polygon)
-
+                # SUCCESS
+                # If Grab or Release, first update self.ref_world.entity_to_agent
                 if isinstance(action, ba.Grab):
-                    # If grab, only attach entity after grab movement is done
-                    attached_entity_to_robot[action.entity_uid] = agent_uid
+                    self.ref_world.entity_to_agent[action.entity_uid] = agent_uid
+                if isinstance(action, ba.Release):
+                    del self.ref_world.entity_to_agent[action.entity_uid]
 
-                action_result = ar.ActionSuccess(action, agent.pose, bool(attached_entity_uid), attached_entity_uid)
-            else:
-                raise TypeError('Action must be of type Wait, Translation, Rotation, GoToPose, Grab or Release')
+                # Then apply to world
+                if use_b2:
+                    agent = self.ref_world.entities[agent_uid]
+                    agent_new_pose = self.b2_sim.get_entity_pose(agent_uid)
+                    agent_new_polygon = utils.set_polygon_pose(agent.polygon, agent.pose, agent_new_pose)
+                    agent.pose, agent.polygon = agent_new_pose, agent_new_polygon
+                    if agent_uid in self.ref_world.entity_to_agent.inverse:
+                        entity_uid = self.ref_world.entity_to_agent.inverse[agent_uid]
+                        entity = self.ref_world.entities[entity_uid]
+                        entity_new_pose = self.b2_sim.get_entity_pose(entity_uid)
+                        entity_new_polygon = utils.set_polygon_pose(entity.polygon, entity.pose, entity_new_pose)
+                        entity.pose, entity.polygon = entity_new_pose, entity_new_polygon
 
-            # Save Action Result in action result history
-            self.agent_uid_to_action_results[agent_uid].append(action_result)
+                action_results[agent_uid] = ar.ActionSuccess(action, self.ref_world.entities[agent_uid].pose)
 
-            agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
-            if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
-            else:
-                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
-
-        # Third Act loop: Save results of impossible actions
-        for agent_uid, action_result in agent_uid_to_impossible_action_result.items():
-            self.agent_uid_to_action_results[agent_uid].append(action_result)
-
-            agent_current_goal = self.agent_uid_to_behavior[agent_uid].get_current_goal()
-            if agent_current_goal in self.agent_uid_and_goal_to_action_results[agent_uid]:
-                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal].append(action_result)
-            else:
-                self.agent_uid_and_goal_to_action_results[agent_uid][agent_current_goal] = [action_result]
+        return action_results

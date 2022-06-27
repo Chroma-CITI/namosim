@@ -88,7 +88,7 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
     )
     ccs_data = connectivity.init_ccs_for_grid(occ_grid.grid, occ_grid.d_width, occ_grid.d_height, occ_grid.neighborhood)
     connected_components = ccs_data.ccs
-    connected_components_grid = ccs_data.ccs_grid
+    connected_components_grid = ccs_data.grid
     RosPublisher().publish_connected_components_grid(connected_components_grid, world.dd, ns='simulation')
 
     # cc is abbreviation of connected component
@@ -119,7 +119,7 @@ def get_social_costs_stats(world, entities_to_compute_social_cost_for, ):
         for cell in entity_cell_set:
             absolute_social_cost += abs_social_costmap[cell[0]][cell[1]]
 
-    return absolute_social_cost
+    return float(absolute_social_cost)
 
 
 def relative_change(init_value, end_value, return_percentage=True):

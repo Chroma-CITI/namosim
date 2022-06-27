@@ -21,6 +21,7 @@ TWO_PI = 2. * math.pi
 TAXI_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0))
 CHESSBOARD_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1))
 CHESSBOARD_NEIGHBORHOOD_EXTRAS = ((1, 1), (1, -1), (-1, 1), (-1, -1))
+CHESSBOARD_NEIGHBORHOOD_EXTRAS_SET = set(CHESSBOARD_NEIGHBORHOOD_EXTRAS)
 
 OMNI_ROBOT_TAXI_TRANS_VECTORS = TAXI_NEIGHBORHOOD
 OMNI_ROBOT_TAXI_ROT_ANGLES = (90., 180., 270.,
@@ -172,6 +173,7 @@ class BasicLog:
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
+
 def euclidean_distance(a, b):
     return math.sqrt((b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2)
 
@@ -219,6 +221,25 @@ def get_neighbors_no_checks(cell, neighborhood=TAXI_NEIGHBORHOOD):
 
 
 def get_neighbors_no_coll(cell, grid, width, height, neighborhood=TAXI_NEIGHBORHOOD):
+    # # width_m_1, height_m_1= width - 1, height - 1
+    # if 0 < cell[0] < width - 1:
+    #     if 0 < cell[1] < height - 1:
+    #         # If cell in grid center, return all neighbors in neighborhood
+    #         return {(cell[0] + i, cell[1] + j) for i, j in neighborhood}
+    #     elif cell[1] == 0:
+    #         # If cell in top row
+    #         pass
+    #     elif cell[1] == height - 1:
+    #         pass
+    #     else:
+    #         return set()
+    # elif cell[0] == 0:
+    #     pass
+    # elif cell[0] == width - 1:
+    #     pass
+    # else:
+    #     return set()
+
     neighbors = set()
     for i, j in neighborhood:
         neighbor = cell[0] + i, cell[1] + j
@@ -286,18 +307,26 @@ def real_pose_to_fixed_precision_pose(real_pose, trans_mult, rot_mult):
     )
 
 
-def yaw_from_direction(direction_vector):
-    if direction_vector[1] < 0:
-        yaw = 2 * math.pi - math.acos(
-            direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
+def yaw_from_direction(direction_vector, radians=False):
+    # TODO Replace this by atan2(y, x) with direction vector (x, y)
+    # if direction_vector[1] < 0:
+    #     yaw = 2 * math.pi - math.acos(
+    #         direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
+    # else:
+    #     yaw = math.acos(
+    #         direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
+    yaw = math.atan2(direction_vector[1], direction_vector[0])
+    if radians:
+        return yaw
     else:
-        yaw = math.acos(
-            direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
-    return math.degrees(yaw)
+        return math.degrees(yaw)
 
 
-def direction_from_yaw(yaw):
-    return math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+def direction_from_yaw(yaw, radians=False):
+    if radians:
+        return math.cos(yaw), math.sin(yaw)
+    else:
+        return math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
 
 
 def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
@@ -310,9 +339,26 @@ def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
         direction_vector = (real_x - previous_pose[0], real_y - previous_pose[1])
         real_yaw = yaw_from_direction(direction_vector)
         new_pose = (real_x, real_y, real_yaw)
-        real_path.append(new_pose)
+        has_rotation = not angle_is_close(new_pose[2], previous_pose[2], rel_tol=1e-6)
+        has_translation = (
+                not is_close(new_pose[0], previous_pose[0], rel_tol=1e-6)
+                or not is_close(new_pose[1], previous_pose[1], rel_tol=1e-6)
+        )
+
+        if has_rotation or has_translation:
+            if has_rotation and has_translation:
+                real_path.append((previous_pose[0], previous_pose[1], new_pose[2]))
+                real_path.append(new_pose)
+            else:
+                real_path.append(new_pose)
         previous_pose = new_pose
-    real_path.append(goal_pose)
+
+    if goal_pose:
+        last_direction_vector = (goal_pose[0] - real_path[-1][0], goal_pose[1] - real_path[-1][1])
+        last_real_yaw = yaw_from_direction(last_direction_vector)
+        real_path.append((real_path[-1][0], real_path[-1][1], last_real_yaw))
+        real_path.append((goal_pose[0], goal_pose[1], last_real_yaw))
+        real_path.append(goal_pose)
     return real_path
 
 
@@ -451,9 +497,7 @@ def get_translation(start_pose, end_pose):
 
 
 def get_rotation(start_pose, end_pose):
-    rotation = (end_pose[2] - start_pose[2]) % 360.
-    rotation = rotation if rotation >= 0. else rotation + 360.
-    return rotation
+    return angle_to_360_interval(end_pose[2] - start_pose[2])
 
 
 def get_translation_and_rotation(start_pose, end_pose):
@@ -464,11 +508,11 @@ def get_translation_and_rotation(start_pose, end_pose):
 
 def set_polygon_pose(polygon, init_polygon_pose, end_polygon_pose, rotation_center='center'):
     translation, rotation = get_translation_and_rotation(init_polygon_pose, end_polygon_pose)
-    return translate_then_rotate_polygon(polygon, translation, rotation, rotation_center)
+    return rotate_then_translate_polygon(polygon, translation, rotation, rotation_center)
 
 
-def translate_then_rotate_polygon(polygon, translation, rotation, rotation_center='center'):
-    return affinity.rotate(affinity.translate(polygon, *translation), rotation, origin=rotation_center)
+def rotate_then_translate_polygon(polygon, translation, rotation, rotation_center='center'):
+    return affinity.translate(affinity.rotate(polygon, rotation, origin=rotation_center), *translation)
 
 
 def polygon_collides_with_entities(polygon, entities, aabb_tree=None):
@@ -1022,3 +1066,28 @@ def angle_to_360_interval(angle):
     final_angle = angle % 360.
     final_angle = final_angle if final_angle >= 0. else final_angle + 360.
     return final_angle
+
+
+def is_close(a, b, rel_tol=1e-09):
+    return b - rel_tol <= a <= b + rel_tol or a - rel_tol <= b <= a + rel_tol
+
+
+def angle_is_close(a, b, rel_tol=1e-09):
+    return is_close(a, b, rel_tol) or is_close(a - 360., b, rel_tol) or is_close(a, b - 360., rel_tol)
+
+
+# def circle_to_cells(x, y, r, res, grid_pose, neighborhood=CHESSBOARD_NEIGHBORHOOD):
+#     start_cell = real_to_grid(x, y, res, grid_pose)
+#
+
+class Circle:
+    def __init__(self, x, y, r):
+        self.x = x
+        self.y = y
+        self.r = r
+
+    def intersects(self, x, y):
+        return euclidean_distance((self.x, self.y), (x, y)) <= self.r
+
+    def tuple_intersects(self, position):
+        return euclidean_distance((self.x, self.y), position) <= self.r

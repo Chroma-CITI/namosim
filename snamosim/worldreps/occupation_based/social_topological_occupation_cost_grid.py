@@ -205,7 +205,7 @@ def voronoi_skeleton(entities, entities_to_ignore=tuple()):
 
 
 def compute_social_costmap(
-        binary_occ_grid, res, neighborhood=utils.TAXI_NEIGHBORHOOD,
+        binary_occ_grid, res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
         skeleton_function=skeleteton_social_cost_function_02,
         decay_function=exp_decay_function,
         decay_factor=0.95,
@@ -289,6 +289,7 @@ def compute_social_costmap(
                     # Check that neighbor exists within the map
                     if utils.is_in_matrix(neighbor, width, height) and booleanized_grid[neighbor[0]][neighbor[1]]:
                         values_in_neighborhood = []
+                        weights_in_neighborhood = []
                         for k, l in neighborhood:
                             neighbor_of_neighbor = neighbor[0] + k, neighbor[1] + l
                             if utils.is_in_matrix(neighbor_of_neighbor, width, height):
@@ -296,8 +297,11 @@ def compute_social_costmap(
                                 if neighbor_of_neighbor not in next_set:
                                     if n_o_n_value != -1:
                                         values_in_neighborhood.append(n_o_n_value)
+                                        weights_in_neighborhood.append(1. / utils.euclidean_distance(neighbor, neighbor_of_neighbor))
+                        # final_array[neighbor[0]][neighbor[1]] = decay_function(
+                        #     np.min(values_in_neighborhood), decay_factor)
                         final_array[neighbor[0]][neighbor[1]] = decay_function(
-                            np.min(values_in_neighborhood), decay_factor)
+                            sum([values_in_neighborhood[i] * weights_in_neighborhood[i] for i in range(len(values_in_neighborhood))]) / sum(weights_in_neighborhood), decay_factor)
                         next_set.add(neighbor)
         prev_set = cur_set
         cur_set = next_set

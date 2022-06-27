@@ -18,7 +18,7 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         self._rp.publish_sim_world(world, robot.uid)
         movable_entities_uids = tuple({entity_uid for entity_uid, entity in world.entities.items()
                                        if isinstance(entity, Robot) or (isinstance(entity, Obstacle)
-                                       and robot.deduce_movability(entity.type) == "movable")})
+                                       and entity.movability == "movable")})
         occ_grid = BinaryOccupancyGrid(
             world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
             world.dd.inflation_radius, world.entities, entities_to_ignore=movable_entities_uids)
@@ -42,23 +42,23 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         self.compute_and_display_costmap(world)
 
     def test_basic(self):
-        world = World.load_from_json("../../../data/worlds/s-namo_cases/01_basic/01_basic.json")
+        world = World.load_from_json("../../../data/worlds/namo-socials/01_basic/01_basic.json")
         self.compute_and_display_costmap(world)
 
     def test_basic_with_opening(self):
-        world = World.load_from_json("../../../data/worlds/s-namo_cases/02_basic_with_opening/02_basic_with_opening.json")
+        world = World.load_from_json("../../../data/worlds/namo-socials/02_basic_with_opening/02_basic_with_opening.json")
         self.compute_and_display_costmap(world)
 
     def test_crossing(self):
-        world = World.load_from_json("../../../data/worlds/s-namo_cases/03_crossing/03_crossing.json")
+        world = World.load_from_json("../../../data/worlds/namo-socials/03_crossing/03_crossing.json")
         self.compute_and_display_costmap(world)
 
     def test_after_the_feast(self):
-        world = World.load_from_json("../../../data/worlds/s-namo_cases/04_after_the_feast/04_after_the_feast.json")
+        world = World.load_from_json("../../../data/worlds/namo-socials/04_after_the_feast/04_after_the_feast.json")
         self.compute_and_display_costmap(world)
 
     def test_citi_second_floor(self):
-        world = World.load_from_json("../../../data/worlds/s-namo_cases/05_citi_second_floor/05_citi_second_floor.json")
+        world = World.load_from_json("../../../data/worlds/namo-socials/05_citi_second_floor/05_citi_second_floor.json")
         self.compute_and_display_costmap(world)
 
 
