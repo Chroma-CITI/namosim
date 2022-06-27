@@ -63,10 +63,10 @@ def get_all_maps_names_and_filepaths(dirpath):
         }
         for dp, dn, filenames in os.walk(dirpath)
             for f in filenames
-        if (
-            os.path.isfile(os.path.join(dp, f))
-            and os.path.splitext(f)[1] == '.map'
-        )
+            if (
+                os.path.isfile(os.path.join(dp, f))
+                and os.path.splitext(f)[1] == '.map'
+            )
     }
 
 
@@ -104,15 +104,17 @@ def read_map_file(map_filepath):
                 elif letter == 'T':
                     grid[x][y] = 1
                 elif letter == 'S':
-                    NotImplementedError(
+                    raise NotImplementedError(
                         'Swamp letter not yet implemented.'
                     )
                 elif letter == 'W':
-                    NotImplementedError(
+                    raise NotImplementedError(
                         'Water letter not yet implemented.'
                     )
+                elif letter == '\n':
+                    pass
                 else:
-                    ValueError(
+                    raise ValueError(
                         'Only the letters [., G, @, O, T, S, W] are valid, found letter <{}>.'.format(letter)
                     )
         return grid
@@ -137,6 +139,12 @@ class Scenario:
     def __str__(self):
         return 'Start cell: {}, Goal cell: {}, Expected length: {}'.format(self.start_cell, self.goal_cell, self.length)
 
+    def to_line(self):
+        return "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}".format(
+            self.bucket, self.map_name, self.width, self.height, self.start_cell[0], self.start_cell[1],
+            self.goal_cell[0], self.goal_cell[1], self.length
+        )
+
 
 class GraphSearchTest(unittest.TestCase):
     def setUp(self):
@@ -146,7 +154,7 @@ class GraphSearchTest(unittest.TestCase):
         )
         self.dao_dataset_path = os.path.join(self.benchmarks_dirname, 'dao')
         print('Loading dao dataset...')
-        self.dao_dataset_maps = get_all_maps_names_and_filepaths(self.dao_dataset_path)
+        # self.dao_dataset_maps = get_all_maps_names_and_filepaths(self.dao_dataset_path)
         print('...Loaded dao dataset.')
 
     def for_map(self, map_name, my_map, map_counter):
@@ -159,47 +167,40 @@ class GraphSearchTest(unittest.TestCase):
 
         # map_progressbar.update(map_counter)
     def for_scenario(self, map_name, my_map, scenario, scenario_counter,
-                     # path_finding_algorithm=None,
-                     path_finding_algorithm=graph_search.grid_search_dijkstra,
+                     path_finding_algorithm=graph_search.grid_search_a_star,
                      log_start=False, log_success=False):
         if log_start:
             print('Testing for map {}, scenario {} : {}'.format(map_name, scenario_counter, str(scenario)))
 
-        sends_back_all_data = (
-            path_finding_algorithm == graph_search.grid_search_dijkstra
-            or path_finding_algorithm == graph_search.grid_search_a_star
+        path_found, end_cell, came_from, _, gscore, _ = path_finding_algorithm(
+            start=scenario.start_cell,
+            goal=scenario.goal_cell,
+            grid=my_map['matrix'],
+            width=my_map['matrix'].shape[0],
+            height=my_map['matrix'].shape[1],
+            neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+            check_diag_neighbors=True
         )
-
-        if sends_back_all_data:
-            path_found, end_cell, came_from, _, gscore, _ = path_finding_algorithm(
-                start=scenario.start_cell,
-                goal=scenario.goal_cell,
-                grid=my_map['matrix'],
-                width=my_map['matrix'].shape[0],
-                height=my_map['matrix'].shape[1],
-                neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-                check_diag_neighbors=True
+        if path_found:
+            raw_path = graph_search.reconstruct_path(came_from, end_cell)
+            measured_length = sum(
+                [utils.chebyshev_distance(cur_cell, raw_path[i + 1]) for i, cur_cell in enumerate(raw_path[:-1])]
             )
-            if path_found:
-                raw_path = graph_search.reconstruct_path(came_from, end_cell)
-                measured_length = sum(
-                    [utils.chebyshev_distance(cur_cell, raw_path[i + 1]) for i, cur_cell in enumerate(raw_path[:-1])]
-                )
-                try:
-                    self.assertAlmostEqual(scenario.length, measured_length, places=2)
-                    if log_success:
-                        print('Map {}, Scenario {} successful.'.format(map_name, scenario_counter, str(scenario)))
-                except AssertionError as e:
-                    print(
-                        'Path found for Map {}, Scenario {}, but found cost <{}> not equal to expected cost <{}>'.format(
-                            map_name, scenario_counter, measured_length, scenario.length
-                        )
+            try:
+                self.assertAlmostEqual(scenario.length, measured_length, places=2)
+                if log_success:
+                    print('Map {}, Scenario {} successful.'.format(map_name, scenario_counter, str(scenario)))
+            except AssertionError as e:
+                print(
+                    'Path found for Map {}, Scenario {}, but found cost <{}> not equal to expected cost <{}>'.format(
+                        map_name, scenario_counter, measured_length, scenario.length
                     )
-            else:
-                try:
-                    self.assertTrue(path_found)
-                except AssertionError as e:
-                    print('Path could not be found for Map {}, Scenario {}.'.format(map_name, scenario_counter))
+                )
+        else:
+            try:
+                self.assertTrue(path_found)
+            except AssertionError as e:
+                print('Path could not be found for Map {}, Scenario {}.'.format(map_name, scenario_counter))
 
         # scenario_progressbar.update(scenario_counter)
 
@@ -225,7 +226,37 @@ class GraphSearchTest(unittest.TestCase):
                 self.for_map(map_name, my_map, map_counter)
         print('...Tested dao dataset.')
 
+    def test_create_scenario(self):
+        sample_scenario_filepath = "/home/xia0ben/INRIA/Code/s-namo-sim/data/thirdparties/gridsearch-dataset/www.movingai.com/benchmarks/dao/arena.map-scen/arena.map.scen"
+        target_scenario_filepath = "/home/xia0ben/INRIA/Code/s-namo-sim/data/thirdparties/gridsearch-dataset/www.movingai.com/benchmarks/dao/arena.map-scen/arena-1.map.scen"
+        scenarios = read_scenario_file(sample_scenario_filepath)
+        grid = read_map_file(
+            "/home/xia0ben/INRIA/Code/s-namo-sim/data/thirdparties/gridsearch-dataset/www.movingai.com/benchmarks/dao/arena.map/arena.map"
+        )
+        with open(target_scenario_filepath, "a") as target_scenario_file:
+            for scenario in scenarios:
+                path_found, end_cell, came_from, _, gscore, _ = graph_search.grid_search_dijkstra(
+                    start=scenarios[0].start_cell,
+                    goal=scenario.goal_cell,
+                    grid=grid,
+                    width=grid.shape[0],
+                    height=grid.shape[1],
+                    neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+                    check_diag_neighbors=True
+                )
+                if path_found:
+                    raw_path = graph_search.reconstruct_path(came_from, end_cell)
+                    measured_length = sum(
+                        [utils.chebyshev_distance(cur_cell, raw_path[i + 1]) for i, cur_cell in
+                         enumerate(raw_path[:-1])]
+                    )
+                    new_scenario = Scenario(
+                        scenarios[0].bucket, scenarios[0].map_name, scenarios[0].width, scenarios[0].height,
+                        scenarios[0].start_cell[0], scenarios[0].start_cell[1],
+                        scenario.goal_cell[0], scenario.goal_cell[1], measured_length)
+                    target_scenario_file.write(new_scenario.to_line())
+                    target_scenario_file.write("\n")
+
 
 if __name__ == '__main__':
-
     unittest.main()
