@@ -189,7 +189,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                             other_entities_polygons = [entity.polygon for entity in self._world.entities.values()
                                                        if entity.uid != self._robot_uid and entity.uid != obs.uid]
                             has_new_local_opening, init_blocking_areas = check_new_local_opening(
-                                obs.polygon, target_obs_polygon, other_entities_polygons,
+                                obs.polygon, target_obs_polygon, other_entities_polygons, other_entities_aabb_tree,
                                 robot.min_inflation_radius, init_blocking_areas, ns=self._robot_name)
                             # Don't prevent full evaluation of plans when obstacle would pass over the goal
                             moved_polygons = [init_robot_polygon, target_robot_polygon, obs.polygon, target_obs_polygon]

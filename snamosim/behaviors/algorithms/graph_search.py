@@ -268,7 +268,7 @@ def new_generic_dijkstra(start, exit_condition, get_neighbors, came_from=None, o
     if came_from is None:
         came_from = dict()
     if open_queue is None:
-        PriorityQueue()
+        open_queue = PriorityQueue()
     if close_set is None:
         close_set = set()
 
