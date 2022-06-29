@@ -105,7 +105,7 @@ class RobotRobotConflict:  # Systematic postpone
     def __init__(self, obstacle_uid, obstacle_pose, robot_pose):
         # TODO Add a self.moved_obstacle_uid and self.moved_obstacle_pose in this class
         #  or create child class with these, to avoid conflict confusion if they are compared
-        #  in a context where the robot is in a transfer path and needs to compute a recovery
+        #  in a context where the robot is in a transfer path and needs to compute an evasion
         #  path in case of deadlock.
         self.obstacle_uid = obstacle_uid
         self.obstacle_pose = utils.real_pose_to_fixed_precision_pose(obstacle_pose, 100., 1.)
@@ -603,105 +603,6 @@ class EvasionTransitPath(TransitPath):
         else:
             return TransitPath.pop_next_step(self)
 
-class RecoveryPath:
-    def __init__(self, robot_path, actions, phys_cost=None, social_cost=0., weight=1.):
-        if len(robot_path.polygons) != len(robot_path.poses) != len(actions) + 1:
-            raise ValueError(
-                "A TransitPath requires that its polygon and pose arrays are the same size. "
-                "The action array must be of this same size -1."
-                "Current sizes are: polygon({}), pose({}), action({})".format(
-                    len(robot_path.polygons), len(robot_path.poses), len(actions)
-                )
-            )
-
-        self.robot_path = robot_path
-
-        self.phys_cost = (
-            phys_cost if phys_cost is not None
-            else utils.sum_of_euclidean_distances(self.robot_path.poses) * weight
-        )
-        self.social_cost = social_cost
-        self.total_cost = self.phys_cost + self.social_cost
-
-        # TODO Remove this attribute that is currently kept to avoid circular dependency with ros_conversion.py
-        #   Simply move this class and the other ones in another module
-        self.is_transfer = False
-
-        self.actions = actions
-        self.action_index = 0
-
-    @classmethod
-    def from_actions(cls, actions, robot, phys_cost=None, social_cost=0., weight=1.):
-        current_robot_pose, current_robot_polygon = robot.pose, robot.polygon
-        poses, polygons = [current_robot_pose], [current_robot_polygon]
-        for action in actions:
-            new_robot_pose = action.predict_pose(current_robot_pose, current_robot_pose[2])
-            new_robot_polygon = action.apply(current_robot_polygon, current_robot_pose)
-            poses.append(new_robot_pose)
-            polygons.append(new_robot_polygon)
-        robot_path = Path(poses, polygons)
-        return cls(robot_path, actions, phys_cost=phys_cost, social_cost=social_cost, weight=weight)
-
-    def has_infinite_cost(self):
-        return True if self.total_cost == float("inf") else False
-
-    def is_fully_executed(self):
-        return self.action_index >= len(self.actions)
-
-    def get_conflicts(self, robot_uid, world, previously_moved_entities_uids,
-                      check_horizon=None, apply_strict_horizon=False, exit_early_for_any_conflict=False,
-                      exit_early_only_for_long_term_conflicts=True, rp=None, robot_name=""):
-        full_horizon = len(self.actions) - self.action_index
-        if check_horizon is None:
-            check_horizon = full_horizon
-        elif check_horizon <= 0 and apply_strict_horizon:
-            return []
-        else:
-            check_horizon = check_horizon
-
-        other_entities_polygons = {uid: e.polygon for uid, e in world.entities.items() if
-                                   uid != robot_uid and e.movability != "static"}
-        other_entities_aabb_tree = collision.polygons_to_aabb_tree(other_entities_polygons)
-
-        conflicts = []
-
-        for counter, index in enumerate(range(self.action_index, len(self.actions))):
-            if apply_strict_horizon and counter > check_horizon:
-                break
-
-            action = self.actions[index]
-
-            _, collides_with, _, csv_polygons, intersections, bb_vertices = collision.csv_check_collisions(
-                main_uid=robot_uid, other_polygons=other_entities_polygons,
-                polygon_sequence=self.robot_path.polygons[index:index + 2],
-                action_sequence=[collision.convert_action(self.actions[index], self.robot_path.poses[index])],
-                bb_type='minimum_rotated_rectangle', aabb_tree=other_entities_aabb_tree,
-                ignored_entities=previously_moved_entities_uids
-            )
-            if robot_uid in collides_with:
-                for uid in collides_with[robot_uid]:
-                    if isinstance(world.entities[uid], Robot) or uid in world.entity_to_agent:
-                        if counter <= check_horizon:
-                            conflicts.append(
-                                RobotRobotConflict(uid, world.entities[uid].pose, self.robot_path.poses[index])
-                            )
-                            if exit_early_for_any_conflict:
-                                return conflicts
-                    else:
-                        conflicts.append(RobotObstacleConflict(uid))
-                        if exit_early_for_any_conflict or exit_early_only_for_long_term_conflicts:
-                            return conflicts
-
-        return conflicts
-
-    def pop_next_step(self):
-        action = self.actions[self.action_index]
-        self.action_index += 1
-        return action
-
-    def get_length(self):
-        return len(self.actions)
-
 
 class Plan:
     def __init__(self, path_components=[], goal=None, robot_uid=None, plan_error=None):
@@ -751,12 +652,6 @@ class Plan:
                 if isinstance(path, TransitPath):
                     conflicts += path.get_conflicts(
                         self.robot_uid, world, inflated_grid_by_robot, shared_horizon,
-                        apply_strict_horizon, exit_early_for_any_conflict,
-                        exit_early_only_for_long_term_conflicts, rp=rp, robot_name=robot_name
-                    )
-                elif isinstance(path, RecoveryPath):
-                    conflicts += path.get_conflicts(
-                        self.robot_uid, world, previously_moved_entities_uids, shared_horizon,
                         apply_strict_horizon, exit_early_for_any_conflict,
                         exit_early_only_for_long_term_conflicts, rp=rp, robot_name=robot_name
                     )
@@ -1417,64 +1312,6 @@ class Stilman2005Behavior(BaselineBehavior):
 
         robot_cell = utils.real_to_grid(r_t[0], r_t[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose)
         goal_cell = utils.real_to_grid(r_f[0], r_f[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose)
-
-        ################################################################
-        start_cell_occupied = inflated_grid_by_robot_max.grid[robot_cell[0]][robot_cell[1]] > 0
-        robot_in_transfer = self._robot_uid in w_t.entity_to_agent.inverse
-        if start_cell_occupied and not robot_in_transfer:
-            free_cell_found, free_cell, _, _, _, _ = graph_search.grid_search_closest_free_cell(
-                robot_cell, inflated_grid_by_robot_max.grid, inflated_grid_by_robot_max.d_width,
-                inflated_grid_by_robot_max.d_height, neighborhood
-            )
-            if free_cell_found:
-                free_pose = utils.grid_to_real(
-                    free_cell[0], free_cell[1], inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose
-                )
-                cur_to_free_vector = (free_pose[0] - r_t[0], free_pose[1] - r_t[1])
-                translation = ba.AbsoluteTranslation(cur_to_free_vector)
-
-                if self.robot_base_drive_type == 'holonomic':
-                    valid_action_sequence = [translation]
-                elif self.robot_base_drive_type == 'differential':
-                    forward_final_angle = utils.yaw_from_direction(dir_cur_to_free)
-                    backward_final_angle = utils.angle_to_360_interval(forward_angle + 180.)
-                    action_sequences = [
-                        [ba.Rotation(r_t[2] - forward_final_angle), translation],
-                        [ba.Rotation(r_t[2] + forward_final_angle), translation],
-                        [ba.Rotation(r_t[2] - backward_final_angle), translation],
-                        [ba.Rotation(r_t[2] + backward_final_angle), translation]
-                    ]
-                    valid_action_sequence = []
-                    for action_sequence in action_sequence:
-                        action_collides = False
-                        for action in action_sequence:
-                            collides_with = collision.csv_simulate_simple_kinematics(w_t, {robot.uid: action})
-                            if collides_with:
-                                action_collides = True
-                                break
-                        if action_collides:
-                            continue
-                        else:
-                            valid_action_sequence = action_sequence
-
-                if valid_action_sequence:
-                    recovery_path = RecoveryPath.from_actions(valid_action_sequence, robot)
-
-                    w_t_plus_2 = copy.deepcopy(w_t)
-                    for action in valid_action_sequence:
-                        collision.csv_simulate_simple_kinematics(w_t_plus_2, {robot.uid: action}, apply=True, ignore_collisions=True)
-
-                    self.simulation_log.append(utils.BasicLog(
-                        "Agent {}: select_connect: Adding recovery path from occupied cell.".format(robot.name),
-                        self._step_count)
-                    )
-                    future_plan = self.select_connect(
-                        w_t_plus_2, static_obs_inf_grid, inflated_grid_by_robot_max, r_f, trans_mult, rot_mult,
-                        ccs_data=ccs_data, prev_list=prev_list, neighborhood=neighborhood, action_space_reduction=action_space_reduction
-                    )
-                    if not future_plan.plan_error:
-                        return Plan([recovery_path], r_f, self._robot_uid).append(future_plan)
-        ################################################################
 
         simple_path_to_goal = self.find_path(r_t, r_f, w_t, inflated_grid_by_robot_max, robot.polygon)
         if simple_path_to_goal:
