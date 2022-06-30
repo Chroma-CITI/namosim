@@ -468,24 +468,32 @@ def reference_polygon_to_subgrid(polygon, res, grid_pose, fill=True):
     return new_subgrid, min_d_x, min_d_y
 
 
+# def get_circumscribed_radius(polygon):
+#     center = list(polygon.centroid.coords)[0]
+#     points = list(polygon.exterior.coords)
+#     circumscribed_radius = 0.
+#     for point in points:
+#         circumscribed_radius = max(circumscribed_radius, euclidean_distance(center, point))
+#     return circumscribed_radius
+
+
 def get_circumscribed_radius(polygon):
-    center = list(polygon.centroid.coords)[0]
-    points = list(polygon.exterior.coords)
-    circumscribed_radius = 0.
-    for point in points:
-        circumscribed_radius = max(circumscribed_radius, euclidean_distance(center, point))
-    return circumscribed_radius
+    return polygon.hausdorff_distance(polygon.centroid)
+
+# Note: this definition is wrong, one should also compute the distance to all points and min it too.
+# def get_inscribed_radius(polygon):
+#     center = list(polygon.centroid.coords)[0]
+#     points = list(polygon.exterior.coords)
+#     inscribed_radius = float("inf")
+#     for i in range(len(points) - 1):
+#         point_a, point_b = points[i], points[i + 1]
+#         middle_point = ((point_a[0] + point_b[0]) / 2., (point_a[1] + point_b[1]) / 2.)
+#         inscribed_radius = min((inscribed_radius, euclidean_distance(center, middle_point)))
+#     return inscribed_radius
 
 
 def get_inscribed_radius(polygon):
-    center = list(polygon.centroid.coords)[0]
-    points = list(polygon.exterior.coords)
-    inscribed_radius = float("inf")
-    for i in range(len(points) - 1):
-        point_a, point_b = points[i], points[i + 1]
-        middle_point = ((point_a[0] + point_b[0]) / 2., (point_a[1] + point_b[1]) / 2.)
-        inscribed_radius = min((inscribed_radius, euclidean_distance(center, middle_point)))
-    return inscribed_radius
+    return polygon.distance(polygon.centroid)
 
 
 def get_inscribed_square_sidelength(radius):
