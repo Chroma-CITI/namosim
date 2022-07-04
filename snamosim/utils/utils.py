@@ -4,7 +4,7 @@ import numpy as np
 import os
 import shapely.affinity as affinity
 import mapbox_earcut as earcut
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, LineString
 import random
 import collections
 from datetime import datetime
@@ -480,20 +480,21 @@ def reference_polygon_to_subgrid(polygon, res, grid_pose, fill=True):
 def get_circumscribed_radius(polygon):
     return polygon.hausdorff_distance(polygon.centroid)
 
-# Note: this definition is wrong, one should also compute the distance to all points and min it too.
 # def get_inscribed_radius(polygon):
 #     center = list(polygon.centroid.coords)[0]
 #     points = list(polygon.exterior.coords)
-#     inscribed_radius = float("inf")
+#     inscribed_radius = euclidean_distance(center, points[0])
 #     for i in range(len(points) - 1):
 #         point_a, point_b = points[i], points[i + 1]
+#         inscribed_radius = min(inscribed_radius, euclidean_distance(center, point_b))
 #         middle_point = ((point_a[0] + point_b[0]) / 2., (point_a[1] + point_b[1]) / 2.)
-#         inscribed_radius = min((inscribed_radius, euclidean_distance(center, middle_point)))
+#         inscribed_radius = min(inscribed_radius, euclidean_distance(center, middle_point))
+#
 #     return inscribed_radius
 
 
 def get_inscribed_radius(polygon):
-    return polygon.distance(polygon.centroid)
+    return polygon.centroid.distance(LineString(polygon.exterior.coords))
 
 
 def get_inscribed_square_sidelength(radius):
