@@ -396,7 +396,11 @@ class World:
     def light_copy(self, ignored_entities=tuple()):
         return World(
             entities={uid: entity.light_copy() for uid, entity in self.entities.items() if uid not in ignored_entities},
-            entities_to_agent=copy.deepcopy(self.entity_to_agent), dd=copy.deepcopy(self.dd),
+            entities_to_agent=bidict({
+                e: a for e, a in self.entity_to_agent.items()
+                 if a not in ignored_entities and e not in ignored_entities
+            }),
+            dd=copy.deepcopy(self.dd),
             taboo_zones=copy.deepcopy(self.taboo_zones), goals=copy.deepcopy(self.goals),
             geometry_scale=self.geometry_scale, init_geometry_filename=self.init_geometry_filename,
             init_geometry_file=self.init_geometry_file
