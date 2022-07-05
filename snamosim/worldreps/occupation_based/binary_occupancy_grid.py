@@ -52,7 +52,7 @@ class BinaryOccupancyGrid:
     def polygon_update(self, new_or_updated_polygons=None, removed_polygons=None, fill=True):
         fill_polygons = self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
-        new_or_updated_cells_sets = {
+        new_or_updated_cells_sets = None if not new_or_updated_polygons else {
             uid: utils.accurate_rasterize_in_grid(
                 new_polygon, self.res, self.grid_pose, self.d_width, self.d_height, fill=fill
             )
