@@ -1094,10 +1094,7 @@ class DynamicPlan(Plan):
         self.current_conflicts = []
 
     def has_tries_remaining(self, nb_max_tries):
-        if self.new_replan_history:
-            return len(self.new_replan_history) < nb_max_tries
-        else:
-            return True
+        return self.plan_counter < nb_max_tries
 
     def should_postponement_be_over(self):
         return self.wait_counter <= 1
@@ -1147,7 +1144,6 @@ class DynamicPlan(Plan):
     #     self.unpostponements_history.append(step_count)
 
     def update_plan(self, plan, step_count):
-        self.plan_counter += 1
         if step_count in self.plan_history:
             self.plan_history[step_count].append(plan)
         else:
@@ -1456,6 +1452,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             inflated_grid_by_robot.d_width, inflated_grid_by_robot.d_height, fill=True
                         )
                         plan.forbidden_evasion_cells.update(set(robot_cells))
+                        plan.plan_counter += 1
                         evasion_path = self.compute_evasion(inflated_grid_by_robot, w_t, robot_uid, potential_deadlocks, plan.forbidden_evasion_cells)
                         if evasion_path:
                             self.simulation_log.append(utils.BasicLog(
@@ -1504,6 +1501,7 @@ class Stilman2005Behavior(BaselineBehavior):
             }
             w_t_no_dyn = w_t.light_copy(ignored_entities=dynamic_entities)
             inflated_grid_by_robot.deactivate_entities(dynamic_entities)
+            plan.plan_counter += 1
             p = self.select_connect(
                 w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, goal, trans_mult, rot_mult,
                 neighborhood=neighborhood, action_space_reduction=action_space_reduction
@@ -1569,6 +1567,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             conflicting_robot.polygon = encompassing_circle
                             inflated_grid_by_robot.polygon_update({conflicting_robot_uid: conflicting_robot.polygon})
                         # Plan using this modified version of the world
+                        plan.plan_counter += 1
                         p = self.select_connect(
                             new_w_t_no_dyn, static_obs_inf_grid, inflated_grid_by_robot, goal, trans_mult,
                             rot_mult,
