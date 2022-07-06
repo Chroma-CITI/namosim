@@ -3129,7 +3129,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 inflated_grid_by_robot_max.activate_entities({main_robot_uid})
 
                 other_robot_evasion_cell_social_cost, other_robot_evasion_path = self.compute_evasion_for_one(
-                    w_t, inflated_grid_by_robot_max, other_robot, forbidden_evasion_cells, use_combined_cost
+                    w_t, inflated_grid_by_robot_max, other_robot, set(), use_combined_cost
                 )
 
                 other_robot_exchange_real_path = graph_search.real_to_grid_search_a_star(other_robot.pose, main_robot.pose, inflated_grid_by_robot_max)
