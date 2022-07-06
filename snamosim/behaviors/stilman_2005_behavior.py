@@ -1331,10 +1331,11 @@ class Stilman2005Behavior(BaselineBehavior):
         return self._q_goal
 
     def potential_deadlocks(self, current_conflicts, dynamic_plan, current_step):
+        rr_conflicts = [conflict for conflict in current_conflicts if isinstance(conflict, RobotRobotConflict)]
         return {
             conflict
             for past_step, past_conflicts_at_step in dynamic_plan.conflicts_history.items()
-            for conflict in current_conflicts
+            for conflict in rr_conflicts
             if (
                 conflict in past_conflicts_at_step
                 and [replan_step for replan_step in dynamic_plan.new_replan_history if replan_step >= past_step]
