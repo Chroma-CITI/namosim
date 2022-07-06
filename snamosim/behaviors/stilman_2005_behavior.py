@@ -708,30 +708,35 @@ class TransitPath:
     @classmethod
     def from_poses(cls, poses, robot_polygon, robot_pose, phys_cost=None, social_cost=0., weight=1.):
         # Separate translation from rotation actions
-        previous_pose, separated_poses, actions = poses[0], [poses[0]], []
-        for pose in poses[1:]:
-            has_rotation = not utils.angle_is_close(pose[2], previous_pose[2], rel_tol=1e-6)
-            has_translation = (
-                not utils.is_close(pose[0], previous_pose[0], rel_tol=1e-6)
-                or not utils.is_close(pose[1], previous_pose[1], rel_tol=1e-6)
-            )
+        if len(poses) > 1:
+            previous_pose, separated_poses, actions = poses[0], [poses[0]], []
+            for pose in poses[1:]:
+                has_rotation = not utils.angle_is_close(pose[2], previous_pose[2], rel_tol=1e-6)
+                has_translation = (
+                    not utils.is_close(pose[0], previous_pose[0], rel_tol=1e-6)
+                    or not utils.is_close(pose[1], previous_pose[1], rel_tol=1e-6)
+                )
 
-            if has_rotation or has_translation:
-                if has_rotation and has_translation:
-                    separated_poses.append((previous_pose[0], previous_pose[1], pose[2]))
-                    separated_poses.append(pose)
-                else:
-                    separated_poses.append(pose)
-                if has_rotation:
-                    actions.append(ba.Rotation(utils.get_rotation(previous_pose, pose)))
-                if has_translation:
-                    actions.append(
-                        ba.Translation.from_absolute_translation_vector(utils.get_translation(previous_pose, pose))
-                    )
-            previous_pose = pose
+                if has_rotation or has_translation:
+                    if has_rotation and has_translation:
+                        separated_poses.append((previous_pose[0], previous_pose[1], pose[2]))
+                        separated_poses.append(pose)
+                    else:
+                        separated_poses.append(pose)
+                    if has_rotation:
+                        actions.append(ba.Rotation(utils.get_rotation(previous_pose, pose)))
+                    if has_translation:
+                        actions.append(
+                            ba.Translation.from_absolute_translation_vector(utils.get_translation(previous_pose, pose))
+                        )
+                previous_pose = pose
 
-        polygons = [utils.set_polygon_pose(robot_polygon, robot_pose, pose) for pose in separated_poses]
-        robot_path = Path(separated_poses, polygons)
+            polygons = [utils.set_polygon_pose(robot_polygon, robot_pose, pose) for pose in separated_poses]
+            robot_path = Path(separated_poses, polygons)
+        elif len(poses) == 1:
+            robot_path, actions = Path(robot_pose, [robot_polygon]), []
+        else:
+            robot_path, actions = Path([], []), []
         return cls(robot_path, actions, phys_cost=phys_cost, social_cost=social_cost, weight=weight)
 
     def has_infinite_cost(self):
@@ -853,7 +858,7 @@ class TransitPath:
 class EvasionTransitPath(TransitPath):
     def __init__(self, robot_path, actions, phys_cost=None, social_cost=0., weight=1.):
         TransitPath.__init__(self, robot_path, actions, phys_cost, social_cost, weight)
-        self.evasion_goal_pose = robot_path.poses[-1]
+        self.evasion_goal_pose = None if len(robot_path.poses) == 0 else robot_path.poses[-1]
         self.transit_configuration_after_release = None
         self.release_executed = False
 
@@ -3097,7 +3102,7 @@ class Stilman2005Behavior(BaselineBehavior):
         # Compute evasion for main robot
         main_robot = w_t.entities[main_robot_uid]
         main_robot_evasion_cell_social_cost, main_robot_evasion_path = self.compute_evasion_for_one(
-            w_t, inflated_grid_by_robot_max, main_robot, forbidden_evasion_cells, use_combined_cost, return_path=True
+            w_t, inflated_grid_by_robot_max, main_robot, forbidden_evasion_cells, use_combined_cost
         )
 
         if not main_robot_evasion_path:
@@ -3111,43 +3116,45 @@ class Stilman2005Behavior(BaselineBehavior):
             }
             inflated_grid_by_robot_max.polygon_update(new_or_updated_polygons={main_robot_uid: main_robot.polygon})
 
+            max_evasion_cell_social_cost = main_robot_evasion_cell_social_cost
             other_robot_evasion_path_max_duration = 0
             for robot_uid in other_robots_uids:
                 # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
                 #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
-                inflated_grid_by_robot_max.deactivate_entities({robot_uid})
                 other_robot = w_t.entities[robot_uid]
+                inflated_grid_by_robot_max.deactivate_entities({robot_uid})
                 inflated_grid_by_robot_max.activate_entities({main_robot_uid})
-                other_robot_evasion_cell_social_cost = self.compute_evasion_for_one(
-                    w_t, inflated_grid_by_robot_max, other_robot, forbidden_evasion_cells, use_combined_cost, return_path=False
+
+                other_robot_evasion_cell_social_cost, other_robot_evasion_path = self.compute_evasion_for_one(
+                    w_t, inflated_grid_by_robot_max, other_robot, forbidden_evasion_cells, use_combined_cost
                 )
+
+                other_robot_exchange_real_path = graph_search.real_to_grid_search_a_star(other_robot.pose, main_robot.pose, inflated_grid_by_robot_max)
+                other_robot_exchange_path = TransitPath.from_poses(other_robot_exchange_real_path, other_robot.polygon, other_robot.pose)
+
+                max_evasion_cell_social_cost = max(
+                    max_evasion_cell_social_cost, other_robot_evasion_cell_social_cost
+                )
+                other_robot_evasion_path_max_duration = max(
+                    other_robot_evasion_path_max_duration,
+                    (0 if other_robot_evasion_path is None else len(other_robot_evasion_path.actions))
+                    + (0 if other_robot_exchange_path is None else len(other_robot_exchange_path.actions))
+                )
+
                 inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
-                if other_robot_evasion_cell_social_cost < main_robot_evasion_cell_social_cost:
-                    inflated_grid_by_robot_max.activate_entities({robot_uid})
-                    return None
-                elif other_robot_evasion_cell_social_cost == main_robot_evasion_cell_social_cost:
-                    if other_robot.pose[0] < main_robot.pose[0] and other_robot.pose[1] < main_robot.pose[1]:
-                        inflated_grid_by_robot_max.activate_entities({robot_uid})
-                        return None
-                real_path = graph_search.real_to_grid_search_a_star(other_robot.pose, main_robot.pose, inflated_grid_by_robot_max)
-                if real_path:
-                    phys_cost = 0.
-                    raw_path_iterator = iter(real_path)
-                    prev_step = next(raw_path_iterator)
-                    for cur_step in raw_path_iterator:
-                        phys_cost += self.g(prev_step, cur_step, is_transfer=False)
-                    other_robot_exchange_path = TransitPath.from_poses(real_path, other_robot.polygon, other_robot.pose, phys_cost)
-
-                    other_robot_evasion_path_max_duration = max(
-                        other_robot_evasion_path_max_duration, len(other_robot_exchange_path.actions)
-                    )
                 inflated_grid_by_robot_max.activate_entities({robot_uid})
-            main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
-            # main_robot_evasion_path.set_wait(100)
-            return main_robot_evasion_path
 
+            if main_robot_evasion_cell_social_cost < max_evasion_cell_social_cost:
+                main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
+                # main_robot_evasion_path.set_wait(100)
+                return main_robot_evasion_path
+            else:
+                return None
 
-    def compute_evasion_for_one(self, w_t, inflated_grid_by_robot_max, robot, forbidden_evasion_cells, use_combined_cost=False, return_path=False):
+    def compute_evasion_for_one(self, w_t, inflated_grid_by_robot_max, robot, forbidden_evasion_cells, use_combined_cost=False, return_path=True):
+        robot_start_cell = utils.real_to_grid(robot.pose[0], robot.pose[1], inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose)
+        robot_start_social_cost = self._social_costmap[robot_start_cell[0]][robot_start_cell[1]]
+
         # If the robot is currently holding an object, try to release it first to find a valid transit starting configuration
         transit_configuration_after_release = None
         if robot.uid in w_t.entity_to_agent.inverse:
@@ -3165,9 +3172,9 @@ class Stilman2005Behavior(BaselineBehavior):
             if not transit_configuration_after_release:
                 # Could not release obstacle during manipulation because no valid transit pose could be found.
                 if return_path:
-                    return 0., None
+                    return robot_start_social_cost, None
                 else:
-                    return 0.
+                    return robot_start_social_cost
 
         # Compute shortest path to each cell of current component of robot
         robot_polygon = robot.polygon
@@ -3188,9 +3195,9 @@ class Stilman2005Behavior(BaselineBehavior):
         if not came_from:
             # If the robot was in an obstacle, no evasion is possible
             if return_path:
-                return 0., None
+                return robot_start_social_cost, None
             else:
-                return 0.
+                return robot_start_social_cost
         else:
             accessible_cells = []
             social_cost = []
@@ -3234,17 +3241,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     raw_cell_path, robot_pose, None, inflated_grid_by_robot_max.res, inflated_grid_by_robot_max.grid_pose
                 )
 
-                phys_cost = 0.
-                real_path_iterator = iter(real_path)
-                prev_step = next(real_path_iterator)
-                for cur_step in real_path_iterator:
-                    phys_cost += self.g(prev_step, cur_step, is_transfer=False)
-
-                evasion_goal_pose = real_path[-1]
-
-                evasion_transit_path = EvasionTransitPath.from_poses(
-                    real_path, robot_polygon, robot_pose, phys_cost
-                )
+                evasion_transit_path = None if len(real_path) < 2 else EvasionTransitPath.from_poses(real_path, robot_polygon, robot_pose)
 
                 if transit_configuration_after_release:
                     evasion_transit_path.set_transit_configuration_after_release(transit_configuration_after_release)
