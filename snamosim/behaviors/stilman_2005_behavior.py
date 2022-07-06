@@ -275,13 +275,13 @@ class StealingMovableConflict(Conflict):
 
 
 class ConcurrentGrabConflict(StealingMovableConflict):  # Systematic postpone
-    def __init__(self, obstacle_uid, concurrent_agent_uid):
+    def __init__(self, obstacle_uid, other_robot_uid):
         self.obstacle_uid = obstacle_uid
-        self.concurrent_agent_uid = concurrent_agent_uid
+        self.other_robot_uid = other_robot_uid
 
     def __str__(self):
-        return "Concurrent Grab conflict concerning obstacle uid {}, with concurrent agents uids {}.".format(
-            self.obstacle_uid, self.concurrent_agents_uids
+        return "Concurrent Grab conflict concerning obstacle uid {}, with concurrent agents uid {}.".format(
+            self.obstacle_uid, self.other_robot_uid
         )
 
 
@@ -1552,8 +1552,11 @@ class Stilman2005Behavior(BaselineBehavior):
                         conflicting_robots_uids = {conflict.other_robot_uid for conflict in conflicts}
                         conflicting_transfered_obstacles_uids = {w_t.entity_to_agent.inverse[uid] for uid in conflicting_robots_uids if uid in w_t.entity_to_agent.inverse}
                         # Make a world copy without dynamic entities again, but with the conflicting robots
-                        new_dynamic_entities = dynamic_entities.difference(conflicting_robots_uids)
+                        new_dynamic_entities = dynamic_entities.difference(conflicting_robots_uids).difference(conflicting_transfered_obstacles_uids)
                         new_w_t_no_dyn = w_t.light_copy(ignored_entities=new_dynamic_entities)
+                        for conflict in conflicts:
+                            if isinstance(conflict, ConcurrentGrabConflict) and conflict.obstacle_uid not in new_w_t_no_dyn.entity_to_agent:
+                                new_w_t_no_dyn.entity_to_agent[conflict.obstacle_uid] = conflict.other_robot_uid
                         inflated_grid_by_robot.deactivate_entities(new_dynamic_entities)
                         # Iterate over each conflicting robot uid, and change its polygon to an encompassing circle
                         # encounting for all likely states at at t+1
