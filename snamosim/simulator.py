@@ -509,7 +509,7 @@ class Simulator:
                     if step_index in current_dynamic_plan.unpostponements_history:
                         agent_stats.nb_of_unpostponements += 1
 
-                    if step_index in current_dynamic_plan.new_replan_history:
+                    if step_index in current_dynamic_plan.steps_with_replan_call:
                         agent_stats.nb_of_plan_computations += 1
 
                 agent_stats.sense_time += sim_step_result.sense_durations[uid]
