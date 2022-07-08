@@ -1067,11 +1067,11 @@ class DynamicPlan(Plan):
 
     def __init__(self):
         Plan.__init__(self)
-        self.wait_counter = 0
+        # Core attributes
         self.plan_counter = 0
+        self.steps_with_replan_call = set()
 
-        self.new_replan_history = set()
-        self.new_conflicts_history = {}
+#       # Statistical attributes
 
         self.current_conflicts = []
 
@@ -1083,10 +1083,6 @@ class DynamicPlan(Plan):
         self.forbidden_evasion_cells = set()
 
         self.timer = Timer()
-
-    @property
-    def is_postponed(self):
-        return self.wait_counter > 0
 
     def was_last_step_success(self, w_t, last_action_result):
         # TODO Check if robot state (position and grab) are coherent with next step's preconditions
@@ -1114,9 +1110,6 @@ class DynamicPlan(Plan):
     def has_tries_remaining(self, nb_max_tries):
         return self.plan_counter < nb_max_tries
 
-    def should_postponement_be_over(self):
-        return self.wait_counter <= 1
-
     def can_even_be_found(self):
         if self.plan_error and self.plan_error is "start_or_goal_cell_in_static_obstacle_error":
             return False
@@ -1124,9 +1117,6 @@ class DynamicPlan(Plan):
 
     # Actions
     def pop_next_step(self):
-        if self.is_postponed:
-            self.wait_counter -= 1
-            return ba.Wait()
         return Plan.pop_next_step(self)
 
     def new_postpone(self, t_min, t_max, step_count, conflicts, simulation_log, robot_name):
@@ -1166,8 +1156,6 @@ class DynamicPlan(Plan):
             self.plan_history[step_count].append(plan)
         else:
             self.plan_history[step_count] = [plan]
-
-        self.wait_counter = 0
 
         self.path_components = plan.path_components
         self.goal = plan.goal
@@ -1351,7 +1339,7 @@ class Stilman2005Behavior(BaselineBehavior):
             for conflict in rr_conflicts
             if (
                 conflict in past_conflicts_at_step
-                and [replan_step for replan_step in dynamic_plan.new_replan_history if replan_step >= past_step]
+                and [replan_step for replan_step in dynamic_plan.steps_with_replan_call if replan_step >= past_step]
             )
         }
 
@@ -1509,7 +1497,7 @@ class Stilman2005Behavior(BaselineBehavior):
             ))
             return ba.GoalFailed(goal)
         else:
-            plan.new_replan_history.add(step_count)
+            plan.steps_with_replan_call.add(step_count)
 
             # I - Compute plan (ignoring dynamic obstacles) and set it to current plan
             dynamic_entities = {
@@ -1631,7 +1619,6 @@ class Stilman2005Behavior(BaselineBehavior):
                                     "conflicting dynamic obstacles of the pure NAMO plan, but has other conflicts: {}".format(
                                         self._robot_name, t_max, conflicts), step_count
                                 ))
-                                plan.new_conflicts_history[step_count] = conflicts[0]
                                 return plan.new_postpone(t_min, t_max, step_count, conflicts, self.simulation_log, self._robot_name)
                             else:
                                 self.simulation_log.append(utils.BasicLog(
