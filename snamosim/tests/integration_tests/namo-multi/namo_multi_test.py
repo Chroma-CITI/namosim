@@ -80,9 +80,9 @@ class NAMOMultiTests(unittest.TestCase):
         sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"2_asym_left_rooms_corridor_deadlock/2_asym_left_rooms_corridor_deadlock_snamo.json"))
         report = sim.run()
 
-    # def test_3_rooms_and_robots_corridor_deadlocks_namo(self):
-    #     sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"3_rooms_and_robots_corridor_deadlocks/3_rooms_and_robots_corridor_deadlocks_namo.json"))
-    #     report = sim.run()
+    def test_3_rooms_and_robots_corridor_deadlocks_namo(self):
+        sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"3_rooms_and_robots_corridor_deadlocks/3_rooms_and_robots_corridor_deadlocks_namo.json"))
+        report = sim.run()
 
     def test_3_rooms_and_robots_corridor_deadlocks_snamo(self):
         sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder,"3_rooms_and_robots_corridor_deadlocks/3_rooms_and_robots_corridor_deadlocks_snamo.json"))
