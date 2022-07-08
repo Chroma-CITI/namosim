@@ -3136,12 +3136,13 @@ class Stilman2005Behavior(BaselineBehavior):
                 # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
                 #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
                 other_robot = w_t.entities[robot_uid]
+
                 inflated_grid_by_robot_max.deactivate_entities({robot_uid})
                 inflated_grid_by_robot_max.activate_entities({main_robot_uid})
-
                 other_robot_evasion_cell_social_cost, other_robot_evasion_path = self.compute_evasion_for_one(
                     w_t, inflated_grid_by_robot_max, other_robot, set(), use_combined_cost
                 )
+                inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
 
                 other_robot_exchange_real_path = graph_search.real_to_grid_search_a_star(other_robot.pose, main_robot.pose, inflated_grid_by_robot_max)
                 other_robot_exchange_path = TransitPath.from_poses(other_robot_exchange_real_path, other_robot.polygon, other_robot.pose)
@@ -3155,7 +3156,6 @@ class Stilman2005Behavior(BaselineBehavior):
                     + (0 if other_robot_exchange_path is None else len(other_robot_exchange_path.actions))
                 )
 
-                inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
                 inflated_grid_by_robot_max.activate_entities({robot_uid})
 
             if main_robot_evasion_cell_social_cost < max_evasion_cell_social_cost:
