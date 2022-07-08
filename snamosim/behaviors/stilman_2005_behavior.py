@@ -936,18 +936,28 @@ class Plan:
         other_entities_polygons_with_encompassing_circles = copy.copy(other_entities_polygons)
         other_entities_with_encompassing_circles_aabb_tree = copy.deepcopy(other_entities_aabb_tree)
         encompassing_circle_uid_to_robot_uid = {}
-        max_uid = max(other_entities_polygons.keys())
+        max_uid = 10000 # TODO: find a better way compute this temporary uid
         for other_robot in world.entities.values():
             # Inflate all other robots and their associated obstacles by the maximum translation at t+1 to prevent
             # SimultaneousSpaceAccess-type Conflicts
             if isinstance(other_robot, Robot) and other_robot.uid != self.robot_uid:
                 center = other_robot.polygon.centroid
-                radius = center.hausdorff_distance(other_robot.polygon)
+                robot_radius = center.hausdorff_distance(other_robot.polygon) + 1.1 * inflated_grid_by_robot.res
+                radius = robot_radius
+                min_radius_for_release = robot_radius + inflated_grid_by_robot.inflation_radius + 2. * inflated_grid_by_robot.res
+                # Enlarge radius to account for possible grabs
+                for uid, obstacle in world.entities.items():
+                    if isinstance(obstacle, Obstacle) and uid not in world.entity_to_agent and obstacle.movability != 'static':
+                        if obstacle.polygon.buffer(2. * inflated_grid_by_robot.inflation_radius, join_style=2).intersects(other_robot.polygon):
+                            radius = min_radius_for_release
+                            break
                 if other_robot.uid in world.entity_to_agent.inverse:
                     obstacle = world.entities[world.entity_to_agent.inverse[other_robot.uid]]
-                    radius = max(radius, center.hausdorff_distance(obstacle.polygon))
+                    radius = max(radius, center.hausdorff_distance(obstacle.polygon) + 1.1 * inflated_grid_by_robot.res)
+                    if radius < min_radius_for_release:
+                        # Enlarge radius to account for possible releases
+                        radius = min_radius_for_release
                 # TODO Get inflation from largest robot
-                radius += inflated_grid_by_robot.inflation_radius + 3. * inflated_grid_by_robot.res
                 encompassing_circle = center.buffer(radius)
                 temp_uid = max(max_uid, max([0] if not encompassing_circle_uid_to_robot_uid else encompassing_circle_uid_to_robot_uid.keys())) + 1
                 other_entities_polygons_with_encompassing_circles[temp_uid] = encompassing_circle
@@ -1568,12 +1578,22 @@ class Stilman2005Behavior(BaselineBehavior):
                         for conflicting_robot_uid in conflicting_robots_uids:
                             conflicting_robot = new_w_t_no_dyn.entities[conflicting_robot_uid]
                             center = conflicting_robot.polygon.centroid
-                            radius = center.hausdorff_distance(conflicting_robot.polygon)
+                            robot_radius = center.hausdorff_distance(conflicting_robot.polygon) + 1.1 * inflated_grid_by_robot.res
+                            radius = robot_radius
+                            min_radius_for_release = robot_radius + inflated_grid_by_robot.inflation_radius + 2. * inflated_grid_by_robot.res
+                            # Enlarge radius to account for possible grabs
+                            for uid, obstacle in new_w_t_no_dyn.entities.items():
+                                if isinstance(obstacle, Obstacle) and uid not in new_w_t_no_dyn.entity_to_agent and obstacle.movability != 'static':
+                                    if obstacle.polygon.buffer(2. * inflated_grid_by_robot.inflation_radius, join_style = 2).intersects(conflicting_robot.polygon):
+                                        radius = min_radius_for_release
+                                        break
                             if conflicting_robot.uid in w_t.entity_to_agent.inverse:
                                 obstacle = w_t.entities[w_t.entity_to_agent.inverse[conflicting_robot.uid]]
-                                radius = max(radius, center.hausdorff_distance(obstacle.polygon))
+                                radius = max(radius, center.hausdorff_distance(obstacle.polygon) + 1.1 * inflated_grid_by_robot.res)
+                                if radius < min_radius_for_release:
+                                    # Enlarge radius to account for possible releases
+                                    radius = min_radius_for_release
                             # TODO Get inflation from largest robot
-                            radius += inflated_grid_by_robot.inflation_radius + 3. * inflated_grid_by_robot.res
                             encompassing_circle = center.buffer(radius)
                             polygons_tmp[conflicting_robot_uid] = conflicting_robot.polygon
                             conflicting_robot.polygon = encompassing_circle
