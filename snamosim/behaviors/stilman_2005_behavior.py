@@ -770,6 +770,9 @@ class TransitPath:
         conflicting_cells = set()
         conflicting_entities_cells = set()
         for counter, index in enumerate(range(self.action_index, len(self.actions) + 1)):
+            if index < len(self.actions) and isinstance(self.actions[index], ba.Wait):
+                continue
+
             if apply_strict_horizon and counter > shared_horizon:
                 break
 
