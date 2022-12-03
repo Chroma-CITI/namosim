@@ -45,6 +45,64 @@ class NamespaceCache:
         self.current_fixed_robot_pose_marker_current_id = 1
 
 
+try:
+    # Try to use ROS2 compatibility class
+    class MyNode(Node):
+        def __init__(self, node_name):
+            rclpy.init(args=None)
+            super().__init__(node_name=node_name)
+
+        def get_timestamp(self):
+            return self.get_clock().now().to_msg()
+
+        def log_warn(self, text):
+            self.get_logger().warn(text)
+
+        def get_transform_broadcaster(self):
+            return StaticTransformBroadcaster(self)
+
+        @staticmethod
+        def get_publisher_subscription_count(publisher):
+            return publisher.get_subscription_count()
+
+        def check_duration(self, last_time, duration_in_secs=1.):
+            return self.get_timestamp() - last_time > Duration.from_sec(duration_in_secs)
+
+except NameError:
+    # Else use ROS1 compatibility class
+    class MyNode:
+        def __init__(self, node_name):
+            rospy.init_node(node_name)
+
+        @staticmethod
+        def create_publisher(topic_type, topic_name, queue_size=cfg.default_queue_size):
+            return rospy.Publisher(topic_name, topic_type, queue_size)
+
+        @staticmethod
+        def get_timestamp():
+            return rospy.Time.now()
+
+        @staticmethod
+        def log_warn(text):
+            rospy.logwarn(text)
+
+        @staticmethod
+        def get_transform_broadcaster():
+            return StaticTransformBroadcaster()
+
+        @staticmethod
+        def get_publisher_subscription_count(publisher):
+            return publisher.get_num_connections()
+
+        @staticmethod
+        def check_duration(last_time, duration_in_secs=1.):
+            return rospy.Time.now() - last_time > rospy.Duration.from_sec(duration_in_secs)
+
+        @staticmethod
+        def shutdown():
+            rospy.shutdown()
+
+
 class RosPublisher(with_metaclass(Singleton)):
     def __init__(self, top_level_namespaces=('simulation', 'agent')):
         self.top_level_namespaces = top_level_namespaces
@@ -57,10 +115,8 @@ class RosPublisher(with_metaclass(Singleton)):
             self.node_name = 'simulation_ros_node'
         else:
             self.node_name = top_level_namespaces[0] + '_ros_node'
-        rospy.init_node(self.node_name)
 
-        # Target refresh rate
-        self.rate = rospy.Rate(cfg.rate)
+        self.ros_node = MyNode(node_name=self.node_name)
 
         # Dictionary of Publishers
         self.publishers = {}
@@ -83,63 +139,46 @@ class RosPublisher(with_metaclass(Singleton)):
         # Add robot-specific publishers for each robot namespace
         for ns in other_namespaces:
             full_ns = '/' + ns
-
-            self.publishers[full_ns + cfg.min_max_inflated_polygons_topic] = rospy.Publisher(
-                full_ns + cfg.min_max_inflated_polygons_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.path_grid_cells_topic] = rospy.Publisher(
-                full_ns + cfg.path_grid_cells_topic, Marker, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.a_star_open_heap_topic] = rospy.Publisher(
-                full_ns + cfg.a_star_open_heap_topic, Marker, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.a_star_close_set_topic] = rospy.Publisher(
-                full_ns + cfg.a_star_close_set_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.multi_a_star_open_heap_topic] = rospy.Publisher(
-                full_ns + cfg.multi_a_star_open_heap_topic, Marker, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.multi_a_star_close_set_topic] = rospy.Publisher(
-                full_ns + cfg.multi_a_star_close_set_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.stilman_rch_close_set_topic] = rospy.Publisher(
-                full_ns + cfg.stilman_rch_close_set_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.q_l_cells_topic] = rospy.Publisher(
-                full_ns + cfg.q_l_cells_topic, Marker, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.q_l_poses_topic] = rospy.Publisher(
-                full_ns + cfg.q_l_poses_topic, PoseArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.robot_goal_topic] = rospy.Publisher(
-                full_ns + cfg.robot_goal_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.obs_manip_poses_topic] = rospy.Publisher(
-                full_ns + cfg.obs_manip_poses_topic, PoseArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.c_1_topic] = rospy.Publisher(
-                full_ns + cfg.c_1_topic, Path, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.c_2_topic] = rospy.Publisher(
-                full_ns + cfg.c_2_topic, Path, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.c_3_topic] = rospy.Publisher(
-                full_ns + cfg.c_3_topic, Path, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.eval_c_1_topic] = rospy.Publisher(
-                full_ns + cfg.eval_c_1_topic, Path, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.eval_c_2_topic] = rospy.Publisher(
-                full_ns + cfg.eval_c_2_topic, Path, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.eval_c_3_topic] = rospy.Publisher(
-                full_ns + cfg.eval_c_3_topic, Path, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.robot_sim_topic] = rospy.Publisher(
-                full_ns + cfg.robot_sim_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.robot_knowledge_topic] = rospy.Publisher(
-                full_ns + cfg.robot_knowledge_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.robot_costmap_topic] = rospy.Publisher(
-                full_ns + cfg.robot_costmap_topic, OccupancyGrid, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.robot_sim_costmap_topic] = rospy.Publisher(
-                full_ns + cfg.robot_sim_costmap_topic, OccupancyGrid, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.test_gridmap_topic] = rospy.Publisher(
-                full_ns + cfg.test_gridmap_topic, GridMap, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.social_cells_topic] = rospy.Publisher(
-                full_ns + cfg.social_cells_topic, Marker, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.test_connected_components_topic] = rospy.Publisher(
-                full_ns + cfg.test_connected_components_topic, GridMap, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.robot_sim_world_topic] = rospy.Publisher(
-                full_ns + cfg.robot_sim_world_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.combined_costmap_topic] = rospy.Publisher(
-                full_ns + cfg.combined_costmap_topic, GridMap, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.plan_topic] = rospy.Publisher(
-                full_ns + cfg.plan_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers[full_ns + cfg.conflicts_check_topic] = rospy.Publisher(
-                full_ns + cfg.conflicts_check_topic, MarkerArray, queue_size=cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.min_max_inflated_polygons_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.min_max_inflated_polygons_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.path_grid_cells_topic] = self.ros_node.create_publisher(
+                Marker, full_ns + cfg.path_grid_cells_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.a_star_open_heap_topic] = self.ros_node.create_publisher(
+                Marker, full_ns + cfg.a_star_open_heap_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.a_star_close_set_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.a_star_close_set_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.multi_a_star_open_heap_topic] = self.ros_node.create_publisher(
+                Marker, full_ns + cfg.multi_a_star_open_heap_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.multi_a_star_close_set_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.multi_a_star_close_set_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.stilman_rch_close_set_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.stilman_rch_close_set_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.robot_goal_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.robot_goal_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.obs_manip_poses_topic] = self.ros_node.create_publisher(
+                PoseArray, full_ns + cfg.obs_manip_poses_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.robot_sim_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.robot_sim_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.robot_knowledge_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.robot_knowledge_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.robot_costmap_topic] = self.ros_node.create_publisher(
+                OccupancyGrid, full_ns + cfg.robot_costmap_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.robot_sim_costmap_topic] = self.ros_node.create_publisher(
+                OccupancyGrid, full_ns + cfg.robot_sim_costmap_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.test_gridmap_topic] = self.ros_node.create_publisher(
+                GridMap, full_ns + cfg.test_gridmap_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.social_cells_topic] = self.ros_node.create_publisher(
+                Marker, full_ns + cfg.social_cells_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.test_connected_components_topic] = self.ros_node.create_publisher(
+                GridMap, full_ns + cfg.test_connected_components_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.robot_sim_world_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.robot_sim_world_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.combined_costmap_topic] = self.ros_node.create_publisher(
+                GridMap, full_ns + cfg.combined_costmap_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.plan_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.plan_topic, cfg.default_queue_size)
+            self.my_publishers[full_ns + cfg.conflicts_check_topic] = self.ros_node.create_publisher(
+                MarkerArray, full_ns + cfg.conflicts_check_topic, cfg.default_queue_size)
 
         # HACK: Necessary because ROS1 pub/sub system is not really reliable : wait a second for subscribers to listen
         time.sleep(cfg.hack_duration_wait)
@@ -163,10 +202,10 @@ class RosPublisher(with_metaclass(Singleton)):
             self.namespaces_caches[ns] = NamespaceCache()
 
     def publish(self, topic, msg):
-        self.rate.sleep()
-        publisher = self.publishers[topic]
-        connections = publisher.get_num_connections()
+        publisher = self.my_publishers[topic]
+        connections = self.ros_node.get_publisher_subscription_count(publisher)
         if connections > 0:
+            time.sleep(1./cfg.rate)
             publisher.publish(msg)
 
     def is_activated(self, topic=''):
@@ -592,36 +631,6 @@ class RosPublisher(with_metaclass(Singleton)):
 
     # endregion
 
-    # region ROBOT EVAL C1 C2 C3
-    def publish_c_1(self, c1, ns=''):
-        full_topic = cfg.eval_c_1_topic if not ns else '/' + ns + cfg.eval_c_1_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, conv.real_path_to_ros_path(c1.path))
-
-    def publish_c_2(self, c2, ns=''):
-        full_topic = cfg.eval_c_2_topic if not ns else '/' + ns + cfg.eval_c_2_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, conv.real_path_to_ros_path(c2.path))
-
-    def publish_c_3(self, c3, ns=''):
-        full_topic = cfg.eval_c_3_topic if not ns else '/' + ns + cfg.eval_c_3_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, conv.real_path_to_ros_path(c3.path))
-
-    def cleanup_eval_c1_c2_c3_sim_init_target(self, ns=''):
-        full_topic = cfg.eval_c_1_topic if not ns else '/' + ns + cfg.eval_c_1_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, conv.init_ros_path())
-        full_topic = cfg.eval_c_2_topic if not ns else '/' + ns + cfg.eval_c_2_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, conv.init_ros_path())
-        full_topic = cfg.eval_c_3_topic if not ns else '/' + ns + cfg.eval_c_3_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, conv.init_ros_path())
-        self.cleanup_robot_sim(ns=ns)
-
-    # endregion
-
     # region P_OPT
     def publish_p_opt(self, plan, ns=''):
         full_topic = cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic
@@ -632,28 +641,7 @@ class RosPublisher(with_metaclass(Singleton)):
     def cleanup_p_opt(self, ns=''):
         full_topic = cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
-
-    # def publish_p_opt_deprecated(self, plan):
-    #     if plan and plan.path_components:
-    #         if self.is_activated(cfg.c_1_topic):
-    #             self.publish(cfg.c_1_topic, conv.real_path_to_ros_path(plan.path_components[0].path))
-    #         if len(plan.path_components) == 3:
-    #             if self.is_activated(cfg.c_2_topic):
-    #                 self.publish(cfg.c_2_topic, conv.real_path_to_ros_path(plan.path_components[1].path))
-    #             if self.is_activated(cfg.c_3_topic):
-    #                 self.publish(cfg.c_3_topic, conv.real_path_to_ros_path(plan.path_components[2].path))
-
-    # def cleanup_p_opt_deprecated(self):
-    #     if self.is_activated(cfg.c_1_topic):
-    #         self.publish(cfg.c_1_topic, conv.init_ros_path())
-    #     if self.is_activated(cfg.c_2_topic):
-    #         self.publish(cfg.c_2_topic, conv.init_ros_path())
-    #     if self.is_activated(cfg.c_3_topic):
-    #         self.publish(cfg.c_3_topic, conv.init_ros_path())
-    #     if self.is_activated(cfg.robot_sim_costmap_topic):
-    #         self.publish(cfg.robot_sim_costmap_topic, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
-
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
     # endregion
 
     # region ROBOT SIM
@@ -779,29 +767,6 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             self.namespaces_caches[ns] = NamespaceCache()
             self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
-
-    # endregion
-
-    # region Q L CELLS
-    def publish_q_l_cells(self, cells, res, grid_pose, ns=''):
-        full_topic = cfg.q_l_cells_topic if not ns else '/' + ns + cfg.q_l_cells_topic
-        if self.is_activated(full_topic):
-            close_set_cells = conv.grid_cells_to_cube_list_markers(list(cells), res, grid_pose, color=colors.flashy_cyan)
-            self.publish(full_topic, close_set_cells)
-
-    def publish_q_l_poses(self, poses, ns=''):
-        full_topic = cfg.q_l_poses_topic if not ns else '/' + ns + cfg.q_l_poses_topic
-        if self.is_activated(full_topic):
-            pose_array = conv.poses_to_poses_array(poses)
-            self.publish(full_topic, pose_array)
-
-    def cleanup_q_l_cells_poses(self, ns=''):
-        full_topic = cfg.q_l_cells_topic if not ns else '/' + ns + cfg.q_l_cells_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, conv.init_grid_cells(0.1))
-        full_topic = cfg.q_l_poses_topic if not ns else '/' + ns + cfg.q_l_poses_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, PoseArray(header=conv.init_header()))
 
     # endregion
 
@@ -935,11 +900,9 @@ class RosPublisher(with_metaclass(Singleton)):
         for ns in other_namespaces:
             self.cleanup_robot_world(ns=ns)
             self.cleanup_robot_sim_world(ns=ns)
-            self.cleanup_eval_c1_c2_c3_sim_init_target(ns=ns)
             self.cleanup_p_opt(ns=ns)
             self.cleanup_q_manips_for_obs(ns=ns)
             self.cleanup_goal(ns=ns)
-            self.cleanup_q_l_cells_poses(ns=ns)
             self.cleanup_min_max_inflated(ns=ns)
             self.cleanup_a_star_open_heap(ns=ns)
             self.cleanup_a_star_close_set(ns=ns)
@@ -951,3 +914,427 @@ class RosPublisher(with_metaclass(Singleton)):
             self.cleanup_conflicts_checks(ns=ns)
 
     # endregion
+
+    # region CONVERSION TO ROS MSG HELPERS
+    def init_header(self):
+        return Header(stamp=self.ros_node.get_timestamp(), frame_id="map")
+
+    def init_grid_cells(self, resolution):
+        return GridCells(header=self.init_header(), cell_width=resolution, cell_height=resolution,
+                         cells=[Point(x=10000., y=10000., z=10000.)])
+
+    def init_ros_path(self):
+        return Path(header=self.init_header(), poses=[])
+
+    def world_to_costmap(self, world, robot_uid=None):
+        polygons = {
+            uid: entity.polygon for uid, entity in world.entities.items()
+            if not isinstance(entity, Robot)
+        }
+        if robot_uid:
+            robot_max_inflation_radius = utils.get_circumscribed_radius(world.entities[robot_uid].polygon)
+            grid = BinaryInflatedOccupancyGrid(
+                polygons, world.dd.res, robot_max_inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+            )
+        else:
+            grid = BinaryOccupancyGrid(
+                polygons, world.dd.res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+            )
+
+        costmap = OccupancyGrid(header=self.init_header())
+        costmap.info.map_load_time = costmap.header.stamp
+        costmap.info.resolution = grid.res
+        costmap.info.width = grid.d_width
+        costmap.info.height = grid.d_height
+        costmap.info.origin.position.x = grid.grid_pose[0]
+        costmap.info.origin.position.y = grid.grid_pose[1]
+        costmap.info.origin.position.z = -0.1
+        costmap.data = np.fliplr(np.rot90(grid.grid, 3)).flatten().astype(np.int8).tolist()
+
+        return costmap
+
+    def world_to_marker_array(self, world, robot_uid=None, entities_to_ignore=None):
+        if entities_to_ignore is None:
+            entities_to_ignore = set()
+        marker_array = MarkerArray()
+        markers = []
+        if robot_uid:
+            robots = [world.entities[robot_uid]]
+        else:
+            robots = [entity for uid, entity in world.entities.items() if isinstance(entity, Robot)]
+        for entity in world.entities.values():
+            if entity.uid not in entities_to_ignore:
+                if isinstance(entity, Robot):
+                    robot_color = colors.r0_light_blue
+                    robot_border_color = colors.r0_dark_blue
+                    if entity.name == "robot_1":
+                        robot_color = colors.r1_light_green
+                        robot_border_color = colors.r1_dark_green
+                    elif entity.name == "robot_2":
+                        robot_color = colors.r2_light_pink
+                        robot_border_color = colors.r2_dark_pink
+                    elif entity.name == "robot_3":
+                        robot_color = colors.r3_light_red
+                        robot_border_color = colors.r3_dark_red
+                    markers = markers + self.entity_to_markers(
+                        entity, "/robot", entity.uid, cfg.main_frame_id, robot_color, robot_border_color,
+                        colors.text_color_on_filling, colors.text_color_on_empty, cfg.entities_z_index,
+                        cfg.border_width, cfg.text_height, add_border=False, add_text=False)
+
+                    for sensor in entity.sensors:
+                        if isinstance(sensor, SFOVSensor):
+                            markers.append(self.polygon_to_line_strip(sensor.fov_polygon, "/robot/s_fov", 0,
+                                                                      cfg.main_frame_id,
+                                                                      colors.s_fov_border_color, cfg.fov_z_index,
+                                                                      cfg.fov_line_width))
+                        elif isinstance(sensor, GFOVSensor):
+                            markers.append(self.polygon_to_line_strip(sensor.fov_polygon, "/robot/g_fov", 0,
+                                                                      cfg.main_frame_id,
+                                                                      colors.g_fov_border_color, cfg.fov_z_index,
+                                                                      cfg.fov_line_width))
+
+                if isinstance(entity, Obstacle):
+                    unknown = any([robot.deduce_movability(entity.type) == "unknown" for robot in robots])
+                    unmovable = any([robot.deduce_movability(entity.type) == "unmovable" for robot in robots])
+                    movable = any([robot.deduce_movability(entity.type) == "movable" for robot in robots])
+                    if movable:
+                        markers = markers + self.entity_to_markers(
+                            entity, "/obstacles", entity.uid, cfg.main_frame_id,
+                            colors.movable_obstacle_color,
+                            colors.movable_obstacle_border_color,
+                            colors.text_color_on_filling, colors.text_color_on_empty,
+                            cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
+                    elif unmovable:
+                        markers = markers + self.entity_to_markers(
+                            entity, "/obstacles", entity.uid, cfg.main_frame_id,
+                            colors.unmovable_obstacle_color,
+                            colors.unmovable_obstacle_border_color,
+                            colors.text_color_on_filling, colors.text_color_on_empty,
+                            cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
+                    elif unknown:
+                        markers = markers + self.entity_to_markers(
+                            entity, "/obstacles", entity.uid, cfg.main_frame_id,
+                            colors.unknown_obstacle_color,
+                            colors.unknown_obstacle_border_color,
+                            colors.text_color_on_filling, colors.text_color_on_empty,
+                            cfg.entities_z_index, cfg.border_width, cfg.text_height, add_border=False, add_text=False)
+        for taboo in world.taboo_zones.values():
+            markers = markers + self.entity_to_markers(
+                taboo, "/taboos", taboo.uid, cfg.main_frame_id, colors.taboo_color,
+                colors.taboo_border_color,
+                colors.text_color_on_filling, colors.text_color_on_empty, cfg.taboos_z_index,
+                cfg.border_width, cfg.text_height, add_border=False, add_text=False)
+        marker_array.markers = markers
+        return marker_array
+
+    def init_grid_map(self):
+        grid_map = GridMap()
+        grid_map.info.header = Header(stamp=self.ros_node.get_timestamp(), frame_id="gridmap")
+        grid_map.layers = []
+        inflated_costmap_data = Float32MultiArray(
+            layout=MultiArrayLayout(
+                dim=[MultiArrayDimension(label="column_index",
+                                         size=0,
+                                         stride=0),
+                     MultiArrayDimension(label="row_index",
+                                         size=0,
+                                         stride=0)],
+                data_offset=0),
+            data=[]
+        )
+        grid_map.data = [inflated_costmap_data]
+
+        return grid_map
+
+    def costmap_to_grid_map(self, costmap, res, frame_id=cfg.social_gridmap_frame_id):
+        grid_map = GridMap()
+        if hasattr(grid_map.info, 'header'):
+            grid_map.info.header = Header(stamp=self.ros_node.get_timestamp(), frame_id=frame_id)
+        elif hasattr(grid_map, 'header'):
+            grid_map.header = Header(stamp=self.ros_node.get_timestamp(), frame_id=frame_id)
+        grid_map.info.resolution = res
+        grid_map.info.length_x = costmap.shape[0] * res
+        grid_map.info.length_y = costmap.shape[1] * res
+        # grid_map.info.pose.position.z = 0. # The lib does not take this parameter into account...
+        grid_map.layers = ["elevation"]
+        inflated_costmap_data = Float32MultiArray(
+            layout=MultiArrayLayout(
+                dim=[MultiArrayDimension(label="column_index",
+                                         size=costmap.shape[1],
+                                         stride=costmap.shape[1] * costmap.shape[0]),
+                     MultiArrayDimension(label="row_index",
+                                         size=costmap.shape[0],
+                                         stride=costmap.shape[0])],
+                data_offset=0),
+            # data=(costmap.flatten('F') / float(dd.cost_lethal)).astype(np.float32).tolist()
+            data=(costmap.flatten('F')).astype(np.float32).tolist()
+        )
+        grid_map.data = [inflated_costmap_data]
+
+        return grid_map
+
+    def grid_cells_to_cube_list_markers(self, grid_cells, res, grid_pose, color, z_index=-0.5, cube_list=None, ns=""):
+        if cube_list is None:
+            cube_list = Marker(
+                type=Marker.CUBE_LIST,
+                ns=ns,
+                id=0,
+                header=Header(frame_id=cfg.main_frame_id, stamp=self.ros_node.get_timestamp()),
+                color=color,
+                scale=Vector3(x=res, y=res, z=res),
+                points=[])
+        for cell in grid_cells:
+            point = Point()
+            point.x, point.y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
+            point.z = z_index
+            cube_list.points.append(point)
+        return cube_list
+
+    def grid_cell_to_cube_marker(self, cell, res, grid_pose, color, _id, z_index, ns=""):
+        x, y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
+        z = z_index
+        cube = Marker(type=Marker.CUBE, ns=ns, id=_id,
+                      header=Header(frame_id=cfg.main_frame_id, stamp=self.ros_node.get_timestamp()),
+                      color=color, scale=Vector3(x=res, y=res, z=res), pose=Pose(position=Vector3(x=x, y=y, z=z)))
+        return cube
+
+    def grid_cells_to_cube_markerarray(self, grid_cells, res, grid_pose, color, z_index, start_id=0, ns=""):
+        marker_array = MarkerArray()
+        markers = []
+        cur_id = start_id
+        for cell in grid_cells:
+            cur_id += 1
+            x, y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
+            z = z_index
+            cube = Marker(type=Marker.CUBE, ns=ns, id=cur_id,
+                          header=Header(frame_id=cfg.main_frame_id, stamp=self.ros_node.get_timestamp()),
+                          color=color, scale=Vector3(x=res, y=res, z=res), pose=Pose(position=Vector3(x=x, y=y, z=z)))
+            markers.append(cube)
+        marker_array.markers = markers
+        return marker_array, cur_id
+
+    def geom_quat_from_yaw(self, yaw):
+        explicit_quat = tf_replacement.quaternion_from_euler(0.0, 0.0, math.radians(yaw))
+        return Quaternion(x=explicit_quat[0], y=explicit_quat[1], z=explicit_quat[2], w=explicit_quat[3])
+
+    def real_path_to_ros_path(self, real_path):
+        ros_path = Path(header=self.init_header(), poses=[])
+        for pose in real_path:
+            ros_path.poses.append(PoseStamped(header=ros_path.header, pose=self.pose_to_ros_pose(pose)))
+        return ros_path
+
+    def plan_to_markerarray(self, plan, frame_id, ns):
+        markerarray = MarkerArray()
+        markers = []
+        p_id = 0
+        for component in plan.path_components:
+            current_color = colors.r0_light_blue
+            if ns == "robot_1":
+                current_color = colors.r1_light_green
+            elif ns == "robot_2":
+                current_color = colors.r2_light_pink
+            elif ns == "robot_3":
+                current_color = colors.r3_light_red
+            if component.is_transfer:
+                current_color = colors.r0_dark_blue
+                if ns == "robot_1":
+                    current_color = colors.r1_dark_green
+                elif ns == "robot_2":
+                    current_color = colors.r2_dark_pink
+                elif ns == "robot_3":
+                    current_color = colors.r3_dark_red
+                obstacle_end_polygon_marker = self.polygon_to_line_strip(
+                    component.obstacle_path.polygons[-1], '/end_obstacles', p_id, frame_id, current_color,
+                    cfg.path_line_z_index, cfg.border_width
+                )
+                markers.append(obstacle_end_polygon_marker)
+            path_marker = self.real_path_to_linestrip(
+                component.robot_path.poses, '/plan', p_id, frame_id, current_color, cfg.path_line_width,
+                cfg.path_line_z_index)
+            markers.append(path_marker)
+            p_id += 1
+        markerarray.markers = markers
+        return markerarray
+
+    # def real_path_to_pose_markers(real_path, )
+
+    def real_path_to_linestrip(self, real_path, namespace, p_id, frame_id, color, line_width, z_index, link_point=None):
+        marker = Marker(type=Marker.LINE_STRIP,
+                        ns=namespace,
+                        id=p_id,
+                        header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()),
+                        color=color,
+                        scale=Vector3(x=line_width, y=0.0, z=0.0),
+                        points=[])
+        for i in range(len(real_path) - 1):
+            point = real_path[i]
+            next_point = real_path[i + 1]
+            marker.points.append(Point(x=point[0], y=point[1], z=z_index))
+            marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))
+        if link_point:
+            marker.points.append(Point(x=real_path[-1][0], y=real_path[-1][1], z=z_index))
+            marker.points.append(Point(x=link_point[0], y=link_point[1], z=z_index))
+        return marker
+
+    def poses_to_poses_array(self, poses):
+        pose_array = PoseArray(header=self.init_header(), poses=[])
+        for pose in poses:
+            pose_array.poses.append(self.pose_to_ros_pose(pose))
+        return pose_array
+
+    def pose_to_ros_pose(self, pose):
+        return Pose(position=Point(x=pose[0], y=pose[1], z=0.0), orientation=self.geom_quat_from_yaw(pose[2]))
+
+    def pose_to_ros_pose_stamped(self, pose):
+        return PoseStamped(header=self.init_header(), pose=self.pose_to_ros_pose(pose))
+
+    def polygon_to_triangle_list(self, polygon, namespace, p_id, frame_id, color, z_index):
+        marker = Marker(type=Marker.TRIANGLE_LIST,
+                        ns=namespace,
+                        id=p_id,
+                        header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()),
+                        color=color,
+                        scale=Vector3(x=1.0, y=1.0, z=1.0),
+                        points=[])
+        if isinstance(polygon, Polygon):
+            verts = np.array(list(polygon.exterior.coords)).reshape(-1, 2)
+            rings = np.array([verts.shape[0]])
+            triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
+            triangles = [triangles_vertices[n:n + 3] for n in range(0, len(triangles_vertices), 3)]
+            marker.points = [Point(x=point[0], y=point[1], z=z_index) for triangle in triangles for point in triangle]
+        return marker
+
+    def polygon_to_line_strip(self, polygon, namespace, p_id, frame_id, color, z_index, line_width):
+        marker = Marker(type=Marker.LINE_STRIP,
+                        ns=namespace,
+                        id=p_id,
+                        header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()),
+                        color=color,
+                        scale=Vector3(x=line_width, y=0.0, z=0.0),
+                        points=[])
+        if polygon is not None:
+            for i in range(len(polygon.exterior.coords) - 1):
+                point = polygon.exterior.coords[i]
+                next_point = polygon.exterior.coords[i + 1]
+                marker.points.append(Point(x=point[0], y=point[1], z=z_index))
+                marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))
+            marker.points.append(Point(x=polygon.exterior.coords[0][0], y=polygon.exterior.coords[0][1], z=z_index))
+            marker.points.append(Point(x=polygon.exterior.coords[1][0], y=polygon.exterior.coords[1][1], z=z_index))
+        return marker
+
+    def polygons_to_line_strips_marker_array(self, polygons, namespace, frame_id, color, z_index, line_width):
+        marker_array = MarkerArray()
+        markers = []
+        p_id = 0
+        for polygon in polygons:
+            markers.append(
+                self.polygon_to_line_strip(
+                    polygon, namespace, p_id, frame_id, color, z_index, line_width))
+            p_id += 1
+        marker_array.markers = markers
+        return marker_array
+
+    def pose_to_arrow(self, pose, namespace, p_id, frame_id, color, z_index, arrow_length, shaft_diameter,
+                      head_diameter,
+                      head_length):
+        marker = Marker(
+            type=Marker.ARROW,
+            ns=namespace,
+            id=p_id,
+            # pose=Pose(Point(pose[0], pose[1], z_index), geom_quat_from_yaw(pose[2])),
+            points=[
+                Point(x=pose[0], y=pose[1], z=z_index),
+                Point(
+                    x=pose[0] + arrow_length * math.cos(math.radians(pose[2])),
+                    y=pose[1] + arrow_length * math.sin(math.radians(pose[2])),
+                    z=z_index
+                )
+            ],
+            scale=Vector3(x=shaft_diameter, y=head_diameter, z=head_length),
+            header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()),
+            color=color
+        )
+        return marker
+
+    def string_to_text(self, string, coordinates, namespace, p_id, frame_id, color, z_index, text_height):
+        marker = Marker(type=Marker.TEXT_VIEW_FACING,
+                        ns=namespace,
+                        id=p_id,
+                        pose=Pose(position=Point(x=coordinates[0], y=coordinates[1], z=z_index),
+                                  orientation=Quaternion()),
+                        scale=Vector3(x=0.0, y=0.0, z=text_height),
+                        header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()),
+                        color=color,
+                        text=string)
+        return marker
+
+    def make_delete_marker(self, namespace, p_id, frame_id):
+        return Marker(ns=namespace, id=p_id, header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()),
+                      action=Marker.DELETE)
+
+    def make_delete_all_marker(self, frame_id, ns=''):
+        return MarkerArray(
+            markers=[
+                Marker(ns=ns, header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()), action=Marker.DELETEALL)])
+
+    def entity_to_markers(self, entity, namespace, p_id, frame_id, color, border_color, text_color_filling,
+                          text_color_empty,
+                          z_index, line_width, text_height,
+                          add_filling=True, add_border=True, add_text=True,
+                          add_uid=True, add_name=True):
+        markers = []
+        if add_filling:
+            markers.append(
+                self.polygon_to_triangle_list(entity.polygon, namespace + "/polygon", p_id, frame_id, color, z_index))
+        if add_border:
+            markers.append(
+                self.polygon_to_line_strip(entity.polygon, namespace + "/border", p_id, frame_id,
+                                           border_color, z_index, line_width))
+        if add_text:
+            string = ((("UID: " + str(entity.uid) + "\n") if add_uid else "") +
+                      (("Name: " + entity.name + "\n") if add_name else ""))
+            text_coordinates = entity.polygon.centroid.coords[0]
+            markers.append(
+                self.string_to_text(string, text_coordinates, namespace + "/text", p_id, frame_id,
+                                    text_color_filling if add_filling else text_color_empty, z_index, text_height))
+        return markers
+
+    def make_entity_delete_markers(self, namespace, p_id, frame_id):
+        return [self.make_delete_marker(namespace + "/polygon", p_id, frame_id),
+                self.make_delete_marker(namespace + "/border", p_id, frame_id),
+                self.make_delete_marker(namespace + "/text", p_id, frame_id)]
+
+    def wait_publisher_is_ready(self, publisher):
+        while True:
+            connections = self.ros_node.get_publisher_subscription_count(publisher)
+            if connections > 0:
+                return
+            else:
+                time.sleep(0.2)
+
+    def publish_once(self, publisher, msg):
+        last_time = self.ros_node.get_timestamp()
+        while True:
+            connections = self.ros_node.get_publisher_subscription_count(publisher)
+            if connections > 0:
+                publisher.publish(msg)
+                break
+            else:
+                if self.ros_node.check_duration(last_time):
+                    self.ros_node.log_warn("Publishing data on " + publisher.name + ", but no one is listening, waiting...")
+                    last_time = self.ros_node.get_timestamp()
+
+    def string_to_text_marker(
+            self, message="", pose=(0., 0., 0.), ns="", p_id=0, z_index=0., font_size=1., frame_id='/map',
+            color=None):
+        if color is None:
+            color = colors.black
+        marker = Marker(
+            type=Marker.TEXT_VIEW_FACING, ns=ns, id=p_id,
+            pose=Pose(position=Point(x=pose[0], y=pose[1], z=z_index), orientation=self.geom_quat_from_yaw(pose[2])),
+            points=[Point(x=pose[0], y=pose[1], z=z_index)], scale=Vector3(x=0., y=0., z=font_size),
+            header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()), color=color, text=message
+        )
+        return marker
+    # endregion
+
