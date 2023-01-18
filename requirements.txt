@@ -15,6 +15,7 @@ scipy >= 1.2.2 # Used for skeleton computation
 plotly >= 4.9.0 # Used for beautiful stats display
 jsonpickle >= 2.0.0 # Used for serialization and deserialization of simulation and world data
 pycrunch_trace >= 0.1.6 # Used for detailed profiling
+tqdm # Used for progressbars
 
 # LIBRARIES THAT ARE BOUND TO GO AWAY
 pyyaml >= 5.3.1  # Used to import world and simulation config files in their old format, now in JSON, less error-prone

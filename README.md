@@ -20,6 +20,11 @@ Install the python requirements:
 pip install -r requirements.txt
 ```
 
+> Note : For Ubuntu 22.04 and above, since it uses Python > 3.10, as there is no Pypi build of Box2D at the moment, you may need to execute the following command to get the library installed :
+> ```bash
+> python -m pip install "git+https://github.com/pybox2d/pybox2d.git@2.3.10#egg=Box2D"
+> ```
+
 You should be all set to start experimenting ! Individual experiments can be easily launched through python tests, like in the command below that should launch all scenarios presented in our ICRA2022 paper submission:
 
 ```bash
@@ -27,7 +32,9 @@ python3 ~/s-namo-sim-private/snamosim/tests/integration_tests/s-namo_cases/iros_
 ```
 
 Results should be saved in the 'logs' folder that is automatically created the first time in the repository folder. 
-To get the full visual feedback, please install ROS1 and RVIZ. ROS2 support and independent visualization capabilities are a work ni progress.
+To get the full visual feedback, please install ROS1 and RVIZ (+ the grid-map ROS package). ROS2 support and independent visualization capabilities are a work ni progress.
+
+> If you want to edit the ROS compatibility layer using Pycharm, you may want to follow [this very good tutorial](https://www.youtube.com/watch?v=lTew9mbXrAs) as to how to properly setup the IDE so that it finds the ROS python files correctly. 
 
 ## Credits
 

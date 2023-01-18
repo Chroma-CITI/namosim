@@ -1263,7 +1263,6 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
-        self.wait_steps = -1
 
         # Initialize movability status of obstacles
         for entity in self._world.entities.values():
@@ -1680,8 +1679,8 @@ class Stilman2005Behavior(BaselineBehavior):
         if static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0 or static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
             return Plan(plan_error="start_or_goal_cell_in_static_obstacle_error")
 
-        if inflated_grid_by_robot_max.grid[goal_cell[0]][goal_cell[1]] > 1:
-            return Plan(plan_error="goal_cell_in_more_than_one_movable_obstacle_error")
+        # if inflated_grid_by_robot_max.grid[goal_cell[0]][goal_cell[1]] > 1: Should not be necessary thanks to first check
+        #     return Plan(plan_error="goal_cell_in_more_than_one_movable_obstacle_error")
 
         forbidden_obstacles = {  # Dynamic obstacles are forbidden !
             uid for uid, entity in w_t.entities.items() if (
@@ -1773,10 +1772,7 @@ class Stilman2005Behavior(BaselineBehavior):
                           avoid_list, prev_list, g_function, traversed_obstacles_ids,
                           forbidden_obstacles, neighborhood=utils.TAXI_NEIGHBORHOOD):
         """
-        Combined formulation from Stilman's thesis and his article. The prevlist parameter was not used because not
-        in the article and a priori not helpful. Not only that, it is not properly defined, and actually does not
-        algorithmically make sense, because the C1 component gets merged with the robot accessible space as the robot
-        moves obstacles around.
+        Combined formulation from Stilman's thesis and his article.
         """
         neighbors, tentative_gscores = [], []
         current_gscore = gscore[current]

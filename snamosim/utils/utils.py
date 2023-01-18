@@ -6,7 +6,12 @@ import shapely.affinity as affinity
 import mapbox_earcut as earcut
 from shapely.geometry import Polygon, LineString
 import random
-import collections
+import sys
+if sys.version_info.major == 3 and sys.version_info.minor >= 10:
+    from collections.abc import MutableSet
+else:
+    from collections import MutableSet
+
 from datetime import datetime
 import json
 
@@ -90,7 +95,7 @@ def timestamp_string():
     return datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
 
 
-class OrderedSet(collections.MutableSet):
+class OrderedSet(MutableSet):
 
     def __init__(self, iterable=None):
         self.end = end = []

@@ -226,7 +226,8 @@ class GraphSearchTest(unittest.TestCase):
                 self.for_map(map_name, my_map, map_counter)
         print('...Tested dao dataset.')
 
-    def test_create_scenario(self):
+    @staticmethod
+    def create_dynamic_goal_scenario():
         sample_scenario_filepath = "/home/xia0ben/INRIA/Code/s-namo-sim/data/thirdparties/gridsearch-dataset/www.movingai.com/benchmarks/dao/arena.map-scen/arena.map.scen"
         target_scenario_filepath = "/home/xia0ben/INRIA/Code/s-namo-sim/data/thirdparties/gridsearch-dataset/www.movingai.com/benchmarks/dao/arena.map-scen/arena-1.map.scen"
         scenarios = read_scenario_file(sample_scenario_filepath)
@@ -256,6 +257,59 @@ class GraphSearchTest(unittest.TestCase):
                         scenario.goal_cell[0], scenario.goal_cell[1], measured_length)
                     target_scenario_file.write(new_scenario.to_line())
                     target_scenario_file.write("\n")
+
+    def test_create_dynamic_goal_scenario(self):
+        self.create_dynamic_goal_scenario()
+
+    def test_dynamic_a_star(self, log_success=True):
+        map_name = "arena"
+        map_filepath = "/home/xia0ben/INRIA/Code/s-namo-sim/data/thirdparties/gridsearch-dataset/www.movingai.com/benchmarks/dao/arena.map/arena.map"
+        scenario_filepath = "/home/xia0ben/INRIA/Code/s-namo-sim/data/thirdparties/gridsearch-dataset/www.movingai.com/benchmarks/dao/arena.map-scen/arena.map.scen"
+
+        scenarios_to_test = {42}
+
+        grid = read_map_file(map_filepath)
+        graph = graph_search.GridGraph(
+            grid, grid.shape[0], grid.shape[1], neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, check_diag_neighbors=True
+        )
+
+        scenarios = read_scenario_file(scenario_filepath)
+        search = None
+        for scenario_counter, scenario in enumerate(scenarios):
+            # if scenario_counter not in scenarios_to_test:
+            #     continue
+
+            # path = graph_search.DynamicAStar(start=scenario.start_cell, goal=scenario.goal_cell, graph=graph).run().reconstruct_path()
+            if search is None:
+                search = graph_search.DynamicAStar(start=scenario.start_cell, goal=scenario.goal_cell, graph=graph).run()
+            else:
+                if search.start != scenario.start_cell:
+                    search.start = scenario.start_cell
+                if search.goal != scenario.goal_cell:
+                    search.goal = scenario.goal_cell
+                search.run()
+            path_dyn = search.reconstruct_path_from_goal()
+
+            if path_dyn:
+                measured_length = sum(
+                    [utils.chebyshev_distance(cur_cell, path_dyn[i + 1]) for i, cur_cell in enumerate(path_dyn[:-1])]
+                )
+                try:
+                    self.assertAlmostEqual(scenario.length, measured_length, places=2)
+                    if log_success:
+                        print('Map {}, Scenario {} successful.'.format(map_name, scenario_counter, str(scenario)))
+                except AssertionError as e:
+                    print(
+                        'Path found for Map {}, Scenario {}, but found cost <{}> not equal to expected cost <{}>'.format(
+                            map_name, scenario_counter, measured_length, scenario.length
+                        )
+                    )
+            else:
+                try:
+                    self.assertTrue(path_dyn)
+                except AssertionError as e:
+                    print('Path could not be found for Map {}, Scenario {}.'.format(map_name, scenario_counter))
+
 
 
 if __name__ == '__main__':

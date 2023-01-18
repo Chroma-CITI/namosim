@@ -22,7 +22,7 @@ from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 
-from snamosim.utils import stats_utils, utils, conversion, b2_collision, collision
+from snamosim.utils import stats_utils, utils, conversion, collision
 
 
 class SimulationStepResult:
@@ -228,8 +228,6 @@ class Simulator:
         self.catch_exceptions = False
 
         self.simulation_log.append(utils.BasicLog("Simulation successfully loaded.", 0))
-
-        self.b2_sim = b2_collision.B2Sim(self.ref_world.entities)
 
     def run(self):
         run_active = True
@@ -487,8 +485,8 @@ class Simulator:
                     current_dynamic_plan = self.agent_uid_to_behavior[uid].goal_to_plans[current_goal]
 
                     step_index = sim_step_result.step_index
-                    if step_index in current_dynamic_plan.new_conflicts_history:
-                        conflict = current_dynamic_plan.new_conflicts_history[step_index]
+                    if step_index in current_dynamic_plan.conflicts_history:
+                        conflict = current_dynamic_plan.conflicts_history[step_index]
                         agent_stats.nb_conflicts += 1
                         if isinstance(conflict, stilman_2005_behavior.RobotRobotConflict):
                             agent_stats.nb_robot_robot_conflicts += 1
@@ -674,7 +672,7 @@ class Simulator:
                 agent_uid_to_next_action[agent_uid] = agent_next_action
         return agent_uid_to_next_action
 
-    def act(self, agent_uid_to_next_action, step_count, use_b2=False, ignore_collisions=True):
+    def act(self, agent_uid_to_next_action, step_count, ignore_collisions=True):
         # Only Grab and Release actions require further checks, and Wait actions are necessarily valid
         to_check = {
             uid: a for uid, a in agent_uid_to_next_action.items()
@@ -724,13 +722,10 @@ class Simulator:
                         continue
                 to_check[agent_uid] = action
 
-        # Check actions regarding dynamic collisions and apply the valid ones using Box2D
-        if use_b2:
-            collides_with = self.b2_sim.simulate_simple_kinematics([to_check], apply=True)
-        else:
-            collides_with = collision.csv_simulate_simple_kinematics(
-                self.ref_world, to_check, apply=True, ignore_collisions=ignore_collisions, extra_transit_check=False
-            )
+        # Check actions regarding dynamic collisions and apply the valid ones
+        collides_with = collision.csv_simulate_simple_kinematics(
+            self.ref_world, to_check, apply=True, ignore_collisions=ignore_collisions, extra_transit_check=False
+        )
 
         # Finish separating succeeded and failed actions, and apply result to world state on success
         for agent_uid, action in to_check.items():
@@ -772,19 +767,6 @@ class Simulator:
                     self.ref_world.entity_to_agent[action.entity_uid] = agent_uid
                 if isinstance(action, ba.Release):
                     del self.ref_world.entity_to_agent[action.entity_uid]
-
-                # Then apply to world
-                if use_b2:
-                    agent = self.ref_world.entities[agent_uid]
-                    agent_new_pose = self.b2_sim.get_entity_pose(agent_uid)
-                    agent_new_polygon = utils.set_polygon_pose(agent.polygon, agent.pose, agent_new_pose)
-                    agent.pose, agent.polygon = agent_new_pose, agent_new_polygon
-                    if agent_uid in self.ref_world.entity_to_agent.inverse:
-                        entity_uid = self.ref_world.entity_to_agent.inverse[agent_uid]
-                        entity = self.ref_world.entities[entity_uid]
-                        entity_new_pose = self.b2_sim.get_entity_pose(entity_uid)
-                        entity_new_polygon = utils.set_polygon_pose(entity.polygon, entity.pose, entity_new_pose)
-                        entity.pose, entity.polygon = entity_new_pose, entity_new_polygon
 
                 action_results[agent_uid] = ar.ActionSuccess(action, self.ref_world.entities[agent_uid].pose)
 

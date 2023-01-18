@@ -1,34 +1,50 @@
 from future.utils import with_metaclass
 import time
+import math
 import numpy as np
 from shapely import affinity
+from shapely.geometry import Polygon
+import mapbox_earcut as earcut
+
 import copy
 
+# try:
+import snamosim.display.ros_publisher_config as cfg
 
-try:
-    import snamosim.display.ros_publisher_config as cfg
+if not cfg.deactivate_gui:
+    import snamosim.display.colors as colors
 
-    if not cfg.deactivate_gui:
-        import snamosim.display.colors as colors
-        import snamosim.display.ros_conversion as conv
-
+    try:
+        # Try to import rospy for ROS1
         import rospy
-        from tf2_ros import StaticTransformBroadcaster
-        from visualization_msgs.msg import Marker, MarkerArray
-        from geometry_msgs.msg import PoseArray, TransformStamped, Transform, Vector3, Quaternion
-        from std_msgs.msg import Header
-        from nav_msgs.msg import Path, OccupancyGrid, MapMetaData
-        from grid_map_msgs.msg import GridMap
-        from std_msgs.msg import ColorRGBA
-        USE_ROS = True
-    else:
-        USE_ROS = False
-except ImportError:
+    except ImportError:
+        # Else try to import rclpy for ROS1
+        import rclpy
+        from rclpy.node import Node
+        import threading
+
+    from tf2_ros import StaticTransformBroadcaster
+    from visualization_msgs.msg import Marker, MarkerArray
+    from geometry_msgs.msg import PoseArray, TransformStamped, Transform, Vector3, Quaternion, Pose, Point, PoseStamped
+    from std_msgs.msg import Header, Float32MultiArray, MultiArrayLayout, MultiArrayDimension
+    from nav_msgs.msg import Path, OccupancyGrid, MapMetaData, GridCells
+    from grid_map_msgs.msg import GridMap
+    from std_msgs.msg import ColorRGBA
+
+    USE_ROS = True
+else:
     USE_ROS = False
+# except ImportError:
+#     USE_ROS = False
 
 from snamosim.utils.singleton import Singleton
-from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.utils import utils
+from snamosim.display import tf_replacement
+from snamosim.worldreps.entity_based.robot import Robot
+from snamosim.worldreps.entity_based.obstacle import Obstacle
+from snamosim.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
+from snamosim.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
+from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, BinaryInflatedOccupancyGrid
 
 
 class NamespaceCache:
@@ -119,26 +135,27 @@ class RosPublisher(with_metaclass(Singleton)):
         self.ros_node = MyNode(node_name=self.node_name)
 
         # Dictionary of Publishers
-        self.publishers = {}
+        self.my_publishers = {}
 
         # Add simulation-specific publishers
         if 'simulation' in top_level_namespaces:
-            self.publishers['/simulation' + cfg.sim_knowledge_topic] = rospy.Publisher(
-                '/simulation' + cfg.sim_knowledge_topic, MarkerArray, queue_size=cfg.default_queue_size)
-            self.publishers['/simulation' + cfg.sim_costmap_topic] = rospy.Publisher(
-                '/simulation' + cfg.sim_costmap_topic, OccupancyGrid, queue_size=cfg.default_queue_size)
-            self.publishers['/simulation' + cfg.test_gridmap_topic] = rospy.Publisher(
-                '/simulation' + cfg.test_gridmap_topic, GridMap, queue_size=cfg.default_queue_size)
-            self.publishers['/simulation' + cfg.test_connected_components_topic] = rospy.Publisher(
-                '/simulation' + cfg.test_connected_components_topic, GridMap, queue_size=cfg.default_queue_size)
-            self.publishers['/simulation' + cfg.sim_latest_message_topic] = rospy.Publisher(
-                '/simulation' + cfg.sim_latest_message_topic, MarkerArray, queue_size=cfg.default_queue_size)
+            self.my_publishers['/simulation' + cfg.sim_knowledge_topic] = self.ros_node.create_publisher(
+                MarkerArray, '/simulation' + cfg.sim_knowledge_topic, cfg.default_queue_size)
+            self.my_publishers['/simulation' + cfg.sim_costmap_topic] = self.ros_node.create_publisher(
+                OccupancyGrid, '/simulation' + cfg.sim_costmap_topic, cfg.default_queue_size)
+            self.my_publishers['/simulation' + cfg.test_gridmap_topic] = self.ros_node.create_publisher(
+                GridMap, '/simulation' + cfg.test_gridmap_topic, cfg.default_queue_size)
+            self.my_publishers['/simulation' + cfg.test_connected_components_topic] = self.ros_node.create_publisher(
+                GridMap, '/simulation' + cfg.test_connected_components_topic, cfg.default_queue_size)
+            self.my_publishers['/simulation' + cfg.sim_latest_message_topic] = self.ros_node.create_publisher(
+                MarkerArray, '/simulation' + cfg.sim_latest_message_topic, cfg.default_queue_size)
 
         other_namespaces = [ns for ns in top_level_namespaces if ns != 'simulation']
 
         # Add robot-specific publishers for each robot namespace
         for ns in other_namespaces:
             full_ns = '/' + ns
+
             self.my_publishers[full_ns + cfg.min_max_inflated_polygons_topic] = self.ros_node.create_publisher(
                 MarkerArray, full_ns + cfg.min_max_inflated_polygons_topic, cfg.default_queue_size)
             self.my_publishers[full_ns + cfg.path_grid_cells_topic] = self.ros_node.create_publisher(
@@ -184,11 +201,11 @@ class RosPublisher(with_metaclass(Singleton)):
         time.sleep(cfg.hack_duration_wait)
 
         # Setup Static Transform for grid map (Hack so that it is properly placed in view)
-        broadcaster = StaticTransformBroadcaster()
+        broadcaster = self.ros_node.get_transform_broadcaster()
 
         for frame_id, z_index in cfg.gridmap_frame_ids_to_z_indexes.items():
             transform = TransformStamped(
-                header=Header(stamp=rospy.Time.now(), frame_id=cfg.main_frame_id), child_frame_id=frame_id,
+                header=Header(stamp=self.ros_node.get_timestamp(), frame_id=cfg.main_frame_id), child_frame_id=frame_id,
                 transform=Transform(translation=Vector3(z=z_index), rotation=Quaternion(x=0., y=0., z=1., w=0.))
             )
             broadcaster.sendTransform(transform)
@@ -209,11 +226,11 @@ class RosPublisher(with_metaclass(Singleton)):
             publisher.publish(msg)
 
     def is_activated(self, topic=''):
-        if cfg.deactivate_gui or (topic and topic not in self.publishers):
+        if cfg.deactivate_gui or (topic and topic not in self.my_publishers):
             return False
         elif not cfg.deactivate_gui and not topic:
             return True
-        return self.publishers[topic].get_num_connections() > 0
+        return self.ros_node.get_publisher_subscription_count(self.my_publishers[topic]) > 0
 
     # region SIM WORLD
     def publish_sim_world(self, world, robot_uid=None):
@@ -232,15 +249,15 @@ class RosPublisher(with_metaclass(Singleton)):
                         and drawable_data["type"] == self.prev_sim_world_draw_data[entity_uid]["type"]
                         and drawable_data["pose"] == self.prev_sim_world_draw_data[entity_uid]["pose"])}
                 self.publish('/simulation' + cfg.sim_knowledge_topic,
-                             conv.world_to_marker_array(world, robot_uid, entities_to_ignore))
+                             self.world_to_marker_array(world, robot_uid, entities_to_ignore))
                 self.prev_sim_world_draw_data = current_world_draw_data
             if self.is_activated('/simulation' + cfg.sim_costmap_topic):
-                self.publish('/simulation' + cfg.sim_costmap_topic, conv.world_to_costmap(world, robot_uid))
+                self.publish('/simulation' + cfg.sim_costmap_topic, self.world_to_costmap(world, robot_uid))
 
     def cleanup_sim_world(self):
         if USE_ROS:
             if self.is_activated('/simulation' + cfg.sim_knowledge_topic):
-                self.publish('/simulation' + cfg.sim_knowledge_topic, conv.make_delete_all_marker(cfg.main_frame_id))
+                self.publish('/simulation' + cfg.sim_knowledge_topic, self.make_delete_all_marker(cfg.main_frame_id))
             if self.is_activated('/simulation' + cfg.sim_costmap_topic):
                 self.publish('/simulation' + cfg.sim_costmap_topic,
                              OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
@@ -264,17 +281,17 @@ class RosPublisher(with_metaclass(Singleton)):
                     and drawable_data["polygon"] == prev_robot_world_draw_data[entity_uid]["polygon"]
                     and drawable_data["type"] == prev_robot_world_draw_data[entity_uid]["type"]
                     and drawable_data["pose"] == prev_robot_world_draw_data[entity_uid]["pose"])}
-            self.publish(full_topic, conv.world_to_marker_array(world, robot_uid, entities_to_ignore))
+            self.publish(full_topic, self.world_to_marker_array(world, robot_uid, entities_to_ignore))
             self.namespaces_caches[ns].prev_robot_world_draw_data = current_world_draw_data
 
         full_topic = cfg.robot_costmap_topic if not ns else '/' + ns + cfg.robot_costmap_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic,  conv.world_to_costmap(world, robot_uid))
+            self.publish(full_topic, self.world_to_costmap(world, robot_uid))
 
     def cleanup_robot_world(self, ns=''):
         full_topic = cfg.robot_knowledge_topic if not ns else '/' + ns + cfg.robot_knowledge_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
         full_topic = cfg.robot_costmap_topic if not ns else '/' + ns + cfg.robot_costmap_topic
         if self.is_activated(full_topic):
             self.publish(full_topic, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0]))
@@ -285,7 +302,7 @@ class RosPublisher(with_metaclass(Singleton)):
     def publish_robot_sim_costmap(self, world, robot_uid, ns=''):
         full_topic = cfg.robot_sim_costmap_topic if not ns else '/' + ns + cfg.robot_sim_costmap_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.world_to_costmap(world, robot_uid))
+            self.publish(full_topic, self.world_to_costmap(world, robot_uid))
 
     # TODO Add cleanup method for publish_robot_sim_costmap
 
@@ -297,13 +314,13 @@ class RosPublisher(with_metaclass(Singleton)):
         fixed_costmap = np.copy(costmap)
         fixed_costmap[fixed_costmap == -1.] = 0.
         if self.is_activated(full_topic):
-            grid_map = conv.costmap_to_grid_map(fixed_costmap, res)
+            grid_map = self.costmap_to_grid_map(fixed_costmap, res)
             self.publish(full_topic, grid_map)
 
     def cleanup_grid_map(self, ns=''):
         full_topic = cfg.test_gridmap_topic if not ns else '/' + ns + cfg.test_gridmap_topic
         if self.is_activated(full_topic):
-            grid_map = conv.costmap_to_grid_map(np.full((1000, 1000), np.nan), 1.)
+            grid_map = self.costmap_to_grid_map(np.full((1000, 1000), np.nan), 1.)
             self.publish(full_topic, grid_map)
 
     def publish_combined_costmap(self, sorted_cell_to_combined_cost, dd, ns=''):
@@ -312,27 +329,28 @@ class RosPublisher(with_metaclass(Singleton)):
             combined_costmap = np.zeros((dd.d_width, dd.d_height))
             for cell, combined_cost in sorted_cell_to_combined_cost:
                 combined_costmap[cell[0]][cell[1]] = combined_cost
-            grid_map = conv.costmap_to_grid_map(combined_costmap, dd.res, frame_id=cfg.combined_gridmap_frame_id)
+            grid_map = self.costmap_to_grid_map(combined_costmap, dd.res, frame_id=cfg.combined_gridmap_frame_id)
             self.publish(full_topic, grid_map)
 
     def cleanup_combined_costmap(self, ns=''):
         full_topic = cfg.combined_costmap_topic if not ns else '/' + ns + cfg.combined_costmap_topic
         if self.is_activated(full_topic):
-            grid_map = conv.costmap_to_grid_map(np.full((1000, 1000), np.nan), 1.)
+            grid_map = self.costmap_to_grid_map(np.full((1000, 1000), np.nan), 1.)
             self.publish(full_topic, grid_map)
+
     # endregion
 
     # region CONNECTED COMPONENTS GRID
     def publish_connected_components_grid(self, costmap, dd, ns=''):
         full_topic = cfg.test_connected_components_topic if not ns else '/' + ns + cfg.test_connected_components_topic
         if self.is_activated(full_topic):
-            grid_map = conv.costmap_to_grid_map(costmap, dd.res)
+            grid_map = self.costmap_to_grid_map(costmap, dd.res)
             self.publish(full_topic, grid_map)
 
     def cleanup_connected_components_grid(self, ns=''):
         full_topic = cfg.test_connected_components_topic if not ns else '/' + ns + cfg.test_connected_components_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.init_grid_map())
+            self.publish(full_topic, self.init_grid_map())
 
     # endregion
 
@@ -343,14 +361,14 @@ class RosPublisher(with_metaclass(Singleton)):
             open_heap_data = []
             for element in open_heap:
                 open_heap_data.append(element.cell)
-            open_heap_cells = conv.grid_cells_to_cube_list_markers(
+            open_heap_cells = self.grid_cells_to_cube_list_markers(
                 open_heap_data, res, grid_pose, color=colors.flashy_cyan)
             self.publish(full_topic, open_heap_cells)
 
     def cleanup_a_star_open_heap(self, ns=''):
         full_topic = cfg.a_star_open_heap_topic if not ns else '/' + ns + cfg.a_star_open_heap_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_marker("", 0, cfg.main_frame_id))
 
     # endregion
 
@@ -359,10 +377,11 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.a_star_close_set_topic if not ns else '/' + ns + cfg.a_star_close_set_topic
         if self.is_activated(full_topic):
             new_cells = close_set.difference(self.namespaces_caches[ns].prev_a_star_close_set)
-            # self.a_star_close_set_cube_list = conv.grid_cells_to_cube_list_markers(
+            # self.a_star_close_set_cube_list = self.grid_cells_to_cube_list_markers(
             #     new_cells, res, grid_pose, cfg.unknown_obstacle_color, self.a_star_close_set_cube_list)
-            marker_array, self.namespaces_caches[ns].a_star_close_set_start_id = conv.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, colors.dark_purple, 0.9, self.namespaces_caches[ns].a_star_close_set_start_id)
+            marker_array, self.namespaces_caches[ns].a_star_close_set_start_id = self.grid_cells_to_cube_markerarray(
+                new_cells, res, grid_pose, colors.dark_purple, 0.9,
+                self.namespaces_caches[ns].a_star_close_set_start_id)
             self.namespaces_caches[ns].prev_a_star_close_set = copy.copy(close_set)
             # self.publish(full_topic, self.a_star_close_set_cube_list)
             self.publish(full_topic, marker_array)
@@ -371,14 +390,15 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.a_star_close_set_topic if not ns else '/' + ns + cfg.a_star_close_set_topic
         if self.is_activated(full_topic):
             self.namespaces_caches[ns].prev_a_star_close_set = set()
-            self.namespaces_caches[ns].a_star_close_set_cube_list = None
+            # self.namespaces_caches[ns].a_star_close_set_cube_list = None
             self.namespaces_caches[ns].a_star_close_set_start_id = 1
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))  #conv.make_delete_marker("", 0, cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_all_marker(
+                cfg.main_frame_id))  # self.make_delete_marker("", 0, cfg.main_frame_id))
 
     def publish_social_cells(self, social_cells_set, res, grid_pose, ns=''):
         full_topic = cfg.social_cells_topic if not ns else '/' + ns + cfg.social_cells_topic
         if self.is_activated(full_topic):
-            ros_cells = conv.grid_cells_to_cube_list_markers(
+            ros_cells = self.grid_cells_to_cube_list_markers(
                 list(social_cells_set), res, grid_pose, color=colors.flashy_purple)
             self.publish(full_topic, ros_cells)
 
@@ -391,14 +411,14 @@ class RosPublisher(with_metaclass(Singleton)):
             open_heap_data = []
             for element in open_heap:
                 open_heap_data.append(element.cell)
-            open_heap_cells = conv.grid_cells_to_cube_list_markers(
+            open_heap_cells = self.grid_cells_to_cube_list_markers(
                 open_heap_data, res, grid_pose, color=colors.flashy_cyan)
             self.publish(full_topic, open_heap_cells)
 
     def cleanup_multigoal_a_star_open_heap(self, ns=''):
         full_topic = cfg.multi_a_star_open_heap_topic if not ns else '/' + ns + cfg.multi_a_star_open_heap_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_marker("", 0, cfg.main_frame_id))
 
     # endregion
 
@@ -407,8 +427,10 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.multi_a_star_close_set_topic if not ns else '/' + ns + cfg.multi_a_star_close_set_topic
         if self.is_activated(full_topic):
             new_cells = close_set.difference(self.namespaces_caches[ns].prev_multigoal_a_star_close_set)
-            marker_array, self.namespaces_caches[ns].multigoal_a_star_close_set_start_id = conv.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, colors.dark_blue, 0.9, self.namespaces_caches[ns].multigoal_a_star_close_set_start_id)
+            marker_array, self.namespaces_caches[
+                ns].multigoal_a_star_close_set_start_id = self.grid_cells_to_cube_markerarray(
+                new_cells, res, grid_pose, colors.dark_blue, 0.9,
+                self.namespaces_caches[ns].multigoal_a_star_close_set_start_id)
             self.namespaces_caches[ns].prev_multigoal_a_star_close_set = copy.copy(close_set)
             self.publish(full_topic, marker_array)
 
@@ -417,7 +439,8 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             self.namespaces_caches[ns].prev_multigoal_a_star_close_set = set()
             self.namespaces_caches[ns].multigoal_a_star_close_set_start_id = 1
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))  #conv.make_delete_marker("", 0, cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_all_marker(
+                cfg.main_frame_id))  # self.make_delete_marker("", 0, cfg.main_frame_id))
 
     # endregion
 
@@ -429,13 +452,13 @@ class RosPublisher(with_metaclass(Singleton)):
             marker_array = MarkerArray(markers=[])
 
             # Publish current cell
-            current_marker = conv.grid_cells_to_cube_list_markers(
+            current_marker = self.grid_cells_to_cube_list_markers(
                 [current.cell], res, grid_pose, z_index=0.9, color=colors.flashy_purple, ns="/rch_current_cell"
             )
             marker_array.markers.append(current_marker)
 
             # Publish neighbors
-            neighbors_marker = conv.grid_cells_to_cube_list_markers(
+            neighbors_marker = self.grid_cells_to_cube_list_markers(
                 [neighbor.cell for neighbor in neighbors], res, grid_pose, z_index=0.9, color=colors.flashy_red,
                 ns="/rch_current_cell_neighbors"
             )
@@ -457,7 +480,7 @@ class RosPublisher(with_metaclass(Singleton)):
                 close_set_marker = original_marker
             else:
                 _id = self.namespaces_caches[ns].current_cell_marker_current_id
-                close_set_marker = conv.grid_cell_to_cube_marker(
+                close_set_marker = self.grid_cell_to_cube_marker(
                     current.cell, res, grid_pose, color, _id, z_index=0.8, ns="/rch_close_set"
                 )
                 self.namespaces_caches[ns].current_cell_to_marker[current.cell] = close_set_marker
@@ -470,7 +493,7 @@ class RosPublisher(with_metaclass(Singleton)):
 
             # Publish came_from as paths between cells poses
             if current in came_from:
-                path_color = ColorRGBA(color.r, color.g, color.b, 1.)
+                path_color = ColorRGBA(r=color.r, g=color.g, b=color.b, a=1.)
                 cells = (current.cell, came_from[current].cell)
                 if cells in self.namespaces_caches[ns].cells_to_path_marker:
                     original_marker = self.namespaces_caches[ns].cells_to_path_marker[cells]
@@ -480,10 +503,11 @@ class RosPublisher(with_metaclass(Singleton)):
                 else:
                     _id = self.namespaces_caches[ns].cells_path_marker_current_id
                     cur_pose = utils.grid_to_real(current.cell[0], current.cell[1], res, grid_pose)
-                    from_pose = utils.grid_to_real(came_from[current].cell[0], came_from[current].cell[1], res, grid_pose)
-                    came_from_marker = conv.real_path_to_linestrip(
+                    from_pose = utils.grid_to_real(came_from[current].cell[0], came_from[current].cell[1], res,
+                                                   grid_pose)
+                    came_from_marker = self.real_path_to_linestrip(
                         [cur_pose, from_pose],
-                        '/rch_came_from', _id, cfg.main_frame_id, ColorRGBA(color.r, color.g, color.b, 1.),
+                        '/rch_came_from', _id, cfg.main_frame_id, ColorRGBA(r=color.r, g=color.g, b=color.b, a=1.),
                         res / 10., cfg.path_line_z_index
                     )
                     self.namespaces_caches[ns].cells_to_path_marker[cells] = came_from_marker
@@ -492,6 +516,7 @@ class RosPublisher(with_metaclass(Singleton)):
                 marker_array.markers.append(came_from_marker)
 
             self.publish(full_topic, marker_array)
+
     # endregion
 
     # region MANIP SEARCH
@@ -509,13 +534,13 @@ class RosPublisher(with_metaclass(Singleton)):
             ))
 
             # Publish current configuration
-            current_robot_pose_marker = conv.pose_to_arrow(
+            current_robot_pose_marker = self.pose_to_arrow(
                 pose=current.robot.floating_point_pose, namespace="/manip_search/current/robot/pose",
                 p_id=0, frame_id=cfg.main_frame_id, color=colors.flashy_cyan,
                 z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
                 head_diameter=head_diameter, head_length=head_length
             )
-            current_obstacle_pose_marker = conv.pose_to_arrow(
+            current_obstacle_pose_marker = self.pose_to_arrow(
                 pose=current.obstacle.floating_point_pose, namespace="/manip_search/current/obstacle/pose",
                 p_id=0, frame_id=cfg.main_frame_id, color=colors.flashy_dark_cyan,
                 z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
@@ -524,10 +549,10 @@ class RosPublisher(with_metaclass(Singleton)):
             marker_array.markers.append(current_robot_pose_marker)
             marker_array.markers.append(current_obstacle_pose_marker)
 
-            current_robot_polygon_marker = conv.polygon_to_line_strip(
+            current_robot_polygon_marker = self.polygon_to_line_strip(
                 current.robot.polygon, "/manip_search/current/robot/polygon", 0, cfg.main_frame_id,
                 colors.flashy_cyan, cfg.entities_z_index, cfg.border_width)
-            current_obstacle_polygon_marker = conv.polygon_to_line_strip(
+            current_obstacle_polygon_marker = self.polygon_to_line_strip(
                 current.obstacle.polygon, "/manip_search/current/obstacle/polygon", 0, cfg.main_frame_id,
                 colors.flashy_dark_cyan, cfg.entities_z_index, cfg.border_width)
             marker_array.markers.append(current_robot_polygon_marker)
@@ -535,7 +560,7 @@ class RosPublisher(with_metaclass(Singleton)):
 
             # Publish neighbors
             neighbors_markers = [
-                conv.pose_to_arrow(
+                self.pose_to_arrow(
                     pose=neighbor.robot.floating_point_pose, namespace="/manip_search_neighbors",
                     p_id=p_id, frame_id=cfg.main_frame_id, color=colors.flashy_green,
                     z_index=1.1, arrow_length=arrow_length, shaft_diameter=shaft_diameter,
@@ -547,7 +572,7 @@ class RosPublisher(with_metaclass(Singleton)):
             neighbor_markers_ids = {n.id for n in neighbors_markers}
             for p_id in self.namespaces_caches[ns].manip_search_neighbors_markers_p_ids:
                 if p_id not in neighbor_markers_ids:
-                    marker_array.markers.append(conv.make_delete_marker(
+                    marker_array.markers.append(self.make_delete_marker(
                         frame_id=cfg.main_frame_id, namespace="/manip_search_neighbors", p_id=p_id
                     ))
             self.namespaces_caches[ns].manip_search_neighbors_markers_p_ids = neighbor_markers_ids
@@ -589,7 +614,7 @@ class RosPublisher(with_metaclass(Singleton)):
             #         _id = self.namespaces_caches[ns].cells_path_marker_current_id
             #         cur_pose = utils.grid_to_real(current.cell[0], current.cell[1], res, grid_pose)
             #         from_pose = utils.grid_to_real(came_from[current].cell[0], came_from[current].cell[1], res, grid_pose)
-            #         came_from_marker = conv.real_path_to_linestrip(
+            #         came_from_marker = self.real_path_to_linestrip(
             #             [cur_pose, from_pose],
             #             '/manip_search_came_from', _id, cfg.main_frame_id, ColorRGBA(color.r, color.g, color.b, 1.),
             #             res / 10., cfg.path_line_z_index
@@ -600,19 +625,21 @@ class RosPublisher(with_metaclass(Singleton)):
             #     marker_array.markers.append(came_from_marker)
 
             self.publish(full_topic, marker_array)
+
     # endregion
 
     # region GRID PATHmath.radians(pose[2]
     def publish_grid_path(self, grid_path, res, grid_pose, ns=''):
         full_topic = cfg.path_grid_cells_topic if not ns else '/' + ns + cfg.path_grid_cells_topic
         if self.is_activated(full_topic):
-            path_grid_cells = conv.grid_cells_to_cube_list_markers(grid_path, res, grid_pose, color=colors.flashy_purple)
+            path_grid_cells = self.grid_cells_to_cube_list_markers(grid_path, res, grid_pose,
+                                                                   color=colors.flashy_purple)
             self.publish(full_topic, path_grid_cells)
 
     def cleanup_grid_path(self, ns=''):
         full_topic = cfg.path_grid_cells_topic if not ns else '/' + ns + cfg.path_grid_cells_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_marker("", 0, cfg.main_frame_id))
 
     # endregion
 
@@ -620,13 +647,13 @@ class RosPublisher(with_metaclass(Singleton)):
     def publish_q_manips_for_obs(self, poses, ns=''):
         full_topic = cfg.obs_manip_poses_topic if not ns else '/' + ns + cfg.obs_manip_poses_topic
         if self.is_activated(full_topic):
-            pose_array = conv.poses_to_poses_array(poses)
+            pose_array = self.poses_to_poses_array(poses)
             self.publish(full_topic, pose_array)
 
     def cleanup_q_manips_for_obs(self, ns=''):
         full_topic = cfg.obs_manip_poses_topic if not ns else '/' + ns + cfg.obs_manip_poses_topic
         if self.is_activated(full_topic):
-            pose_array = PoseArray(header=Header(frame_id=cfg.main_frame_id, stamp=rospy.Time.now()), poses=[])
+            pose_array = PoseArray(header=Header(frame_id=cfg.main_frame_id, stamp=self.ros_node.get_timestamp()), poses=[])
             self.publish(full_topic, pose_array)
 
     # endregion
@@ -636,7 +663,7 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic
         if plan and plan.path_components:
             if self.is_activated(full_topic):
-                self.publish(full_topic, conv.plan_to_markerarray(plan, cfg.main_frame_id, ns))
+                self.publish(full_topic, self.plan_to_markerarray(plan, cfg.main_frame_id, ns))
 
     def cleanup_p_opt(self, ns=''):
         full_topic = cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic
@@ -659,14 +686,14 @@ class RosPublisher(with_metaclass(Singleton)):
                 if (entity_uid in prev_robot_sim_world_draw_data
                     and drawable_data["polygon_id"] == prev_robot_sim_world_draw_data[entity_uid]["polygon_id"]
                     and drawable_data["type"] == prev_robot_sim_world_draw_data[entity_uid]["type"])}
-            markers = conv.world_to_marker_array(world, robot_uid, entities_to_ignore)
+            markers = self.world_to_marker_array(world, robot_uid, entities_to_ignore)
             self.publish(full_topic, markers)
             self.namespaces_caches[ns].prev_robot_sim_world_draw_data = current_world_draw_data
 
     def cleanup_robot_sim_world(self, ns=''):
         full_topic = cfg.robot_sim_world_topic if not ns else '/' + ns + cfg.robot_sim_world_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
 
     def publish_sim(self, robot_polygon, obs_polygon, namespace="/init", ns=''):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
@@ -674,10 +701,10 @@ class RosPublisher(with_metaclass(Singleton)):
             robot_color = colors.robot_border_color if namespace == "/target" else colors.robot_color
             obs_color = colors.movable_obstacle_border_color if namespace == "/target" else colors.movable_obstacle_color
             marker_array = MarkerArray(markers=[
-                conv.polygon_to_line_strip(
+                self.polygon_to_line_strip(
                     robot_polygon, namespace + "/robot/polygon", 0, cfg.main_frame_id, robot_color,
                     cfg.entities_z_index, cfg.border_width),
-                conv.polygon_to_line_strip(
+                self.polygon_to_line_strip(
                     obs_polygon, namespace + "/obstacle/polygon", 0, cfg.main_frame_id, obs_color,
                     cfg.entities_z_index, cfg.border_width)])
             self.publish(full_topic, marker_array)
@@ -687,13 +714,13 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             init_blocking_areas_markers = []
             for i in range(len(init_blocking_areas)):
-                init_blocking_areas_markers.append(conv.polygon_to_triangle_list(
+                init_blocking_areas_markers.append(self.polygon_to_triangle_list(
                     init_blocking_areas[i], "/blocking_areas/init", i, cfg.main_frame_id,
                     colors.init_blocking_areas_color, cfg.entities_z_index))
 
             target_blocking_areas_markers = []
             for i in range(len(target_blocking_areas)):
-                target_blocking_areas_markers.append(conv.polygon_to_triangle_list(
+                target_blocking_areas_markers.append(self.polygon_to_triangle_list(
                     target_blocking_areas[i], "/blocking_areas/target", i, cfg.main_frame_id,
                     colors.target_blocking_areas_color, cfg.entities_z_index))
 
@@ -705,17 +732,17 @@ class RosPublisher(with_metaclass(Singleton)):
         #  https://answers.ros.org/question/263031/delete-all-rviz-markers-in-a-specific-namespace/
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id, '/blocking_areas'))
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id, '/blocking_areas'))
 
     def publish_diameter_inflated_polygons(self, init_entity_inflated_polygon, target_entity_inflated_polygon, ns=''):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             marker_array = MarkerArray(markers=[
-                conv.polygon_to_line_strip(init_entity_inflated_polygon, "/diameter_inflated_polygon/init", 0,
+                self.polygon_to_line_strip(init_entity_inflated_polygon, "/diameter_inflated_polygon/init", 0,
                                            cfg.main_frame_id,
                                            colors.init_diameter_inflated_polygon_color,
                                            cfg.entities_z_index, cfg.border_width / 2.),
-                conv.polygon_to_line_strip(target_entity_inflated_polygon, "/diameter_inflated_polygon/target", 0,
+                self.polygon_to_line_strip(target_entity_inflated_polygon, "/diameter_inflated_polygon/target", 0,
                                            cfg.main_frame_id,
                                            colors.target_diameter_inflated_polygon_color,
                                            cfg.entities_z_index, cfg.border_width / 2.)])
@@ -727,16 +754,16 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             self.publish(full_topic,
-                         conv.make_delete_all_marker(cfg.main_frame_id, '/diameter_inflated_polygon'))
+                         self.make_delete_all_marker(cfg.main_frame_id, '/diameter_inflated_polygon'))
 
     def publish_min_max_inflated(self, min_inflated_polygon, max_inflated_polygon, ns=''):
         full_topic = cfg.min_max_inflated_polygons_topic if not ns else '/' + ns + cfg.min_max_inflated_polygons_topic
         if self.is_activated(full_topic):
             marker_array = MarkerArray(markers=[
-                conv.polygon_to_line_strip(min_inflated_polygon, "/min_inflated_polygon", 0, cfg.main_frame_id,
+                self.polygon_to_line_strip(min_inflated_polygon, "/min_inflated_polygon", 0, cfg.main_frame_id,
                                            colors.min_inflated_polygon_border_color,
                                            cfg.entities_z_index, cfg.border_width),
-                conv.polygon_to_line_strip(max_inflated_polygon, "/max_inflated_polygon", 0, cfg.main_frame_id,
+                self.polygon_to_line_strip(max_inflated_polygon, "/max_inflated_polygon", 0, cfg.main_frame_id,
                                            colors.max_inflated_polygon_border_color,
                                            cfg.entities_z_index, cfg.border_width)])
             self.publish(full_topic, marker_array)
@@ -746,7 +773,7 @@ class RosPublisher(with_metaclass(Singleton)):
         #  https://answers.ros.org/question/263031/delete-all-rviz-markers-in-a-specific-namespace/
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
-            marker_array = conv.polygons_to_line_strips_marker_array(
+            marker_array = self.polygons_to_line_strips_marker_array(
                 polygons, "/debug/polygons", cfg.main_frame_id, colors.robot_color,
                 cfg.entities_z_index, cfg.border_width / 5.)
             self.publish(full_topic, marker_array)
@@ -755,18 +782,18 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             self.publish(full_topic,
-                         conv.make_delete_all_marker(cfg.main_frame_id, '/debug/polygons'))
+                         self.make_delete_all_marker(cfg.main_frame_id, '/debug/polygons'))
 
     def cleanup_min_max_inflated(self, ns=''):
         full_topic = cfg.min_max_inflated_polygons_topic if not ns else '/' + ns + cfg.min_max_inflated_polygons_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_marker("", 0, cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_marker("", 0, cfg.main_frame_id))
 
     def cleanup_robot_sim(self, ns=''):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             self.namespaces_caches[ns] = NamespaceCache()
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
 
     # endregion
 
@@ -785,7 +812,7 @@ class RosPublisher(with_metaclass(Singleton)):
                 elif ns == "robot_3":
                     color = colors.r3_dark_red
                 marker_array = MarkerArray(markers=[
-                    conv.polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, cfg.main_frame_id,
+                    self.polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, cfg.main_frame_id,
                                                color, cfg.fov_z_index, cfg.border_width)])
                 # pose_to_arrow(q_goal, "/pose", 0, self.frame_id, self.robot_border_color,
                 #               self.entities_z_index, 0.5, 0.2, 0.0)])
@@ -794,14 +821,14 @@ class RosPublisher(with_metaclass(Singleton)):
     def cleanup_goal(self, ns=''):
         full_topic = cfg.robot_goal_topic if not ns else '/' + ns + cfg.robot_goal_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
 
     # endregion
 
     # region MESSAGE TEXT
     def publish_message(self, message, pose=(0., 0., 0.), font_size=1.):
         if self.is_activated("/simulation" + cfg.sim_latest_message_topic):
-            marker_array = MarkerArray(markers=[conv.string_to_text_marker(
+            marker_array = MarkerArray(markers=[self.string_to_text_marker(
                 message=message, pose=pose, ns="", p_id=0, z_index=cfg.fov_z_index,
                 font_size=font_size, frame_id=cfg.main_frame_id, color=colors.black
             )])
@@ -809,11 +836,12 @@ class RosPublisher(with_metaclass(Singleton)):
 
     def cleanup_message(self):
         if self.is_activated("/simulation" + cfg.sim_latest_message_topic):
-            marker_array = MarkerArray(markers=[conv.string_to_text_marker(
+            marker_array = MarkerArray(markers=[self.string_to_text_marker(
                 message="_", pose=(0., 0., 0.), ns="", p_id=0, z_index=cfg.fov_z_index,
                 font_size=.01, frame_id=cfg.main_frame_id, color=colors.black
             )])
             self.publish("/simulation" + cfg.sim_latest_message_topic, marker_array)
+
     # endregion
 
     # region CONFLICTS CHECK
@@ -826,9 +854,10 @@ class RosPublisher(with_metaclass(Singleton)):
                     break
 
                 pose = poses[index]
-                cell = utils.real_to_grid(pose[0], pose[1], inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose)
+                cell = utils.real_to_grid(pose[0], pose[1], inflated_grid_by_robot.res,
+                                          inflated_grid_by_robot.grid_pose)
                 horizon_cells.add(cell)
-            cube_list_marker = conv.grid_cells_to_cube_list_markers(
+            cube_list_marker = self.grid_cells_to_cube_list_markers(
                 horizon_cells, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose,
                 colors.flashy_green, z_index=0.02, ns="/transit_horizon_cells"
             )
@@ -838,7 +867,7 @@ class RosPublisher(with_metaclass(Singleton)):
     def publish_transit_conflicting_cells(self, conflicting_cells, inflated_grid_by_robot, ns):
         full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
         if self.is_activated(full_topic):
-            cube_list_marker = conv.grid_cells_to_cube_list_markers(
+            cube_list_marker = self.grid_cells_to_cube_list_markers(
                 conflicting_cells, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose,
                 colors.flashy_red, z_index=0.03, ns="/transit_conflicting_cells"
             )
@@ -848,18 +877,19 @@ class RosPublisher(with_metaclass(Singleton)):
     def publish_transit_conflicting_polygons_cells(self, conflicting_entities_cells, inflated_grid_by_robot, ns):
         full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
         if self.is_activated(full_topic):
-            cube_list_marker = conv.grid_cells_to_cube_list_markers(
+            cube_list_marker = self.grid_cells_to_cube_list_markers(
                 conflicting_entities_cells, inflated_grid_by_robot.res, inflated_grid_by_robot.grid_pose,
                 colors.flashy_cyan, z_index=-0.16, ns="/transit_conflicting_entities_cells"
             )
             marker_array = MarkerArray(markers=[cube_list_marker])
             self.publish(full_topic, marker_array)
 
-    def publish_transfer_horizon_convex_polygons(self, robot_csv_polygons, obstacle_csv_polygons, start_index, end_index, check_horizon, ns):
+    def publish_transfer_horizon_convex_polygons(self, robot_csv_polygons, obstacle_csv_polygons, start_index,
+                                                 end_index, check_horizon, ns):
         full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
         if self.is_activated(full_topic):
             subspace = "/transfer_horizon_csv_polygons"
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id, ns=subspace))
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id, ns=subspace))
 
             horizon_csv_polygons = []
             for counter, index in enumerate(range(start_index, end_index)):
@@ -871,7 +901,8 @@ class RosPublisher(with_metaclass(Singleton)):
                     horizon_csv_polygons.append(obstacle_csv_polygons[key])
             markers = []
             for p_id, polygon in enumerate(horizon_csv_polygons):
-                marker = conv.polygon_to_triangle_list(polygon, subspace, p_id, frame_id=cfg.main_frame_id, color=colors.flashy_green, z_index=-0.06)
+                marker = self.polygon_to_triangle_list(polygon, subspace, p_id, frame_id=cfg.main_frame_id,
+                                                       color=colors.flashy_green, z_index=-0.06)
                 markers.append(marker)
             marker_array = MarkerArray(markers=markers)
             self.publish(full_topic, marker_array)
@@ -885,7 +916,8 @@ class RosPublisher(with_metaclass(Singleton)):
     def cleanup_conflicts_checks(self, ns):
         full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
         if self.is_activated(full_topic):
-            self.publish(full_topic, conv.make_delete_all_marker(cfg.main_frame_id))
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
+
     # endregion
 
     # region EXTRA COMBINED CLEANUP METHODS

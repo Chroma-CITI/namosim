@@ -190,13 +190,12 @@ def line2pathd(l):
 
 
 def set_all_id_attributes_as_ids(xml_doc):
-    cur = [xml_doc.firstChild]
-    cur_child = cur[0]
-    while cur_child.hasChildNodes and cur:
-        cur_child = cur.pop(0)
-        cur += cur_child.childNodes
-        if cur_child.nodeType != minidom.Node.TEXT_NODE and cur_child.hasAttribute('id'):
-            cur_child.setIdAttribute('id')
+    queue = [xml_doc]
+    while queue:
+        current = queue.pop()
+        queue += current.childNodes
+        if getattr(current, "hasAttribute", None) and current.hasAttribute('id'):
+            current.setIdAttribute('id')
 
 
 def clean_attributes(xml_doc):
@@ -211,3 +210,11 @@ def clean_attributes(xml_doc):
 
         for attribute in attributes_to_remove:
             path_element.removeAttribute(attribute)
+
+
+def color_clamp(x):
+    return max(0, min(x, 255))
+
+
+def rgb_tuple_to_hex(rgb):
+    return "#{0:02x}{1:02x}{2:02x}".format(color_clamp(rgb[0]), color_clamp(rgb[1]), color_clamp(rgb[2]))
