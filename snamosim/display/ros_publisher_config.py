@@ -37,12 +37,12 @@ robot_sim_costmap_topic = "/robot_sim/costmap"
 test_gridmap_topic = "/test/gridmap"
 social_cells_topic = "/test/social_cells"
 test_connected_components_topic = "/test/connected_components"
-robot_sim_world_topic = "/sim/world"
+robot_sim_world_topic = "/robot_sim/world"
 combined_costmap_topic = "/combined_costmap"
 plan_topic = "/plan"
 conflicts_check_topic = "/conflicts_check"
 
-default_queue_size = 10
+default_queue_size = 100
 
 # HACK: Necessary because ROS1 pub/sub system is not reliable : wait (time in seconds) for subscribers to listen
 hack_duration_wait = 1.0
