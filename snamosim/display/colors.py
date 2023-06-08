@@ -4,7 +4,12 @@ from std_msgs.msg import ColorRGBA
 
 def hex_to_rgba(hex_string):
     hex_string = hex_string.lstrip('#')
-    argb_tuple = tuple(int(hex_string[i:i + 2], 16) / 255. for i in (0, 2, 4, 6))
+    if len(hex_string) == 6:
+        argb_tuple = tuple([1.] + list(int(hex_string[i:i + 2], 16) / 255. for i in (0, 2, 4)))
+    elif len(hex_string) == 8:
+        argb_tuple = tuple(int(hex_string[i:i + 2], 16) / 255. for i in (0, 2, 4, 6))
+    else:
+        raise ValueError('Color string must either be 6 or 8 chars long, current value: {}'.format(hex_string))
     rgba_dict = {'r': argb_tuple[1], 'g': argb_tuple[2], 'b': argb_tuple[3], 'a': argb_tuple[0]}
     return rgba_dict
 
