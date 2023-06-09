@@ -136,7 +136,6 @@ class Simulator:
         self.random_seed = self.config.get('random_seed', 10)
         random.seed(self.random_seed)
         self.provide_walls = self.config["provide_walls"]
-        self.display_sim_knowledge_only_once = self.config["display_sim_knowledge_only_once"]
         self.reset_after_first_goal = (
             False if "reset_after_first_goal" not in self.config else self.config["reset_after_first_goal"]
         )
@@ -170,9 +169,7 @@ class Simulator:
             self.save = json_save
 
         # Reinitialize rviz display
-
-        agents_names = [a_to_b_config["agent_name"] for a_to_b_config in self.config["agents_behaviors"]]
-        self.rp = RosPublisher(top_level_namespaces=['simulation'] + agents_names)
+        self.rp = RosPublisher(self)
         self.rp.cleanup_all()
 
         self.simulation_log.append(utils.BasicLog("Display backend initialized.", 0))
@@ -215,10 +212,6 @@ class Simulator:
         self.agent_uid_to_behavior = self.initialize_agents_behaviors(agent_uid_to_goals)
 
         self.rp.cleanup_sim_world()
-
-        if self.display_sim_knowledge_only_once:
-            time.sleep(2.0)
-            self.rp.cleanup_sim_world()
 
         self.history = []
 
@@ -279,8 +272,7 @@ class Simulator:
                     )
 
                     # Once the simulation reference world has been modified, display the modification
-                    if not self.display_sim_knowledge_only_once:
-                        self.rp.publish_sim_world(self.ref_world)
+                    self.rp.publish_sim_world(self.ref_world)
                 except Exception as e:
                     if self.catch_exceptions:
                         tb = traceback.format_exc()
@@ -565,7 +557,7 @@ class Simulator:
 
                 if agent_behavior_name == "stilman_2005_behavior":
                     agent_world = copy.deepcopy(self.ref_world)
-                    self.rp.cleanup_robot_world()
+                    self.rp.cleanup_robot_world(ns=agent_name)
                     agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
                         agent_world, agent_uid, agent_navigation_goals, behavior_config, self.abs_path_to_logs_dir)
                 else:

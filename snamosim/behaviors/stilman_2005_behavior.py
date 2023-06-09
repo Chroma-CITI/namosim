@@ -1664,7 +1664,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 inflated_grid_by_robot_max.d_height, neighborhood
             )
         connected_components_grid = ccs_data.grid
-        self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd, ns=robot.name)
+        self._rp.publish_connected_components_grid(connected_components_grid, w_t.dd.res, ns=robot.name)
 
         c_0 = ccs_data.grid[robot_cell[0]][robot_cell[1]]
         prev_list = prev_list if c_0 == 0 else prev_list.union({c_0})

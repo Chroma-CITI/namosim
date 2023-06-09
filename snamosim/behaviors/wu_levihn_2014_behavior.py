@@ -153,7 +153,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                                           obs_is_push_only).values(), ns=self._robot_name)
 
         world_copy = copy.deepcopy(self._world)
-        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid, ns=self._robot_name)
+        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
 
         for unit_translation, q_manip in obs.get_actions(self._world.dd.inflation_radius, self._world.dd.res,
                                                          obs_is_push_only).items():
@@ -222,7 +222,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                     p_best = p
                                     if p.total_cost < self._p_opt.total_cost:
                                         self._p_opt = p
-                                        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid, ns=self._robot_name)
+                                        self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
                                         self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
 
                             world_copy.translate_entity(o_uid, -total_translation)
