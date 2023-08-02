@@ -1,8 +1,5 @@
-import math
-import numpy as np
 import copy
-import shapely.affinity as affinity
-from .custom_exceptions import IntersectionError
+import re
 
 
 class Style:
@@ -10,7 +7,10 @@ class Style:
         self.fill = fill
         self.fill_opacity = float(fill_opacity)
         self.stroke = stroke
-        self.stroke_width = float(stroke_width)
+        try:
+            self.stroke_width = float(re.findall(r"[-+]?(?:\d*\.*\d+)", stroke_width)[0])
+        except IndexError:
+            self.stroke_width = 1.
         self.stroke_opacity = float(stroke_opacity)
 
     # noinspection PyTypeChecker

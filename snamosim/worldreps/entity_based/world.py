@@ -11,7 +11,6 @@ from bidict import bidict
 
 import snamosim.utils.utils as utils
 import snamosim.utils.conversion as conversion
-from snamosim.worldreps.entity_based.custom_exceptions import EntityPlacementException
 from snamosim.worldreps.discretization_data import DiscretizationData
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 from snamosim.worldreps.entity_based.robot import Robot
