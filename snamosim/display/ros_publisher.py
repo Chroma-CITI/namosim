@@ -261,7 +261,7 @@ def init_header(stamp=Time()):
 
 
 class RosObserver:
-    def __init__(self, node, topic, is_active=True, rate=10, msg_type=None):
+    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=None):
         self.node = node
         self.topic = topic
         self._publisher = node.create_publisher(msg_type, topic)
@@ -305,7 +305,7 @@ class RosObserver:
 
 
 class WorldObserver(RosObserver):
-    def __init__(self, node, topic, is_active=True, rate=10):
+    def __init__(self, node, topic, is_active=True, rate=cfg.rate):
         RosObserver.__init__(self, node, topic, is_active, rate, msg_type=MarkerArray)
         self.prev_sim_world_draw_data = None
 
@@ -382,7 +382,7 @@ class WorldObserver(RosObserver):
 
 
 class CostmapObserver(RosObserver):
-    def __init__(self, node, topic, is_active=True, rate=10):
+    def __init__(self, node, topic, is_active=True, rate=cfg.rate):
         RosObserver.__init__(self, node, topic, is_active, rate, msg_type=OccupancyGrid)
 
     def convert(self, **kwargs):
@@ -421,7 +421,7 @@ class CostmapObserver(RosObserver):
 
 
 class GridMapObserver(RosObserver):
-    def __init__(self, node, topic, is_active=True, rate=10, msg_type=GridMap):
+    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=GridMap):
         RosObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
 
     def convert(self, **kwargs):
@@ -436,7 +436,7 @@ class GridMapObserver(RosObserver):
 
 
 class CombinedCostGridMapObserver(GridMapObserver):
-    def __init__(self, node, topic, is_active=True, rate=10, msg_type=GridMap):
+    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=GridMap):
         GridMapObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
 
     def convert(self, **kwargs):
@@ -1201,13 +1201,6 @@ class RosPublisher(with_metaclass(Singleton)):
     def init_header(self):
         return Header(stamp=self.ros_node.get_timestamp(), frame_id="map")
 
-    def init_grid_cells(self, resolution):
-        return GridCells(header=self.init_header(), cell_width=resolution, cell_height=resolution,
-                         cells=[Point(x=10000., y=10000., z=10000.)])
-
-    def init_ros_path(self):
-        return Path(header=self.init_header(), poses=[])
-
     def grid_cells_to_cube_list_markers(self, grid_cells, res, grid_pose, color, z_index=-0.5, cube_list=None, ns=""):
         if cube_list is None:
             cube_list = Marker(
@@ -1254,12 +1247,6 @@ class RosPublisher(with_metaclass(Singleton)):
     def geom_quat_from_yaw(self, yaw):
         explicit_quat = tf_replacement.quaternion_from_euler(0.0, 0.0, math.radians(yaw))
         return Quaternion(x=explicit_quat[0], y=explicit_quat[1], z=explicit_quat[2], w=explicit_quat[3])
-
-    def real_path_to_ros_path(self, real_path):
-        ros_path = Path(header=self.init_header(), poses=[])
-        for pose in real_path:
-            ros_path.poses.append(PoseStamped(header=ros_path.header, pose=self.pose_to_ros_pose(pose)))
-        return ros_path
 
     def plan_to_markerarray(self, plan, frame_id, ns):
         markerarray = MarkerArray()

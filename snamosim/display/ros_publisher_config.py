@@ -1,5 +1,5 @@
 # Target display rate (in Hz)
-rate = 100
+rate = 100000
 
 # Deactivate GUI
 deactivate_gui = False
