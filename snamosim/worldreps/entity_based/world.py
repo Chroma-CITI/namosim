@@ -15,6 +15,7 @@ from snamosim.worldreps.entity_based.custom_exceptions import EntityPlacementExc
 from snamosim.worldreps.discretization_data import DiscretizationData
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 from snamosim.worldreps.entity_based.robot import Robot
+from snamosim.worldreps.entity_based.entity import Style
 from snamosim.worldreps.entity_based.taboo import Taboo
 from snamosim.worldreps.entity_based.goal import Goal
 from snamosim.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
@@ -125,6 +126,7 @@ class World:
                 # If geometry is defined in SVG file, prioritize using it
                 try:
                     polygon = shapely_geoms[entity_data["geometry"]["id"]]
+                    style = Style.from_string(world.init_geometry_file.getElementById(entity_data["geometry"]["id"]).getAttribute('style'))
                 except KeyError:
                     print("Could not find geometry {} in svg file. Next entity.".format(entity_data["geometry"]["id"]))
                     continue
@@ -161,7 +163,8 @@ class World:
                     sensors=sensors,
                     push_only_list=entity_data["push_only_list"],
                     force_pushes_only=entity_data["force_pushes_only"],
-                    movable_whitelist=entity_data["movable_whitelist"]
+                    movable_whitelist=entity_data["movable_whitelist"],
+                    style=style
                 )
                 if not first_robot:
                     first_robot = new_robot
@@ -179,7 +182,8 @@ class World:
                     pose=pose,
                     type_in=entity_data["type"],
                     full_geometry_acquired=True,
-                    movability="static" if entity_data["type"] in ["wall", "pillar", "table"] else "unknown"
+                    movability="static" if entity_data["type"] in ["wall", "pillar", "table"] else "unknown",
+                    style=style
                 )
 
                 world.add_entity(new_object)

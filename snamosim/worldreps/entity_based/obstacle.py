@@ -10,8 +10,8 @@ from shapely.geometry import Point
 
 class Obstacle(Entity):
 
-    def __init__(self, name, polygon, pose, full_geometry_acquired, type_in, movability="unknown", uid=0):
-        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, movability=movability, uid=uid)
+    def __init__(self, name, polygon, pose, full_geometry_acquired, type_in, movability="unknown", uid=0, style=None):
+        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, movability=movability, uid=uid, style=style)
         self.type = type_in
 
         self.actions = dict()

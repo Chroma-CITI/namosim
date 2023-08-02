@@ -335,11 +335,7 @@ class WorldObserver(RosObserver):
         markers = []
         for entity in world.entities.values():
             if entity.uid not in entities_to_ignore:
-                # TODO Move the next two lines in world/entity import from SVG procedure (
-                #  we should save border color, opacity and width, fill color, opacity and width)
-                entity_svg_style = world.init_geometry_file.getElementById(entity.name).getAttribute('style')
-                entity_svg_fill_color = re.search(r'fill:(.*?);', entity_svg_style).group(1)
-                entity_color = ColorRGBA(**colors.hex_to_rgba(entity_svg_fill_color))
+                entity_color = ColorRGBA(**colors.hex_to_rgba(entity.style.fill))
                 if isinstance(entity, Robot):
                     namespace = '/robot'
                 elif isinstance(entity, Obstacle):
@@ -425,8 +421,8 @@ class CostmapObserver(RosObserver):
 
 
 class GridMapObserver(RosObserver):
-    def __init__(self, node, topic, is_active=True, rate=10, msg_type=None):
-        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=GridMap)
+    def __init__(self, node, topic, is_active=True, rate=10, msg_type=GridMap):
+        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
 
     def convert(self, **kwargs):
         costmap, res = kwargs['costmap'], kwargs['res']
@@ -440,7 +436,7 @@ class GridMapObserver(RosObserver):
 
 
 class CombinedCostGridMapObserver(GridMapObserver):
-    def __init__(self, node, topic, is_active=True, rate=10, msg_type=None):
+    def __init__(self, node, topic, is_active=True, rate=10, msg_type=GridMap):
         GridMapObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
 
     def convert(self, **kwargs):
@@ -474,11 +470,11 @@ class RosPublisher(with_metaclass(Singleton)):
         self.observers[self.sim_knowledge_topic] = WorldObserver(self.ros_node, self.sim_knowledge_topic)
         self.sim_costmap_topic = self.prefix + '/simulation' + cfg.sim_costmap_topic
         self.observers[self.sim_costmap_topic] = CostmapObserver(self.ros_node, self.sim_costmap_topic)
+        self.sim_gridmap_topic = self.prefix + '/simulation' + cfg.test_gridmap_topic
+        self.observers[self.sim_gridmap_topic] = GridMapObserver(self.ros_node, self.sim_gridmap_topic)
+        self.sim_cc_topic = self.prefix + '/simulation' + cfg.test_connected_components_topic
+        self.observers[self.sim_cc_topic] = GridMapObserver(self.ros_node, self.sim_cc_topic)
 
-        self.my_publishers['/simulation' + cfg.test_gridmap_topic] = self.ros_node.create_publisher(
-            GridMap, '/simulation' + cfg.test_gridmap_topic)
-        self.my_publishers['/simulation' + cfg.test_connected_components_topic] = self.ros_node.create_publisher(
-            GridMap, '/simulation' + cfg.test_connected_components_topic)
         self.my_publishers['/simulation' + cfg.sim_latest_message_topic] = self.ros_node.create_publisher(
             MarkerArray, '/simulation' + cfg.sim_latest_message_topic)
 
@@ -491,6 +487,9 @@ class RosPublisher(with_metaclass(Singleton)):
             self.observers[ns + cfg.robot_sim_world_topic] = WorldObserver(self.ros_node, ns + cfg.robot_sim_world_topic)
             self.observers[ns + cfg.robot_sim_costmap_topic] = CostmapObserver(self.ros_node, ns + cfg.robot_sim_costmap_topic)
 
+            self.observers[ns + cfg.test_connected_components_topic] = GridMapObserver(self.ros_node, ns + cfg.test_connected_components_topic)
+            self.observers[ns + cfg.combined_costmap_topic] = CombinedCostGridMapObserver(self.ros_node, ns + cfg.combined_costmap_topic)
+            self.observers[ns + cfg.test_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_gridmap_topic)
             # TODO ADD robot_sim_topic back
 
             self.my_publishers[ns + cfg.min_max_inflated_polygons_topic] = self.ros_node.create_publisher(
@@ -511,14 +510,8 @@ class RosPublisher(with_metaclass(Singleton)):
                 MarkerArray, ns + cfg.robot_goal_topic)
             self.my_publishers[ns + cfg.obs_manip_poses_topic] = self.ros_node.create_publisher(
                 PoseArray, ns + cfg.obs_manip_poses_topic)
-            self.my_publishers[ns + cfg.test_gridmap_topic] = self.ros_node.create_publisher(
-                GridMap, ns + cfg.test_gridmap_topic)
             self.my_publishers[ns + cfg.social_cells_topic] = self.ros_node.create_publisher(
                 Marker, ns + cfg.social_cells_topic)
-            self.my_publishers[ns + cfg.test_connected_components_topic] = self.ros_node.create_publisher(
-                GridMap, ns + cfg.test_connected_components_topic)
-            self.my_publishers[ns + cfg.combined_costmap_topic] = self.ros_node.create_publisher(
-                GridMap, ns + cfg.combined_costmap_topic)
             self.my_publishers[ns + cfg.plan_topic] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.plan_topic)
             self.my_publishers[ns + cfg.conflicts_check_topic] = self.ros_node.create_publisher(
@@ -548,7 +541,7 @@ class RosPublisher(with_metaclass(Singleton)):
     @staticmethod
     def create_valid_node_name(root_name):
         nodes_names = MyNode.get_nodes_names()
-        node_name = root_name
+        node_name = root_name if (root_name and not root_name[0].isdigit()) else ('node_' + root_name)
         i = 0
         while node_name in nodes_names:
             node_name = root_name + '_' + str(i)
@@ -1214,25 +1207,6 @@ class RosPublisher(with_metaclass(Singleton)):
 
     def init_ros_path(self):
         return Path(header=self.init_header(), poses=[])
-
-    def init_grid_map(self):
-        grid_map = GridMap()
-        grid_map.info.header = Header(stamp=self.ros_node.get_timestamp(), frame_id="gridmap")
-        grid_map.layers = []
-        inflated_costmap_data = Float32MultiArray(
-            layout=MultiArrayLayout(
-                dim=[MultiArrayDimension(label="column_index",
-                                         size=0,
-                                         stride=0),
-                     MultiArrayDimension(label="row_index",
-                                         size=0,
-                                         stride=0)],
-                data_offset=0),
-            data=[]
-        )
-        grid_map.data = [inflated_costmap_data]
-
-        return grid_map
 
     def grid_cells_to_cube_list_markers(self, grid_cells, res, grid_pose, color, z_index=-0.5, cube_list=None, ns=""):
         if cube_list is None:

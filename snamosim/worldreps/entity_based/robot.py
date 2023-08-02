@@ -7,9 +7,9 @@ import copy
 class Robot(Entity):
 
     def __init__(self, name, full_geometry_acquired, polygon, pose, sensors,
-                 push_only_list, force_pushes_only, movable_whitelist, movability="unknown", uid=0):
+                 push_only_list, force_pushes_only, movable_whitelist, movability="unknown", uid=0, style=None):
         polygon = polygon
-        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, movability=movability, uid=uid)
+        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, movability=movability, uid=uid, style=style)
 
         self.sensors = sensors
         for sensor in sensors:
