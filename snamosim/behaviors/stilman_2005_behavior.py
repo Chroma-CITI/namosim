@@ -1221,7 +1221,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # - Extra performance parameters
         self.check_new_local_opening_before_global = parameters["check_new_local_opening_before_global"]
-        self.activate_grids_logging = False  # not parameters["deactivate_grids_logging"]
+        self.activate_grids_logging = True  # not parameters["deactivate_grids_logging"]
 
         if self.robot_base_drive_type == "differential":
             self._trans_vectors = np.array([(self.translation_unit_length, 0.), (-self.translation_unit_length, 0.)])
@@ -3066,54 +3066,64 @@ class Stilman2005Behavior(BaselineBehavior):
         # self._rp.publish_combined_costmap(sorted_cell_to_combined_cost, dd, ns=self._robot_name)
 
         if self.activate_grids_logging:
-            stocg.display_or_log(
-                np.invert(
-                    inflated_grid_by_obstacle.grid.astype(np.bool)
-                ),
-                "-obs_inf_grid", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
-                debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+            self.log_grids(inflated_grid_by_obstacle, acc_cells_for_obs, normalized_social_cost,
+                  normalized_distance_cost, normalized_distance_to_goal, sorted_cell_to_combined_cost)
 
-            normalized_social_cost_costmap = np.zeros(
-                (inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
-            )
-            normalized_distance_from_obs_costmap = np.zeros(
-                (inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
-            )
-            normalized_distance_from_goal_costmap = np.zeros(
-                (inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
-            )
+        return cells_sorted_by_combined_cost, sorted_cell_to_combined_cost
 
-            for i in range(len(acc_cells_for_obs)):
-                cell = acc_cells_for_obs[i]
-                normalized_social_cost_costmap[cell[0]][cell[1]] = normalized_social_cost[i]
-                normalized_distance_from_obs_costmap[cell[0]][cell[1]] = normalized_distance_cost[i]
+    def log_grids(self, inflated_grid_by_obstacle, acc_cells_for_obs, normalized_social_cost,
+                  normalized_distance_cost, sorted_cell_to_combined_cost, normalized_distance_to_goal=None):
+        stocg.display_or_log(
+            np.invert(
+                inflated_grid_by_obstacle.grid.astype(np.bool)
+            ),
+            "-obs_inf_grid", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+            debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+
+        normalized_social_cost_costmap = np.zeros(
+            (inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
+        )
+        normalized_distance_from_obs_costmap = np.zeros(
+            (inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
+        )
+        normalized_distance_from_goal_costmap = np.zeros(
+            (inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)
+        )
+
+        for i in range(len(acc_cells_for_obs)):
+            cell = acc_cells_for_obs[i]
+            normalized_social_cost_costmap[cell[0]][cell[1]] = normalized_social_cost[i]
+            normalized_distance_from_obs_costmap[cell[0]][cell[1]] = normalized_distance_cost[i]
+            if normalized_distance_to_goal:
                 normalized_distance_from_goal_costmap[cell[0]][cell[1]] = normalized_distance_to_goal[i]
 
-            stocg.display_or_log(
-                normalized_social_cost_costmap, "-n_social_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
-                debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
-            stocg.display_or_log(
-                normalized_distance_from_obs_costmap, "-n_d_to_obs_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
-                debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+        stocg.display_or_log(
+            normalized_social_cost_costmap, "-n_social_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+            debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+        stocg.display_or_log(
+            normalized_distance_from_obs_costmap, "-n_d_to_obs_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+            debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
+        if normalized_distance_to_goal:
             stocg.display_or_log(
                 normalized_distance_from_goal_costmap, "-n_d_to_goal_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
                 debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
 
-            combined_costmap = np.zeros((inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height))
-            for cell, combined_cost in sorted_cell_to_combined_cost.items():
-                combined_costmap[cell[0]][cell[1]] = combined_cost
-            stocg.display_or_log(
-                combined_costmap, "-combined_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
-                debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
-
-        return cells_sorted_by_combined_cost, sorted_cell_to_combined_cost
+        combined_costmap = np.zeros((inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height))
+        for cell, combined_cost in sorted_cell_to_combined_cost.items():
+            combined_costmap[cell[0]][cell[1]] = combined_cost
+        stocg.display_or_log(
+            combined_costmap, "-combined_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+            debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
 
     def compute_evasion(self, inflated_grid_by_robot_max, w_t, main_robot_uid, potential_deadlocks, forbidden_evasion_cells, use_combined_cost=True):
         # Compute evasion for main robot
         main_robot = w_t.entities[main_robot_uid]
+
+        inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
         main_robot_evasion_cell_social_cost, main_robot_evasion_path = self.compute_evasion_for_one(
             w_t, inflated_grid_by_robot_max, main_robot, forbidden_evasion_cells, use_combined_cost
         )
+        inflated_grid_by_robot_max.activate_entities({main_robot_uid})
 
         if not main_robot_evasion_path:
             return None
@@ -3148,7 +3158,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 )
                 other_robot_evasion_path_max_duration = max(
                     other_robot_evasion_path_max_duration,
-                    (0 if other_robot_evasion_path is None else len(other_robot_evasion_path.actions))
+                    (0 if main_robot_evasion_path is None else len(main_robot_evasion_path.actions))
                     + (0 if other_robot_exchange_path is None else len(other_robot_exchange_path.actions))
                 )
 
@@ -3232,6 +3242,13 @@ class Stilman2005Behavior(BaselineBehavior):
                 )
                 min_combined_cost_index = np.argmin(combined_cost)
                 evasion_cell = accessible_cells[min_combined_cost_index]
+
+                if self.activate_grids_logging:
+                    sorted_cell_to_combined_cost = OrderedDict(
+                        sorted(zip(accessible_cells, combined_cost), key=lambda t: t[1], reverse=True)
+                    )
+                    self.log_grids(inflated_grid_by_robot_max, accessible_cells, normalized_social_cost,
+                                   normalized_distance_cost, sorted_cell_to_combined_cost)
 
                 # publish_combined_cost_grid = True
                 # if publish_combined_cost_grid:

@@ -969,13 +969,13 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             init_blocking_areas_markers = []
             for i in range(len(init_blocking_areas)):
-                init_blocking_areas_markers.append(self.polygon_to_triangle_list(
+                init_blocking_areas_markers.append(polygon_to_triangle_list(
                     init_blocking_areas[i], "/blocking_areas/init", i, cfg.main_frame_id,
                     colors.init_blocking_areas_color, cfg.entities_z_index))
 
             target_blocking_areas_markers = []
             for i in range(len(target_blocking_areas)):
-                target_blocking_areas_markers.append(self.polygon_to_triangle_list(
+                target_blocking_areas_markers.append(polygon_to_triangle_list(
                     target_blocking_areas[i], "/blocking_areas/target", i, cfg.main_frame_id,
                     colors.target_blocking_areas_color, cfg.entities_z_index))
 
@@ -1155,7 +1155,7 @@ class RosPublisher(with_metaclass(Singleton)):
                     horizon_csv_polygons.append(obstacle_csv_polygons[key])
             markers = []
             for p_id, polygon in enumerate(horizon_csv_polygons):
-                marker = self.polygon_to_triangle_list(polygon, subspace, p_id, frame_id=cfg.main_frame_id,
+                marker = polygon_to_triangle_list(polygon, subspace, p_id, frame_id=cfg.main_frame_id,
                                                        color=colors.flashy_green, z_index=-0.06)
                 markers.append(marker)
             marker_array = MarkerArray(markers=markers)

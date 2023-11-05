@@ -3,7 +3,7 @@ import re
 
 
 class Style:
-    def __init__(self, fill='#000000', fill_opacity=1, stroke='#000000', stroke_width=1., stroke_opacity=1., **_):
+    def __init__(self, fill='#000000', fill_opacity=1, stroke='#000000', stroke_width='1', stroke_opacity='1', **_):
         self.fill = fill
         self.fill_opacity = float(fill_opacity)
         self.stroke = stroke
