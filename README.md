@@ -34,7 +34,22 @@ python3 ~/s-namo-sim-private/snamosim/tests/integration_tests/s-namo_cases/iros_
 Results should be saved in the 'logs' folder that is automatically created the first time in the repository folder. 
 To get the full visual feedback, please install ROS1 and RVIZ (+ the grid-map ROS package). ROS2 support and independent visualization capabilities are a work ni progress.
 
-> If you want to edit the ROS compatibility layer using Pycharm, you may want to follow [this very good tutorial](https://www.youtube.com/watch?v=lTew9mbXrAs) as to how to properly setup the IDE so that it finds the ROS python files correctly. 
+> If you want to edit the ROS compatibility layer using Pycharm, you may want to follow [this very good tutorial](https://www.youtube.com/watch?v=lTew9mbXrAs) as to how to properly setup the IDE so that it finds the ROS python files correctly.
+
+## Example
+
+The following example runs the most basic scenario with the (Stillman,2005) algorithm and assumes you have `ros2` and `rviz2` installed.
+
+Start rviz2:
+
+```
+rviz2 -d rviz/ROS2/basic_view.rviz
+```
+
+Then, in a new terminal, run:
+```
+python -m snamosim.tests.integration_tests.namo-socials.basic_with_opening_test BasicWithOpeningTest.test_stilman_2005_behavior
+```
 
 ## Credits
 

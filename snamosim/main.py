@@ -1,4 +1,4 @@
-from simulator import Simulator
+from snamosim.simulator import Simulator
 
 
 if __name__ == '__main__':
