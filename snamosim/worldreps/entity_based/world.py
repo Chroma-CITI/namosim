@@ -6,7 +6,7 @@ import numpy as np
 
 import shapely.affinity as affinity
 from shapely.geometry import Polygon, box, LineString
-from shapely.ops import cascaded_union
+from shapely.ops import unary_union
 from bidict import bidict
 
 import snamosim.utils.utils as utils
@@ -80,7 +80,7 @@ class World:
         # TODO Fix this so that it only accounts for obstacles in polygon layer otherwise, things might get messy with
         #  direction vectors that get outside of the obstacle polygons
         # Center the imported geometries
-        unioned_polygons = cascaded_union(list(shapely_geoms.values()))
+        unioned_polygons = unary_union(list(shapely_geoms.values()))
         bounding_box = box(unioned_polygons.bounds[0], unioned_polygons.bounds[1],
                            unioned_polygons.bounds[2], unioned_polygons.bounds[3])
         # print(str((bounding_box.bounds[2] - bounding_box.bounds[0], bounding_box.bounds[3] - bounding_box.bounds[1])))

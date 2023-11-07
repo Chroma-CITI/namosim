@@ -1,5 +1,5 @@
 import skimage.morphology as skimage_morph
-import scipy.ndimage.morphology as scipy_morph
+import scipy.ndimage as scipy_morph
 from scipy.spatial import Voronoi
 import numpy as np
 from snamosim.utils import utils
@@ -218,7 +218,7 @@ def compute_social_costmap(
     start_time_str = time.strftime("%Y-%m-%d-%Hh%Mm%Ss")
 
     # Transform binary occupation grid made of integers into booleans for scipy functions to work properly
-    booleanized_grid = np.zeros(binary_occ_grid.shape, dtype=np.bool)
+    booleanized_grid = np.zeros(binary_occ_grid.shape, dtype=bool)
     booleanized_grid[binary_occ_grid == 0] = True
     display_or_log(booleanized_grid, "-occupation_grid", start_time_str, debug_display, log_costmaps, abs_path_to_logs_dir)
 
