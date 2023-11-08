@@ -493,8 +493,6 @@ class RosPublisher(with_metaclass(Singleton)):
             self.observers[ns + cfg.test_social_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_social_gridmap_topic)
 
             # TODO: Refactor the following publishers with the Observer pattern
-            self.my_publishers[ns + cfg.path_grid_cells_topic] = self.ros_node.create_publisher(
-                Marker, ns + cfg.path_grid_cells_topic)
             self.my_publishers[ns + cfg.a_star_open_heap_topic] = self.ros_node.create_publisher(
                 Marker, ns + cfg.a_star_open_heap_topic)
             self.my_publishers[ns + cfg.a_star_close_set_topic] = self.ros_node.create_publisher(
@@ -911,21 +909,6 @@ class RosPublisher(with_metaclass(Singleton)):
 
     # endregion
 
-    # region GRID PATHmath.radians(pose[2]
-    def publish_grid_path(self, grid_path, res, grid_pose, ns=''):
-        full_topic = cfg.path_grid_cells_topic if not ns else '/' + ns + cfg.path_grid_cells_topic
-        if self.is_activated(full_topic):
-            path_grid_cells = self.grid_cells_to_cube_list_markers(grid_path, res, grid_pose,
-                                                                   color=colors.flashy_purple)
-            self.publish(full_topic, path_grid_cells)
-
-    def cleanup_grid_path(self, ns=''):
-        full_topic = cfg.path_grid_cells_topic if not ns else '/' + ns + cfg.path_grid_cells_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, self.make_delete_marker("", 0, cfg.main_frame_id))
-
-    # endregion
-
     # region Q MANIPS FOR OBS
     def publish_q_manips_for_obs(self, poses, ns=''):
         full_topic = cfg.obs_manip_poses_topic if not ns else '/' + ns + cfg.obs_manip_poses_topic
@@ -1178,7 +1161,6 @@ class RosPublisher(with_metaclass(Singleton)):
             self.cleanup_a_star_close_set(ns=ns)
             self.cleanup_multigoal_a_star_open_heap(ns=ns)
             self.cleanup_multigoal_a_star_close_set(ns=ns)
-            self.cleanup_grid_path(ns=ns)
             self.cleanup_social_grid_map(ns=ns)
             self.cleanup_combined_costmap(ns=ns)
             self.cleanup_conflicts_checks(ns=ns)
