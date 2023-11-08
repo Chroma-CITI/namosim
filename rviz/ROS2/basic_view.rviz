@@ -60,7 +60,7 @@ Visualization Manager:
               Class: rviz_default_plugins/Map
               Color Scheme: map
               Draw Behind: false
-              Enabled: false
+              Enabled: true
               Name: Costmap
               Topic:
                 Depth: 5
@@ -76,7 +76,7 @@ Visualization Manager:
                 Reliability Policy: Reliable
                 Value: /simulation/costmap_updates
               Use Timestamp: false
-              Value: false
+              Value: true
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
               Name: Reference world
@@ -407,7 +407,7 @@ Visualization Manager:
                     Filter size: 10
                     History Policy: Keep Last
                     Reliability Policy: Reliable
-                    Value: /robot_1/test/obs_manip_poses
+                    Value: /robot_0/test/obs_manip_poses
                   Value: true
                 - Class: rviz_default_plugins/Marker
                   Enabled: true
@@ -518,7 +518,7 @@ Visualization Manager:
               Class: rviz_default_plugins/Map
               Color Scheme: map
               Draw Behind: false
-              Enabled: false
+              Enabled: true
               Name: costmap
               Topic:
                 Depth: 5
@@ -534,7 +534,7 @@ Visualization Manager:
                 Reliability Policy: Reliable
                 Value: /robot_0/costmap_updates
               Use Timestamp: false
-              Value: false
+              Value: true
           Enabled: true
           Name: robot_0
       Enabled: true
@@ -594,11 +594,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 99.03362274169922
+      Scale: 147.0474853515625
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
-      X: 0.026992477476596832
-      Y: -0.033648211508989334
+      X: -0.013810668140649796
+      Y: -0.006446112412959337
     Saved: ~
 Window Geometry:
   Displays:

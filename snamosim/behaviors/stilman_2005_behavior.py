@@ -2350,7 +2350,7 @@ class Stilman2005Behavior(BaselineBehavior):
             valid_transfer_start_poses.append(transfer_start_pose)
 
         self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
-        self._rp.publish_q_manips_for_obs(valid_transit_end_poses + valid_transfer_start_poses, ns=self._robot_name)
+        self._rp.publish_q_manips_for_obs(valid_transfer_start_poses, ns=self._robot_name)
 
         return valid_transit_end_poses, valid_transfer_start_poses
 

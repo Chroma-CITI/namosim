@@ -238,6 +238,26 @@ def costmap_to_grid_map(costmap, res, frame_id=cfg.social_gridmap_frame_id, stam
     return grid_map
 
 
+def geom_quat_from_yaw(yaw):
+    explicit_quat = tf_replacement.quaternion_from_euler(0.0, 0.0, math.radians(yaw))
+    return Quaternion(x=explicit_quat[0], y=explicit_quat[1], z=explicit_quat[2], w=explicit_quat[3])
+
+
+def pose_to_ros_pose(pose):
+    x, y ,z = pose[0], pose[1], 0.0
+    return Pose(
+        position=(Point(x=x, y=y, z=z) if ROS2 else Vector3(x=x, y=y, z=z)),
+        orientation=geom_quat_from_yaw(pose[2])
+    )
+
+
+def poses_to_poses_array(poses, stamp=Time()):
+    pose_array = PoseArray(header=init_header(stamp), poses=[])
+    for pose in poses:
+        pose_array.poses.append(pose_to_ros_pose(pose))
+    return pose_array
+
+
 def make_delete_marker(namespace, p_id, frame_id, stamp=Time()):
     return Marker(
         ns=namespace, id=p_id, header=Header(frame_id=frame_id, stamp=stamp),
@@ -252,7 +272,7 @@ def make_delete_all_marker(frame_id, ns='', stamp=Time()):
 
 
 def init_header(stamp=Time()):
-    return Header(stamp=stamp, frame_id="map")
+    return Header(stamp=stamp, frame_id=cfg.main_frame_id)
 
 
 class RosObserver:
@@ -468,6 +488,18 @@ class GoalObserver(RosObserver):
         RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
 
 
+class PosesObserver(RosObserver):
+    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=PoseArray):
+        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
+
+    def convert(self, **kwargs):
+        poses = kwargs['poses']
+        return poses_to_poses_array(poses, self.node.get_timestamp())
+
+    def reset(self, reset_msg=None):
+        RosObserver.reset(self, PoseArray(header=init_header(self.node.get_timestamp()), poses=[]))
+
+
 class RosPublisher(with_metaclass(Singleton)):
     def __init__(self, simulator=None, prefix_topics_with_node_name=False):
         if simulator is None:
@@ -504,16 +536,12 @@ class RosPublisher(with_metaclass(Singleton)):
             self.observers[ns + cfg.robot_costmap_topic] = CostmapObserver(self.ros_node, ns + cfg.robot_costmap_topic)
             self.observers[ns + cfg.robot_sim_world_topic] = WorldObserver(self.ros_node, ns + cfg.robot_sim_world_topic)
             self.observers[ns + cfg.robot_sim_costmap_topic] = CostmapObserver(self.ros_node, ns + cfg.robot_sim_costmap_topic)
-
             self.observers[ns + cfg.test_connected_components_topic] = GridMapObserver(self.ros_node, ns + cfg.test_connected_components_topic)
             self.observers[ns + cfg.test_combined_gridmap_topic] = CombinedCostGridMapObserver(self.ros_node, ns + cfg.test_combined_gridmap_topic)
             self.observers[ns + cfg.test_social_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_social_gridmap_topic)
-
-            # TODO: Refactor the following publishers with the Observer pattern
             self.observers[ns + cfg.robot_goal_topic] = GoalObserver(self.ros_node, ns + cfg.robot_goal_topic)
-
-            self.my_publishers[ns + cfg.obs_manip_poses_topic] = self.ros_node.create_publisher(
-                PoseArray, ns + cfg.obs_manip_poses_topic)
+            self.observers[ns + cfg.obs_manip_poses_topic] = PosesObserver(self.ros_node, ns + cfg.obs_manip_poses_topic)
+            # TODO: Refactor the following publishers with the Observer pattern
             self.my_publishers[ns + cfg.plan_topic] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.plan_topic)
             self.my_publishers[ns + cfg.conflicts_check_topic] = self.ros_node.create_publisher(
@@ -826,16 +854,12 @@ class RosPublisher(with_metaclass(Singleton)):
 
     # region Q MANIPS FOR OBS
     def publish_q_manips_for_obs(self, poses, ns=''):
-        full_topic = cfg.obs_manip_poses_topic if not ns else '/' + ns + cfg.obs_manip_poses_topic
-        if self.is_activated(full_topic):
-            pose_array = self.poses_to_poses_array(poses)
-            self.publish(full_topic, pose_array)
+        topic = self.prefix + (cfg.obs_manip_poses_topic if not ns else '/' + ns + cfg.obs_manip_poses_topic)
+        self.observers[topic].update(poses=poses)
 
     def cleanup_q_manips_for_obs(self, ns=''):
-        full_topic = cfg.obs_manip_poses_topic if not ns else '/' + ns + cfg.obs_manip_poses_topic
-        if self.is_activated(full_topic):
-            pose_array = PoseArray(header=Header(frame_id=cfg.main_frame_id, stamp=self.ros_node.get_timestamp()), poses=[])
-            self.publish(full_topic, pose_array)
+        topic = self.prefix + (cfg.obs_manip_poses_topic if not ns else '/' + ns + cfg.obs_manip_poses_topic)
+        self.observers[topic].reset()
     # endregion
 
     # region P_OPT
@@ -1087,10 +1111,6 @@ class RosPublisher(with_metaclass(Singleton)):
                       pose=Pose(position=(Point(x=x, y=y, z=z) if ROS2 else Vector3(x=x, y=y, z=z))))
         return cube
 
-    def geom_quat_from_yaw(self, yaw):
-        explicit_quat = tf_replacement.quaternion_from_euler(0.0, 0.0, math.radians(yaw))
-        return Quaternion(x=explicit_quat[0], y=explicit_quat[1], z=explicit_quat[2], w=explicit_quat[3])
-
     def plan_to_markerarray(self, plan, frame_id, ns):
         markerarray = MarkerArray()
         markers = []
@@ -1143,19 +1163,6 @@ class RosPublisher(with_metaclass(Singleton)):
             marker.points.append(Point(x=real_path[-1][0], y=real_path[-1][1], z=z_index))
             marker.points.append(Point(x=link_point[0], y=link_point[1], z=z_index))
         return marker
-
-    def poses_to_poses_array(self, poses):
-        pose_array = PoseArray(header=self.init_header(), poses=[])
-        for pose in poses:
-            pose_array.poses.append(self.pose_to_ros_pose(pose))
-        return pose_array
-
-    def pose_to_ros_pose(self, pose):
-        x, y ,z = pose[0], pose[1], 0.0
-        return Pose(
-            position=(Point(x=x, y=y, z=z) if ROS2 else Vector3(x=x, y=y, z=z)),
-            orientation=self.geom_quat_from_yaw(pose[2])
-        )
 
     def polygon_to_line_strip(self, polygon, namespace, p_id, frame_id, color, z_index, line_width):
         marker = Marker(type=Marker.LINE_STRIP,
@@ -1228,7 +1235,7 @@ class RosPublisher(with_metaclass(Singleton)):
             type=Marker.TEXT_VIEW_FACING, ns=ns, id=p_id,
             pose=Pose(
                 position=(Point(x=x, y=y, z=z) if ROS2 else Vector3(x=x, y=y, z=z)),
-                orientation=self.geom_quat_from_yaw(pose[2])
+                orientation=geom_quat_from_yaw(pose[2])
             ),
             points=[Point(x=pose[0], y=pose[1], z=z_index)], scale=Vector3(x=0., y=0., z=font_size),
             header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()), color=color, text=message
