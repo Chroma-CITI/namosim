@@ -9,9 +9,6 @@ import mapbox_earcut as earcut
 import copy
 import subprocess
 
-import re
-
-# try:
 import snamosim.display.ros_publisher_config as cfg
 
 if not cfg.deactivate_gui:
@@ -491,14 +488,10 @@ class RosPublisher(with_metaclass(Singleton)):
             self.observers[ns + cfg.test_social_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_social_gridmap_topic)
 
             # TODO: Refactor the following publishers with the Observer pattern
-            self.my_publishers[ns + cfg.stilman_rch_close_set_topic] = self.ros_node.create_publisher(
-                MarkerArray, ns + cfg.stilman_rch_close_set_topic)
             self.my_publishers[ns + cfg.robot_goal_topic] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.robot_goal_topic)
             self.my_publishers[ns + cfg.obs_manip_poses_topic] = self.ros_node.create_publisher(
                 PoseArray, ns + cfg.obs_manip_poses_topic)
-            self.my_publishers[ns + cfg.social_cells_topic] = self.ros_node.create_publisher(
-                Marker, ns + cfg.social_cells_topic)
             self.my_publishers[ns + cfg.plan_topic] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.plan_topic)
             self.my_publishers[ns + cfg.conflicts_check_topic] = self.ros_node.create_publisher(
@@ -821,7 +814,6 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             pose_array = PoseArray(header=Header(frame_id=cfg.main_frame_id, stamp=self.ros_node.get_timestamp()), poses=[])
             self.publish(full_topic, pose_array)
-
     # endregion
 
     # region P_OPT
@@ -929,7 +921,6 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             if q_goal is not None:
                 polygon_at_goal_pose = affinity.translate(polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
-                # ros_pose = pose_to_ros_pose_stamped(q_goal)
                 color = colors.r0_dark_blue
                 if ns == "robot_1":
                     color = colors.r1_dark_green
@@ -948,7 +939,6 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.robot_goal_topic if not ns else '/' + ns + cfg.robot_goal_topic
         if self.is_activated(full_topic):
             self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
-
     # endregion
 
     # region MESSAGE TEXT
@@ -1043,11 +1033,9 @@ class RosPublisher(with_metaclass(Singleton)):
         full_topic = cfg.conflicts_check_topic if not ns else '/' + ns + cfg.conflicts_check_topic
         if self.is_activated(full_topic):
             self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
-
     # endregion
 
     # region EXTRA COMBINED CLEANUP METHODS
-
     def cleanup_all(self):
         self.cleanup_sim_world()
         self.cleanup_message()
@@ -1060,7 +1048,6 @@ class RosPublisher(with_metaclass(Singleton)):
             self.cleanup_social_grid_map(ns=ns)
             self.cleanup_combined_costmap(ns=ns)
             self.cleanup_conflicts_checks(ns=ns)
-
     # endregion
 
     # region CONVERSION TO ROS MSG HELPERS
@@ -1093,22 +1080,6 @@ class RosPublisher(with_metaclass(Singleton)):
                       color=color, scale=Vector3(x=res, y=res, z=res),
                       pose=Pose(position=(Point(x=x, y=y, z=z) if ROS2 else Vector3(x=x, y=y, z=z))))
         return cube
-
-    def grid_cells_to_cube_markerarray(self, grid_cells, res, grid_pose, color, z_index, start_id=0, ns=""):
-        marker_array = MarkerArray()
-        markers = []
-        cur_id = start_id
-        for cell in grid_cells:
-            cur_id += 1
-            x, y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
-            z = z_index
-            cube = Marker(type=Marker.CUBE, ns=ns, id=cur_id,
-                          header=Header(frame_id=cfg.main_frame_id, stamp=self.ros_node.get_timestamp()),
-                          color=color, scale=Vector3(x=res, y=res, z=res),
-                          pose=Pose(position=(Point(x=x, y=y, z=z) if ROS2 else Vector3(x=x, y=y, z=z))))
-            markers.append(cube)
-        marker_array.markers = markers
-        return marker_array, cur_id
 
     def geom_quat_from_yaw(self, yaw):
         explicit_quat = tf_replacement.quaternion_from_euler(0.0, 0.0, math.radians(yaw))
@@ -1180,9 +1151,6 @@ class RosPublisher(with_metaclass(Singleton)):
             orientation=self.geom_quat_from_yaw(pose[2])
         )
 
-    def pose_to_ros_pose_stamped(self, pose):
-        return PoseStamped(header=self.init_header(), pose=self.pose_to_ros_pose(pose))
-
     def polygon_to_line_strip(self, polygon, namespace, p_id, frame_id, color, z_index, line_width):
         marker = Marker(type=Marker.LINE_STRIP,
                         ns=namespace,
@@ -1235,20 +1203,6 @@ class RosPublisher(with_metaclass(Singleton)):
         )
         return marker
 
-    def string_to_text(self, string, coordinates, namespace, p_id, frame_id, color, z_index, text_height):
-        x, y, z = coordinates[0], coordinates[1], z_index
-        marker = Marker(type=Marker.TEXT_VIEW_FACING,
-                        ns=namespace,
-                        id=p_id,
-                        pose=Pose(
-                            position=(Point(x=x, y=y, z=z) if ROS2 else Vector3(x=x, y=y, z=z)),
-                            orientation=Quaternion()),
-                        scale=Vector3(x=0.0, y=0.0, z=text_height),
-                        header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()),
-                        color=color,
-                        text=string)
-        return marker
-
     def make_delete_marker(self, namespace, p_id, frame_id):
         return Marker(ns=namespace, id=p_id, header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()),
                       action=Marker.DELETE)
@@ -1257,11 +1211,6 @@ class RosPublisher(with_metaclass(Singleton)):
         return MarkerArray(
             markers=[
                 Marker(ns=ns, header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()), action=Marker.DELETEALL)])
-
-    def make_entity_delete_markers(self, namespace, p_id, frame_id):
-        return [self.make_delete_marker(namespace + "/polygon", p_id, frame_id),
-                self.make_delete_marker(namespace + "/border", p_id, frame_id),
-                self.make_delete_marker(namespace + "/text", p_id, frame_id)]
 
     def string_to_text_marker(
             self, message="", pose=(0., 0., 0.), ns="", p_id=0, z_index=0., font_size=1., frame_id='/map',
