@@ -492,8 +492,7 @@ class RosPublisher(with_metaclass(Singleton)):
             self.observers[ns + cfg.test_combined_gridmap_topic] = CombinedCostGridMapObserver(self.ros_node, ns + cfg.test_combined_gridmap_topic)
             self.observers[ns + cfg.test_social_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_social_gridmap_topic)
 
-            self.my_publishers[ns + cfg.min_max_inflated_polygons_topic] = self.ros_node.create_publisher(
-                MarkerArray, ns + cfg.min_max_inflated_polygons_topic)
+            # TODO: Refactor the following publishers with the Observer pattern
             self.my_publishers[ns + cfg.path_grid_cells_topic] = self.ros_node.create_publisher(
                 Marker, ns + cfg.path_grid_cells_topic)
             self.my_publishers[ns + cfg.a_star_open_heap_topic] = self.ros_node.create_publisher(
@@ -510,14 +509,15 @@ class RosPublisher(with_metaclass(Singleton)):
                 MarkerArray, ns + cfg.robot_goal_topic)
             self.my_publishers[ns + cfg.obs_manip_poses_topic] = self.ros_node.create_publisher(
                 PoseArray, ns + cfg.obs_manip_poses_topic)
-            self.my_publishers[ns + cfg.robot_sim_topic] = self.ros_node.create_publisher(
-                MarkerArray, ns + cfg.robot_sim_topic, cfg.default_queue_size)
             self.my_publishers[ns + cfg.social_cells_topic] = self.ros_node.create_publisher(
                 Marker, ns + cfg.social_cells_topic)
             self.my_publishers[ns + cfg.plan_topic] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.plan_topic)
             self.my_publishers[ns + cfg.conflicts_check_topic] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.conflicts_check_topic)
+            # TODO: Last publisher to refactor, as it requires separating it into smaller meaningful units
+            self.my_publishers[ns + cfg.robot_sim_topic] = self.ros_node.create_publisher(
+                MarkerArray, ns + cfg.robot_sim_topic, cfg.default_queue_size)
 
         # HACK: Necessary because ROS1 pub/sub system is not really reliable : wait a second for subscribers to listen
         time.sleep(cfg.hack_duration_wait)
@@ -1016,18 +1016,6 @@ class RosPublisher(with_metaclass(Singleton)):
             self.publish(full_topic,
                          self.make_delete_all_marker(cfg.main_frame_id, '/diameter_inflated_polygon'))
 
-    def publish_min_max_inflated(self, min_inflated_polygon, max_inflated_polygon, ns=''):
-        full_topic = cfg.min_max_inflated_polygons_topic if not ns else '/' + ns + cfg.min_max_inflated_polygons_topic
-        if self.is_activated(full_topic):
-            marker_array = MarkerArray(markers=[
-                self.polygon_to_line_strip(min_inflated_polygon, "/min_inflated_polygon", 0, cfg.main_frame_id,
-                                           colors.min_inflated_polygon_border_color,
-                                           cfg.entities_z_index, cfg.border_width),
-                self.polygon_to_line_strip(max_inflated_polygon, "/max_inflated_polygon", 0, cfg.main_frame_id,
-                                           colors.max_inflated_polygon_border_color,
-                                           cfg.entities_z_index, cfg.border_width)])
-            self.publish(full_topic, marker_array)
-
     def publish_debug_polygons(self, polygons, ns=''):
         # FIXME Not implemented correctly in ROS...
         #  https://answers.ros.org/question/263031/delete-all-rviz-markers-in-a-specific-namespace/
@@ -1043,11 +1031,6 @@ class RosPublisher(with_metaclass(Singleton)):
         if self.is_activated(full_topic):
             self.publish(full_topic,
                          self.make_delete_all_marker(cfg.main_frame_id, '/debug/polygons'))
-
-    def cleanup_min_max_inflated(self, ns=''):
-        full_topic = cfg.min_max_inflated_polygons_topic if not ns else '/' + ns + cfg.min_max_inflated_polygons_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, self.make_delete_marker("", 0, cfg.main_frame_id))
 
     def cleanup_robot_sim(self, ns=''):
         full_topic = cfg.robot_sim_topic if not ns else '/' + ns + cfg.robot_sim_topic
@@ -1191,7 +1174,6 @@ class RosPublisher(with_metaclass(Singleton)):
             self.cleanup_p_opt(ns=ns)
             self.cleanup_q_manips_for_obs(ns=ns)
             self.cleanup_goal(ns=ns)
-            self.cleanup_min_max_inflated(ns=ns)
             self.cleanup_a_star_open_heap(ns=ns)
             self.cleanup_a_star_close_set(ns=ns)
             self.cleanup_multigoal_a_star_open_heap(ns=ns)
