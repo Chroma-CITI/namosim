@@ -3075,7 +3075,7 @@ class Stilman2005Behavior(BaselineBehavior):
                   normalized_distance_cost, sorted_cell_to_combined_cost, normalized_distance_to_goal=None):
         stocg.display_or_log(
             np.invert(
-                inflated_grid_by_obstacle.grid.astype(np.bool)
+                inflated_grid_by_obstacle.grid.astype(bool)
             ),
             "-obs_inf_grid", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
