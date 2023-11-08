@@ -99,14 +99,12 @@ def multi_goal_astar(grid, start_cell, goals, res, grid_pose, reverse=True, rest
     # Initially, only the start node is known.
     heappush(open_heap, CellHeapNode(fscore[start_cell], start_cell))
 
-    # rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose, ns=ns)
 
     # While open_heap is not empty == While there are discovered nodes that have not been evaluated
     while open_heap:
 
         # The node in open_heap having the lowest fScore[] value
         current = heappop(open_heap).cell
-        # rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose, ns=ns)
 
         # Exit early if goal set has been reached
         if not to_evaluate_set:
@@ -120,7 +118,6 @@ def multi_goal_astar(grid, start_cell, goals, res, grid_pose, reverse=True, rest
                 to_evaluate_set.remove(current)
                 # TODO CHECK IF OPEN HEAP NODES NEED TO HAVE THEIR COST UPDATED SINCE COST IS MIN OF ALL GOAL_CELLS,
                 #  SO IF WE REMOVE ONE, COST OF MANY OTHERS MAY CHANGE !
-        rp.publish_multigoal_a_star_close_set(close_set, res, grid_pose, ns=ns)
 
         # For each neighbor of current node in the defined neighborhood
         for i, j in neighborhood:
@@ -148,15 +145,12 @@ def multi_goal_astar(grid, start_cell, goals, res, grid_pose, reverse=True, rest
                     gscore[neighbor] = tentative_g_score
                     fscore[neighbor] = tentative_g_score + _multi_heuristic_cost_estimate(neighbor, to_evaluate_set)
                     heappush(open_heap, CellHeapNode(fscore[neighbor], neighbor))
-                    # rp.publish_multigoal_a_star_open_heap(open_heap, res, grid_pose, ns=ns)
 
     paths = []
     for goal_cell in goals:
         try:
             paths.append((gscore[goal_cell], _shortest_path(start_cell, goal_cell, came_from, reverse)))
-            # rp.publish_grid_path(paths[goal_cell][1], res, grid_pose, ns=ns)
         except KeyError:
             paths.append((float("inf"), []))
 
-    rp.publish_multigoal_a_star_close_set(close_set, res, grid_pose, ns=ns)
     return paths

@@ -60,8 +60,6 @@ from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryOccu
 
 class NamespaceCache:
     def __init__(self):
-        self.prev_a_star_close_set, self.prev_multigoal_a_star_close_set = set(), set()
-        self.a_star_close_set_start_id, self.multigoal_a_star_close_set_start_id = 1, 1
         self.current_cell_to_marker = dict()
         self.current_cell_marker_current_id = 1
         self.cells_to_path_marker = dict()
@@ -493,14 +491,6 @@ class RosPublisher(with_metaclass(Singleton)):
             self.observers[ns + cfg.test_social_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_social_gridmap_topic)
 
             # TODO: Refactor the following publishers with the Observer pattern
-            self.my_publishers[ns + cfg.a_star_open_heap_topic] = self.ros_node.create_publisher(
-                Marker, ns + cfg.a_star_open_heap_topic)
-            self.my_publishers[ns + cfg.a_star_close_set_topic] = self.ros_node.create_publisher(
-                MarkerArray, ns + cfg.a_star_close_set_topic)
-            self.my_publishers[ns + cfg.multi_a_star_open_heap_topic] = self.ros_node.create_publisher(
-                Marker, ns + cfg.multi_a_star_open_heap_topic)
-            self.my_publishers[ns + cfg.multi_a_star_close_set_topic] = self.ros_node.create_publisher(
-                MarkerArray, ns + cfg.multi_a_star_close_set_topic)
             self.my_publishers[ns + cfg.stilman_rch_close_set_topic] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.stilman_rch_close_set_topic)
             self.my_publishers[ns + cfg.robot_goal_topic] = self.ros_node.create_publisher(
@@ -633,96 +623,6 @@ class RosPublisher(with_metaclass(Singleton)):
     def cleanup_connected_components_grid(self, ns=''):
         topic = self.prefix + (cfg.test_connected_components_topic if not ns else '/' + ns + cfg.test_connected_components_topic)
         self.observers[topic].reset()
-    # endregion
-
-    # region A STAR OPEN HEAP
-    def publish_a_star_open_heap(self, open_heap, res, grid_pose, ns=''):
-        full_topic = cfg.a_star_open_heap_topic if not ns else '/' + ns + cfg.a_star_open_heap_topic
-        if self.is_activated(full_topic):
-            open_heap_data = []
-            for element in open_heap:
-                open_heap_data.append(element.cell)
-            open_heap_cells = self.grid_cells_to_cube_list_markers(
-                open_heap_data, res, grid_pose, color=colors.flashy_cyan)
-            self.publish(full_topic, open_heap_cells)
-
-    def cleanup_a_star_open_heap(self, ns=''):
-        full_topic = cfg.a_star_open_heap_topic if not ns else '/' + ns + cfg.a_star_open_heap_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, self.make_delete_marker("", 0, cfg.main_frame_id))
-
-    # endregion
-
-    # region A STAR CLOSE SET
-    def publish_a_star_close_set(self, close_set, res, grid_pose, ns=''):
-        full_topic = cfg.a_star_close_set_topic if not ns else '/' + ns + cfg.a_star_close_set_topic
-        if self.is_activated(full_topic):
-            new_cells = close_set.difference(self.namespaces_caches[ns].prev_a_star_close_set)
-            # self.a_star_close_set_cube_list = self.grid_cells_to_cube_list_markers(
-            #     new_cells, res, grid_pose, cfg.unknown_obstacle_color, self.a_star_close_set_cube_list)
-            marker_array, self.namespaces_caches[ns].a_star_close_set_start_id = self.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, colors.dark_purple, 0.9,
-                self.namespaces_caches[ns].a_star_close_set_start_id)
-            self.namespaces_caches[ns].prev_a_star_close_set = copy.copy(close_set)
-            # self.publish(full_topic, self.a_star_close_set_cube_list)
-            self.publish(full_topic, marker_array)
-
-    def cleanup_a_star_close_set(self, ns=''):
-        full_topic = cfg.a_star_close_set_topic if not ns else '/' + ns + cfg.a_star_close_set_topic
-        if self.is_activated(full_topic):
-            self.namespaces_caches[ns].prev_a_star_close_set = set()
-            # self.namespaces_caches[ns].a_star_close_set_cube_list = None
-            self.namespaces_caches[ns].a_star_close_set_start_id = 1
-            self.publish(full_topic, self.make_delete_all_marker(
-                cfg.main_frame_id))  # self.make_delete_marker("", 0, cfg.main_frame_id))
-
-    def publish_social_cells(self, social_cells_set, res, grid_pose, ns=''):
-        full_topic = cfg.social_cells_topic if not ns else '/' + ns + cfg.social_cells_topic
-        if self.is_activated(full_topic):
-            ros_cells = self.grid_cells_to_cube_list_markers(
-                list(social_cells_set), res, grid_pose, color=colors.flashy_purple)
-            self.publish(full_topic, ros_cells)
-
-    # endregion
-
-    # region MULTIGOAL A STAR OPEN HEAP
-    def publish_multigoal_a_star_open_heap(self, open_heap, res, grid_pose, ns=''):
-        full_topic = cfg.multi_a_star_open_heap_topic if not ns else '/' + ns + cfg.multi_a_star_open_heap_topic
-        if self.is_activated(full_topic):
-            open_heap_data = []
-            for element in open_heap:
-                open_heap_data.append(element.cell)
-            open_heap_cells = self.grid_cells_to_cube_list_markers(
-                open_heap_data, res, grid_pose, color=colors.flashy_cyan)
-            self.publish(full_topic, open_heap_cells)
-
-    def cleanup_multigoal_a_star_open_heap(self, ns=''):
-        full_topic = cfg.multi_a_star_open_heap_topic if not ns else '/' + ns + cfg.multi_a_star_open_heap_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, self.make_delete_marker("", 0, cfg.main_frame_id))
-
-    # endregion
-
-    # region MULTIGOAL A STAR CLOSE SET
-    def publish_multigoal_a_star_close_set(self, close_set, res, grid_pose, ns=''):
-        full_topic = cfg.multi_a_star_close_set_topic if not ns else '/' + ns + cfg.multi_a_star_close_set_topic
-        if self.is_activated(full_topic):
-            new_cells = close_set.difference(self.namespaces_caches[ns].prev_multigoal_a_star_close_set)
-            marker_array, self.namespaces_caches[
-                ns].multigoal_a_star_close_set_start_id = self.grid_cells_to_cube_markerarray(
-                new_cells, res, grid_pose, colors.dark_blue, 0.9,
-                self.namespaces_caches[ns].multigoal_a_star_close_set_start_id)
-            self.namespaces_caches[ns].prev_multigoal_a_star_close_set = copy.copy(close_set)
-            self.publish(full_topic, marker_array)
-
-    def cleanup_multigoal_a_star_close_set(self, ns=''):
-        full_topic = cfg.multi_a_star_close_set_topic if not ns else '/' + ns + cfg.multi_a_star_close_set_topic
-        if self.is_activated(full_topic):
-            self.namespaces_caches[ns].prev_multigoal_a_star_close_set = set()
-            self.namespaces_caches[ns].multigoal_a_star_close_set_start_id = 1
-            self.publish(full_topic, self.make_delete_all_marker(
-                cfg.main_frame_id))  # self.make_delete_marker("", 0, cfg.main_frame_id))
-
     # endregion
 
     # region STILMAN 2005 RCH DATA
@@ -1157,10 +1057,6 @@ class RosPublisher(with_metaclass(Singleton)):
             self.cleanup_p_opt(ns=ns)
             self.cleanup_q_manips_for_obs(ns=ns)
             self.cleanup_goal(ns=ns)
-            self.cleanup_a_star_open_heap(ns=ns)
-            self.cleanup_a_star_close_set(ns=ns)
-            self.cleanup_multigoal_a_star_open_heap(ns=ns)
-            self.cleanup_multigoal_a_star_close_set(ns=ns)
             self.cleanup_social_grid_map(ns=ns)
             self.cleanup_combined_costmap(ns=ns)
             self.cleanup_conflicts_checks(ns=ns)
