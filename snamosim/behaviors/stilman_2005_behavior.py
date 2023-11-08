@@ -1111,7 +1111,7 @@ class DynamicPlan(Plan):
         return self.plan_counter < nb_max_tries
 
     def can_even_be_found(self):
-        if self.plan_error and self.plan_error is "start_or_goal_cell_in_static_obstacle_error":
+        if self.plan_error and self.plan_error == "start_or_goal_cell_in_static_obstacle_error":
             return False
         return True
 
@@ -1130,12 +1130,13 @@ class DynamicPlan(Plan):
             else:
                 return ba.Wait()
         else:
+            duration = random.randint(t_min, t_max)
             simulation_log.append(utils.BasicLog(
                 "Agent {}: Starting postponement of current plan for {} steps because conflicts: {}.".format(
-                    robot_name, t_max, conflicts), step_count
+                    robot_name, duration, conflicts), step_count
             ))
-            self.timer.start_timer(step_count, t_max)
-            self.postponements_history[step_count] = t_max
+            self.timer.start_timer(step_count, duration)
+            self.postponements_history[step_count] = duration
             return ba.Wait()
 
     # def postpone(self, t_min, t_max, step_count):
@@ -3038,9 +3039,10 @@ class Stilman2005Behavior(BaselineBehavior):
             )
             for cell in acc_cells_for_obs])
 
-        normalized_social_cost = (social_cost - np.min(social_cost)) / np.ptp(social_cost)
-        normalized_distance_cost = (distance_cost - np.min(distance_cost)) / np.ptp(distance_cost)
-        normalized_distance_to_goal = (distance_to_goal - np.min(distance_to_goal)) / np.ptp(distance_to_goal)
+
+        normalized_social_cost = social_cost if len(social_cost) == 1 else (social_cost - np.min(social_cost)) / np.ptp(social_cost)
+        normalized_distance_cost = distance_cost if len(distance_cost) == 1 else (distance_cost - np.min(distance_cost)) / np.ptp(distance_cost)
+        normalized_distance_to_goal = distance_to_goal if len(distance_to_goal) == 1 else (distance_to_goal - np.min(distance_to_goal)) / np.ptp(distance_to_goal)
 
         combined_cost = (self.w_social * normalized_social_cost
                          + self.w_obs * normalized_distance_cost
@@ -3067,7 +3069,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if self.activate_grids_logging:
             self.log_grids(inflated_grid_by_obstacle, acc_cells_for_obs, normalized_social_cost,
-                  normalized_distance_cost, normalized_distance_to_goal, sorted_cell_to_combined_cost)
+                  normalized_distance_cost, sorted_cell_to_combined_cost, normalized_distance_to_goal)
 
         return cells_sorted_by_combined_cost, sorted_cell_to_combined_cost
 
@@ -3094,7 +3096,7 @@ class Stilman2005Behavior(BaselineBehavior):
             cell = acc_cells_for_obs[i]
             normalized_social_cost_costmap[cell[0]][cell[1]] = normalized_social_cost[i]
             normalized_distance_from_obs_costmap[cell[0]][cell[1]] = normalized_distance_cost[i]
-            if normalized_distance_to_goal:
+            if normalized_distance_to_goal is not None:
                 normalized_distance_from_goal_costmap[cell[0]][cell[1]] = normalized_distance_to_goal[i]
 
         stocg.display_or_log(
@@ -3103,7 +3105,7 @@ class Stilman2005Behavior(BaselineBehavior):
         stocg.display_or_log(
             normalized_distance_from_obs_costmap, "-n_d_to_obs_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)
-        if normalized_distance_to_goal:
+        if normalized_distance_to_goal is not None:
             stocg.display_or_log(
                 normalized_distance_from_goal_costmap, "-n_d_to_goal_costmap", time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
                 debug_display=False, log_costmaps=True, abs_path_to_logs_dir=self.abs_path_to_logs_dir)

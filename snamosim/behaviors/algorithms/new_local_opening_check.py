@@ -36,7 +36,7 @@ def check_new_local_opening(init_entity_polygon, target_entity_polygon,
                 if isinstance(intersection_geometry, Polygon):
                     init_blocking_areas.append(intersection_geometry)
                 elif isinstance(intersection_geometry, MultiPolygon):
-                    for sub_intersection_geometry in intersection_geometry:
+                    for sub_intersection_geometry in intersection_geometry.geoms:
                         init_blocking_areas.append(sub_intersection_geometry)
 
     # If there are no blocking areas to begin with, return True

@@ -1150,7 +1150,8 @@ class RosPublisher(with_metaclass(Singleton)):
                 if counter > check_horizon:
                     break
                 key = (index,)
-                horizon_csv_polygons.append(robot_csv_polygons[key])
+                if key in robot_csv_polygons:
+                    horizon_csv_polygons.append(robot_csv_polygons[key])
                 if key in obstacle_csv_polygons:
                     horizon_csv_polygons.append(obstacle_csv_polygons[key])
             markers = []

@@ -6,7 +6,7 @@ from snamosim.utils import utils
 import os
 import time
 from PIL import Image
-from matplotlib import cm
+from matplotlib import colormaps as cm
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
