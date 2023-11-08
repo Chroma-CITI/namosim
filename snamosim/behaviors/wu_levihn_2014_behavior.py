@@ -41,7 +41,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                 self._q_goal = self._navigation_goals.pop(0)
                 self._world = copy.deepcopy(self._initial_world) if self._reset_knowledge_activated else self._world
                 q_r = self._robot.pose
-                self._rp.publish_goal(q_r, self._q_goal, self._robot.polygon, ns=self._robot_name)
+                self._rp.publish_goal(q_r, self._q_goal, self._robot, ns=self._robot_name)
 
                 self._e_l, self._m_l = [], []
                 self._last_action_result = None

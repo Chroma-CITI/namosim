@@ -446,6 +446,28 @@ class CombinedCostGridMapObserver(GridMapObserver):
         return grid_map
 
 
+class GoalObserver(RosObserver):
+    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=MarkerArray):
+        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
+
+    def convert(self, **kwargs):
+        q_init, q_goal, entity = kwargs['q_init'], kwargs['q_goal'], kwargs['entity']
+        if q_goal is None:
+            return MarkerArray()
+        else:
+            polygon_at_goal_pose = affinity.translate(entity.polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
+            color = ColorRGBA(**colors.hex_to_rgba(entity.style.fill))
+            marker_array = MarkerArray(
+                markers=[polygon_to_line_strip(
+                    polygon_at_goal_pose, "/polygon", 0, cfg.main_frame_id, color, cfg.fov_z_index, cfg.border_width
+                )]
+            )
+            return marker_array
+
+    def reset(self, reset_msg=None):
+        RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
+
+
 class RosPublisher(with_metaclass(Singleton)):
     def __init__(self, simulator=None, prefix_topics_with_node_name=False):
         if simulator is None:
@@ -488,8 +510,8 @@ class RosPublisher(with_metaclass(Singleton)):
             self.observers[ns + cfg.test_social_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_social_gridmap_topic)
 
             # TODO: Refactor the following publishers with the Observer pattern
-            self.my_publishers[ns + cfg.robot_goal_topic] = self.ros_node.create_publisher(
-                MarkerArray, ns + cfg.robot_goal_topic)
+            self.observers[ns + cfg.robot_goal_topic] = GoalObserver(self.ros_node, ns + cfg.robot_goal_topic)
+
             self.my_publishers[ns + cfg.obs_manip_poses_topic] = self.ros_node.create_publisher(
                 PoseArray, ns + cfg.obs_manip_poses_topic)
             self.my_publishers[ns + cfg.plan_topic] = self.ros_node.create_publisher(
@@ -916,29 +938,13 @@ class RosPublisher(with_metaclass(Singleton)):
     # endregion
 
     # region GOAL
-    def publish_goal(self, q_init, q_goal, polygon, ns=''):
-        full_topic = cfg.robot_goal_topic if not ns else '/' + ns + cfg.robot_goal_topic
-        if self.is_activated(full_topic):
-            if q_goal is not None:
-                polygon_at_goal_pose = affinity.translate(polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
-                color = colors.r0_dark_blue
-                if ns == "robot_1":
-                    color = colors.r1_dark_green
-                elif ns == "robot_2":
-                    color = colors.r2_dark_pink
-                elif ns == "robot_3":
-                    color = colors.r3_dark_red
-                marker_array = MarkerArray(markers=[
-                    self.polygon_to_line_strip(polygon_at_goal_pose, "/polygon", 0, cfg.main_frame_id,
-                                               color, cfg.fov_z_index, cfg.border_width)])
-                # pose_to_arrow(q_goal, "/pose", 0, self.frame_id, self.robot_border_color,
-                #               self.entities_z_index, 0.5, 0.2, 0.0)])
-                self.publish(full_topic, marker_array)
+    def publish_goal(self, q_init, q_goal, entity, ns=''):
+        topic = self.prefix + (cfg.robot_goal_topic if not ns else '/' + ns + cfg.robot_goal_topic)
+        self.observers[topic].update(q_init=q_init, q_goal=q_goal, entity=entity)
 
     def cleanup_goal(self, ns=''):
-        full_topic = cfg.robot_goal_topic if not ns else '/' + ns + cfg.robot_goal_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
+        topic = self.prefix + (cfg.robot_goal_topic if not ns else '/' + ns + cfg.robot_goal_topic)
+        self.observers[topic].reset()
     # endregion
 
     # region MESSAGE TEXT

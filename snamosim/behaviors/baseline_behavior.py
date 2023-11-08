@@ -53,7 +53,7 @@ class BaselineBehavior(object):
     def _q_goal(self, _q_goal):
         self.__q_goal = _q_goal
         if _q_goal is not None:
-            self._rp.publish_goal(self._robot.pose, self.__q_goal, self._robot.polygon, ns=self._robot_name)
+            self._rp.publish_goal(self._robot.pose, self.__q_goal, self._robot, ns=self._robot_name)
 
     @property
     def _p_opt(self):
