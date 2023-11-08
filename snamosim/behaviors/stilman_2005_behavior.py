@@ -1467,7 +1467,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             ))
                             plan.update_plan(Plan([evasion_path], goal, self._robot_uid), step_count)
                             self._rp.cleanup_p_opt(ns=self._robot_name)
-                            self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+                            self._rp.publish_p_opt(self._p_opt, self._robot, ns=self._robot_name)
                             return plan.pop_next_step()
                         else:
                             self.simulation_log.append(utils.BasicLog(
@@ -1516,7 +1516,7 @@ class Stilman2005Behavior(BaselineBehavior):
             inflated_grid_by_robot.activate_entities(dynamic_entities)
             plan.update_plan(p, step_count)
             self._rp.cleanup_p_opt(ns=self._robot_name)
-            self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+            self._rp.publish_p_opt(self._p_opt, self._robot, ns=self._robot_name)
 
             if not plan.exists():
                 self.simulation_log.append(utils.BasicLog(
@@ -1609,7 +1609,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
                             plan.update_plan(p, step_count)
                             self._rp.cleanup_p_opt(ns=self._robot_name)
-                            self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+                            self._rp.publish_p_opt(self._p_opt, self._robot, ns=self._robot_name)
 
                             conflicts = plan.get_conflicts(w_t, inflated_grid_by_robot, step_count, fov,
                                                            rp=self._rp, robot_name=self._robot_name)

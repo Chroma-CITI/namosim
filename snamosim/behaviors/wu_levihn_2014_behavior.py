@@ -49,7 +49,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                 self._p_opt = Plan(
                     [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose, ns=self._robot_name))],
                     self._q_goal)
-                self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+                self._rp.publish_p_opt(self._p_opt, self._robot, ns=self._robot_name)
 
             q_r = self._robot.pose
 
@@ -83,7 +83,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                     [Path(a_star_real_path(grid, q_r, self._q_goal, self._world.dd.res, self._world.dd.grid_pose, ns=self._robot_name))],
                     self._q_goal
                 )
-                self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+                self._rp.publish_p_opt(self._p_opt, self._robot, ns=self._robot_name)
                 self.make_plan(q_r, self._q_goal)
 
             if not self._p_opt.is_empty():
@@ -223,7 +223,7 @@ class WuLevihn2014Behavior(BaselineBehavior):
                                     if p.total_cost < self._p_opt.total_cost:
                                         self._p_opt = p
                                         self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)
-                                        self._rp.publish_p_opt(self._p_opt, ns=self._robot_name)
+                                        self._rp.publish_p_opt(self._p_opt, self._robot, ns=self._robot_name)
 
                             world_copy.translate_entity(o_uid, -total_translation)
                             # self._rp.publish_robot_sim_costmap(world_copy, self._robot_uid)

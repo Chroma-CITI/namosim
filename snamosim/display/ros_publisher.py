@@ -258,6 +258,48 @@ def poses_to_poses_array(poses, stamp=Time()):
     return pose_array
 
 
+def real_path_to_linestrip(real_path, namespace, p_id, frame_id, color, line_width, z_index, link_point=None, stamp=Time()):
+    marker = Marker(type=Marker.LINE_STRIP,
+                    ns=namespace,
+                    id=p_id,
+                    header=Header(frame_id=frame_id, stamp=stamp),
+                    color=color,
+                    scale=Vector3(x=line_width, y=0.0, z=0.0),
+                    points=[])
+    for i in range(len(real_path) - 1):
+        point = real_path[i]
+        next_point = real_path[i + 1]
+        marker.points.append(Point(x=point[0], y=point[1], z=z_index))
+        marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))
+    if link_point:
+        marker.points.append(Point(x=real_path[-1][0], y=real_path[-1][1], z=z_index))
+        marker.points.append(Point(x=link_point[0], y=link_point[1], z=z_index))
+    return marker
+
+
+def plan_to_markerarray(plan, robot, frame_id, stamp=Time()):
+    markerarray = MarkerArray()
+    markers = []
+    p_id = 0
+    for component in plan.path_components:
+        current_color = ColorRGBA(**colors.hex_to_rgba(robot.style.fill))
+        if component.is_transfer:
+            current_color = ColorRGBA(**colors.hex_to_rgba(colors.darken(robot.style.fill)))
+            obstacle_end_polygon_marker = polygon_to_line_strip(
+                component.obstacle_path.polygons[-1], '/end_obstacles', p_id, frame_id, current_color,
+                cfg.path_line_z_index, cfg.border_width
+            )
+            markers.append(obstacle_end_polygon_marker)
+        path_marker = real_path_to_linestrip(
+            component.robot_path.poses, '/plan', p_id, frame_id, current_color, cfg.path_line_width,
+            cfg.path_line_z_index, stamp=stamp
+        )
+        markers.append(path_marker)
+        p_id += 1
+    markerarray.markers = markers
+    return markerarray
+
+
 def make_delete_marker(namespace, p_id, frame_id, stamp=Time()):
     return Marker(
         ns=namespace, id=p_id, header=Header(frame_id=frame_id, stamp=stamp),
@@ -476,7 +518,7 @@ class GoalObserver(RosObserver):
             return MarkerArray()
         else:
             polygon_at_goal_pose = affinity.translate(entity.polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1])
-            color = ColorRGBA(**colors.hex_to_rgba(entity.style.fill))
+            color = ColorRGBA(**colors.hex_to_rgba(colors.darken(entity.style.fill)))
             marker_array = MarkerArray(
                 markers=[polygon_to_line_strip(
                     polygon_at_goal_pose, "/polygon", 0, cfg.main_frame_id, color, cfg.fov_z_index, cfg.border_width
@@ -498,6 +540,18 @@ class PosesObserver(RosObserver):
 
     def reset(self, reset_msg=None):
         RosObserver.reset(self, PoseArray(header=init_header(self.node.get_timestamp()), poses=[]))
+
+
+class PlanObserver(RosObserver):
+    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=MarkerArray):
+        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
+
+    def convert(self, **kwargs):
+        plan, robot = kwargs['plan'], kwargs['robot']
+        return plan_to_markerarray(plan, robot, cfg.main_frame_id, stamp=self.node.get_timestamp())
+
+    def reset(self, reset_msg=None):
+        RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
 
 
 class RosPublisher(with_metaclass(Singleton)):
@@ -541,9 +595,8 @@ class RosPublisher(with_metaclass(Singleton)):
             self.observers[ns + cfg.test_social_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_social_gridmap_topic)
             self.observers[ns + cfg.robot_goal_topic] = GoalObserver(self.ros_node, ns + cfg.robot_goal_topic)
             self.observers[ns + cfg.obs_manip_poses_topic] = PosesObserver(self.ros_node, ns + cfg.obs_manip_poses_topic)
-            # TODO: Refactor the following publishers with the Observer pattern
-            self.my_publishers[ns + cfg.plan_topic] = self.ros_node.create_publisher(
-                MarkerArray, ns + cfg.plan_topic)
+            self.observers[ns + cfg.plan_topic] = PlanObserver(self.ros_node, ns + cfg.plan_topic)
+            # TODO: Refactor the following publisher with the Observer pattern
             self.my_publishers[ns + cfg.conflicts_check_topic] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.conflicts_check_topic)
             # TODO: Last publisher to refactor, as it requires separating it into smaller meaningful units
@@ -729,7 +782,7 @@ class RosPublisher(with_metaclass(Singleton)):
                     cur_pose = utils.grid_to_real(current.cell[0], current.cell[1], res, grid_pose)
                     from_pose = utils.grid_to_real(came_from[current].cell[0], came_from[current].cell[1], res,
                                                    grid_pose)
-                    came_from_marker = self.real_path_to_linestrip(
+                    came_from_marker = real_path_to_linestrip(
                         [cur_pose, from_pose],
                         '/rch_came_from', _id, cfg.main_frame_id, ColorRGBA(r=color.r, g=color.g, b=color.b, a=1.),
                         res / 10., cfg.path_line_z_index
@@ -838,7 +891,7 @@ class RosPublisher(with_metaclass(Singleton)):
             #         _id = self.namespaces_caches[ns].cells_path_marker_current_id
             #         cur_pose = utils.grid_to_real(current.cell[0], current.cell[1], res, grid_pose)
             #         from_pose = utils.grid_to_real(came_from[current].cell[0], came_from[current].cell[1], res, grid_pose)
-            #         came_from_marker = self.real_path_to_linestrip(
+            #         came_from_marker = real_path_to_linestrip(
             #             [cur_pose, from_pose],
             #             '/manip_search_came_from', _id, cfg.main_frame_id, ColorRGBA(color.r, color.g, color.b, 1.),
             #             res / 10., cfg.path_line_z_index
@@ -863,16 +916,13 @@ class RosPublisher(with_metaclass(Singleton)):
     # endregion
 
     # region P_OPT
-    def publish_p_opt(self, plan, ns=''):
-        full_topic = cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic
-        if plan and plan.path_components:
-            if self.is_activated(full_topic):
-                self.publish(full_topic, self.plan_to_markerarray(plan, cfg.main_frame_id, ns))
+    def publish_p_opt(self, plan, robot, ns=''):
+        topic = self.prefix + (cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic)
+        self.observers[topic].update(plan=plan, robot=robot)
 
     def cleanup_p_opt(self, ns=''):
-        full_topic = cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic
-        if self.is_activated(full_topic):
-            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
+        topic = self.prefix + (cfg.plan_topic if not ns else '/' + ns + cfg.plan_topic)
+        self.observers[topic].reset()
     # endregion
 
     # region ROBOT SIM
@@ -1110,59 +1160,6 @@ class RosPublisher(with_metaclass(Singleton)):
                       color=color, scale=Vector3(x=res, y=res, z=res),
                       pose=Pose(position=(Point(x=x, y=y, z=z) if ROS2 else Vector3(x=x, y=y, z=z))))
         return cube
-
-    def plan_to_markerarray(self, plan, frame_id, ns):
-        markerarray = MarkerArray()
-        markers = []
-        p_id = 0
-        for component in plan.path_components:
-            current_color = colors.r0_light_blue
-            if ns == "robot_1":
-                current_color = colors.r1_light_green
-            elif ns == "robot_2":
-                current_color = colors.r2_light_pink
-            elif ns == "robot_3":
-                current_color = colors.r3_light_red
-            if component.is_transfer:
-                current_color = colors.r0_dark_blue
-                if ns == "robot_1":
-                    current_color = colors.r1_dark_green
-                elif ns == "robot_2":
-                    current_color = colors.r2_dark_pink
-                elif ns == "robot_3":
-                    current_color = colors.r3_dark_red
-                obstacle_end_polygon_marker = self.polygon_to_line_strip(
-                    component.obstacle_path.polygons[-1], '/end_obstacles', p_id, frame_id, current_color,
-                    cfg.path_line_z_index, cfg.border_width
-                )
-                markers.append(obstacle_end_polygon_marker)
-            path_marker = self.real_path_to_linestrip(
-                component.robot_path.poses, '/plan', p_id, frame_id, current_color, cfg.path_line_width,
-                cfg.path_line_z_index)
-            markers.append(path_marker)
-            p_id += 1
-        markerarray.markers = markers
-        return markerarray
-
-    # def real_path_to_pose_markers(real_path, )
-
-    def real_path_to_linestrip(self, real_path, namespace, p_id, frame_id, color, line_width, z_index, link_point=None):
-        marker = Marker(type=Marker.LINE_STRIP,
-                        ns=namespace,
-                        id=p_id,
-                        header=Header(frame_id=frame_id, stamp=self.ros_node.get_timestamp()),
-                        color=color,
-                        scale=Vector3(x=line_width, y=0.0, z=0.0),
-                        points=[])
-        for i in range(len(real_path) - 1):
-            point = real_path[i]
-            next_point = real_path[i + 1]
-            marker.points.append(Point(x=point[0], y=point[1], z=z_index))
-            marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))
-        if link_point:
-            marker.points.append(Point(x=real_path[-1][0], y=real_path[-1][1], z=z_index))
-            marker.points.append(Point(x=link_point[0], y=link_point[1], z=z_index))
-        return marker
 
     def polygon_to_line_strip(self, polygon, namespace, p_id, frame_id, color, z_index, line_width):
         marker = Marker(type=Marker.LINE_STRIP,

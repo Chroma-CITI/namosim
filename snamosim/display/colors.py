@@ -2,8 +2,8 @@ import colorsys
 from std_msgs.msg import ColorRGBA
 
 
-def hex_to_rgba(hex_string):
-    hex_string = hex_string.lstrip('#')
+def hex_to_rgba(hex_string_in):
+    hex_string = hex_string_in.lstrip('#')
     if len(hex_string) == 6:
         argb_tuple = tuple([1.] + list(int(hex_string[i:i + 2], 16) / 255. for i in (0, 2, 4)))
     elif len(hex_string) == 8:
@@ -59,6 +59,19 @@ def blend_colors(colorRGBA1, colorRGBA2):
     green = (colorRGBA1.g * (1. - colorRGBA2.a) + colorRGBA2.g * colorRGBA2.a)
     blue = (colorRGBA1.b * (1. - colorRGBA2.a) + colorRGBA2.b * colorRGBA2.a)
     return ColorRGBA(r=red, g=green, b=blue, a=alpha)
+
+
+def rgba_to_hex(r, g, b, a):
+    return '#%02x%02x%02x%02x' % (int(a * 255), int(r * 255), int(g * 255), int(b * 255))
+
+
+def darken(hex_string, multiplier=0.8):
+    rgba_dict = hex_to_rgba(hex_string)
+    hsv = colorsys.rgb_to_hsv(rgba_dict['r'], rgba_dict['g'], rgba_dict['b'])
+    darker_v = min(1., max(0., hsv[2] * multiplier))
+    darker_rgb = colorsys.hsv_to_rgb(hsv[0], hsv[1], darker_v)
+    out_hex_string = rgba_to_hex(darker_rgb[0], darker_rgb[1], darker_rgb[2], rgba_dict['a'])
+    return out_hex_string
 
 
 robot_color = ColorRGBA(**hex_to_rgba("#ff6d9eeb"))
