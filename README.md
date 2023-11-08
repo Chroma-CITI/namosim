@@ -11,7 +11,7 @@ S-NAMO simulator, scenarios data and algorithms.
 Download the repo (there is a submodule with the ICRA2022 paper submission scenarios data, if you don't want it for now, don't use the --recurse-submodules option, it will save you about 250Mb) :
 
 ```bash
-git clone --recurse-submodules https://github.com/cameronmcnz/surface.git 
+git clone --recurse-submodules https://gitlab.inria.fr/brenault/s-namo-sim-private.git
 ```
 
 Install the python requirements:
