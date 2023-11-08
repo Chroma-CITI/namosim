@@ -436,16 +436,17 @@ class GridMapObserver(RosObserver):
 
 
 class CombinedCostGridMapObserver(GridMapObserver):
-    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=GridMap):
+    def __init__(self, node, topic, is_active=True, rate=10, msg_type=GridMap):
         GridMapObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
 
     def convert(self, **kwargs):
-        sorted_cell_to_combined_cost, dd = kwargs['sorted_cell_to_combined_cost'], kwargs['dd']
-        combined_costmap = np.zeros((dd.d_width, dd.d_height))
-        for cell, combined_cost in sorted_cell_to_combined_cost:
+        sorted_cell_to_combined_cost, inflated_grid_by_obstacle = kwargs['sorted_cell_to_combined_cost'], kwargs['inflated_grid_by_obstacle']
+        combined_costmap = np.zeros((inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height))
+        for cell, combined_cost in sorted_cell_to_combined_cost.items():
             combined_costmap[cell[0]][cell[1]] = combined_cost
         grid_map = costmap_to_grid_map(
-            combined_costmap, dd.res, frame_id=cfg.combined_gridmap_frame_id, stamp=self.node.get_timestamp()
+            combined_costmap, inflated_grid_by_obstacle.res,
+            frame_id=cfg.combined_gridmap_frame_id, stamp=self.node.get_timestamp()
         )
         return grid_map
 
@@ -470,7 +471,7 @@ class RosPublisher(with_metaclass(Singleton)):
         self.observers[self.sim_knowledge_topic] = WorldObserver(self.ros_node, self.sim_knowledge_topic)
         self.sim_costmap_topic = self.prefix + '/simulation' + cfg.sim_costmap_topic
         self.observers[self.sim_costmap_topic] = CostmapObserver(self.ros_node, self.sim_costmap_topic)
-        self.sim_gridmap_topic = self.prefix + '/simulation' + cfg.test_gridmap_topic
+        self.sim_gridmap_topic = self.prefix + '/simulation' + cfg.test_social_gridmap_topic
         self.observers[self.sim_gridmap_topic] = GridMapObserver(self.ros_node, self.sim_gridmap_topic)
         self.sim_cc_topic = self.prefix + '/simulation' + cfg.test_connected_components_topic
         self.observers[self.sim_cc_topic] = GridMapObserver(self.ros_node, self.sim_cc_topic)
@@ -488,9 +489,8 @@ class RosPublisher(with_metaclass(Singleton)):
             self.observers[ns + cfg.robot_sim_costmap_topic] = CostmapObserver(self.ros_node, ns + cfg.robot_sim_costmap_topic)
 
             self.observers[ns + cfg.test_connected_components_topic] = GridMapObserver(self.ros_node, ns + cfg.test_connected_components_topic)
-            self.observers[ns + cfg.combined_costmap_topic] = CombinedCostGridMapObserver(self.ros_node, ns + cfg.combined_costmap_topic)
-            self.observers[ns + cfg.test_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_gridmap_topic)
-            # TODO ADD robot_sim_topic back
+            self.observers[ns + cfg.test_combined_gridmap_topic] = CombinedCostGridMapObserver(self.ros_node, ns + cfg.test_combined_gridmap_topic)
+            self.observers[ns + cfg.test_social_gridmap_topic] = GridMapObserver(self.ros_node, ns + cfg.test_social_gridmap_topic)
 
             self.my_publishers[ns + cfg.min_max_inflated_polygons_topic] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.min_max_inflated_polygons_topic)
@@ -510,6 +510,8 @@ class RosPublisher(with_metaclass(Singleton)):
                 MarkerArray, ns + cfg.robot_goal_topic)
             self.my_publishers[ns + cfg.obs_manip_poses_topic] = self.ros_node.create_publisher(
                 PoseArray, ns + cfg.obs_manip_poses_topic)
+            self.my_publishers[ns + cfg.robot_sim_topic] = self.ros_node.create_publisher(
+                MarkerArray, ns + cfg.robot_sim_topic, cfg.default_queue_size)
             self.my_publishers[ns + cfg.social_cells_topic] = self.ros_node.create_publisher(
                 Marker, ns + cfg.social_cells_topic)
             self.my_publishers[ns + cfg.plan_topic] = self.ros_node.create_publisher(
@@ -605,20 +607,23 @@ class RosPublisher(with_metaclass(Singleton)):
     # endregion
 
     # region GRID MAP
-    def publish_grid_map(self, costmap, res, ns=''):
-        topic = self.prefix + (cfg.test_gridmap_topic if not ns else '/' + ns + cfg.test_gridmap_topic)
+    def publish_social_grid_map(self, costmap, res, ns=''):
+        topic = self.prefix + (cfg.test_social_gridmap_topic if not ns else '/' + ns + cfg.test_social_gridmap_topic)
         self.observers[topic].update(costmap=costmap, res=res)
 
-    def cleanup_grid_map(self, ns=''):
-        topic = self.prefix + (cfg.test_gridmap_topic if not ns else '/' + ns + cfg.test_gridmap_topic)
+    def cleanup_social_grid_map(self, ns=''):
+        topic = self.prefix + (cfg.test_social_gridmap_topic if not ns else '/' + ns + cfg.test_social_gridmap_topic)
         self.observers[topic].reset()
 
-    def publish_combined_costmap(self, sorted_cell_to_combined_cost, dd, ns=''):
-        topic = self.prefix + (cfg.combined_costmap_topic if not ns else '/' + ns + cfg.combined_costmap_topic)
-        self.observers[topic].update(sorted_cell_to_combined_cost=sorted_cell_to_combined_cost, dd=dd)
+    def publish_combined_costmap(self, sorted_cell_to_combined_cost, inflated_grid_by_obstacle, ns=''):
+        topic = self.prefix + (cfg.test_combined_gridmap_topic if not ns else '/' + ns + cfg.test_combined_gridmap_topic)
+        self.observers[topic].update(
+            sorted_cell_to_combined_cost=sorted_cell_to_combined_cost,
+            inflated_grid_by_obstacle=inflated_grid_by_obstacle
+        )
 
     def cleanup_combined_costmap(self, ns=''):
-        topic = self.prefix + (cfg.combined_costmap_topic if not ns else '/' + ns + cfg.combined_costmap_topic)
+        topic = self.prefix + (cfg.test_combined_gridmap_topic if not ns else '/' + ns + cfg.test_combined_gridmap_topic)
         self.observers[topic].reset()
     # endregion
 
@@ -1192,7 +1197,7 @@ class RosPublisher(with_metaclass(Singleton)):
             self.cleanup_multigoal_a_star_open_heap(ns=ns)
             self.cleanup_multigoal_a_star_close_set(ns=ns)
             self.cleanup_grid_path(ns=ns)
-            self.cleanup_grid_map(ns=ns)
+            self.cleanup_social_grid_map(ns=ns)
             self.cleanup_combined_costmap(ns=ns)
             self.cleanup_conflicts_checks(ns=ns)
 

@@ -257,7 +257,7 @@ def compute_social_costmap(
         decay_factor = adaptive_lambda(
             min(skeleton_values), max(skeleton_values), distance_transformed_grid.max() * res)
 
-    RosPublisher().publish_grid_map(final_array, res, ns=ns)
+    RosPublisher().publish_social_grid_map(final_array, res, ns=ns)
     # time.sleep(3.0)
 
     cur_set = skeleton_cell_set
@@ -306,7 +306,7 @@ def compute_social_costmap(
         prev_set = cur_set
         cur_set = next_set
 
-        RosPublisher().publish_grid_map(final_array, res, ns=ns)
+        RosPublisher().publish_social_grid_map(final_array, res, ns=ns)
 
     # prev_set = skeleton_cell_set
     # cur_set = utils.get_set_neighbors_no_coll(skeleton_cell_set, binary_occ_grid, neighborhood)

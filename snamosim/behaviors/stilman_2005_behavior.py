@@ -1315,7 +1315,7 @@ class Stilman2005Behavior(BaselineBehavior):
             self._social_costmap = stocg.compute_social_costmap(
                 self.static_obs_grid.grid, self._world.dd.res, log_costmaps=self.activate_grids_logging,
                 abs_path_to_logs_dir=self.abs_path_to_logs_dir, ns=self._robot_name)
-            self._rp.publish_grid_map(self._social_costmap, self._world.dd.res, ns=self._robot_name)
+            self._rp.publish_social_grid_map(self._social_costmap, self._world.dd.res, ns=self._robot_name)
             pass
 
     def are_all_goals_finished(self):
@@ -3052,20 +3052,12 @@ class Stilman2005Behavior(BaselineBehavior):
             sorted(zip(acc_cells_for_obs, combined_cost), key=lambda t: t[1], reverse=True)
         )
 
-        publish_combined_cost_grid = True
-        if publish_combined_cost_grid:
-            combined_costmap = np.zeros((inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height))
-            for cell, combined_cost in sorted_cell_to_combined_cost.items():
-                combined_costmap[cell[0]][cell[1]] = combined_cost
-            self._rp.publish_grid_map(combined_costmap, inflated_grid_by_obstacle.res, ns=self._robot_name)
+        self._rp.publish_combined_costmap(sorted_cell_to_combined_cost, inflated_grid_by_obstacle, ns=self._robot_name)
 
         cells_sorted_by_combined_cost = list(sorted_cell_to_combined_cost.keys())
 
         self._rp.cleanup_multigoal_a_star_close_set(ns=self._robot_name)
-        self._rp.cleanup_grid_map(ns=self._robot_name)
-
-        # TODO Rewrite display functions to only display what's relevant
-        # self._rp.publish_combined_costmap(sorted_cell_to_combined_cost, dd, ns=self._robot_name)
+        self._rp.cleanup_social_grid_map(ns=self._robot_name)
 
         if self.activate_grids_logging:
             self.log_grids(inflated_grid_by_obstacle, acc_cells_for_obs, normalized_social_cost,
@@ -3252,14 +3244,9 @@ class Stilman2005Behavior(BaselineBehavior):
                     self.log_grids(inflated_grid_by_robot_max, accessible_cells, normalized_social_cost,
                                    normalized_distance_cost, sorted_cell_to_combined_cost)
 
-                # publish_combined_cost_grid = True
-                # if publish_combined_cost_grid:
-                #     combined_costmap = np.zeros((inflated_grid_by_robot_max.d_width, inflated_grid_by_robot_max.d_height))
-                #     for cell, combined_cost in zip(accessible_cells, combined_cost):
-                #         combined_costmap[cell[0]][cell[1]] = combined_cost
-                #     self._rp.publish_grid_map(combined_costmap, inflated_grid_by_robot_max.res, ns=self._robot_name)
-                #
-                # self._rp.cleanup_multigoal_a_star_close_set(ns=self._robot_name)
+                # self._rp.publish_combined_costmap(
+                #     sorted_cell_to_combined_cost, inflated_grid_by_robot_max, ns=self._robot_name
+                # )
                 # self._rp.cleanup_grid_map(ns=self._robot_name)
 
             if not return_path:

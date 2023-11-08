@@ -23,7 +23,7 @@ class Stilman2005BehaviorTest(unittest.TestCase):
             world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
             world.dd.inflation_radius, world.entities, entities_to_ignore=movable_entities_uids)
         social_costmap = SocialTopologicalOccupationCostGrid.from_binary_occ_grid(occ_grid, ns='simulation')
-        self._rp.publish_grid_map(social_costmap.get_grid(), world.dd.res, ns=robot.name)
+        self._rp.publish_social_grid_map(social_costmap.get_grid(), world.dd.res, ns=robot.name)
 
     def test_two_rooms_corridor(self):
         world = World.load_from_json("../../../data/worlds/first_level/01_two_rooms_corridor/01_two_rooms_corridor.json")
