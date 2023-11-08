@@ -3056,9 +3056,6 @@ class Stilman2005Behavior(BaselineBehavior):
 
         cells_sorted_by_combined_cost = list(sorted_cell_to_combined_cost.keys())
 
-        self._rp.cleanup_multigoal_a_star_close_set(ns=self._robot_name)
-        self._rp.cleanup_social_grid_map(ns=self._robot_name)
-
         if self.activate_grids_logging:
             self.log_grids(inflated_grid_by_obstacle, acc_cells_for_obs, normalized_social_cost,
                   normalized_distance_cost, sorted_cell_to_combined_cost, normalized_distance_to_goal)
