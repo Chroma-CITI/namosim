@@ -9,7 +9,7 @@ S-NAMO simulator, scenarios data and algorithms.
 ## System Requirements
 
 * Python >=3.9,<3.13
-* ROS2
+* ROS2 (we have tested ros-iron but others may work too)
 * RVIZ2
 
 ## Quickstart
