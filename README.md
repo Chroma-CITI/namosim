@@ -83,3 +83,11 @@ If you reuse (even partially) of the provided data/code, please do cite the asso
   HAL_VERSION = {v1},
 }
 ```
+
+## Contributing
+
+To contribute to this project, please make your changes in a new branch and open a merge request when ready. Don't forget to format the code with:
+
+```
+ruff format .
+```
