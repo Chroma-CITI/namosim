@@ -6,6 +6,12 @@ S-NAMO simulator, scenarios data and algorithms.
 
 *THIS IS AN ACTIVE WORK IN PROGRESS, DO NO HESITATE TO OPEN AN ISSUE / CONTACT THE AUTHOR (firstname.lastname@insa-lyon.fr, replace with Benoit Renault) IF YOU ENCOUNTER ANY TROUBLE.*
 
+## System Requirements
+
+* Python >=3.9,<3.13
+* ROS2
+* RVIZ2
+
 ## Quickstart
 
 Download the repo (there is a submodule with the ICRA2022 paper submission scenarios data, if you don't want it for now, don't use the --recurse-submodules option, it will save you about 250Mb) :
@@ -14,16 +20,20 @@ Download the repo (there is a submodule with the ICRA2022 paper submission scena
 git clone --recurse-submodules https://gitlab.inria.fr/brenault/s-namo-sim-private.git
 ```
 
-Install the python requirements:
+Install the python dependencies with:
 
 ```bash
-pip install -r requirements.txt
+pip install .
 ```
 
-> Note : For Ubuntu 22.04 and above, since it uses Python > 3.10, as there is no Pypi build of Box2D at the moment, you may need to execute the following command to get the library installed :
-> ```bash
-> python -m pip install "git+https://github.com/pybox2d/pybox2d.git@2.3.10#egg=Box2D"
-> ```
+If using [poetry](https://python-poetry.org/) (recommended), install with:
+```bash
+poetry install
+```
+And remember to activate the poetry environment:
+```bash
+poetry shell
+```
 
 You should be all set to start experimenting ! Individual experiments can be easily launched through python tests, like in the command below that should launch all scenarios presented in our ICRA2022 paper submission:
 

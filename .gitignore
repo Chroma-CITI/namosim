@@ -114,3 +114,5 @@ tmp/
 
 # Data files (ought to be in different repository/data storage)
 data/
+
+.vscode
