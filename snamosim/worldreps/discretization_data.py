@@ -7,8 +7,20 @@
 
 
 class DiscretizationData:
-    def __init__(self, res, inflation_radius, cost_lethal=1., cost_inscribed=0.5, cost_circumscribed=0.25,
-                 cost_possibly_nonfree=0.10, grid_pose=(0.0, 0.0, 0.0), width=0., height=0., d_width=0, d_height=0):
+    def __init__(
+        self,
+        res,
+        inflation_radius,
+        cost_lethal=1.0,
+        cost_inscribed=0.5,
+        cost_circumscribed=0.25,
+        cost_possibly_nonfree=0.10,
+        grid_pose=(0.0, 0.0, 0.0),
+        width=0.0,
+        height=0.0,
+        d_width=0,
+        d_height=0,
+    ):
         self.res = res
         self.inflation_radius = inflation_radius
         self.cost_lethal = cost_lethal
@@ -24,9 +36,19 @@ class DiscretizationData:
         self.saved_hash = self.__hash__()
 
     def __key(self):
-        return (self.res, self.inflation_radius,
-                self.cost_lethal, self.cost_inscribed, self.cost_circumscribed, self.cost_possibly_nonfree,
-                self.grid_pose, self.width, self.height, self.d_width, self.d_height)
+        return (
+            self.res,
+            self.inflation_radius,
+            self.cost_lethal,
+            self.cost_inscribed,
+            self.cost_circumscribed,
+            self.cost_possibly_nonfree,
+            self.grid_pose,
+            self.width,
+            self.height,
+            self.d_width,
+            self.d_height,
+        )
 
     def __hash__(self):
         return hash(self.__key())

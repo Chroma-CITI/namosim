@@ -12,10 +12,4 @@ class Taboo:
         self.polygon = polygon
 
     def to_json(self):
-        return {
-            "name": self.name,
-            "geometry": {
-                "from": "file",
-                "id": self.name
-            }
-        }
+        return {"name": self.name, "geometry": {"from": "file", "id": self.name}}

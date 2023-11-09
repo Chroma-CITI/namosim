@@ -3,28 +3,47 @@ from std_msgs.msg import ColorRGBA
 
 
 def hex_to_rgba(hex_string_in):
-    hex_string = hex_string_in.lstrip('#')
+    hex_string = hex_string_in.lstrip("#")
     if len(hex_string) == 6:
-        argb_tuple = tuple([1.] + list(int(hex_string[i:i + 2], 16) / 255. for i in (0, 2, 4)))
+        argb_tuple = tuple(
+            [1.0] + list(int(hex_string[i : i + 2], 16) / 255.0 for i in (0, 2, 4))
+        )
     elif len(hex_string) == 8:
-        argb_tuple = tuple(int(hex_string[i:i + 2], 16) / 255. for i in (0, 2, 4, 6))
+        argb_tuple = tuple(int(hex_string[i : i + 2], 16) / 255.0 for i in (0, 2, 4, 6))
     else:
-        raise ValueError('Color string must either be 6 or 8 chars long, current value: {}'.format(hex_string))
-    rgba_dict = {'r': argb_tuple[1], 'g': argb_tuple[2], 'b': argb_tuple[3], 'a': argb_tuple[0]}
+        raise ValueError(
+            "Color string must either be 6 or 8 chars long, current value: {}".format(
+                hex_string
+            )
+        )
+    rgba_dict = {
+        "r": argb_tuple[1],
+        "g": argb_tuple[2],
+        "b": argb_tuple[3],
+        "a": argb_tuple[0],
+    }
     return rgba_dict
 
 
-def generate_equally_spread_hues(nb_colors, saturation=1., brightness=1., transparency=0.5):
-    hsv_tuples = [(hue, saturation, brightness) for hue in generate_intervals_values(nb_colors)]
+def generate_equally_spread_hues(
+    nb_colors, saturation=1.0, brightness=1.0, transparency=0.5
+):
+    hsv_tuples = [
+        (hue, saturation, brightness) for hue in generate_intervals_values(nb_colors)
+    ]
     rgb_tuples = map(lambda x: colorsys.hsv_to_rgb(*x), hsv_tuples)
     rgba_tuples = [(rgb[0], rgb[1], rgb[2], transparency) for rgb in rgb_tuples]
     return rgba_tuples
 
 
-def generate_equally_spread_ros_colors(nb_colors, saturation=1., brightness=1., transparency=0.5):
+def generate_equally_spread_ros_colors(
+    nb_colors, saturation=1.0, brightness=1.0, transparency=0.5
+):
     return [
         ColorRGBA(r=r, g=g, b=b, a=a)
-        for r, g, b, a in generate_equally_spread_hues(nb_colors, saturation, brightness, transparency)
+        for r, g, b, a in generate_equally_spread_hues(
+            nb_colors, saturation, brightness, transparency
+        )
     ]
 
 
@@ -32,12 +51,12 @@ def generate_intervals_values(nb_values):
     if nb_values == 0:
         return []
     elif nb_values == 1:
-        return [0.]
+        return [0.0]
     elif nb_values < 0:
-        raise ValueError('nb_values must be positive.')
+        raise ValueError("nb_values must be positive.")
     else:
-        intervals = [[0., 0.85]]
-        values = [0., 0.85]
+        intervals = [[0.0, 0.85]]
+        values = [0.0, 0.85]
         while len(values) < nb_values:
             new_intervals = []
             for interval in intervals:
@@ -54,23 +73,30 @@ def generate_intervals_values(nb_values):
 
 
 def blend_colors(colorRGBA1, colorRGBA2):
-    alpha = 1. - ((1. - colorRGBA1.a) * (1. - colorRGBA2.a))
-    red = (colorRGBA1.r * (1. - colorRGBA2.a) + colorRGBA2.r * colorRGBA2.a)
-    green = (colorRGBA1.g * (1. - colorRGBA2.a) + colorRGBA2.g * colorRGBA2.a)
-    blue = (colorRGBA1.b * (1. - colorRGBA2.a) + colorRGBA2.b * colorRGBA2.a)
+    alpha = 1.0 - ((1.0 - colorRGBA1.a) * (1.0 - colorRGBA2.a))
+    red = colorRGBA1.r * (1.0 - colorRGBA2.a) + colorRGBA2.r * colorRGBA2.a
+    green = colorRGBA1.g * (1.0 - colorRGBA2.a) + colorRGBA2.g * colorRGBA2.a
+    blue = colorRGBA1.b * (1.0 - colorRGBA2.a) + colorRGBA2.b * colorRGBA2.a
     return ColorRGBA(r=red, g=green, b=blue, a=alpha)
 
 
 def rgba_to_hex(r, g, b, a):
-    return '#%02x%02x%02x%02x' % (int(a * 255), int(r * 255), int(g * 255), int(b * 255))
+    return "#%02x%02x%02x%02x" % (
+        int(a * 255),
+        int(r * 255),
+        int(g * 255),
+        int(b * 255),
+    )
 
 
 def darken(hex_string, multiplier=0.8):
     rgba_dict = hex_to_rgba(hex_string)
-    hsv = colorsys.rgb_to_hsv(rgba_dict['r'], rgba_dict['g'], rgba_dict['b'])
-    darker_v = min(1., max(0., hsv[2] * multiplier))
+    hsv = colorsys.rgb_to_hsv(rgba_dict["r"], rgba_dict["g"], rgba_dict["b"])
+    darker_v = min(1.0, max(0.0, hsv[2] * multiplier))
     darker_rgb = colorsys.hsv_to_rgb(hsv[0], hsv[1], darker_v)
-    out_hex_string = rgba_to_hex(darker_rgb[0], darker_rgb[1], darker_rgb[2], rgba_dict['a'])
+    out_hex_string = rgba_to_hex(
+        darker_rgb[0], darker_rgb[1], darker_rgb[2], rgba_dict["a"]
+    )
     return out_hex_string
 
 
@@ -123,8 +149,8 @@ dark_blue = ColorRGBA(**hex_to_rgba("ff7ca5c3"))
 black = ColorRGBA(**hex_to_rgba("#ff000000"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     values_1 = generate_equally_spread_hues(1)
     values_5 = generate_equally_spread_hues(5)
     values_10 = generate_equally_spread_hues(10)
-    print('')
+    print("")

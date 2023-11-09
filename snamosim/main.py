@@ -1,9 +1,10 @@
 from snamosim.simulator import Simulator
 
 
-if __name__ == '__main__':
-
-    sim = Simulator(simulation_file_path="../data/simulations/first_level/01_two_rooms_corridor/navigation_only_behavior.yaml")
+if __name__ == "__main__":
+    sim = Simulator(
+        simulation_file_path="../data/simulations/first_level/01_two_rooms_corridor/navigation_only_behavior.yaml"
+    )
 
     sim.run()
 

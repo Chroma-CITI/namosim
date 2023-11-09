@@ -8,20 +8,20 @@ from shapely import affinity
 
 SVG_PATH_ATTRIBUTES_WHITELIST = ["id", "d", "style"]
 
-OBSTACE_TRACE_STYLE = 'fill:#000000;fill-opacity:0.05231688;fill-rule:evenodd;stroke:#f1c232;stroke-width:1;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1'
-UNKNOWN_ENTITY_STYLE = 'fill:#674ea7;fill-rule:evenodd'
-MOVABLE_ENTITY_STYLE = 'fill:#f1c232;fill-rule:evenodd'
-FIXED_ENTITY_STYLE = 'fill:#000000;fill-rule:evenodd'
-ROBOT_ENTITY_STYLE = 'fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-opacity:1'
-GOAL_STYLE = 'fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1'
-POSE_STYLE = 'fill:none;stroke:#1155cc;stroke-width:3.5999999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1'
+OBSTACE_TRACE_STYLE = "fill:#000000;fill-opacity:0.05231688;fill-rule:evenodd;stroke:#f1c232;stroke-width:1;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
+UNKNOWN_ENTITY_STYLE = "fill:#674ea7;fill-rule:evenodd"
+MOVABLE_ENTITY_STYLE = "fill:#f1c232;fill-rule:evenodd"
+FIXED_ENTITY_STYLE = "fill:#000000;fill-rule:evenodd"
+ROBOT_ENTITY_STYLE = "fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-opacity:1"
+GOAL_STYLE = "fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+POSE_STYLE = "fill:none;stroke:#1155cc;stroke-width:3.5999999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
 
 
 def add_group(svg_data, group_id, parent=None, is_layer=True):
-    new_group = svg_data.createElement('svg:g')
-    new_group.setAttribute('id', group_id)
+    new_group = svg_data.createElement("svg:g")
+    new_group.setAttribute("id", group_id)
     if is_layer:
-        new_group.setAttribute('inkscape:groupmode', "layer")
+        new_group.setAttribute("inkscape:groupmode", "layer")
     # new_group.setAttribute('inkscape:label', group_id)
     if parent:
         parent.appendChild(new_group)
@@ -30,23 +30,32 @@ def add_group(svg_data, group_id, parent=None, is_layer=True):
     return new_group
 
 
-def add_shapely_geometry_to_svg(shapely_geometry, uname, style, svg_data, svg_group=None, scale=1., map_width=None, map_height=None):
+def add_shapely_geometry_to_svg(
+    shapely_geometry,
+    uname,
+    style,
+    svg_data,
+    svg_group=None,
+    scale=1.0,
+    map_width=None,
+    map_height=None,
+):
     if map_width and map_height:
         shapely_geometry = affinity.translate(
-            shapely_geometry, map_width / 2., -map_height / 2.
+            shapely_geometry, map_width / 2.0, -map_height / 2.0
         )  # TODO Take rotation into account
     pathd = shapely_geometry_to_svg_pathd(shapely_geometry, scale)
-    new_path = svg_data.createElement('svg:path')
-    new_path.setAttribute('id', uname)
-    new_path.setAttribute('d', pathd)
-    new_path.setAttribute('style', style)
+    new_path = svg_data.createElement("svg:path")
+    new_path.setAttribute("id", uname)
+    new_path.setAttribute("d", pathd)
+    new_path.setAttribute("style", style)
     if svg_group:
         svg_group.appendChild(new_path)
     else:
         svg_data.childNodes[0].appendChild(new_path)
 
 
-def svg_pathd_to_shapely_geometry(svg_path, scaling_value=1., precision=1e9):
+def svg_pathd_to_shapely_geometry(svg_path, scaling_value=1.0, precision=1e9):
     parse_result = parse_path(svg_path)
     geom_pts = parse_result.vertices * scaling_value
     geom_pts[:, 1] = -geom_pts[:, 1]  # Mirror
@@ -76,30 +85,38 @@ def shapely_geometry_to_svg_pathd(shapely_geometry, scaling_value):
     # Extract polygon coordinates
     if isinstance(shapely_geometry, Polygon):
         coords = np.array(shapely_geometry.exterior.coords)
-    elif isinstance(shapely_geometry, Point) or isinstance(shapely_geometry, LineString):
+    elif isinstance(shapely_geometry, Point) or isinstance(
+        shapely_geometry, LineString
+    ):
         coords = np.array(shapely_geometry.coords)
     else:
-        raise TypeError("Only shapely Point, LineString and Polygon objects can be turned into svg.")
+        raise TypeError(
+            "Only shapely Point, LineString and Polygon objects can be turned into svg."
+        )
     coords /= scaling_value  # Scale them back to appropriate SVG measurements
     coords[:, 1] = -coords[:, 1]  # Mirror back on y-axis
     # Rebuild polygon
     if isinstance(shapely_geometry, Polygon):
         new_geometry = Polygon(coords)
-        return minidom.parseString(new_geometry.svg()).documentElement.getAttribute('d')
+        return minidom.parseString(new_geometry.svg()).documentElement.getAttribute("d")
     elif isinstance(shapely_geometry, LineString):
         new_geometry = LineString(coords)
-        return polyline2pathd(dom2dict(minidom.parseString(new_geometry.svg()).firstChild))
+        return polyline2pathd(
+            dom2dict(minidom.parseString(new_geometry.svg()).firstChild)
+        )
     elif isinstance(shapely_geometry, Point):
         new_geometry = Point(coords)
-        return ellipse2pathd(dom2dict(minidom.parseString(new_geometry.svg()).firstChild))
+        return ellipse2pathd(
+            dom2dict(minidom.parseString(new_geometry.svg()).firstChild)
+        )
 
 
 # region SVG elements to SVG paths conversion functions, extracted from svgpathtools library, available at :
 # https://github.com/mathandy/svgpathtools/
 COORD_PAIR_TMPLT = re.compile(
-    r'([\+-]?\d*[\.\d]\d*[eE][\+-]?\d+|[\+-]?\d*[\.\d]\d*)' +
-    r'(?:\s*,\s*|\s+|(?=-))' +
-    r'([\+-]?\d*[\.\d]\d*[eE][\+-]?\d+|[\+-]?\d*[\.\d]\d*)'
+    r"([\+-]?\d*[\.\d]\d*[eE][\+-]?\d+|[\+-]?\d*[\.\d]\d*)"
+    + r"(?:\s*,\s*|\s+|(?=-))"
+    + r"([\+-]?\d*[\.\d]\d*[eE][\+-]?\d+|[\+-]?\d*[\.\d]\d*)"
 )
 
 
@@ -114,11 +131,11 @@ def ellipse2pathd(ellipse):
     """converts the parameters from an ellipse or a circle to a string for a
     Path object d-attribute"""
 
-    cx = ellipse.get('cx', 0)
-    cy = ellipse.get('cy', 0)
-    rx = ellipse.get('rx', None)
-    ry = ellipse.get('ry', None)
-    r = ellipse.get('r', None)
+    cx = ellipse.get("cx", 0)
+    cy = ellipse.get("cy", 0)
+    rx = ellipse.get("rx", None)
+    ry = ellipse.get("ry", None)
+    r = ellipse.get("r", None)
 
     if r is not None:
         rx = ry = float(r)
@@ -129,10 +146,10 @@ def ellipse2pathd(ellipse):
     cx = float(cx)
     cy = float(cy)
 
-    d = ''
-    d += 'M' + str(cx - rx) + ',' + str(cy)
-    d += 'a' + str(rx) + ',' + str(ry) + ' 0 1,0 ' + str(2 * rx) + ',0'
-    d += 'a' + str(rx) + ',' + str(ry) + ' 0 1,0 ' + str(-2 * rx) + ',0'
+    d = ""
+    d += "M" + str(cx - rx) + "," + str(cy)
+    d += "a" + str(rx) + "," + str(ry) + " 0 1,0 " + str(2 * rx) + ",0"
+    d += "a" + str(rx) + "," + str(ry) + " 0 1,0 " + str(-2 * rx) + ",0"
 
     return d
 
@@ -140,9 +157,10 @@ def ellipse2pathd(ellipse):
 def polyline2pathd(polyline, is_polygon=False):
     """converts the string from a polyline points-attribute to a string for a
     Path object d-attribute"""
-    points = COORD_PAIR_TMPLT.findall(polyline.get('points', ''))
-    closed = (float(points[0][0]) == float(points[-1][0]) and
-              float(points[0][1]) == float(points[-1][1]))
+    points = COORD_PAIR_TMPLT.findall(polyline.get("points", ""))
+    closed = float(points[0][0]) == float(points[-1][0]) and float(
+        points[0][1]
+    ) == float(points[-1][1])
 
     # The `parse_path` call ignores redundant 'z' (closure) commands
     # e.g. `parse_path('M0 0L100 100Z') == parse_path('M0 0L100 100L0 0Z')`
@@ -150,9 +168,9 @@ def polyline2pathd(polyline, is_polygon=False):
     if is_polygon and closed:
         points.append(points[0])
 
-    d = 'M' + 'L'.join('{0} {1}'.format(x, y) for x, y in points)
+    d = "M" + "L".join("{0} {1}".format(x, y) for x, y in points)
     if is_polygon or closed:
-        d += 'z'
+        d += "z"
     return d
 
 
@@ -170,22 +188,29 @@ def rect2pathd(rect):
 
     The rectangle will start at the (x,y) coordinate specified by the
     rectangle object and proceed counter-clockwise."""
-    x0, y0 = float(rect.get('x', 0)), float(rect.get('y', 0))
-    w, h = float(rect.get('width', 0)), float(rect.get('height', 0))
+    x0, y0 = float(rect.get("x", 0)), float(rect.get("y", 0))
+    w, h = float(rect.get("width", 0)), float(rect.get("height", 0))
     x1, y1 = x0 + w, y0
     x2, y2 = x0 + w, y0 + h
     x3, y3 = x0, y0 + h
 
-    d = ("M{} {} L {} {} L {} {} L {} {} z"
-         "".format(x0, y0, x1, y1, x2, y2, x3, y3))
+    d = "M{} {} L {} {} L {} {} L {} {} z" "".format(x0, y0, x1, y1, x2, y2, x3, y3)
     return d
 
 
 def line2pathd(l):
     return (
-            'M' + l.attrib.get('x1', '0') + ' ' + l.attrib.get('y1', '0')
-            + 'L' + l.attrib.get('x2', '0') + ' ' + l.attrib.get('y2', '0')
+        "M"
+        + l.attrib.get("x1", "0")
+        + " "
+        + l.attrib.get("y1", "0")
+        + "L"
+        + l.attrib.get("x2", "0")
+        + " "
+        + l.attrib.get("y2", "0")
     )
+
+
 # endregion
 
 
@@ -194,12 +219,12 @@ def set_all_id_attributes_as_ids(xml_doc):
     while queue:
         current = queue.pop()
         queue += current.childNodes
-        if getattr(current, "hasAttribute", None) and current.hasAttribute('id'):
-            current.setIdAttribute('id')
+        if getattr(current, "hasAttribute", None) and current.hasAttribute("id"):
+            current.setIdAttribute("id")
 
 
 def clean_attributes(xml_doc):
-    path_elements = xml_doc.getElementsByTagName('path')
+    path_elements = xml_doc.getElementsByTagName("path")
 
     for path_element in path_elements:
         attributes_to_remove = []
@@ -217,4 +242,6 @@ def color_clamp(x):
 
 
 def rgb_tuple_to_hex(rgb):
-    return "#{0:02x}{1:02x}{2:02x}".format(color_clamp(rgb[0]), color_clamp(rgb[1]), color_clamp(rgb[2]))
+    return "#{0:02x}{1:02x}{2:02x}".format(
+        color_clamp(rgb[0]), color_clamp(rgb[1]), color_clamp(rgb[2])
+    )

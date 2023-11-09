@@ -3,12 +3,16 @@ from snamosim.worldreps.entity_based.world import World
 from snamosim.worldreps.entity_based.obstacle import Obstacle
 from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.display.ros_publisher import RosPublisher
-from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid
-from snamosim.worldreps.occupation_based.social_topological_occupation_cost_grid import SocialTopologicalOccupationCostGrid, voronoi_skeleton
+from snamosim.worldreps.occupation_based.binary_occupancy_grid import (
+    BinaryOccupancyGrid,
+)
+from snamosim.worldreps.occupation_based.social_topological_occupation_cost_grid import (
+    SocialTopologicalOccupationCostGrid,
+    voronoi_skeleton,
+)
 
 
 class Stilman2005BehaviorTest(unittest.TestCase):
-
     def setUp(self):
         self._rp = RosPublisher()
 
@@ -16,51 +20,84 @@ class Stilman2005BehaviorTest(unittest.TestCase):
         robot = world.entities[world.get_entity_uid_from_name("robot_01")]
         self._rp.cleanup_sim_world()
         self._rp.publish_sim_world(world, robot.uid)
-        movable_entities_uids = tuple({entity_uid for entity_uid, entity in world.entities.items()
-                                       if isinstance(entity, Robot) or (isinstance(entity, Obstacle)
-                                       and entity.movability == "movable")})
+        movable_entities_uids = tuple(
+            {
+                entity_uid
+                for entity_uid, entity in world.entities.items()
+                if isinstance(entity, Robot)
+                or (isinstance(entity, Obstacle) and entity.movability == "movable")
+            }
+        )
         occ_grid = BinaryOccupancyGrid(
-            world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
-            world.dd.inflation_radius, world.entities, entities_to_ignore=movable_entities_uids)
-        social_costmap = SocialTopologicalOccupationCostGrid.from_binary_occ_grid(occ_grid, ns='simulation')
-        self._rp.publish_social_grid_map(social_costmap.get_grid(), world.dd.res, ns=robot.name)
+            world.dd.d_width,
+            world.dd.d_height,
+            world.dd.res,
+            world.dd.grid_pose,
+            world.dd.inflation_radius,
+            world.entities,
+            entities_to_ignore=movable_entities_uids,
+        )
+        social_costmap = SocialTopologicalOccupationCostGrid.from_binary_occ_grid(
+            occ_grid, ns="simulation"
+        )
+        self._rp.publish_social_grid_map(
+            social_costmap.get_grid(), world.dd.res, ns=robot.name
+        )
 
     def test_two_rooms_corridor(self):
-        world = World.load_from_json("../../../data/worlds/first_level/01_two_rooms_corridor/01_two_rooms_corridor.json")
+        world = World.load_from_json(
+            "../../../data/worlds/first_level/01_two_rooms_corridor/01_two_rooms_corridor.json"
+        )
         self.compute_and_display_costmap(world)
 
     def test_big_crossing(self):
-        world = World.load_from_json("../../../data/worlds/first_level/03_big_crossing/03_big_crossing.json")
+        world = World.load_from_json(
+            "../../../data/worlds/first_level/03_big_crossing/03_big_crossing.json"
+        )
         self.compute_and_display_costmap(world)
 
     def test_moghaddam_01(self):
-        world = World.load_from_json("../../../data/worlds/moghaddam_planning_2016_benchmark/01/01.json")
+        world = World.load_from_json(
+            "../../../data/worlds/moghaddam_planning_2016_benchmark/01/01.json"
+        )
         self.compute_and_display_costmap(world)
 
     def test_chen_difficult_problem(self):
-        world = World.load_from_json("../../../data/worlds/stilman_2005_thesis/04_chen_difficult_problem/04_chen_difficult_problem.json")
+        world = World.load_from_json(
+            "../../../data/worlds/stilman_2005_thesis/04_chen_difficult_problem/04_chen_difficult_problem.json"
+        )
         self.compute_and_display_costmap(world)
 
     def test_basic(self):
-        world = World.load_from_json("../../../data/worlds/namo-socials/01_basic/01_basic.json")
+        world = World.load_from_json(
+            "../../../data/worlds/namo-socials/01_basic/01_basic.json"
+        )
         self.compute_and_display_costmap(world)
 
     def test_basic_with_opening(self):
-        world = World.load_from_json("../../../data/worlds/namo-socials/02_basic_with_opening/02_basic_with_opening.json")
+        world = World.load_from_json(
+            "../../../data/worlds/namo-socials/02_basic_with_opening/02_basic_with_opening.json"
+        )
         self.compute_and_display_costmap(world)
 
     def test_crossing(self):
-        world = World.load_from_json("../../../data/worlds/namo-socials/03_crossing/03_crossing.json")
+        world = World.load_from_json(
+            "../../../data/worlds/namo-socials/03_crossing/03_crossing.json"
+        )
         self.compute_and_display_costmap(world)
 
     def test_after_the_feast(self):
-        world = World.load_from_json("../../../data/worlds/namo-socials/04_after_the_feast/04_after_the_feast.json")
+        world = World.load_from_json(
+            "../../../data/worlds/namo-socials/04_after_the_feast/04_after_the_feast.json"
+        )
         self.compute_and_display_costmap(world)
 
     def test_citi_second_floor(self):
-        world = World.load_from_json("../../../data/worlds/namo-socials/05_citi_second_floor/05_citi_second_floor.json")
+        world = World.load_from_json(
+            "../../../data/worlds/namo-socials/05_citi_second_floor/05_citi_second_floor.json"
+        )
         self.compute_and_display_costmap(world)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

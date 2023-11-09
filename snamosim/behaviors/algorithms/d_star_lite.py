@@ -34,6 +34,8 @@ class PriorityQueue:
     def __iter__(self):
         for key, cell in self.elements:
             yield cell
+
+
 # endregion
 
 
@@ -63,19 +65,22 @@ class DStarLite(object):
         return self.lookahead_cost(node, lowest_cost_neighbour)
 
     def lookahead_cost(self, node, neighbour):
-        return self.g(neighbour) + (float("inf")
-                                    if self.grid[node[0]][node[1]] > 0 or self.grid[neighbour[0]][neighbour[1]] > 0
-                                    else 1)
+        return self.g(neighbour) + (
+            float("inf")
+            if self.grid[node[0]][node[1]] > 0
+            or self.grid[neighbour[0]][neighbour[1]] > 0
+            else 1
+        )
 
     def lowest_cost_neighbour(self, node):
         cost = partial(self.lookahead_cost, node)
         return min(self.neighbors(node), key=cost)
 
     def g(self, node):
-        return self.G_VALS.get(node, float('inf'))
+        return self.G_VALS.get(node, float("inf"))
 
     def rhs(self, node):
-        return self.RHS_VALS.get(node, float('inf')) if node != self.goal else 0
+        return self.RHS_VALS.get(node, float("inf")) if node != self.goal else 0
 
     def heuristic(self, a, b):
         (x1, y1) = a
@@ -85,10 +90,7 @@ class DStarLite(object):
     def calculate_key(self, node):
         g_rhs = min([self.g(node), self.rhs(node)])
 
-        return (
-            g_rhs + self.heuristic(node, self.position) + self.Km,
-            g_rhs
-        )
+        return (g_rhs + self.heuristic(node, self.position) + self.Km, g_rhs)
 
     def update_node(self, node):
         if node != self.goal:
@@ -102,7 +104,9 @@ class DStarLite(object):
 
     def compute_shortest_path(self):
         last_nodes = deque(maxlen=10)
-        while self.frontier.first_key() < self.calculate_key(self.position) or self.rhs(self.position) != self.g(self.position):
+        while self.frontier.first_key() < self.calculate_key(self.position) or self.rhs(
+            self.position
+        ) != self.g(self.position):
             k_old = self.frontier.first_key()
             node = self.frontier.pop()
             last_nodes.append(node)
@@ -115,7 +119,7 @@ class DStarLite(object):
                 self.G_VALS[node] = self.rhs(node)
                 self.update_nodes(self.neighbors(node))
             else:
-                self.G_VALS[node] = float('inf')
+                self.G_VALS[node] = float("inf")
                 self.update_nodes(self.neighbors(node) + [node])
 
     def build_path(self):
@@ -132,7 +136,11 @@ class DStarLite(object):
         :return:
         :rtype:
         """
-        return self.position != self.last_position or self.freed_cells or self.invaded_cells
+        return (
+            self.position != self.last_position
+            or self.freed_cells
+            or self.invaded_cells
+        )
 
     def update_position_and_cells(self, position, freed_cells, invaded_cells):
         self.freed_cells.update(freed_cells)
@@ -150,28 +158,33 @@ class DStarLite(object):
         return 0 <= x < self.grid.shape[0] and 0 <= y < self.grid.shape[1]
 
     def get_shortest_path(self):
-        if self.g(self.position) == float('inf'):
+        if self.g(self.position) == float("inf"):
             raise Exception("No path")
 
         if self.structures_need_update():
             self.Km += self.heuristic(self.last_position, self.position)
             self.last_position = self.position
-            nodes_to_update = {node for wallnode in self.invaded_cells
-                               for node in utils.get_neighbors(wallnode, *self.grid.shape)
-                               if self.grid[node[0]][node[1]] == 0}
+            nodes_to_update = {
+                node
+                for wallnode in self.invaded_cells
+                for node in utils.get_neighbors(wallnode, *self.grid.shape)
+                if self.grid[node[0]][node[1]] == 0
+            }
             self.update_nodes(nodes_to_update)
             self.compute_shortest_path()
         return self.build_path()
 
 
 def main():
-    test_array = np.array([
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [1, 1, 0, 1, 0],
-        [0, 0, 0, 0, 0],
-        [1, 0, 1, 0, 0]
-    ])
+    test_array = np.array(
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [1, 1, 0, 1, 0],
+            [0, 0, 0, 0, 0],
+            [1, 0, 1, 0, 0],
+        ]
+    )
     d_star_lite = DStarLite(test_array, (0, 0), (4, 3))
     path = d_star_lite.get_shortest_path()
     print(path)

@@ -5,11 +5,31 @@ import copy
 
 
 class Robot(Entity):
-
-    def __init__(self, name, full_geometry_acquired, polygon, pose, sensors,
-                 push_only_list, force_pushes_only, movable_whitelist, movability="unknown", uid=0, style=None):
+    def __init__(
+        self,
+        name,
+        full_geometry_acquired,
+        polygon,
+        pose,
+        sensors,
+        push_only_list,
+        force_pushes_only,
+        movable_whitelist,
+        movability="unknown",
+        uid=0,
+        style=None,
+    ):
         polygon = polygon
-        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, movability=movability, uid=uid, style=style)
+        Entity.__init__(
+            self,
+            name,
+            polygon,
+            pose,
+            full_geometry_acquired,
+            movability=movability,
+            uid=uid,
+            style=style,
+        )
 
         self.sensors = sensors
         for sensor in sensors:
@@ -18,14 +38,16 @@ class Robot(Entity):
         self.push_only_list = push_only_list
         self.force_pushes_only = force_pushes_only
         self.movable_whitelist = movable_whitelist
-        self.type = 'robot'
+        self.type = "robot"
         self.min_inflation_radius = self.compute_inflation_radius()
 
     def update_world_from_sensors(self, reference_world, target_world):
         added_uids, updated_uids, removed_uids = set(), set(), set()
 
         for sensor in self.sensors:
-            s_uids_to_add, s_uids_to_update, s_uids_to_remove = sensor.update_from_fov(reference_world, target_world)
+            s_uids_to_add, s_uids_to_update, s_uids_to_remove = sensor.update_from_fov(
+                reference_world, target_world
+            )
 
             # Might need a better update policy if sensors disagree about what happened, but irrelevant for now
             added_uids.update(s_uids_to_add)
@@ -52,15 +74,17 @@ class Robot(Entity):
         return utils.get_circumscribed_radius(self.polygon)
 
     def light_copy(self):
-        return Robot(name=self.name,
-                     polygon=copy.deepcopy(self.polygon),
-                     pose=self.pose,
-                     full_geometry_acquired=self.full_geometry_acquired,
-                     sensors=copy.deepcopy(self.sensors),
-                     push_only_list=copy.copy(self.push_only_list),
-                     force_pushes_only=self.force_pushes_only,
-                     movable_whitelist=copy.copy(self.movable_whitelist),
-                     uid=self.uid)
+        return Robot(
+            name=self.name,
+            polygon=copy.deepcopy(self.polygon),
+            pose=self.pose,
+            full_geometry_acquired=self.full_geometry_acquired,
+            sensors=copy.deepcopy(self.sensors),
+            push_only_list=copy.copy(self.push_only_list),
+            force_pushes_only=self.force_pushes_only,
+            movable_whitelist=copy.copy(self.movable_whitelist),
+            uid=self.uid,
+        )
 
     def to_json(self):
         json_data = Entity.to_json(self)

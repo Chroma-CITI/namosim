@@ -18,6 +18,6 @@ class Goal:
             "geometry": {
                 "from": "file",
                 "id": self.name,
-                "orientation_id": self.name + "_dir"
-            }
+                "orientation_id": self.name + "_dir",
+            },
         }

@@ -24,7 +24,9 @@ class BeFS:
         pass
 
 
-def best_first_search(grid, width, height, root_cell, goal_cell, neighborhood=utils.TAXI_NEIGHBORHOOD):
+def best_first_search(
+    grid, width, height, root_cell, goal_cell, neighborhood=utils.TAXI_NEIGHBORHOOD
+):
     queue = [root_cell]
     visited = {root_cell}
     came_from = {}
@@ -32,7 +34,9 @@ def best_first_search(grid, width, height, root_cell, goal_cell, neighborhood=ut
 
     while queue:
         current = queue.pop(0)
-        for neighbor in utils.get_neighbors_no_coll(current, grid, width, height, neighborhood):
+        for neighbor in utils.get_neighbors_no_coll(
+            current, grid, width, height, neighborhood
+        ):
             if neighbor not in visited:
                 queue.append(neighbor)
                 visited.add(neighbor)

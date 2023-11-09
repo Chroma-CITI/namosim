@@ -7,17 +7,41 @@ from snamosim.utils import utils
 
 class GridParams:
     def __init__(self, grid_pose, d_width, d_height, r_width, r_height, aabb_polygon):
-        self.grid_pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon = (
-            grid_pose, d_width, d_height, r_width, r_height, aabb_polygon
-        )
+        (
+            self.grid_pose,
+            self.d_width,
+            self.d_height,
+            self.r_width,
+            self.r_height,
+            self.aabb_polygon,
+        ) = (grid_pose, d_width, d_height, r_width, r_height, aabb_polygon)
 
     def __eq__(self, other):
-        return (self.grid_pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon) == (
-            other.grid_pose, other.d_width, other.d_height, other.r_width, other.r_height, other.aabb_polygon
+        return (
+            self.grid_pose,
+            self.d_width,
+            self.d_height,
+            self.r_width,
+            self.r_height,
+            self.aabb_polygon,
+        ) == (
+            other.grid_pose,
+            other.d_width,
+            other.d_height,
+            other.r_width,
+            other.r_height,
+            other.aabb_polygon,
         )
 
     def all(self):
-        return self.grid_pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon
+        return (
+            self.grid_pose,
+            self.d_width,
+            self.d_height,
+            self.r_width,
+            self.r_height,
+            self.aabb_polygon,
+        )
 
 
 def grid_parameters(polygons, res):
@@ -28,17 +52,35 @@ def grid_parameters(polygons, res):
     d_height = abs(int(math.floor(r_min_y / res))) + abs(int(math.ceil(r_max_y / res)))
     real_width, real_height = d_width * res, d_height * res
     real_pose = min_x, min_y, 0.0
-    aabb_polygon = Polygon([(min_x, min_y), (min_x, max_y), (max_x, max_y), (max_x, min_y)])
-    return GridParams(real_pose, d_width, d_height, real_width, real_height, aabb_polygon)
+    aabb_polygon = Polygon(
+        [(min_x, min_y), (min_x, max_y), (max_x, max_y), (max_x, min_y)]
+    )
+    return GridParams(
+        real_pose, d_width, d_height, real_width, real_height, aabb_polygon
+    )
 
 
 class BinaryOccupancyGrid:
-    def __init__(self, polygons, res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, params=None, fill=True):
+    def __init__(
+        self,
+        polygons,
+        res,
+        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+        params=None,
+        fill=True,
+    ):
         self.res = res
 
         self.params = params if params else grid_parameters(polygons, res)
 
-        self.grid_pose, self.d_width, self.d_height, self.r_width, self.r_height, self.aabb_polygon = self.params.all()
+        (
+            self.grid_pose,
+            self.d_width,
+            self.d_height,
+            self.r_width,
+            self.r_height,
+            self.aabb_polygon,
+        ) = self.params.all()
 
         self.neighborhood = neighborhood
 
@@ -49,19 +91,32 @@ class BinaryOccupancyGrid:
 
         self.polygon_update(new_or_updated_polygons=polygons, fill=fill)
 
-    def polygon_update(self, new_or_updated_polygons=None, removed_polygons=None, fill=True):
+    def polygon_update(
+        self, new_or_updated_polygons=None, removed_polygons=None, fill=True
+    ):
         fill_polygons = self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
-        new_or_updated_cells_sets = None if not new_or_updated_polygons else {
-            uid: utils.accurate_rasterize_in_grid(
-                new_polygon, self.res, self.grid_pose, self.d_width, self.d_height, fill=fill
-            )
-            for uid, new_polygon in new_or_updated_polygons.items()
-        }
+        new_or_updated_cells_sets = (
+            None
+            if not new_or_updated_polygons
+            else {
+                uid: utils.accurate_rasterize_in_grid(
+                    new_polygon,
+                    self.res,
+                    self.grid_pose,
+                    self.d_width,
+                    self.d_height,
+                    fill=fill,
+                )
+                for uid, new_polygon in new_or_updated_polygons.items()
+            }
+        )
 
         return self.cells_sets_update(new_or_updated_cells_sets, removed_polygons, fill)
 
-    def cells_sets_update(self, new_or_updated_cells_sets=None, removed_cells_sets=None, fill=True):
+    def cells_sets_update(
+        self, new_or_updated_cells_sets=None, removed_cells_sets=None, fill=True
+    ):
         fill_polygons = self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
         prev_cells_sets = {}
@@ -96,7 +151,10 @@ class BinaryOccupancyGrid:
 
     def deactivate_entities(self, uids):
         for uid in uids:
-            if uid not in self.deactivated_entities_cells_sets and uid in self.cells_sets:
+            if (
+                uid not in self.deactivated_entities_cells_sets
+                and uid in self.cells_sets
+            ):
                 self.deactivated_entities_cells_sets[uid] = self.cells_sets[uid]
                 for cell in self.cells_sets[uid]:
                     self.grid[cell[0]][cell[1]] -= 1
@@ -127,25 +185,40 @@ class BinaryOccupancyGrid:
             for uid, cell_set in self.cells_sets.items():
                 if cell in cell_set:
                     return uid
-            raise RuntimeError('It should be impossible for an occupied cell of the grid to not be in any cells set.')
+            raise RuntimeError(
+                "It should be impossible for an occupied cell of the grid to not be in any cells set."
+            )
 
     def obstacles_uids_in_cell(self, cell):
         return {uid for uid, cell_set in self.cells_sets.items() if cell in cell_set}
 
 
 class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
-    def __init__(self, polygons, res, inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-                 params=None, fill=True):
+    def __init__(
+        self,
+        polygons,
+        res,
+        inflation_radius,
+        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+        params=None,
+        fill=True,
+    ):
         self.inflation_radius = inflation_radius
 
         BinaryOccupancyGrid.__init__(self, polygons, res, neighborhood, params, fill)
 
-    def polygon_update(self, new_or_updated_polygons=None, removed_polygons=None, fill=True):
+    def polygon_update(
+        self, new_or_updated_polygons=None, removed_polygons=None, fill=True
+    ):
         if new_or_updated_polygons:
             inflated_polygons = {
                 uid: polygon.buffer(self.inflation_radius)
                 for uid, polygon in new_or_updated_polygons.items()
             }
-            return BinaryOccupancyGrid.polygon_update(self, inflated_polygons, removed_polygons, fill=fill)
+            return BinaryOccupancyGrid.polygon_update(
+                self, inflated_polygons, removed_polygons, fill=fill
+            )
         else:
-            return BinaryOccupancyGrid.polygon_update(self, new_or_updated_polygons, removed_polygons)
+            return BinaryOccupancyGrid.polygon_update(
+                self, new_or_updated_polygons, removed_polygons
+            )

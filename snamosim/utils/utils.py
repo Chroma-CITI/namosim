@@ -7,6 +7,7 @@ import mapbox_earcut as earcut
 from shapely.geometry import Polygon, LineString
 import random
 import sys
+
 if sys.version_info.major == 3 and sys.version_info.minor >= 10:
     from collections.abc import MutableSet
 else:
@@ -17,20 +18,28 @@ import json
 
 
 # Constants
-SQRT_OF_2 = math.sqrt(2.)
-SQRT_OF_2_MIN_1 = SQRT_OF_2 - 1.
-SQRT_OF_2_MIN_2 = SQRT_OF_2 - 2.
-TWO_PI = 2. * math.pi
+SQRT_OF_2 = math.sqrt(2.0)
+SQRT_OF_2_MIN_1 = SQRT_OF_2 - 1.0
+SQRT_OF_2_MIN_2 = SQRT_OF_2 - 2.0
+TWO_PI = 2.0 * math.pi
 
 
 TAXI_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0))
-CHESSBOARD_NEIGHBORHOOD = ((0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1))
+CHESSBOARD_NEIGHBORHOOD = (
+    (0, 1),
+    (0, -1),
+    (1, 0),
+    (-1, 0),
+    (1, 1),
+    (1, -1),
+    (-1, 1),
+    (-1, -1),
+)
 CHESSBOARD_NEIGHBORHOOD_EXTRAS = ((1, 1), (1, -1), (-1, 1), (-1, -1))
 CHESSBOARD_NEIGHBORHOOD_EXTRAS_SET = set(CHESSBOARD_NEIGHBORHOOD_EXTRAS)
 
 OMNI_ROBOT_TAXI_TRANS_VECTORS = TAXI_NEIGHBORHOOD
-OMNI_ROBOT_TAXI_ROT_ANGLES = (90., 180., 270.,
-                              -90., -180, -270.)
+OMNI_ROBOT_TAXI_ROT_ANGLES = (90.0, 180.0, 270.0, -90.0, -180, -270.0)
 OMNI_ROBOT_CHESSBOARD_TRANS_VECTORS = CHESSBOARD_NEIGHBORHOOD
 OMNI_ROBOT_CHESSBOARD_ROT_ANGLES = OMNI_ROBOT_TAXI_ROT_ANGLES
 
@@ -40,53 +49,327 @@ DIFF_ROBOT_CHESSBOARD_TRANS_VECTORS = DIFF_ROBOT_TAXI_TRANS_VECTORS
 DIFF_ROBOT_CHESSBOARD_ROT_ANGLES = OMNI_ROBOT_CHESSBOARD_ROT_ANGLES
 
 ROBOT_ANGLES_AT_60 = (
-    60.0, 120.0, 180.0, 240.0, 300.0,
-    -60.0, -120.0, -180.0, -240.0, -300.0
+    60.0,
+    120.0,
+    180.0,
+    240.0,
+    300.0,
+    -60.0,
+    -120.0,
+    -180.0,
+    -240.0,
+    -300.0,
 )
 
 ROBOT_ANGLES_AT_45 = (
-    45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0,
-    -45.0, -90.0, -135.0, -180.0, -225.0, -270.0, -315.0
+    45.0,
+    90.0,
+    135.0,
+    180.0,
+    225.0,
+    270.0,
+    315.0,
+    -45.0,
+    -90.0,
+    -135.0,
+    -180.0,
+    -225.0,
+    -270.0,
+    -315.0,
 )
 
 ROBOT_ANGLES_AT_30 = (
-    30.0, 60.0, 90.0, 120.0, 150.0, 180.0, 210.0, 240.0, 270.0, 300.0, 330.0,
-    -30.0, -60.0, -90.0, -120.0, -150.0, -180.0, -210.0, -240.0, -270.0, -300.0, -330.0
+    30.0,
+    60.0,
+    90.0,
+    120.0,
+    150.0,
+    180.0,
+    210.0,
+    240.0,
+    270.0,
+    300.0,
+    330.0,
+    -30.0,
+    -60.0,
+    -90.0,
+    -120.0,
+    -150.0,
+    -180.0,
+    -210.0,
+    -240.0,
+    -270.0,
+    -300.0,
+    -330.0,
 )
 
 ROBOT_ANGLES_AT_15 = (
-    15.0, 30.0, 45.0, 60.0, 75.0, 90.0, 105.0, 120.0, 135.0, 150.0, 165.0, 180.0, 195.0, 210.0, 225.0, 240.0,
-    255.0, 270.0, 285.0, 300.0, 315.0, 330.0, 345.0
-    -15.0, -30.0, -45.0, -60.0, -75.0, -90.0, -105.0, -120.0, -135.0, -150.0, -165.0, -180.0, -195.0, -210.0,
-    -225.0, -240.0, -255.0, -270.0, -285.0, -300.0, -315.0, -330.0, -345.0
+    15.0,
+    30.0,
+    45.0,
+    60.0,
+    75.0,
+    90.0,
+    105.0,
+    120.0,
+    135.0,
+    150.0,
+    165.0,
+    180.0,
+    195.0,
+    210.0,
+    225.0,
+    240.0,
+    255.0,
+    270.0,
+    285.0,
+    300.0,
+    315.0,
+    330.0,
+    345.0 - 15.0,
+    -30.0,
+    -45.0,
+    -60.0,
+    -75.0,
+    -90.0,
+    -105.0,
+    -120.0,
+    -135.0,
+    -150.0,
+    -165.0,
+    -180.0,
+    -195.0,
+    -210.0,
+    -225.0,
+    -240.0,
+    -255.0,
+    -270.0,
+    -285.0,
+    -300.0,
+    -315.0,
+    -330.0,
+    -345.0,
 )
 
 ROBOT_ANGLES_AT_10 = (
-    10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0,
-    170.0, 180.0, 190.0, 200.0, 210.0, 220.0, 230.0, 240.0, 250.0, 260.0, 270.0, 280.0, 290.0, 300.0, 310.0,
-    320.0, 330.0, 340.0, 350.0,
-    -10.0, -20.0, -30.0, -40.0, -50.0, -60.0, -70.0, -80.0, -90.0, -100.0, -110.0, -120.0, -130.0, -140.0,
-    -150.0, -160.0, -170.0, -180.0, -190.0, -200.0, -210.0, -220.0, -230.0, -240.0, -250.0, -260.0, -270.0,
-    -280.0, -290.0, -300.0, -310.0, -320.0, -330.0, -340.0, -350.0
+    10.0,
+    20.0,
+    30.0,
+    40.0,
+    50.0,
+    60.0,
+    70.0,
+    80.0,
+    90.0,
+    100.0,
+    110.0,
+    120.0,
+    130.0,
+    140.0,
+    150.0,
+    160.0,
+    170.0,
+    180.0,
+    190.0,
+    200.0,
+    210.0,
+    220.0,
+    230.0,
+    240.0,
+    250.0,
+    260.0,
+    270.0,
+    280.0,
+    290.0,
+    300.0,
+    310.0,
+    320.0,
+    330.0,
+    340.0,
+    350.0,
+    -10.0,
+    -20.0,
+    -30.0,
+    -40.0,
+    -50.0,
+    -60.0,
+    -70.0,
+    -80.0,
+    -90.0,
+    -100.0,
+    -110.0,
+    -120.0,
+    -130.0,
+    -140.0,
+    -150.0,
+    -160.0,
+    -170.0,
+    -180.0,
+    -190.0,
+    -200.0,
+    -210.0,
+    -220.0,
+    -230.0,
+    -240.0,
+    -250.0,
+    -260.0,
+    -270.0,
+    -280.0,
+    -290.0,
+    -300.0,
+    -310.0,
+    -320.0,
+    -330.0,
+    -340.0,
+    -350.0,
 )
 
 ROBOT_ANGLES_AT_5 = (
-    5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 35.0, 40.0, 45.0, 50.0, 55.0, 60.0, 65.0, 70.0, 75.0, 80.0, 85.0, 90.0,
-    95.0, 100.0, 105.0, 110.0, 115.0, 120.0, 125.0, 130.0, 135.0, 140.0, 145.0, 150.0, 155.0, 160.0, 165.0,
-    170.0, 175.0, 180.0, 185.0, 190.0, 195.0, 200.0, 205.0, 210.0, 215.0, 220.0, 225.0, 230.0, 235.0, 240.0,
-    245.0, 250.0, 255.0, 260.0, 265.0, 270.0, 275.0, 280.0, 285.0, 290.0, 295.0, 300.0, 305.0, 310.0, 315.0,
-    320.0, 325.0, 330.0, 335.0, 340.0, 345.0, 350.0, 355.0,
-    -5.0, -10.0, -15.0, -20.0, -25.0, -30.0, -35.0, -40.0, -45.0, -50.0, -55.0, -60.0, -65.0, -70.0, -75.0,
-    -80.0, -85.0, -90.0, -95.0, -100.0, -105.0, -110.0, -115.0, -120.0, -125.0, -130.0, -135.0, -140.0, -145.0,
-    -150.0, -155.0, -160.0, -165.0, -170.0, -175.0, -180.0, -185.0, -190.0, -195.0, -200.0, -205.0, -210.0,
-    -215.0, -220.0, -225.0, -230.0, -235.0, -240.0, -245.0, -250.0, -255.0, -260.0, -265.0, -270.0, -275.0,
-    -280.0, -285.0, -290.0, -295.0, -300.0, -305.0, -310.0, -315.0, -320.0, -325.0, -330.0, -335.0, -340.0,
-    -345.0, -350.0, -355.0
+    5.0,
+    10.0,
+    15.0,
+    20.0,
+    25.0,
+    30.0,
+    35.0,
+    40.0,
+    45.0,
+    50.0,
+    55.0,
+    60.0,
+    65.0,
+    70.0,
+    75.0,
+    80.0,
+    85.0,
+    90.0,
+    95.0,
+    100.0,
+    105.0,
+    110.0,
+    115.0,
+    120.0,
+    125.0,
+    130.0,
+    135.0,
+    140.0,
+    145.0,
+    150.0,
+    155.0,
+    160.0,
+    165.0,
+    170.0,
+    175.0,
+    180.0,
+    185.0,
+    190.0,
+    195.0,
+    200.0,
+    205.0,
+    210.0,
+    215.0,
+    220.0,
+    225.0,
+    230.0,
+    235.0,
+    240.0,
+    245.0,
+    250.0,
+    255.0,
+    260.0,
+    265.0,
+    270.0,
+    275.0,
+    280.0,
+    285.0,
+    290.0,
+    295.0,
+    300.0,
+    305.0,
+    310.0,
+    315.0,
+    320.0,
+    325.0,
+    330.0,
+    335.0,
+    340.0,
+    345.0,
+    350.0,
+    355.0,
+    -5.0,
+    -10.0,
+    -15.0,
+    -20.0,
+    -25.0,
+    -30.0,
+    -35.0,
+    -40.0,
+    -45.0,
+    -50.0,
+    -55.0,
+    -60.0,
+    -65.0,
+    -70.0,
+    -75.0,
+    -80.0,
+    -85.0,
+    -90.0,
+    -95.0,
+    -100.0,
+    -105.0,
+    -110.0,
+    -115.0,
+    -120.0,
+    -125.0,
+    -130.0,
+    -135.0,
+    -140.0,
+    -145.0,
+    -150.0,
+    -155.0,
+    -160.0,
+    -165.0,
+    -170.0,
+    -175.0,
+    -180.0,
+    -185.0,
+    -190.0,
+    -195.0,
+    -200.0,
+    -205.0,
+    -210.0,
+    -215.0,
+    -220.0,
+    -225.0,
+    -230.0,
+    -235.0,
+    -240.0,
+    -245.0,
+    -250.0,
+    -255.0,
+    -260.0,
+    -265.0,
+    -270.0,
+    -275.0,
+    -280.0,
+    -285.0,
+    -290.0,
+    -295.0,
+    -300.0,
+    -305.0,
+    -310.0,
+    -315.0,
+    -320.0,
+    -325.0,
+    -330.0,
+    -335.0,
+    -340.0,
+    -345.0,
+    -350.0,
+    -355.0,
 )
 
-DIRECTIONS = [['NW', 'N', 'NE'],
-              ['W', 'X', 'E'],
-              ['SW', 'S', 'SE']]
+DIRECTIONS = [["NW", "N", "NE"], ["W", "X", "E"], ["SW", "S", "SE"]]
 
 HALF_ONE_UP_TIMES = (0.45, 0.70, 0.90, 1.20)
 
@@ -96,7 +379,6 @@ def timestamp_string():
 
 
 class OrderedSet(MutableSet):
-
     def __init__(self, iterable=None):
         self.end = end = []
         end += [None, end, end]  # sentinel node for doubly linked list
@@ -138,15 +420,15 @@ class OrderedSet(MutableSet):
 
     def pop(self, last=True):
         if not self:
-            raise KeyError('set is empty')
+            raise KeyError("set is empty")
         key = self.end[1][0] if last else self.end[2][0]
         self.discard(key)
         return key
 
     def __repr__(self):
         if not self:
-            return '%s()' % (self.__class__.__name__,)
-        return '%s(%r)' % (self.__class__.__name__, list(self))
+            return "%s()" % (self.__class__.__name__,)
+        return "%s(%r)" % (self.__class__.__name__, list(self))
 
     def __eq__(self, other):
         if isinstance(other, OrderedSet):
@@ -187,25 +469,25 @@ def euclidean_distance_squared_heuristic(a, b):
     return (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2
 
 
-def manhattan_distance(a, b, c_cost=1.):
+def manhattan_distance(a, b, c_cost=1.0):
     return c_cost * (abs(b[0] - a[0]) + abs(b[1] - a[1]))
 
 
-def chebyshev_distance(a, b, c_cost=1., d_cost=SQRT_OF_2):
+def chebyshev_distance(a, b, c_cost=1.0, d_cost=SQRT_OF_2):
     dx = abs(a[0] - b[0])
     dy = abs(a[1] - b[1])
-    return c_cost * (dx + dy) + (d_cost - 2. * c_cost) * min(dx, dy)
+    return c_cost * (dx + dy) + (d_cost - 2.0 * c_cost) * min(dx, dy)
 
 
 def sum_of_euclidean_distances(poses):
     if len(poses) == 0:
         return float("inf")
     elif len(poses) == 1:
-        return 0.
+        return 0.0
 
-    total = 0.
+    total = 0.0
     prev_pose = poses[0]
-    for cur_pose in poses[1:len(poses)]:
+    for cur_pose in poses[1 : len(poses)]:
         total += euclidean_distance(cur_pose, prev_pose)
         prev_pose = cur_pose
 
@@ -248,12 +530,17 @@ def get_neighbors_no_coll(cell, grid, width, height, neighborhood=TAXI_NEIGHBORH
     neighbors = set()
     for i, j in neighborhood:
         neighbor = cell[0] + i, cell[1] + j
-        if is_in_matrix(neighbor, width, height) and grid[neighbor[0]][neighbor[1]] == 0:
+        if (
+            is_in_matrix(neighbor, width, height)
+            and grid[neighbor[0]][neighbor[1]] == 0
+        ):
             neighbors.add(neighbor)
     return neighbors
 
 
-def get_set_neighbors(cell_set, width, height, neighborhood=TAXI_NEIGHBORHOOD, previous_cell_set=None):
+def get_set_neighbors(
+    cell_set, width, height, neighborhood=TAXI_NEIGHBORHOOD, previous_cell_set=None
+):
     neighbor_set = set()
     for cell in cell_set:
         neighbor_set.update(get_neighbors(cell, width, height, neighborhood))
@@ -263,11 +550,15 @@ def get_set_neighbors(cell_set, width, height, neighborhood=TAXI_NEIGHBORHOOD, p
     return neighbor_set
 
 
-def get_set_neighbors_no_coll(cell_set, grid, neighborhood=TAXI_NEIGHBORHOOD, previous_cell_set=None):
+def get_set_neighbors_no_coll(
+    cell_set, grid, neighborhood=TAXI_NEIGHBORHOOD, previous_cell_set=None
+):
     neighbor_set = set()
     width, height = grid.shape
     for cell in cell_set:
-        neighbor_set.update(get_neighbors_no_coll(cell, grid, width, height, neighborhood))
+        neighbor_set.update(
+            get_neighbors_no_coll(cell, grid, width, height, neighborhood)
+        )
     neighbor_set.difference_update(cell_set)
     if previous_cell_set is not None:
         neighbor_set.difference_update(previous_cell_set)
@@ -287,28 +578,40 @@ def is_in_matrix(cell, width, height):
 
 
 def real_to_grid(real_x, real_y, res, grid_pose):
-    return int(math.floor((real_x - grid_pose[0]) / res)), int(math.floor((real_y - grid_pose[1]) / res))
+    return int(math.floor((real_x - grid_pose[0]) / res)), int(
+        math.floor((real_y - grid_pose[1]) / res)
+    )
 
 
 def grid_to_real(cell_x, cell_y, res, grid_pose):
-    return res * float(cell_x) + grid_pose[0] + res * 0.5, res * float(cell_y) + grid_pose[1] + res * 0.5
+    return res * float(cell_x) + grid_pose[0] + res * 0.5, res * float(
+        cell_y
+    ) + grid_pose[1] + res * 0.5
 
 
 def real_pose_to_grid_pose(real_pose, res, grid_pose, clamp_angle=None):
-    return (int(math.floor((real_pose[0] - grid_pose[0]) / res)),
-            int(math.floor((real_pose[1] - grid_pose[1]) / res)),
-            real_pose[2] if clamp_angle is None else int(round(real_pose[2] / clamp_angle) * clamp_angle))
+    return (
+        int(math.floor((real_pose[0] - grid_pose[0]) / res)),
+        int(math.floor((real_pose[1] - grid_pose[1]) / res)),
+        real_pose[2]
+        if clamp_angle is None
+        else int(round(real_pose[2] / clamp_angle) * clamp_angle),
+    )
 
 
 def grid_pose_to_real_pose(grid_pose, res, parent_grid_pose):
-    return res * float(grid_pose[0]) + parent_grid_pose[0] + res * 0.5, res * float(grid_pose[1]) + parent_grid_pose[1] + res * 0.5, float(grid_pose[2])
+    return (
+        res * float(grid_pose[0]) + parent_grid_pose[0] + res * 0.5,
+        res * float(grid_pose[1]) + parent_grid_pose[1] + res * 0.5,
+        float(grid_pose[2]),
+    )
 
 
 def real_pose_to_fixed_precision_pose(real_pose, trans_mult, rot_mult):
     return (
         round(real_pose[0] * trans_mult),
         round(real_pose[1] * trans_mult),
-        round(real_pose[2] * rot_mult)
+        round(real_pose[2] * rot_mult),
     )
 
 
@@ -345,10 +648,9 @@ def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
         real_yaw = yaw_from_direction(direction_vector)
         new_pose = (real_x, real_y, real_yaw)
         has_rotation = not angle_is_close(new_pose[2], previous_pose[2], rel_tol=1e-6)
-        has_translation = (
-                not is_close(new_pose[0], previous_pose[0], rel_tol=1e-6)
-                or not is_close(new_pose[1], previous_pose[1], rel_tol=1e-6)
-        )
+        has_translation = not is_close(
+            new_pose[0], previous_pose[0], rel_tol=1e-6
+        ) or not is_close(new_pose[1], previous_pose[1], rel_tol=1e-6)
 
         if has_rotation or has_translation:
             if has_rotation and has_translation:
@@ -359,7 +661,10 @@ def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
         previous_pose = new_pose
 
     if goal_pose:
-        last_direction_vector = (goal_pose[0] - real_path[-1][0], goal_pose[1] - real_path[-1][1])
+        last_direction_vector = (
+            goal_pose[0] - real_path[-1][0],
+            goal_pose[1] - real_path[-1][1],
+        )
         last_real_yaw = yaw_from_direction(last_direction_vector)
         real_path.append((real_path[-1][0], real_path[-1][1], last_real_yaw))
         real_path.append((goal_pose[0], goal_pose[1], last_real_yaw))
@@ -394,18 +699,24 @@ def polygon_to_grid(polygon, res, fill=True):
 
     # Use PIL to discretize polygon
     # - Create PIL image
-    img = Image.new('L', (d_width, d_height), 0)
+    img = Image.new("L", (d_width, d_height), 0)
     # - Transform real polygon coordinates in image coordinate system
-    poly_coordinates_in_image = [((x - min_x) / res, (y - min_y) / res) for x, y in polygon.exterior.coords]
+    poly_coordinates_in_image = [
+        ((x - min_x) / res, (y - min_y) / res) for x, y in polygon.exterior.coords
+    ]
     # - Discretize polygon into image
-    ImageDraw.Draw(img).polygon(poly_coordinates_in_image, outline=1, fill=1 if fill else 0)
+    ImageDraw.Draw(img).polygon(
+        poly_coordinates_in_image, outline=1, fill=1 if fill else 0
+    )
     # - Transform image back into polygon coordinate system
     subgrid = np.flipud(np.rot90(np.array(img)))
 
-    return subgrid, (min_x, min_y, 0.)
+    return subgrid, (min_x, min_y, 0.0)
 
 
-def subgrid_to_discrete_cells_set(subgrid, subgrid_pose, res, grid_pose, grid_d_width, grid_d_height):
+def subgrid_to_discrete_cells_set(
+    subgrid, subgrid_pose, res, grid_pose, grid_d_width, grid_d_height
+):
     # Compute subgrid corner coordinate in parent grid
     d_min_x, d_min_y = real_to_grid(subgrid_pose[0], subgrid_pose[1], res, grid_pose)
 
@@ -413,24 +724,42 @@ def subgrid_to_discrete_cells_set(subgrid, subgrid_pose, res, grid_pose, grid_d_
     x_coords += d_min_x
     y_coords += d_min_y
     unchecked_cells = zip(x_coords, y_coords)
-    discrete_cells_set = {cell for cell in unchecked_cells if is_in_matrix(cell, grid_d_width, grid_d_height)}
+    discrete_cells_set = {
+        cell
+        for cell in unchecked_cells
+        if is_in_matrix(cell, grid_d_width, grid_d_height)
+    }
 
     return discrete_cells_set
+
+
 # endregion
 
 
-def reference_polygon_to_discrete_cells_set(polygon, res, grid_pose, grid_d_width, grid_d_height, fill=True):
-    subgrid, subgrid_min_x, subgrid_min_y = reference_polygon_to_subgrid(polygon, res, grid_pose, fill)
-    cells_set = reference_subgrid_to_grid_cells_set(subgrid, subgrid_min_x, subgrid_min_y, grid_d_width, grid_d_height)
+def reference_polygon_to_discrete_cells_set(
+    polygon, res, grid_pose, grid_d_width, grid_d_height, fill=True
+):
+    subgrid, subgrid_min_x, subgrid_min_y = reference_polygon_to_subgrid(
+        polygon, res, grid_pose, fill
+    )
+    cells_set = reference_subgrid_to_grid_cells_set(
+        subgrid, subgrid_min_x, subgrid_min_y, grid_d_width, grid_d_height
+    )
     return cells_set
 
 
-def reference_subgrid_to_grid_cells_set(subgrid, subgrid_min_x, subgrid_min_y, grid_d_width, grid_d_height):
+def reference_subgrid_to_grid_cells_set(
+    subgrid, subgrid_min_x, subgrid_min_y, grid_d_width, grid_d_height
+):
     x_coords, y_coords = np.where(subgrid == 1)
     x_coords += subgrid_min_x
     y_coords += subgrid_min_y
     unchecked_cells = zip(x_coords, y_coords)
-    discrete_cells_set = {cell for cell in unchecked_cells if is_in_matrix(cell, grid_d_width, grid_d_height)}
+    discrete_cells_set = {
+        cell
+        for cell in unchecked_cells
+        if is_in_matrix(cell, grid_d_width, grid_d_height)
+    }
     return discrete_cells_set
 
 
@@ -447,25 +776,36 @@ def reference_polygon_to_subgrid(polygon, res, grid_pose, fill=True):
     min_x, min_y, max_x, max_y = polygon.bounds
 
     # Clamp the values to their appropriate cell
-    min_d_x, min_d_y = int(math.floor((min_x - grid_pose[0]) / res)), int(math.floor((min_y - grid_pose[1]) / res))
-    max_d_x, max_d_y = int(math.ceil((max_x - grid_pose[0]) / res)), int(math.ceil((max_y - grid_pose[1]) / res))
+    min_d_x, min_d_y = (
+        int(math.floor((min_x - grid_pose[0]) / res)),
+        int(math.floor((min_y - grid_pose[1]) / res)),
+    )
+    max_d_x, max_d_y = (
+        int(math.ceil((max_x - grid_pose[0]) / res)),
+        int(math.ceil((max_y - grid_pose[1]) / res)),
+    )
 
     # Compute cell width and height of subgrid
     d_width, d_height = max_d_x - min_d_x + 1, max_d_y - min_d_y + 1
 
-    min_x_bi1s, min_y_bis = grid_pose[0] + res * float(min_d_x), grid_pose[1] + res * float(min_d_y)
-    subgrid_projected_polygon = affinity.translate(polygon, -grid_pose[0] - min_d_x * res, -grid_pose[1] - min_d_y * res)
+    min_x_bi1s, min_y_bis = (
+        grid_pose[0] + res * float(min_d_x),
+        grid_pose[1] + res * float(min_d_y),
+    )
+    subgrid_projected_polygon = affinity.translate(
+        polygon, -grid_pose[0] - min_d_x * res, -grid_pose[1] - min_d_y * res
+    )
 
     new_subgrid = np.zeros((d_width, d_height), dtype=int)
     # For each cell in subgrid, create a shapely square polygon and check
     for i in range(d_width):
         for j in range(d_height):
             coordinates = [
-                    (i * res, j * res),
-                    ((i + 1) * res, j * res),
-                    ((i + 1) * res, (j + 1) * res),
-                    (i * res, (j + 1) * res)
-                ]
+                (i * res, j * res),
+                ((i + 1) * res, j * res),
+                ((i + 1) * res, (j + 1) * res),
+                (i * res, (j + 1) * res),
+            ]
             cell_poly = Polygon(coordinates)
             if cell_poly.intersects(subgrid_projected_polygon):
                 new_subgrid[i][j] = 1
@@ -485,6 +825,7 @@ def reference_polygon_to_subgrid(polygon, res, grid_pose, fill=True):
 def get_circumscribed_radius(polygon):
     return polygon.hausdorff_distance(polygon.centroid)
 
+
 # def get_inscribed_radius(polygon):
 #     center = list(polygon.centroid.coords)[0]
 #     points = list(polygon.exterior.coords)
@@ -503,7 +844,7 @@ def get_inscribed_radius(polygon):
 
 
 def get_inscribed_square_sidelength(radius):
-    return math.sqrt(radius ** 2 * 2)
+    return math.sqrt(radius**2 * 2)
 
 
 def get_translation(start_pose, end_pose):
@@ -520,13 +861,23 @@ def get_translation_and_rotation(start_pose, end_pose):
     return translation, rotation
 
 
-def set_polygon_pose(polygon, init_polygon_pose, end_polygon_pose, rotation_center='center'):
-    translation, rotation = get_translation_and_rotation(init_polygon_pose, end_polygon_pose)
-    return rotate_then_translate_polygon(polygon, translation, rotation, rotation_center)
+def set_polygon_pose(
+    polygon, init_polygon_pose, end_polygon_pose, rotation_center="center"
+):
+    translation, rotation = get_translation_and_rotation(
+        init_polygon_pose, end_polygon_pose
+    )
+    return rotate_then_translate_polygon(
+        polygon, translation, rotation, rotation_center
+    )
 
 
-def rotate_then_translate_polygon(polygon, translation, rotation, rotation_center='center'):
-    return affinity.translate(affinity.rotate(polygon, rotation, origin=rotation_center), *translation)
+def rotate_then_translate_polygon(
+    polygon, translation, rotation, rotation_center="center"
+):
+    return affinity.translate(
+        affinity.rotate(polygon, rotation, origin=rotation_center), *translation
+    )
 
 
 def polygon_collides_with_entities(polygon, entities, aabb_tree=None):
@@ -541,7 +892,10 @@ def append_suffix(filename, suffix):
 
 
 def shapely_polygon_to_shapely_triangles(polygon):
-    return [Polygon(triangle_coords) for triangle_coords in shapely_polygon_to_triangles_coords(polygon)]
+    return [
+        Polygon(triangle_coords)
+        for triangle_coords in shapely_polygon_to_triangles_coords(polygon)
+    ]
 
 
 def shapely_polygon_to_triangles_coords(polygon):
@@ -552,8 +906,13 @@ def polygon_coords_to_triangles_coords(polygon):
     verts = np.array(polygon).reshape(-1, 2)
     rings = np.array([verts.shape[0]])
     triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
-    triangles_vertices_as_tuples = [tuple(triangle_vertices) for triangle_vertices in triangles_vertices]
-    triangles = [triangles_vertices_as_tuples[n:n + 3] for n in range(0, len(triangles_vertices_as_tuples), 3)]
+    triangles_vertices_as_tuples = [
+        tuple(triangle_vertices) for triangle_vertices in triangles_vertices
+    ]
+    triangles = [
+        triangles_vertices_as_tuples[n : n + 3]
+        for n in range(0, len(triangles_vertices_as_tuples), 3)
+    ]
     return triangles
 
 
@@ -562,7 +921,8 @@ def is_shapely_polygon_convex(polygon):
         raise TypeError(
             "is_shapely_polygon_convex method expects a shapely.geometry.Polygon object, received: {}".format(
                 str(type(polygon))
-            ))
+            )
+        )
     return is_convex_polygon(list(polygon.exterior.coords)[:-1])
 
 
@@ -664,7 +1024,7 @@ def find_circle_terms(x1, y1, x2, y2, x3, y3):
     """
     if x1 == x2 == x3 and y1 == y2 == y3:
         # Manage special case where the point does not move
-        return x1, y1, 0.
+        return x1, y1, 0.0
 
     x12 = x1 - x2
     x13 = x1 - x3
@@ -687,11 +1047,15 @@ def find_circle_terms(x1, y1, x2, y2, x3, y3):
     sx21 = pow(x2, 2) - pow(x1, 2)
     sy21 = pow(y2, 2) - pow(y1, 2)
 
-    f = (sx13 * x12 + sy13 * x12 + sx21 * x13 + sy21 * x13) / (2 * (y31 * x12 - y21 * x13))
+    f = (sx13 * x12 + sy13 * x12 + sx21 * x13 + sy21 * x13) / (
+        2 * (y31 * x12 - y21 * x13)
+    )
 
-    g = (sx13 * y12 + sy13 * y12 + sx21 * y13 + sy21 * y13) / (2. * (x31 * y12 - x21 * y13))
+    g = (sx13 * y12 + sy13 * y12 + sx21 * y13 + sy21 * y13) / (
+        2.0 * (x31 * y12 - x21 * y13)
+    )
 
-    c = (-pow(x1, 2) - pow(y1, 2) - 2. * g * x1 - 2. * f * y1)
+    c = -pow(x1, 2) - pow(y1, 2) - 2.0 * g * x1 - 2.0 * f * y1
 
     # eqn of circle be x^2 + y^2 + 2*g*x + 2*f*y + c = 0
     # where centre is (h = -g, k = -f) and
@@ -725,18 +1089,27 @@ def points_to_angle(x1, y1, x2, y2, x3, y3):
     :rtype: float
     """
     scalar_product = (x1 - x2) * (x3 - x2) + (y1 - y2) * (y3 - y2)
-    product_of_norms = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) * math.sqrt((x3 - x2) ** 2 + (y3 - y2) ** 2)
+    product_of_norms = math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2) * math.sqrt(
+        (x3 - x2) ** 2 + (y3 - y2) ** 2
+    )
     term = scalar_product / product_of_norms
-    term = max(-1., term)
-    term = min(1., term)
+    term = max(-1.0, term)
+    term = min(1.0, term)
     return math.acos(term)
 
 
 def map_bounds(polygons):
     if not polygons:
-        raise ValueError("There are no entities to populate the grid, it can't be created !")
+        raise ValueError(
+            "There are no entities to populate the grid, it can't be created !"
+        )
 
-    map_min_x, map_min_y, map_max_x, map_max_y = float("inf"), float("inf"), -float("inf"), -float("inf")
+    map_min_x, map_min_y, map_max_x, map_max_y = (
+        float("inf"),
+        float("inf"),
+        -float("inf"),
+        -float("inf"),
+    )
 
     for uid, polygon in polygons.items():
         min_x, min_y, max_x, max_y = polygon.bounds
@@ -768,10 +1141,14 @@ def are_points_on_opposite_sides(ax, ay, bx, by, x1, y1, x2, y2):
     :return: True if the points are on opposite sides of the line, False otherwise
     :rtype: bool
     """
-    return ((y1 - y2) * (ax - x1) + (x2 - x1) * (ay - y1)) * ((y1 - y2) * (bx - x1) + (x2 - x1) * (by - y1)) < 0.
+    return ((y1 - y2) * (ax - x1) + (x2 - x1) * (ay - y1)) * (
+        (y1 - y2) * (bx - x1) + (x2 - x1) * (by - y1)
+    ) < 0.0
 
 
-def sample_poses_at_middle_of_inflated_sides(polygon, dist_from_sides, close_to_zero_atol=1e-06):
+def sample_poses_at_middle_of_inflated_sides(
+    polygon, dist_from_sides, close_to_zero_atol=1e-06
+):
     """
     Computes and returns the manipulation poses that are at a distance dist_from_border from the sides,
     and facing their middle.
@@ -790,19 +1167,23 @@ def sample_poses_at_middle_of_inflated_sides(polygon, dist_from_sides, close_to_
         x_b, y_b = polygon.exterior.coords[i + 1]  # Second side segment point
         x_m, y_m = ((x_a + x_b) / 2.0, (y_a + y_b) / 2.0)  # Middle of side segment
         norm_a_b = np.linalg.norm([x_b - x_a, y_b - y_a])  # Side segment length
-        if norm_a_b != 0.:
+        if norm_a_b != 0.0:
             # Compute candidate manip points obtained by cartesian referential change
-            points = [(x_m + d * (y_b - y_a) / norm_a_b, y_m + d * (x_b - x_a) / norm_a_b),
-                      (x_m + d * (y_b - y_a) / norm_a_b, y_m - d * (x_b - x_a) / norm_a_b),
-                      (x_m - d * (y_b - y_a) / norm_a_b, y_m + d * (x_b - x_a) / norm_a_b),
-                      (x_m - d * (y_b - y_a) / norm_a_b, y_m - d * (x_b - x_a) / norm_a_b)]
-            manip_point = (0., 0.)
+            points = [
+                (x_m + d * (y_b - y_a) / norm_a_b, y_m + d * (x_b - x_a) / norm_a_b),
+                (x_m + d * (y_b - y_a) / norm_a_b, y_m - d * (x_b - x_a) / norm_a_b),
+                (x_m - d * (y_b - y_a) / norm_a_b, y_m + d * (x_b - x_a) / norm_a_b),
+                (x_m - d * (y_b - y_a) / norm_a_b, y_m - d * (x_b - x_a) / norm_a_b),
+            ]
+            manip_point = (0.0, 0.0)
             max_dist = 0.0
             # Iterate over candidate manip points to select only the closest one orthogonal to side segment
             for x_r, y_r in points:
                 scalar_product = (x_b - x_a) * (x_r - x_m) + (y_b - y_a) * (y_r - y_m)
-                if abs(scalar_product - 0.) <= close_to_zero_atol:
-                    norm_r_poly_center = np.linalg.norm([poly_center[0] - x_r, poly_center[1] - y_r])
+                if abs(scalar_product - 0.0) <= close_to_zero_atol:
+                    norm_r_poly_center = np.linalg.norm(
+                        [poly_center[0] - x_r, poly_center[1] - y_r]
+                    )
                     if norm_r_poly_center > max_dist:
                         manip_point = (x_r, y_r)
                         max_dist = norm_r_poly_center
@@ -815,7 +1196,9 @@ def sample_poses_at_middle_of_inflated_sides(polygon, dist_from_sides, close_to_
     return poses
 
 
-def generate_random_polygon(ctr_x, ctr_y, ave_radius, irregularity, spikeyness, num_verts):
+def generate_random_polygon(
+    ctr_x, ctr_y, ave_radius, irregularity, spikeyness, num_verts
+):
     """
     Random polygon generator copied from Stackoverflow user Mike Ounsworth:
     https://stackoverflow.com/questions/8997099/algorithm-to-generate-random-2d-polygon
@@ -841,14 +1224,14 @@ def generate_random_polygon(ctr_x, ctr_y, ave_radius, irregularity, spikeyness, 
     :return: a list of vertices, in counter-clockwise order
     :rtype: list(tuple(float, float))
     """
-    irregularity = clip(irregularity, 0., 1.) * TWO_PI / num_verts
-    spikeyness = clip(spikeyness, 0., 1.) * ave_radius
+    irregularity = clip(irregularity, 0.0, 1.0) * TWO_PI / num_verts
+    spikeyness = clip(spikeyness, 0.0, 1.0) * ave_radius
 
     # generate n angle steps
     angle_steps = []
     lower = (TWO_PI / num_verts) - irregularity
     upper = (TWO_PI / num_verts) + irregularity
-    _sum = 0.
+    _sum = 0.0
     for i in range(num_verts):
         tmp = random.uniform(lower, upper)
         angle_steps.append(tmp)
@@ -856,14 +1239,14 @@ def generate_random_polygon(ctr_x, ctr_y, ave_radius, irregularity, spikeyness, 
 
     # normalize the steps so that point 0 and point n+1 are the same
     k = _sum / TWO_PI
-    for i in range(num_verts) :
+    for i in range(num_verts):
         angle_steps[i] = angle_steps[i] / k
 
     # now generate the points
     points = []
-    angle = random.uniform(0., 2. * math.pi)
+    angle = random.uniform(0.0, 2.0 * math.pi)
     for i in range(num_verts):
-        r_i = clip(random.gauss(ave_radius, spikeyness), 0., 2. * ave_radius)
+        r_i = clip(random.gauss(ave_radius, spikeyness), 0.0, 2.0 * ave_radius)
         x = ctr_x + r_i * math.cos(angle)
         y = ctr_y + r_i * math.sin(angle)
         points.append((x, y))
@@ -889,15 +1272,25 @@ def polygon_to_subgrid_polygon_and_parameters(polygon, res, grid_pose):
     min_x, min_y, max_x, max_y = polygon.bounds
 
     # Clamp the values to their appropriate cell
-    min_d_x, min_d_y = int((min_x - grid_pose[0]) / res), int((min_y - grid_pose[1]) / res)
-    max_d_x, max_d_y = int(math.ceil((max_x - grid_pose[0]) / res)), int(math.ceil((max_y - grid_pose[1]) / res))
+    min_d_x, min_d_y = (
+        int((min_x - grid_pose[0]) / res),
+        int((min_y - grid_pose[1]) / res),
+    )
+    max_d_x, max_d_y = (
+        int(math.ceil((max_x - grid_pose[0]) / res)),
+        int(math.ceil((max_y - grid_pose[1]) / res)),
+    )
 
     # Compute cell width and height of subgrid
     d_width, d_height = max_d_x - min_d_x + 1, max_d_y - min_d_y + 1
 
-    min_x_bi1s, min_y_bis = grid_pose[0] + res * float(min_d_x), grid_pose[1] + res * float(min_d_y)
-    subgrid_projected_polygon = affinity.translate(polygon, -grid_pose[0] - min_d_x * res,
-                                                   -grid_pose[1] - min_d_y * res)
+    min_x_bi1s, min_y_bis = (
+        grid_pose[0] + res * float(min_d_x),
+        grid_pose[1] + res * float(min_d_y),
+    )
+    subgrid_projected_polygon = affinity.translate(
+        polygon, -grid_pose[0] - min_d_x * res, -grid_pose[1] - min_d_y * res
+    )
 
     return subgrid_projected_polygon, d_width, d_height, min_d_x, min_d_y
 
@@ -927,7 +1320,7 @@ def same_side(line_p1, dx, dy, a, b, c, d):
     b_term = -dy * (b[0] - line_p1[0]) + dx * (b[1] - line_p1[1])
     c_term = -dy * (c[0] - line_p1[0]) + dx * (c[1] - line_p1[1])
     d_term = -dy * (d[0] - line_p1[0]) + dx * (d[1] - line_p1[1])
-    return a_term * b_term >= 0. and a_term * c_term >= 0. and a_term * d_term >= 0.
+    return a_term * b_term >= 0.0 and a_term * c_term >= 0.0 and a_term * d_term >= 0.0
 
 
 def accurate_rasterize_to_cells(projected_polygon, d_width, d_height, res, fill=True):
@@ -979,11 +1372,17 @@ def accurate_rasterize_to_cells(projected_polygon, d_width, d_height, res, fill=
                 prev_point = cur_point
                 continue
 
-        current_cells_to_visit = [(start_cell[0] + i, start_cell[1] + j) for i, j in neighbors]
+        current_cells_to_visit = [
+            (start_cell[0] + i, start_cell[1] + j) for i, j in neighbors
+        ]
         next_cells_to_visit = []
         found_end_cell = end_cell in current_cells_to_visit
 
-        if found_end_cell and (end_cell[0] - start_cell[0], end_cell[1] - start_cell[1]) in TAXI_NEIGHBORHOOD:
+        if (
+            found_end_cell
+            and (end_cell[0] - start_cell[0], end_cell[1] - start_cell[1])
+            in TAXI_NEIGHBORHOOD
+        ):
             # If we have two neighbouring cells in 4-connectivity, do not try to add more cells or
             # it will generate noise in rounded corners (because the algorithm will evaluate cells that are
             # beyond the end cell one and it should not in this case).
@@ -1001,7 +1400,9 @@ def accurate_rasterize_to_cells(projected_polygon, d_width, d_height, res, fill=
                 if not same_side(prev_point, dx, dy, a, b, c, d):
                     cells.add(cur_cell)
                     # subgrid[cur_cell[0]][cur_cell[1]] = 1  # DEBUG
-                    next_cells_to_visit += [(cur_cell[0] + i, cur_cell[1] + j) for i, j in neighbors]
+                    next_cells_to_visit += [
+                        (cur_cell[0] + i, cur_cell[1] + j) for i, j in neighbors
+                    ]
 
             if not found_end_cell:
                 found_end_cell = cur_cell == end_cell
@@ -1025,9 +1426,11 @@ def accurate_rasterize_to_cells(projected_polygon, d_width, d_height, res, fill=
         # Use PIL to compute fill, it's 20x faster than naive custom implementation above, and 10x faster than Skimage
         # - Create PIL image
         # pil_fill_start = time.time()
-        img = Image.new('L', (d_width, d_height), 0)
+        img = Image.new("L", (d_width, d_height), 0)
         # - Transform real polygon coordinates in image coordinate system
-        poly_coordinates_in_image = [(x / res, y / res) for x, y in projected_poly_coords]
+        poly_coordinates_in_image = [
+            (x / res, y / res) for x, y in projected_poly_coords
+        ]
         # - Discretize polygon into image
         ImageDraw.Draw(img).polygon(poly_coordinates_in_image, outline=1, fill=1)
         # - Transform image back into polygon coordinate system
@@ -1048,10 +1451,16 @@ def accurate_rasterize_to_subgrid(projected_polygon, d_width, d_height, res, fil
 
 
 def accurate_rasterize_in_grid(polygon, res, grid_pose, d_width, d_height, fill=True):
-    projected_polygon, subgrid_d_width, subgrid_d_height, subgrid_min_d_x, subgrid_min_d_y = (
-        polygon_to_subgrid_polygon_and_parameters(polygon, res, grid_pose)
+    (
+        projected_polygon,
+        subgrid_d_width,
+        subgrid_d_height,
+        subgrid_min_d_x,
+        subgrid_min_d_y,
+    ) = polygon_to_subgrid_polygon_and_parameters(polygon, res, grid_pose)
+    subgrid_cells = accurate_rasterize_to_cells(
+        projected_polygon, subgrid_d_width, subgrid_d_height, res, fill
     )
-    subgrid_cells = accurate_rasterize_to_cells(projected_polygon, subgrid_d_width, subgrid_d_height, res, fill)
     grid_cells = set()
     for cell in subgrid_cells:
         grid_cell = (cell[0] + subgrid_min_d_x, cell[1] + subgrid_min_d_y)
@@ -1061,14 +1470,22 @@ def accurate_rasterize_in_grid(polygon, res, grid_pose, d_width, d_height, fill=
 
 
 def shapely_geom_to_local(global_geom, local_cs_pose_in_global):
-    translated_geometry = affinity.translate(global_geom, -local_cs_pose_in_global[0], -local_cs_pose_in_global[1])
-    final_geometry = affinity.rotate(translated_geometry, angle=-local_cs_pose_in_global[2], origin=(0., 0.))
+    translated_geometry = affinity.translate(
+        global_geom, -local_cs_pose_in_global[0], -local_cs_pose_in_global[1]
+    )
+    final_geometry = affinity.rotate(
+        translated_geometry, angle=-local_cs_pose_in_global[2], origin=(0.0, 0.0)
+    )
     return final_geometry
 
 
 def shapely_geom_to_global(local_geom, local_cs_pose_in_global):
-    rotated_geometry = affinity.rotate(local_geom, angle=local_cs_pose_in_global[2], origin=(0., 0.))
-    final_geometry = affinity.translate(rotated_geometry, local_cs_pose_in_global[0], local_cs_pose_in_global[1])
+    rotated_geometry = affinity.rotate(
+        local_geom, angle=local_cs_pose_in_global[2], origin=(0.0, 0.0)
+    )
+    final_geometry = affinity.translate(
+        rotated_geometry, local_cs_pose_in_global[0], local_cs_pose_in_global[1]
+    )
     return final_geometry
 
 
@@ -1077,8 +1494,8 @@ def coords(polygon):
 
 
 def angle_to_360_interval(angle):
-    final_angle = angle % 360.
-    final_angle = final_angle if final_angle >= 0. else final_angle + 360.
+    final_angle = angle % 360.0
+    final_angle = final_angle if final_angle >= 0.0 else final_angle + 360.0
     return final_angle
 
 
@@ -1087,12 +1504,17 @@ def is_close(a, b, rel_tol=1e-09):
 
 
 def angle_is_close(a, b, rel_tol=1e-09):
-    return is_close(a, b, rel_tol) or is_close(a - 360., b, rel_tol) or is_close(a, b - 360., rel_tol)
+    return (
+        is_close(a, b, rel_tol)
+        or is_close(a - 360.0, b, rel_tol)
+        or is_close(a, b - 360.0, rel_tol)
+    )
 
 
 # def circle_to_cells(x, y, r, res, grid_pose, neighborhood=CHESSBOARD_NEIGHBORHOOD):
 #     start_cell = real_to_grid(x, y, res, grid_pose)
 #
+
 
 class Circle:
     def __init__(self, x, y, r):

@@ -74,7 +74,7 @@ def reconstruct_path(came_from, end, reverse=True):
 class HeapNode:
     def __init__(self, cost, element, uid):
         self.cost = cost
-        self.element= element
+        self.element = element
         self.uid = uid
 
     def __cmp__(self, other):
@@ -94,14 +94,13 @@ class HeapNode:
 
 
 def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
-
     came_from = dict()
     current = None
     open_queue = PriorityQueue()
     close_set = set()
 
     if isinstance(start, list) or isinstance(start, set):
-        gscore = {element: 0. for element in start}
+        gscore = {element: 0.0 for element in start}
         for element in start:
             open_queue.push(heuristic(element, goal), element)
     elif isinstance(start, dict):
@@ -109,7 +108,7 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
         for element, cost in start.items():
             open_queue.push(cost + heuristic(element, goal), element)
     else:
-        gscore = {start: 0.}
+        gscore = {start: 0.0}
         open_queue.push(heuristic(start, goal), start)
 
     while open_queue:
@@ -127,9 +126,13 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
             close_set.add(current)
 
         # For each neighbor of current node in the defined neighborhood
-        neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set, open_queue, came_from)
+        neighbors, tentative_g_scores = get_neighbors(
+            current, gscore, close_set, open_queue, came_from
+        )
         for neighbor, tentative_g_score in zip(neighbors, tentative_g_scores):
-            if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
+            if neighbor not in gscore or (
+                neighbor in gscore and tentative_g_score < gscore[neighbor]
+            ):
                 # This path is the best until now. Record it!
                 came_from[neighbor] = current
                 gscore[neighbor] = tentative_g_score
@@ -154,8 +157,17 @@ def basic_exit_condition(current, goal):
     return current == goal
 
 
-def grid_get_neighbors_taxi(current, gscore, close_set, open_queue, came_from, grid, width, height,
-                            check=(lambda x: x == 0)):
+def grid_get_neighbors_taxi(
+    current,
+    gscore,
+    close_set,
+    open_queue,
+    came_from,
+    grid,
+    width,
+    height,
+    check=(lambda x: x == 0),
+):
     neighbors, tentative_gscores = [], []
     current_gscore = gscore[current]
     for i, j in utils.TAXI_NEIGHBORHOOD:
@@ -167,13 +179,22 @@ def grid_get_neighbors_taxi(current, gscore, close_set, open_queue, came_from, g
         )
         if neighbor_is_valid:
             neighbors.append(neighbor)
-            tentative_gscores.append(current_gscore + 1.)
+            tentative_gscores.append(current_gscore + 1.0)
 
     return neighbors, tentative_gscores
 
 
-def grid_get_neighbors_chessboard_simple(current, gscore, close_set, open_queue, came_from, grid, width, height,
-                                         check=(lambda x: x == 0)):
+def grid_get_neighbors_chessboard_simple(
+    current,
+    gscore,
+    close_set,
+    open_queue,
+    came_from,
+    grid,
+    width,
+    height,
+    check=(lambda x: x == 0),
+):
     neighbors, tentative_gscores = grid_get_neighbors_taxi(
         current, gscore, close_set, open_queue, came_from, grid, width, height
     )
@@ -182,9 +203,9 @@ def grid_get_neighbors_chessboard_simple(current, gscore, close_set, open_queue,
     for i, j in utils.CHESSBOARD_NEIGHBORHOOD_EXTRAS:
         neighbor = current[0] + i, current[1] + j
         neighbor_is_valid = (
-                neighbor not in close_set
-                and utils.is_in_matrix(neighbor, width, height)
-                and check(grid[neighbor[0]][neighbor[1]])
+            neighbor not in close_set
+            and utils.is_in_matrix(neighbor, width, height)
+            and check(grid[neighbor[0]][neighbor[1]])
         )
         if neighbor_is_valid:
             neighbors.append(neighbor)
@@ -192,8 +213,17 @@ def grid_get_neighbors_chessboard_simple(current, gscore, close_set, open_queue,
     return neighbors, tentative_gscores
 
 
-def grid_get_neighbors_chessboard_check_diag_neighbors(current, gscore, close_set, open_queue, came_from,
-                                                       grid, width, height, check=(lambda x: x == 0)):
+def grid_get_neighbors_chessboard_check_diag_neighbors(
+    current,
+    gscore,
+    close_set,
+    open_queue,
+    came_from,
+    grid,
+    width,
+    height,
+    check=(lambda x: x == 0),
+):
     neighbors, tentative_gscores = grid_get_neighbors_taxi(
         current, gscore, close_set, open_queue, came_from, grid, width, height
     )
@@ -214,57 +244,113 @@ def grid_get_neighbors_chessboard_check_diag_neighbors(current, gscore, close_se
     return neighbors, tentative_gscores
 
 
-def grid_search_a_star(start, goal, grid, width, height, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, check_diag_neighbors=False):
-
-    is_chess_neighborhood = neighborhood==utils.CHESSBOARD_NEIGHBORHOOD
+def grid_search_a_star(
+    start,
+    goal,
+    grid,
+    width,
+    height,
+    neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+    check_diag_neighbors=False,
+):
+    is_chess_neighborhood = neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
     if is_chess_neighborhood:
         if check_diag_neighbors:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+
+            def grid_get_neighbors_instance(
+                current, gscore, close_set, open_queue, came_from
+            ):
                 return grid_get_neighbors_chessboard_check_diag_neighbors(
-                    current, gscore, close_set, open_queue, came_from, grid, width, height
+                    current,
+                    gscore,
+                    close_set,
+                    open_queue,
+                    came_from,
+                    grid,
+                    width,
+                    height,
                 )
         else:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+
+            def grid_get_neighbors_instance(
+                current, gscore, close_set, open_queue, came_from
+            ):
                 return grid_get_neighbors_chessboard_simple(
-                    current, gscore, close_set, open_queue, came_from, grid, width, height
+                    current,
+                    gscore,
+                    close_set,
+                    open_queue,
+                    came_from,
+                    grid,
+                    width,
+                    height,
                 )
 
         heuristic = utils.chebyshev_distance
     else:
-        def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
-            return grid_get_neighbors_taxi(current, gscore, close_set, open_queue, came_from, grid, width, height)
+
+        def grid_get_neighbors_instance(
+            current, gscore, close_set, open_queue, came_from
+        ):
+            return grid_get_neighbors_taxi(
+                current, gscore, close_set, open_queue, came_from, grid, width, height
+            )
 
         heuristic = utils.manhattan_distance
 
-    return new_generic_a_star(start, goal, basic_exit_condition, grid_get_neighbors_instance, heuristic)
+    return new_generic_a_star(
+        start, goal, basic_exit_condition, grid_get_neighbors_instance, heuristic
+    )
 
 
 def real_to_grid_search_a_star(start_pose, goal_pose, grid):
-        start_cell = utils.real_to_grid(start_pose[0], start_pose[1], grid.res, grid.grid_pose)
-        goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], grid.res, grid.grid_pose)
+    start_cell = utils.real_to_grid(
+        start_pose[0], start_pose[1], grid.res, grid.grid_pose
+    )
+    goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], grid.res, grid.grid_pose)
 
-        if start_cell == goal_cell:
-            return [start_pose, goal_pose]
+    if start_cell == goal_cell:
+        return [start_pose, goal_pose]
 
-        if grid.grid[start_cell[0]][start_cell[1]] > 0 or grid.grid[goal_cell[0]][goal_cell[1]] > 0:
-            return []
+    if (
+        grid.grid[start_cell[0]][start_cell[1]] > 0
+        or grid.grid[goal_cell[0]][goal_cell[1]] > 0
+    ):
+        return []
 
-        path_found, last_cell, came_from, _, _, _ = grid_search_a_star(
-            start_cell, goal_cell, grid.grid, grid.d_width, grid.d_height, grid.neighborhood, check_diag_neighbors=False
+    path_found, last_cell, came_from, _, _, _ = grid_search_a_star(
+        start_cell,
+        goal_cell,
+        grid.grid,
+        grid.d_width,
+        grid.d_height,
+        grid.neighborhood,
+        check_diag_neighbors=False,
+    )
+
+    if path_found:
+        raw_path = reconstruct_path(came_from, last_cell)
+        real_path = utils.grid_path_to_real_path(
+            raw_path, start_pose, goal_pose, grid.res, grid.grid_pose
         )
-
-        if path_found:
-            raw_path = reconstruct_path(came_from, last_cell)
-            real_path = utils.grid_path_to_real_path(raw_path, start_pose, goal_pose, grid.res, grid.grid_pose)
-            raw_path.append(raw_path[-1])  # Copy last cell element to have same number of cells and real poses
-            return real_path
-        else:
-            return []
+        raw_path.append(
+            raw_path[-1]
+        )  # Copy last cell element to have same number of cells and real poses
+        return real_path
+    else:
+        return []
 
 
-def new_generic_dijkstra(start, exit_condition, get_neighbors, came_from=None, open_queue=None, current=None,
-                         close_set=None):
+def new_generic_dijkstra(
+    start,
+    exit_condition,
+    get_neighbors,
+    came_from=None,
+    open_queue=None,
+    current=None,
+    close_set=None,
+):
     if came_from is None:
         came_from = dict()
     if open_queue is None:
@@ -273,16 +359,16 @@ def new_generic_dijkstra(start, exit_condition, get_neighbors, came_from=None, o
         close_set = set()
 
     if isinstance(start, list) or isinstance(start, set):
-        gscore = {element: 0. for element in start}
+        gscore = {element: 0.0 for element in start}
         for element in start:
-            open_queue.push(0., element)
+            open_queue.push(0.0, element)
     elif isinstance(start, dict):
         gscore = {element: cost for element, cost in start.items()}
         for element, cost in start.items():
             open_queue.push(cost, element)
     else:
-        gscore = {start: 0.}
-        open_queue.push(0., start)
+        gscore = {start: 0.0}
+        open_queue.push(0.0, start)
 
     while open_queue:
         # The first node in open_queue
@@ -299,9 +385,13 @@ def new_generic_dijkstra(start, exit_condition, get_neighbors, came_from=None, o
             close_set.add(current)
 
         # For each neighbor of current node in the defined neighborhood
-        neighbors, tentative_g_scores = get_neighbors(current, gscore, close_set, open_queue, came_from)
+        neighbors, tentative_g_scores = get_neighbors(
+            current, gscore, close_set, open_queue, came_from
+        )
         for neighbor, tentative_g_score in zip(neighbors, tentative_g_scores):
-            if neighbor not in gscore or (neighbor in gscore and tentative_g_score < gscore[neighbor]):
+            if neighbor not in gscore or (
+                neighbor in gscore and tentative_g_score < gscore[neighbor]
+            ):
                 # This path is the best until now. Record it!
                 came_from[neighbor] = current
                 gscore[neighbor] = tentative_g_score
@@ -311,7 +401,15 @@ def new_generic_dijkstra(start, exit_condition, get_neighbors, came_from=None, o
     return False, current, came_from, close_set, gscore, open_queue
 
 
-def grid_search_dijkstra(start, goal, grid, width, height, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, check_diag_neighbors=False):
+def grid_search_dijkstra(
+    start,
+    goal,
+    grid,
+    width,
+    height,
+    neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+    check_diag_neighbors=False,
+):
     is_chess_neighborhood = neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
     if grid[start[0]][start[1]] > 0:
@@ -319,45 +417,112 @@ def grid_search_dijkstra(start, goal, grid, width, height, neighborhood=utils.CH
 
     if is_chess_neighborhood:
         if check_diag_neighbors:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+
+            def grid_get_neighbors_instance(
+                current, gscore, close_set, open_queue, came_from
+            ):
                 return grid_get_neighbors_chessboard_check_diag_neighbors(
-                    current, gscore, close_set, open_queue, came_from, grid, width, height
+                    current,
+                    gscore,
+                    close_set,
+                    open_queue,
+                    came_from,
+                    grid,
+                    width,
+                    height,
                 )
         else:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+
+            def grid_get_neighbors_instance(
+                current, gscore, close_set, open_queue, came_from
+            ):
                 return grid_get_neighbors_chessboard_simple(
-                    current, gscore, close_set, open_queue, came_from, grid, width, height
+                    current,
+                    gscore,
+                    close_set,
+                    open_queue,
+                    came_from,
+                    grid,
+                    width,
+                    height,
                 )
 
     else:
-        def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
-            return grid_get_neighbors_taxi(current, gscore, close_set, open_queue, came_from, grid, width, height)
+
+        def grid_get_neighbors_instance(
+            current, gscore, close_set, open_queue, came_from
+        ):
+            return grid_get_neighbors_taxi(
+                current, gscore, close_set, open_queue, came_from, grid, width, height
+            )
 
     def goal_reached_exit_condition(current):
         return basic_exit_condition(current, goal)
 
-    return new_generic_dijkstra(start, goal_reached_exit_condition, grid_get_neighbors_instance)
+    return new_generic_dijkstra(
+        start, goal_reached_exit_condition, grid_get_neighbors_instance
+    )
 
 
-def grid_search_closest_free_cell(start, grid, width, height, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD, check_diag_neighbors=False):
+def grid_search_closest_free_cell(
+    start,
+    grid,
+    width,
+    height,
+    neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+    check_diag_neighbors=False,
+):
     is_chess_neighborhood = neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
     if is_chess_neighborhood:
         if check_diag_neighbors:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+
+            def grid_get_neighbors_instance(
+                current, gscore, close_set, open_queue, came_from
+            ):
                 return grid_get_neighbors_chessboard_check_diag_neighbors(
-                    current, gscore, close_set, open_queue, came_from, grid, width, height, check=(lambda x: x > 0)
+                    current,
+                    gscore,
+                    close_set,
+                    open_queue,
+                    came_from,
+                    grid,
+                    width,
+                    height,
+                    check=(lambda x: x > 0),
                 )
         else:
-            def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+
+            def grid_get_neighbors_instance(
+                current, gscore, close_set, open_queue, came_from
+            ):
                 return grid_get_neighbors_chessboard_simple(
-                    current, gscore, close_set, open_queue, came_from, grid, width, height, check=(lambda x: x > 0)
+                    current,
+                    gscore,
+                    close_set,
+                    open_queue,
+                    came_from,
+                    grid,
+                    width,
+                    height,
+                    check=(lambda x: x > 0),
                 )
 
     else:
-        def grid_get_neighbors_instance(current, gscore, close_set, open_queue, came_from):
+
+        def grid_get_neighbors_instance(
+            current, gscore, close_set, open_queue, came_from
+        ):
             return grid_get_neighbors_taxi(
-                current, gscore, close_set, open_queue, came_from, grid, width, height, check=(lambda x: x > 0)
+                current,
+                gscore,
+                close_set,
+                open_queue,
+                came_from,
+                grid,
+                width,
+                height,
+                check=(lambda x: x > 0),
             )
 
     def is_cell_free(current):

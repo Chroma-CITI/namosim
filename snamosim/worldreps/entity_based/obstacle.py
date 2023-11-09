@@ -9,9 +9,27 @@ from shapely.geometry import Point
 
 
 class Obstacle(Entity):
-
-    def __init__(self, name, polygon, pose, full_geometry_acquired, type_in, movability="unknown", uid=0, style=None):
-        Entity.__init__(self, name, polygon, pose, full_geometry_acquired, movability=movability, uid=uid, style=style)
+    def __init__(
+        self,
+        name,
+        polygon,
+        pose,
+        full_geometry_acquired,
+        type_in,
+        movability="unknown",
+        uid=0,
+        style=None,
+    ):
+        Entity.__init__(
+            self,
+            name,
+            polygon,
+            pose,
+            full_geometry_acquired,
+            movability=movability,
+            uid=uid,
+            style=style,
+        )
         self.type = type_in
 
         self.actions = dict()
@@ -245,9 +263,14 @@ class Obstacle(Entity):
     #         return None
 
     def light_copy(self, copy_polygon=True):
-        return Obstacle(self.name, None if not copy_polygon else copy.deepcopy(self.polygon),
-                        self.pose, self.full_geometry_acquired,
-                        type_in=self.type, uid=self.uid)
+        return Obstacle(
+            self.name,
+            None if not copy_polygon else copy.deepcopy(self.polygon),
+            self.pose,
+            self.full_geometry_acquired,
+            type_in=self.type,
+            uid=self.uid,
+        )
 
     def get_type(self):
         return self.type

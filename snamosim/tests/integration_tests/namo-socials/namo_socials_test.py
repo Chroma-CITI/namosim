@@ -4,9 +4,10 @@ from snamosim.simulator import Simulator
 
 
 class NAMOSocialsTests(unittest.TestCase):
-
     def setUp(self):
-        self.path_to_folder = os.path.join(__file__, "../../../../../data/NAMO-socials/")
+        self.path_to_folder = os.path.join(
+            __file__, "../../../../../data/NAMO-socials/"
+        )
 
     # region BASIC WITH OPENING CASE
     def test_basic_with_opening(self):
@@ -20,6 +21,7 @@ class NAMOSocialsTests(unittest.TestCase):
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
         # Test should end up with a success
+
     # endregion
 
     # region CITI CASE
@@ -32,6 +34,7 @@ class NAMOSocialsTests(unittest.TestCase):
         filename = "05_citi_second_floor/stilman_2005_behavior_focused_snamo.json"
         sim = Simulator(simulation_file_path=self.path_to_folder + filename)
         sim.run()
+
     # endregion
 
     # region CROSSING CASE
@@ -122,5 +125,5 @@ class NAMOSocialsTests(unittest.TestCase):
             sim.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

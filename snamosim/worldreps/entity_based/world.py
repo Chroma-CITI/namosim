@@ -23,12 +23,21 @@ from snamosim.worldreps.entity_based.sensors.omniscient_sensor import Omniscient
 
 
 class World:
-    SCALING_CONSTANT = 1. / 3.5433
+    SCALING_CONSTANT = 1.0 / 3.5433
 
-    def __init__(self, entities=None, entities_to_agent=None, dd=None, taboo_zones=None, goals=None, geometry_scale=1.,
-                 init_json_filename="world_name_placeholder.json", init_json_file=None,
-                 init_geometry_filename="world_name_placeholder.svg", init_geometry_file=None):
-
+    def __init__(
+        self,
+        entities=None,
+        entities_to_agent=None,
+        dd=None,
+        taboo_zones=None,
+        goals=None,
+        geometry_scale=1.0,
+        init_json_filename="world_name_placeholder.json",
+        init_json_file=None,
+        init_geometry_filename="world_name_placeholder.svg",
+        init_geometry_file=None,
+    ):
         self.entities = entities or dict()
         self.entity_to_agent = entities_to_agent or bidict()
 
@@ -63,8 +72,11 @@ class World:
             abs_geometry_file_path = os.path.join(working_directory, geometry_file_path)
         init_geometry_filename = os.path.basename(abs_geometry_file_path)
         init_geometry_file = minidom.parse(abs_geometry_file_path)
-        svg_paths = {path.getAttribute("id"): path.getAttribute('d')
-                     for path in init_geometry_file.getElementsByTagName('path') + init_geometry_file.getElementsByTagName('svg:path')}
+        svg_paths = {
+            path.getAttribute("id"): path.getAttribute("d")
+            for path in init_geometry_file.getElementsByTagName("path")
+            + init_geometry_file.getElementsByTagName("svg:path")
+        }
         shapely_geoms = dict()
         if "no_scaling_workaround" in config and config["no_scaling_workaround"]:
             scaling_value = config["geometry_scale"]
@@ -74,19 +86,34 @@ class World:
         # Convert imported geometry to shapely polygons
         for svg_id, svg_path in svg_paths.items():
             try:
-                shapely_geoms[svg_id] = conversion.svg_pathd_to_shapely_geometry(svg_path, scaling_value)
+                shapely_geoms[svg_id] = conversion.svg_pathd_to_shapely_geometry(
+                    svg_path, scaling_value
+                )
             except RuntimeError:
-                raise RuntimeError("Could not convert svg path to shapely geometry for svg id: {}".format(svg_id))
+                raise RuntimeError(
+                    "Could not convert svg path to shapely geometry for svg id: {}".format(
+                        svg_id
+                    )
+                )
         # TODO Fix this so that it only accounts for obstacles in polygon layer otherwise, things might get messy with
         #  direction vectors that get outside of the obstacle polygons
         # Center the imported geometries
         unioned_polygons = unary_union(list(shapely_geoms.values()))
-        bounding_box = box(unioned_polygons.bounds[0], unioned_polygons.bounds[1],
-                           unioned_polygons.bounds[2], unioned_polygons.bounds[3])
+        bounding_box = box(
+            unioned_polygons.bounds[0],
+            unioned_polygons.bounds[1],
+            unioned_polygons.bounds[2],
+            unioned_polygons.bounds[3],
+        )
         # print(str((bounding_box.bounds[2] - bounding_box.bounds[0], bounding_box.bounds[3] - bounding_box.bounds[1])))
-        translation_to_center = [bounding_box.centroid.coords[0][0], bounding_box.centroid.coords[0][1]]
+        translation_to_center = [
+            bounding_box.centroid.coords[0][0],
+            bounding_box.centroid.coords[0][1],
+        ]
         for svg_id, polygon in shapely_geoms.items():
-            shapely_geoms[svg_id] = affinity.translate(polygon, -translation_to_center[0], -translation_to_center[1])
+            shapely_geoms[svg_id] = affinity.translate(
+                polygon, -translation_to_center[0], -translation_to_center[1]
+            )
 
         # Get map discretization parameters
         dd = DiscretizationData(
@@ -95,7 +122,9 @@ class World:
             cost_lethal=config["discretization_data"]["cost_lethal"],
             cost_inscribed=config["discretization_data"]["cost_inscribed"],
             cost_circumscribed=config["discretization_data"]["cost_circumscribed"],
-            cost_possibly_nonfree=config["discretization_data"]["cost_possibly_nonfree"]
+            cost_possibly_nonfree=config["discretization_data"][
+                "cost_possibly_nonfree"
+            ],
         )
 
         world = cls(
@@ -104,7 +133,7 @@ class World:
             init_geometry_file=init_geometry_file,
             init_json_filename=abs_path_to_file,
             init_json_file=config,
-            dd=dd
+            dd=dd,
         )
 
         first_robot = None
@@ -115,9 +144,13 @@ class World:
             pose = [None, None, 0.0]  # x, y, theta
             if "orientation_id" in entity_data["geometry"]:
                 # If a drawn vector in the SVG is defined as orientation, use it
-                orientation_geom = list(shapely_geoms[entity_data["geometry"]["orientation_id"]].coords)
-                orientation_vector = [orientation_geom[1][0] - orientation_geom[0][0],
-                                      orientation_geom[1][1] - orientation_geom[0][1]]
+                orientation_geom = list(
+                    shapely_geoms[entity_data["geometry"]["orientation_id"]].coords
+                )
+                orientation_vector = [
+                    orientation_geom[1][0] - orientation_geom[0][0],
+                    orientation_geom[1][1] - orientation_geom[0][1],
+                ]
                 pose[2] = utils.yaw_from_direction(orientation_vector)
 
             # Polygonal geometry object definition
@@ -125,16 +158,29 @@ class World:
                 # If geometry is defined in SVG file, prioritize using it
                 try:
                     polygon = shapely_geoms[entity_data["geometry"]["id"]]
-                    style = Style.from_string(world.init_geometry_file.getElementById(entity_data["geometry"]["id"]).getAttribute('style'))
+                    style = Style.from_string(
+                        world.init_geometry_file.getElementById(
+                            entity_data["geometry"]["id"]
+                        ).getAttribute("style")
+                    )
                 except KeyError:
-                    print("Could not find geometry {} in svg file. Next entity.".format(entity_data["geometry"]["id"]))
+                    print(
+                        "Could not find geometry {} in svg file. Next entity.".format(
+                            entity_data["geometry"]["id"]
+                        )
+                    )
                     continue
             else:
-                raise NotImplementedError("You can't define a geometry in the json file manually for now.")
+                raise NotImplementedError(
+                    "You can't define a geometry in the json file manually for now."
+                )
 
             # Adjust initial position in pose if not given only by SVG file
             if pose[0] is None or pose[1] is None:
-                pose[0], pose[1] = [list(polygon.centroid.coords)[0][0], list(polygon.centroid.coords)[0][1]]
+                pose[0], pose[1] = [
+                    list(polygon.centroid.coords)[0][0],
+                    list(polygon.centroid.coords)[0][1],
+                ]
 
             if entity_data["type"] == "robot":
                 sensors_data = entity_data["sensors"]
@@ -142,15 +188,23 @@ class World:
                 sensors = []
                 for sensor_data in sensors_data:
                     if sensor_data["type"] == "perfect_g_fov":
-                        sensors.append(GFOVSensor(
-                            sensor_data["max_radius"],
-                            sensor_data["min_radius"],
-                            sensor_data["opening_angle"], pose))
+                        sensors.append(
+                            GFOVSensor(
+                                sensor_data["max_radius"],
+                                sensor_data["min_radius"],
+                                sensor_data["opening_angle"],
+                                pose,
+                            )
+                        )
                     elif sensor_data["type"] == "perfect_s_fov":
-                        sensors.append(SFOVSensor(
-                            sensor_data["max_radius"],
-                            sensor_data["min_radius"],
-                            sensor_data["opening_angle"], pose))
+                        sensors.append(
+                            SFOVSensor(
+                                sensor_data["max_radius"],
+                                sensor_data["min_radius"],
+                                sensor_data["opening_angle"],
+                                pose,
+                            )
+                        )
                     elif sensor_data["type"] == "omniscient":
                         sensors.append(OmniscientSensor())
 
@@ -163,7 +217,7 @@ class World:
                     push_only_list=entity_data["push_only_list"],
                     force_pushes_only=entity_data["force_pushes_only"],
                     movable_whitelist=entity_data["movable_whitelist"],
-                    style=style
+                    style=style,
                 )
                 if not first_robot:
                     first_robot = new_robot
@@ -181,31 +235,50 @@ class World:
                     pose=pose,
                     type_in=entity_data["type"],
                     full_geometry_acquired=True,
-                    movability="static" if entity_data["type"] in ["wall", "pillar", "table"] else "unknown",
-                    style=style
+                    movability="static"
+                    if entity_data["type"] in ["wall", "pillar", "table"]
+                    else "unknown",
+                    style=style,
                 )
 
                 world.add_entity(new_object)
 
         # Get zones
-        if "zones" in config["things"] :
-            if ("goals" in config["things"]["zones"]
-                    and isinstance(config["things"]["zones"]["goals"], list)):
+        if "zones" in config["things"]:
+            if "goals" in config["things"]["zones"] and isinstance(
+                config["things"]["zones"]["goals"], list
+            ):
                 for goal_data in config["things"]["zones"]["goals"]:
                     try:
                         if "geometry" in goal_data:
                             goal_polygon = shapely_geoms[goal_data["geometry"]["id"]]
-                            pose = [goal_polygon.centroid.coords[0][0], goal_polygon.centroid.coords[0][1], 0.0]
+                            pose = [
+                                goal_polygon.centroid.coords[0][0],
+                                goal_polygon.centroid.coords[0][1],
+                                0.0,
+                            ]
 
                             if "orientation_id" in goal_data["geometry"]:
                                 # If a drawn vector in the SVG is defined as orientation, use it
-                                orientation_geom = list(shapely_geoms[goal_data["geometry"]["orientation_id"]].coords)
-                                orientation_vector = [orientation_geom[1][0] - orientation_geom[0][0],
-                                                      orientation_geom[1][1] - orientation_geom[0][1]]
+                                orientation_geom = list(
+                                    shapely_geoms[
+                                        goal_data["geometry"]["orientation_id"]
+                                    ].coords
+                                )
+                                orientation_vector = [
+                                    orientation_geom[1][0] - orientation_geom[0][0],
+                                    orientation_geom[1][1] - orientation_geom[0][1],
+                                ]
                                 pose[2] = utils.yaw_from_direction(orientation_vector)
                             else:
-                                raise NotImplementedError("You can't define a geometry in the json file manually for now.")
-                            goal = Goal(polygon=goal_polygon, name=goal_data["name"], pose=tuple(pose))
+                                raise NotImplementedError(
+                                    "You can't define a geometry in the json file manually for now."
+                                )
+                            goal = Goal(
+                                polygon=goal_polygon,
+                                name=goal_data["name"],
+                                pose=tuple(pose),
+                            )
                             world.goals[goal.uid] = goal
                         elif "pose" in goal_data:
                             if not goal_data["pose"]:
@@ -213,22 +286,39 @@ class World:
                             pose = tuple(goal_data["pose"])
                             # TODO: Change goal polygon to an arrow
                             if first_robot:
-                                goal_polygon = utils.set_polygon_pose(first_robot.polygon, first_robot.pose, pose)
+                                goal_polygon = utils.set_polygon_pose(
+                                    first_robot.polygon, first_robot.pose, pose
+                                )
                             else:
                                 goal_polygon = None
-                            goal = Goal(polygon=goal_polygon, name=goal_data["name"], pose=tuple(pose))
+                            goal = Goal(
+                                polygon=goal_polygon,
+                                name=goal_data["name"],
+                                pose=tuple(pose),
+                            )
                             world.goals[goal.uid] = goal
                     except KeyError:
-                        print("No goal named in geometry data... {}".format(goal_data["name"]))
-            if ("taboos" in config["things"]["zones"]
-                    and isinstance(config["things"]["zones"]["taboos"], list)):
+                        print(
+                            "No goal named in geometry data... {}".format(
+                                goal_data["name"]
+                            )
+                        )
+            if "taboos" in config["things"]["zones"] and isinstance(
+                config["things"]["zones"]["taboos"], list
+            ):
                 for thing_data in config["things"]["zones"]["taboos"]:
                     try:
                         taboo_polygon = shapely_geoms[thing_data["geometry"]["id"]]
-                        new_taboo = Taboo(name=thing_data["name"], polygon=Polygon(taboo_polygon))
+                        new_taboo = Taboo(
+                            name=thing_data["name"], polygon=Polygon(taboo_polygon)
+                        )
                         world.taboo_zones[new_taboo.uid] = new_taboo
                     except Exception:
-                        print("No taboo zone named... {}".format(thing_data['geometry']['id']))
+                        print(
+                            "No taboo zone named... {}".format(
+                                thing_data["geometry"]["id"]
+                            )
+                        )
 
         world.update_dd()
 
@@ -238,7 +328,9 @@ class World:
 
         return world
 
-    def save_to_files(self, json_filepath=None, svg_filepath=None, json_data=None, svg_data=None):
+    def save_to_files(
+        self, json_filepath=None, svg_filepath=None, json_data=None, svg_data=None
+    ):
         json_filepath = json_filepath or "./" + self.init_json_filename
         svg_filepath = svg_filepath or "./" + self.init_geometry_filename
         working_directory = os.path.dirname(json_filepath)
@@ -259,9 +351,7 @@ class World:
 
     def to_json(self, svg_filepath):
         return {
-            "files": {
-                "geometry_file": svg_filepath
-            },
+            "files": {"geometry_file": svg_filepath},
             "geometry_scale": self.geometry_scale,
             "discretization_data": {
                 "res": self.dd.res,
@@ -269,22 +359,27 @@ class World:
                 "cost_lethal": self.dd.cost_lethal,
                 "cost_inscribed": self.dd.cost_inscribed,
                 "cost_circumscribed": self.dd.cost_circumscribed,
-                "cost_possibly_nonfree": self.dd.cost_possibly_nonfree
+                "cost_possibly_nonfree": self.dd.cost_possibly_nonfree,
             },
             "things": {
                 "entities": [entity.to_json() for entity in self.entities.values()],
                 "zones": {
                     "goals": [goal.to_json() for goal in self.goals.values()],
-                    "taboos": [taboo.to_json() for taboo in self.taboo_zones.values()]
-                }
-            }
+                    "taboos": [taboo.to_json() for taboo in self.taboo_zones.values()],
+                },
+            },
         }
 
     def to_svg(self):
         if self.init_geometry_file:
             svg_data = copy.deepcopy(self.init_geometry_file)
-            init_geometries_ids = {path.getAttribute("id") for path in svg_data.getElementsByTagName('path')}
-            current_geometries_names_to_ids = {entity.name: uid for uid, entity in self.entities.items()}
+            init_geometries_ids = {
+                path.getAttribute("id")
+                for path in svg_data.getElementsByTagName("path")
+            }
+            current_geometries_names_to_ids = {
+                entity.name: uid for uid, entity in self.entities.items()
+            }
             # The 4 following lines are a hack to compensate for the fact the geometries are not associated with entity
             # for uid, entity in self.entities.items():
             #     if isinstance(entity, Robot):
@@ -292,14 +387,23 @@ class World:
             #         current_geometries_names_to_ids[entity.name + "_direction"] = uid
             current_geometries_names = set(current_geometries_names_to_ids.keys())
 
-            new_geometries_names = current_geometries_names.difference(init_geometries_ids)
-            deleted_geometries_names = init_geometries_ids.difference(current_geometries_names)
-            updated_geometries_names = init_geometries_ids.intersection(current_geometries_names)
+            new_geometries_names = current_geometries_names.difference(
+                init_geometries_ids
+            )
+            deleted_geometries_names = init_geometries_ids.difference(
+                current_geometries_names
+            )
+            updated_geometries_names = init_geometries_ids.intersection(
+                current_geometries_names
+            )
 
             for geometry_name in new_geometries_names:
                 entity = self.entities[current_geometries_names_to_ids[geometry_name]]
                 if isinstance(entity, Obstacle):
-                    if entity.movability == "static" or entity.movability == "unmovable":
+                    if (
+                        entity.movability == "static"
+                        or entity.movability == "unmovable"
+                    ):
                         style = conversion.FIXED_ENTITY_STYLE
                     elif entity.movability == "movable":
                         style = conversion.MOVABLE_ENTITY_STYLE
@@ -313,39 +417,67 @@ class World:
                             )
                         )
                     conversion.add_shapely_geometry_to_svg(
-                        entity.polygon, entity.name, style, svg_data,
-                        scale=self.scaling_value, map_width=self.dd.width, map_height=self.dd.height
+                        entity.polygon,
+                        entity.name,
+                        style,
+                        svg_data,
+                        scale=self.scaling_value,
+                        map_width=self.dd.width,
+                        map_height=self.dd.height,
                     )
                 elif isinstance(entity, Robot):
-                    robot_group = conversion.add_group(svg_data, entity.name, is_layer=False)
+                    robot_group = conversion.add_group(
+                        svg_data, entity.name, is_layer=False
+                    )
                     # Add robot shape
                     conversion.add_shapely_geometry_to_svg(
-                        entity.polygon, entity.name + "_shape", conversion.ROBOT_ENTITY_STYLE, svg_data, robot_group,
-                        scale=self.scaling_value, map_width=self.dd.width, map_height=self.dd.height
+                        entity.polygon,
+                        entity.name + "_shape",
+                        conversion.ROBOT_ENTITY_STYLE,
+                        svg_data,
+                        robot_group,
+                        scale=self.scaling_value,
+                        map_width=self.dd.width,
+                        map_height=self.dd.height,
                     )
                     # Add robot direction shape
                     radius = utils.get_inscribed_radius(entity.polygon)
                     point_a = np.array([entity.pose[0], entity.pose[1]])
-                    point_b = point_a + np.array(utils.direction_from_yaw(entity.pose[2])) * radius
+                    point_b = (
+                        point_a
+                        + np.array(utils.direction_from_yaw(entity.pose[2])) * radius
+                    )
                     direction_linestring = LineString([point_a, point_b])
                     conversion.add_shapely_geometry_to_svg(
-                        direction_linestring, entity.name + "_direction", conversion.GOAL_STYLE, svg_data, robot_group,
-                        scale=self.scaling_value, map_width=self.dd.width, map_height=self.dd.height
+                        direction_linestring,
+                        entity.name + "_direction",
+                        conversion.GOAL_STYLE,
+                        svg_data,
+                        robot_group,
+                        scale=self.scaling_value,
+                        map_width=self.dd.width,
+                        map_height=self.dd.height,
                     )
                 else:
                     raise NotImplementedError(
                         "Only entities of class [Robot, Obstacle] can be created in SVG file for now."
-                    ) # TODO Add creation of new SVG goals
+                    )  # TODO Add creation of new SVG goals
             for geometry_name in deleted_geometries_names:
                 xml_element = svg_data.getElementById(geometry_name)
                 xml_element.parentNode.removeChild(xml_element)
             for geometry_name in updated_geometries_names:
                 entity = self.entities[current_geometries_names_to_ids[geometry_name]]
-                geometry = affinity.translate(entity.polygon, self.dd.width / 2., -self.dd.height / 2.)
-                new_svg_path = conversion.shapely_geometry_to_svg_pathd(geometry, self.scaling_value)
-                svg_data.getElementById(geometry_name).setAttribute('d', new_svg_path)
+                geometry = affinity.translate(
+                    entity.polygon, self.dd.width / 2.0, -self.dd.height / 2.0
+                )
+                new_svg_path = conversion.shapely_geometry_to_svg_pathd(
+                    geometry, self.scaling_value
+                )
+                svg_data.getElementById(geometry_name).setAttribute("d", new_svg_path)
         else:
-            raise NotImplementedError("TODO : use bootstrap SVG data to build new SVG file from scratch")
+            raise NotImplementedError(
+                "TODO : use bootstrap SVG data to build new SVG file from scratch"
+            )
         return svg_data
 
     def add_entity(self, new_entity):
@@ -360,13 +492,22 @@ class World:
         if entity_uid in self.entities:
             del self.entities[entity_uid]
         else:
-            raise KeyError("Warning, you tried to remove an entity that is not registered in this world !")
+            raise KeyError(
+                "Warning, you tried to remove an entity that is not registered in this world !"
+            )
 
     def get_map_bounds(self):
         if len(self.entities) == 0:
-            raise ValueError("There are no entities to populate the grid, it can't be created !")
+            raise ValueError(
+                "There are no entities to populate the grid, it can't be created !"
+            )
         polygons = [entity.polygon for entity in self.entities.values()]
-        map_min_x, map_min_y, map_max_x, map_max_y = float("inf"), float("inf"), -float("inf"), -float("inf")
+        map_min_x, map_min_y, map_max_x, map_max_y = (
+            float("inf"),
+            float("inf"),
+            -float("inf"),
+            -float("inf"),
+        )
         for polygon in polygons:
             min_x, min_y, max_x, max_y = polygon.bounds
             map_min_x, map_min_y = min(map_min_x, min_x), min(map_min_y, min_y)
@@ -376,15 +517,19 @@ class World:
     # TO DEPRECATE
     def update_dd(self):
         if self.dd is None:
-            raise ValueError("Discretization data (dd) is None, this should not be happening !")
+            raise ValueError(
+                "Discretization data (dd) is None, this should not be happening !"
+            )
 
         min_x, min_y, max_x, max_y = self.get_map_bounds()
         width, height = max_x - min_x, max_y - min_y
 
         self.dd.grid_pose = (min_x, min_y, 0.0)
         self.dd.width, self.dd.height = width, height
-        self.dd.d_width, self.dd.d_height = (int(round(self.dd.width / self.dd.res)),
-                                             int(round(self.dd.height / self.dd.res)))
+        self.dd.d_width, self.dd.d_height = (
+            int(round(self.dd.width / self.dd.res)),
+            int(round(self.dd.height / self.dd.res)),
+        )
         new_hash = hash(self.dd)
         if new_hash != self.dd.saved_hash:
             self.dd.saved_hash = new_hash
@@ -394,17 +539,30 @@ class World:
         for entity_uid, entity in self.entities.items():
             if entity.name == name:
                 return entity_uid
-        raise LookupError("Could not find an entity in this world with name : {name}.".format(name=name))
+        raise LookupError(
+            "Could not find an entity in this world with name : {name}.".format(
+                name=name
+            )
+        )
 
     def light_copy(self, ignored_entities=tuple()):
         return World(
-            entities={uid: entity.light_copy() for uid, entity in self.entities.items() if uid not in ignored_entities},
-            entities_to_agent=bidict({
-                e: a for e, a in self.entity_to_agent.items()
-                 if a not in ignored_entities and e not in ignored_entities
-            }),
+            entities={
+                uid: entity.light_copy()
+                for uid, entity in self.entities.items()
+                if uid not in ignored_entities
+            },
+            entities_to_agent=bidict(
+                {
+                    e: a
+                    for e, a in self.entity_to_agent.items()
+                    if a not in ignored_entities and e not in ignored_entities
+                }
+            ),
             dd=copy.deepcopy(self.dd),
-            taboo_zones=copy.deepcopy(self.taboo_zones), goals=copy.deepcopy(self.goals),
-            geometry_scale=self.geometry_scale, init_geometry_filename=self.init_geometry_filename,
-            init_geometry_file=self.init_geometry_file
+            taboo_zones=copy.deepcopy(self.taboo_zones),
+            goals=copy.deepcopy(self.goals),
+            geometry_scale=self.geometry_scale,
+            init_geometry_filename=self.init_geometry_filename,
+            init_geometry_file=self.init_geometry_file,
         )

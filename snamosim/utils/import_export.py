@@ -6,8 +6,8 @@ class B2WorldEncoder(json.JSONEncoder):
     """
     Encodes the Box2D world object into a RUBE-compatible json file.
     """
-    def default(self, obj):
 
+    def default(self, obj):
         if isinstance(obj, b2.b2World):
             world_json = {
                 "gravity": self.b2_vec2_to_rube_vec(obj.gravity),
@@ -21,7 +21,7 @@ class B2WorldEncoder(json.JSONEncoder):
                 "subStepping": obj.subStepping,
                 "body": [],
                 "image": [],  # "image" attribute is left empty, since Box2D itself does not manage images.
-                "joint": []
+                "joint": [],
             }
             for body in obj.bodies:
                 body_json = self.body_to_json(body)
@@ -51,13 +51,15 @@ class B2WorldEncoder(json.JSONEncoder):
             "fixedRotation": body.fixedRotation,
             "gravityScale": body.gravityScale,
             "massData-mass": body.massData.mass,  # == body.mass
-            "massData-center": self.b2_vec2_to_rube_vec(body.massData.center),  # == body.localCenter
+            "massData-center": self.b2_vec2_to_rube_vec(
+                body.massData.center
+            ),  # == body.localCenter
             "massData-I": body.massData.I,  # == body.inertia
             "linearDamping": body.linearDamping,
             "linearVelocity": self.b2_vec2_to_rube_vec(body.linearVelocity),
             "position": self.b2_vec2_to_rube_vec(body.position),  # == body.worldCenter
             "type": body.type,
-            "fixture": []
+            "fixture": [],
         }
         # TODO Check that type corresponds to 0 = static, 1 = kinematic, 2 = dynamic
 
@@ -73,7 +75,7 @@ class B2WorldEncoder(json.JSONEncoder):
             json.dumps(body.userData)
             body_json["customProperties"] = body.userData
         except (TypeError, OverflowError):
-            print('Body user data could not be serialized.')
+            print("Body user data could not be serialized.")
 
         # Add Fixtures
         for fixture in body.fixtures:
@@ -91,7 +93,7 @@ class B2WorldEncoder(json.JSONEncoder):
             "filter-groupIndex": fixture.filterData.groupIndex,
             "friction": fixture.friction,
             "restitution": fixture.restitution,
-            "sensor": fixture.sensor
+            "sensor": fixture.sensor,
         }
 
         if isinstance(fixture.shape, b2.b2PolygonShape):
@@ -101,7 +103,7 @@ class B2WorldEncoder(json.JSONEncoder):
         elif isinstance(fixture.shape, b2.b2CircleShape):
             fixture_json["circle"] = {
                 "center": self.b2_vec2_to_rube_vec(fixture.shape.pos),
-                "radius": fixture.shape.radius
+                "radius": fixture.shape.radius,
             }
         elif isinstance(fixture.shape, b2.b2ChainShape):
             fixture_json["polygon"] = {
@@ -109,7 +111,7 @@ class B2WorldEncoder(json.JSONEncoder):
                 "hasNextVertex": fixture.shape.m_hasNextVertex,
                 "hasPrevVertex": fixture.shape.m_hasPrevVertex,
                 "nextVertex": self.b2_vec2_to_rube_vec(fixture.shape.m_nextVertex),
-                "prevVertex": self.b2_vec2_to_rube_vec(fixture.shape.m_prevVertex)
+                "prevVertex": self.b2_vec2_to_rube_vec(fixture.shape.m_prevVertex),
             }
         elif isinstance(fixture.shape, b2.b2EdgeShape):
             fixture_json["polygon"] = {
@@ -131,7 +133,7 @@ class B2WorldEncoder(json.JSONEncoder):
             json.dumps(fixture.userData)
             fixture_json["customProperties"] = fixture.userData
         except (TypeError, OverflowError):
-            print('Fixture user data could not be serialized.')
+            print("Fixture user data could not be serialized.")
 
         return fixture_json
 
@@ -141,7 +143,7 @@ class B2WorldEncoder(json.JSONEncoder):
             "bodyB": joint.bodyB,
             "anchorA": joint.anchorA,
             "anchorB": joint.anchorB,
-            "collideConnected": joint.collideConnected
+            "collideConnected": joint.collideConnected,
         }
 
         # Add a name/id as "name" property for RUBE Json, since it does not exist in Box2D Joint object
@@ -156,7 +158,7 @@ class B2WorldEncoder(json.JSONEncoder):
             json.dumps(joint.userData)
             joint_json["customProperties"] = joint.userData
         except (TypeError, OverflowError):
-            print('Fixture user data could not be serialized.')
+            print("Fixture user data could not be serialized.")
 
         # ---------------------------------------------------
         if isinstance(joint, b2.b2RevoluteJoint):
@@ -166,7 +168,11 @@ class B2WorldEncoder(json.JSONEncoder):
             joint_json["enableMotor"] = joint.motorEnabled
             joint_json["jointSpeed"] = joint.speed
             joint_json["lowerLimit"] = joint.lowerLimit
-            joint_json["maxMotorTorque"] = joint.maxMotorTorque  # May require a pull request to fix the write-only...
+            joint_json[
+                "maxMotorTorque"
+            ] = (
+                joint.maxMotorTorque
+            )  # May require a pull request to fix the write-only...
             joint_json["motorSpeed"] = joint.motorSpeed
             joint_json["refAngle"] = joint.GetReferenceAngle()
             joint_json["upperLimit"] = joint.upperLimit
@@ -211,7 +217,9 @@ class B2WorldEncoder(json.JSONEncoder):
             joint_json["maxForce"] = joint.maxForce
             joint_json["maxTorque"] = joint.maxTorque
             joint_json["angularOffset"] = joint.angularOffset
-            joint_json["linearOffset"] = self.b2_vec2_arr_to_rube_vec_arr(joint.linearOffset)
+            joint_json["linearOffset"] = self.b2_vec2_arr_to_rube_vec_arr(
+                joint.linearOffset
+            )
             # joint_json["correctionFactor"] = joint.GetCorrectionFactor()  # TODO Make pull request to pybox2d to add
         # ---------------------------------------------------
         elif isinstance(joint, b2.b2WeldJoint):
@@ -249,7 +257,7 @@ class B2WorldEncoder(json.JSONEncoder):
             joint_json["groundAnchorB"] = self.b2_vec2_to_rube_vec(joint.groundAnchorB)
         else:
             joint_def = None
-            print ("Unsupported joint type")
+            print("Unsupported joint type")
 
         return joint_json
 
@@ -257,7 +265,10 @@ class B2WorldEncoder(json.JSONEncoder):
         return {"x": b2_vec2.x, "y": b2_vec2.y}
 
     def b2_vec2_arr_to_rube_vec_arr(self, b2_vec2_arr):
-        return {"x": [b2_vec2.x for b2_vec2 in b2_vec2_arr], "y": [b2_vec2.y for b2_vec2 in b2_vec2_arr]}
+        return {
+            "x": [b2_vec2.x for b2_vec2 in b2_vec2_arr],
+            "y": [b2_vec2.y for b2_vec2 in b2_vec2_arr],
+        }
 
 
 class B2WorldDecoder(json.JSONDecoder):
@@ -307,7 +318,9 @@ class B2WorldDecoder(json.JSONDecoder):
         self.try_set_attr(body_json, "type", body_def)
 
         # Manage UserData
-        if "customProperties" in body_json and isinstance(body_json["customProperties"], dict):
+        if "customProperties" in body_json and isinstance(
+            body_json["customProperties"], dict
+        ):
             body_def.userData = body_json["customProperties"]
             # Add a name/id as "name" property if there is not one already
             if "id" not in body_def.userData:
@@ -323,7 +336,11 @@ class B2WorldDecoder(json.JSONDecoder):
             self.add_fixture(body, fixture)
 
         # If massData is overriden from fixture data, take it into account
-        if "massData-mass" in body_json and "massData-center" in body_json and "massData-I" in body_json:
+        if (
+            "massData-mass" in body_json
+            and "massData-center" in body_json
+            and "massData-I" in body_json
+        ):
             body.massData.mass = body_json["massData-mass"]
             body.massData.center = body_json["massData-center"]
             body.massData.I = body_json["massData-I"]
@@ -369,7 +386,9 @@ class B2WorldDecoder(json.JSONDecoder):
             self.try_set_b2_vec2_attr(joint_json, "localAxisA", joint_def)
             self.try_set_attr(joint_json, "maxMotorTorque", joint_def)
             self.try_set_attr(joint_json, "motorSpeed", joint_def)
-            self.try_set_attr(joint_json, "springDampingRatio", joint_def, "dampingRatio")
+            self.try_set_attr(
+                joint_json, "springDampingRatio", joint_def, "dampingRatio"
+            )
             self.try_set_attr(joint_json, "springFrequency", joint_def, "frequencyHz")
         # ---------------------------------------------------
         elif joint_type == "rope":
@@ -423,7 +442,7 @@ class B2WorldDecoder(json.JSONDecoder):
             self.try_set_b2_vec2_attr(joint_json, "groundAnchorB", joint_def)
         else:
             joint_def = None
-            print ("unsupported joint type")
+            print("unsupported joint type")
 
         joint_def.bodyA = self.get_body(b2_world, joint_json["bodyA"])
         joint_def.bodyB = self.get_body(b2_world, joint_json["bodyB"])
@@ -432,7 +451,9 @@ class B2WorldDecoder(json.JSONDecoder):
         self.try_set_attr(joint_json, "collideConnected", joint_def)
 
         # Manage UserData
-        if "customProperties" in joint_json and isinstance(joint_json["customProperties"], dict):
+        if "customProperties" in joint_json and isinstance(
+            joint_json["customProperties"], dict
+        ):
             joint_def.userData = joint_json["customProperties"]
             # Add a name/id as "name" property if there is not one already
             if "id" not in joint_def.userData:
@@ -455,7 +476,9 @@ class B2WorldDecoder(json.JSONDecoder):
         # special case for rube documentation of
         # "filter-categoryBits": 1, //if not present, interpret as 1
         if "filter-categoryBits" in fixture_json.keys():
-            self.try_set_attr(fixture_json, "filter-categoryBits", fixture_def, "categoryBits")
+            self.try_set_attr(
+                fixture_json, "filter-categoryBits", fixture_def, "categoryBits"
+            )
         else:
             fixture_def.categoryBits = 1
 
@@ -479,40 +502,70 @@ class B2WorldDecoder(json.JSONDecoder):
             if fixture_json["circle"]["center"] == 0:
                 center_b2_vec2 = b2.b2Vec2(0, 0)
             else:
-                center_b2_vec2 = self.rube_vec_to_b2_vec2(fixture_json["circle"]["center"])
-            fixture_def.shape = b2.b2CircleShape(pos=center_b2_vec2, radius=fixture_json["circle"]["radius"])
+                center_b2_vec2 = self.rube_vec_to_b2_vec2(
+                    fixture_json["circle"]["center"]
+                )
+            fixture_def.shape = b2.b2CircleShape(
+                pos=center_b2_vec2, radius=fixture_json["circle"]["radius"]
+            )
 
         if "polygon" in fixture_json.keys():  # works ok
-            polygon_vertices = self.rube_vec_arr_to_b2_vec2_arr(fixture_json["polygon"]["vertices"])
+            polygon_vertices = self.rube_vec_arr_to_b2_vec2_arr(
+                fixture_json["polygon"]["vertices"]
+            )
             fixture_def.shape = b2.b2PolygonShape(vertices=polygon_vertices)
 
         if "chain" in fixture_json.keys():  # works ok
-            chain_vertices = self.rube_vec_arr_to_b2_vec2_arr(fixture_json["chain"]["vertices"])
+            chain_vertices = self.rube_vec_arr_to_b2_vec2_arr(
+                fixture_json["chain"]["vertices"]
+            )
 
             if len(chain_vertices) >= 3:
                 # closed-loop b2LoopShape
                 if "hasNextVertex" in fixture_json["chain"].keys():
-
                     # del last vertice to prevent crash from first and last
                     # vertices being to close
                     del chain_vertices[-1]
 
-                    fixture_def.shape = b2.b2LoopShape(vertices_loop=chain_vertices, count=len(chain_vertices))
+                    fixture_def.shape = b2.b2LoopShape(
+                        vertices_loop=chain_vertices, count=len(chain_vertices)
+                    )
 
-                    self.try_set_attr(fixture_json["chain"], "hasNextVertex", fixture_def.shape, "m_hasNextVertex", )
-                    self.try_set_b2_vec2_attr(fixture_json["chain"], "nextVertex", fixture_def, "m_nextVertex")
-                    self.try_set_attr(fixture_json["chain"], "hasPrevVertex", fixture_def.shape, "m_hasPrevVertex")
-                    self.try_set_b2_vec2_attr(fixture_json["chain"], "prevVertex", fixture_def.shape, "m_prevVertex")
+                    self.try_set_attr(
+                        fixture_json["chain"],
+                        "hasNextVertex",
+                        fixture_def.shape,
+                        "m_hasNextVertex",
+                    )
+                    self.try_set_b2_vec2_attr(
+                        fixture_json["chain"], "nextVertex", fixture_def, "m_nextVertex"
+                    )
+                    self.try_set_attr(
+                        fixture_json["chain"],
+                        "hasPrevVertex",
+                        fixture_def.shape,
+                        "m_hasPrevVertex",
+                    )
+                    self.try_set_b2_vec2_attr(
+                        fixture_json["chain"],
+                        "prevVertex",
+                        fixture_def.shape,
+                        "m_prevVertex",
+                    )
 
                 else:  # open-ended ChainShape
-                    fixture_def.shape = b2.b2ChainShape(vertices_chain=chain_vertices, count=len(chain_vertices))
+                    fixture_def.shape = b2.b2ChainShape(
+                        vertices_chain=chain_vertices, count=len(chain_vertices)
+                    )
 
             # json chain is b2EdgeShape
             if len(chain_vertices) < 3:
                 fixture_def.shape = b2.b2EdgeShape(vertices=chain_vertices)
 
         # Manage UserData
-        if "customProperties" in fixture_json and isinstance(fixture_json["customProperties"], dict):
+        if "customProperties" in fixture_json and isinstance(
+            fixture_json["customProperties"], dict
+        ):
             fixture_def.userData = fixture_json["customProperties"]
             # Add a name/id as "name" property if there is not one already
             if "id" not in fixture_def.userData:
@@ -556,7 +609,9 @@ class B2WorldDecoder(json.JSONDecoder):
         # else:
         #    print "No key '" + source_key + "' in dict '" + source_dict["name"] + "'"
 
-    def try_set_b2_vec2_attr(self, source_dict, source_key, target_obj, target_attr=None):
+    def try_set_b2_vec2_attr(
+        self, source_dict, source_key, target_obj, target_attr=None
+    ):
         """
 
         :param source_dict:
@@ -651,4 +706,5 @@ if __name__ == "__main__":
 
     ## Cleanup
     import os
+
     os.remove(empty_world_filepath)

@@ -7,7 +7,7 @@ deactivate_gui = False
 # Simulation topics names (without namespace)
 sim_knowledge_topic = "/knowledge"
 sim_costmap_topic = "/costmap"
-sim_social_costmap_topic = '/social_costmap'
+sim_social_costmap_topic = "/social_costmap"
 sim_connected_components_topic = "/connected_components"
 sim_latest_message_topic = "/messages"
 
@@ -35,7 +35,7 @@ social_gridmap_frame_id = "/social_gridmap"
 combined_gridmap_frame_id = "/combined_gridmap"
 gridmap_frame_ids_to_z_indexes = {
     social_gridmap_frame_id: -1.5,
-    combined_gridmap_frame_id: -1.4
+    combined_gridmap_frame_id: -1.4,
 }
 
 fov_z_index = -0.04

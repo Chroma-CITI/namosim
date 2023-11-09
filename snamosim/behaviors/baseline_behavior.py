@@ -9,7 +9,14 @@ from snamosim.utils import utils
 class BaselineBehavior(object):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, initial_world, robot_uid, navigation_goals, behavior_config, abs_path_to_logs_dir):
+    def __init__(
+        self,
+        initial_world,
+        robot_uid,
+        navigation_goals,
+        behavior_config,
+        abs_path_to_logs_dir,
+    ):
         self.simulation_log = utils.CustomLogger()
 
         self._initial_world = initial_world
@@ -22,8 +29,8 @@ class BaselineBehavior(object):
         decimal_res = Decimal(initial_world.dd.res).as_tuple()
         precision_exponent = -len(decimal_res.digits) - decimal_res.exponent + 2
 
-        self.rounder = 1. * (10 ** precision_exponent)
-        self.r_tol = 1. * (10 ** -precision_exponent)
+        self.rounder = 1.0 * (10**precision_exponent)
+        self.r_tol = 1.0 * (10**-precision_exponent)
 
         self.__world = copy.deepcopy(self._initial_world)
         self._robot = self._world.entities[self._robot_uid]
@@ -37,7 +44,11 @@ class BaselineBehavior(object):
 
     def sense(self, ref_world, last_action_result, step_count):
         self._last_action_result = last_action_result
-        self._added_uids, self._updated_uids, self._removed_uids = self._robot.update_world_from_sensors(ref_world, self._world)
+        (
+            self._added_uids,
+            self._updated_uids,
+            self._removed_uids,
+        ) = self._robot.update_world_from_sensors(ref_world, self._world)
         self._rp.publish_robot_world(self._world, self._robot_uid)
         self._step_count = step_count
 
@@ -53,7 +64,9 @@ class BaselineBehavior(object):
     def _q_goal(self, _q_goal):
         self.__q_goal = _q_goal
         if _q_goal is not None:
-            self._rp.publish_goal(self._robot.pose, self.__q_goal, self._robot, ns=self._robot_name)
+            self._rp.publish_goal(
+                self._robot.pose, self.__q_goal, self._robot, ns=self._robot_name
+            )
 
     @property
     def _p_opt(self):

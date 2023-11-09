@@ -24,7 +24,9 @@ class ManipulationFailure(ActionFailure):
         self.manipulated_obstacle_uid = manipulated_obstacle_uid
 
     def __str__(self):
-        return "Manipulation of obstacle {uid} failed.".format(uid=self.manipulated_obstacle_uid)
+        return "Manipulation of obstacle {uid} failed.".format(
+            uid=self.manipulated_obstacle_uid
+        )
 
 
 class UnmanipulableFailure(ManipulationFailure):
@@ -32,7 +34,9 @@ class UnmanipulableFailure(ManipulationFailure):
         ManipulationFailure.__init__(self, action, manipulated_obstacle_uid)
 
     def __str__(self):
-        return "Manipulation of unmovable obstacle {uid} failed.".format(uid=self.manipulated_obstacle_uid)
+        return "Manipulation of unmovable obstacle {uid} failed.".format(
+            uid=self.manipulated_obstacle_uid
+        )
 
 
 class AlreadyGrabbedFailure(ActionFailure):
@@ -41,7 +45,11 @@ class AlreadyGrabbedFailure(ActionFailure):
         self.other_agent_uid = other_agent_uid
 
     def __str__(self):
-        return "Action failed because agent {} is already grabbing this obstacle.".format(self.other_agent_uid)
+        return (
+            "Action failed because agent {} is already grabbing this obstacle.".format(
+                self.other_agent_uid
+            )
+        )
 
 
 class NotGrabbedFailure(ActionFailure):
@@ -58,7 +66,11 @@ class GrabbedByOtherFailure(ActionFailure):
         self.other_agent_uid = other_agent_uid
 
     def __str__(self):
-        return "Action failed because agent {} is already grabbing this obstacle.".format(self.other_agent_uid)
+        return (
+            "Action failed because agent {} is already grabbing this obstacle.".format(
+                self.other_agent_uid
+            )
+        )
 
 
 class GrabMoreThanOneFailure(ActionFailure):
@@ -86,4 +98,6 @@ class DynamicCollisionFailure(ActionFailure):
         self.colliding_entities_uids = colliding_entities_uids
 
     def __str__(self):
-        return "Action failed, because of collision between {}.".format(self.colliding_entities_uids)
+        return "Action failed, because of collision between {}.".format(
+            self.colliding_entities_uids
+        )

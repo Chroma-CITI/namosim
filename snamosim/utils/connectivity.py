@@ -28,7 +28,9 @@ def bfs_init(grid, width, height, root_cell, neighborhood=utils.TAXI_NEIGHBORHOO
 
     while queue:
         current = queue.pop(0)
-        for neighbor in utils.get_neighbors_no_coll(current, grid, width, height, neighborhood):
+        for neighbor in utils.get_neighbors_no_coll(
+            current, grid, width, height, neighborhood
+        ):
             if neighbor not in visited:
                 queue.append(neighbor)
                 visited.add(neighbor)
@@ -41,7 +43,9 @@ def bfs_init(grid, width, height, root_cell, neighborhood=utils.TAXI_NEIGHBORHOO
     return BFS(visited, came_from, goes_to, root_cell)
 
 
-def bfs_update(grid, width, height, root_cell, ccs_grid, neighborhood=utils.TAXI_NEIGHBORHOOD):
+def bfs_update(
+    grid, width, height, root_cell, ccs_grid, neighborhood=utils.TAXI_NEIGHBORHOOD
+):
     queue = [root_cell]
     visited = {root_cell}
     came_from = {}
@@ -52,7 +56,9 @@ def bfs_update(grid, width, height, root_cell, ccs_grid, neighborhood=utils.TAXI
 
     while queue:
         current = queue.pop(0)
-        for neighbor in utils.get_neighbors_no_coll(current, grid, width, height, neighborhood):
+        for neighbor in utils.get_neighbors_no_coll(
+            current, grid, width, height, neighborhood
+        ):
             if neighbor not in visited:
                 neighbor_prev_component = ccs_grid[neighbor[0]][neighbor[1]]
                 if neighbor_prev_component != prev_component_uid:
@@ -110,7 +116,9 @@ def init_ccs_for_grid(grid, width, height, neighborhood=utils.TAXI_NEIGHBORHOOD)
 #     return ccs, ccs_grid, current_uid
 
 
-def update_ccs_and_grid(current_ccs_data, grid, width, height, neighborhood=utils.TAXI_NEIGHBORHOOD):
+def update_ccs_and_grid(
+    current_ccs_data, grid, width, height, neighborhood=utils.TAXI_NEIGHBORHOOD
+):
     ccs, current_uid = current_ccs_data.ccs, current_ccs_data.current_uid
     free_cells = set(zip(*np.where(grid == 0)))
 
@@ -123,7 +131,11 @@ def update_ccs_and_grid(current_ccs_data, grid, width, height, neighborhood=util
         new_cc = bfs_init(grid, width, height, root_cell, neighborhood)
         new_cc_is_actually_new = True
 
-        potentially_same_ccs = {cc_uid: cc for cc_uid, cc in ccs.items() if len(cc.visited) == len(new_cc.visited)}
+        potentially_same_ccs = {
+            cc_uid: cc
+            for cc_uid, cc in ccs.items()
+            if len(cc.visited) == len(new_cc.visited)
+        }
 
         for cc_uid, cc in potentially_same_ccs.items():
             if new_cc.visited == cc.visited:
@@ -142,7 +154,6 @@ def update_ccs_and_grid(current_ccs_data, grid, width, height, neighborhood=util
                 new_ccs_grid[cell[0]][cell[1]] = current_uid
 
     return CCSData(new_ccs, new_ccs_grid, current_uid)
-
 
 
 # def update_ccs(updated_grid, width, height, prev_ccs, prev_cc_grid, current_uid, invaded_cells, freed_cells):
@@ -232,30 +243,33 @@ def update_ccs_and_grid(current_ccs_data, grid, width, height, neighborhood=util
 #                         # So basically, we just let the current bfs join with it and we'll have to remove it after
 
 
-if __name__ == '__main__':
-    grid_00 = np.array([
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [1, 1, 0, 1, 0],
-        [0, 0, 0, 0, 0],
-        [1, 0, 1, 0, 0]
-    ])
+if __name__ == "__main__":
+    grid_00 = np.array(
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [1, 1, 0, 1, 0],
+            [0, 0, 0, 0, 0],
+            [1, 0, 1, 0, 0],
+        ]
+    )
 
     width, height = grid_00.shape
 
     ccs_data_00 = init_ccs_for_grid(grid_00, width, height)
 
-    grid_01 = np.array([
-        [0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0],
-        [1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0],
-        [1, 0, 1, 0, 0]
-    ])
+    grid_01 = np.array(
+        [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0],
+            [1, 0, 1, 0, 0],
+        ]
+    )
 
-    invaded_cells = {(2,2), (2,4)}
+    invaded_cells = {(2, 2), (2, 4)}
 
     ccs_data_01 = init_ccs_for_grid(grid_01, width, height)
 
-
-    print('')
+    print("")

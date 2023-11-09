@@ -1,8 +1,13 @@
 from snamosim.behaviors.plan.action_result import ActionSuccess
 from snamosim.utils.utils import euclidean_distance
 import snamosim.utils.connectivity as connectivity
-from snamosim.worldreps.occupation_based.binary_occupancy_grid import BinaryOccupancyGrid, BinaryInflatedOccupancyGrid
-from snamosim.worldreps.occupation_based.social_topological_occupation_cost_grid import compute_social_costmap
+from snamosim.worldreps.occupation_based.binary_occupancy_grid import (
+    BinaryOccupancyGrid,
+    BinaryInflatedOccupancyGrid,
+)
+from snamosim.worldreps.occupation_based.social_topological_occupation_cost_grid import (
+    compute_social_costmap,
+)
 from snamosim.display.ros_publisher import RosPublisher
 from snamosim.utils import utils
 
@@ -46,8 +51,8 @@ def get_nb_transferred_obstacles(actions_results):
 
 
 def get_total_path_lengths(actions_results):
-    transit_path_length = 0.
-    transfer_path_length = 0.
+    transit_path_length = 0.0
+    transfer_path_length = 0.0
 
     if len(actions_results) >= 2:
         action_result_iter = iter(actions_results)
@@ -82,14 +87,25 @@ def get_transit_transfer_ratio(actions_results):
 
 
 def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
-    polygons = {uid: e.polygon for uid, e in world.entities.items() if uid not in entities_to_ignore}
+    polygons = {
+        uid: e.polygon
+        for uid, e in world.entities.items()
+        if uid not in entities_to_ignore
+    }
     occ_grid = BinaryInflatedOccupancyGrid(
-        polygons, world.dd.res, inflation_radius, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+        polygons,
+        world.dd.res,
+        inflation_radius,
+        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
     )
-    ccs_data = connectivity.init_ccs_for_grid(occ_grid.grid, occ_grid.d_width, occ_grid.d_height, occ_grid.neighborhood)
+    ccs_data = connectivity.init_ccs_for_grid(
+        occ_grid.grid, occ_grid.d_width, occ_grid.d_height, occ_grid.neighborhood
+    )
     connected_components = ccs_data.ccs
     connected_components_grid = ccs_data.grid
-    RosPublisher().publish_connected_components_grid(connected_components_grid, world.dd.res, ns='simulation')
+    RosPublisher().publish_connected_components_grid(
+        connected_components_grid, world.dd.res, ns="simulation"
+    )
 
     # cc is abbreviation of connected component
     nb_cc = len(connected_components)
@@ -100,21 +116,40 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
         if len(cc.visited) > biggest_cc_size:
             biggest_cc_size = len(cc.visited)
 
-    frag_percentage = 0 if all_cc_sum_size == 0 else (1. - float(biggest_cc_size) / float(all_cc_sum_size)) * 100.
+    frag_percentage = (
+        0
+        if all_cc_sum_size == 0
+        else (1.0 - float(biggest_cc_size) / float(all_cc_sum_size)) * 100.0
+    )
 
     return nb_cc, biggest_cc_size, all_cc_sum_size, frag_percentage
 
 
-def get_social_costs_stats(world, entities_to_compute_social_cost_for, ):
-    polygons = {uid: e.polygon for uid, e in world.entities.items() if uid not in entities_to_compute_social_cost_for}
-    occ_grid = BinaryOccupancyGrid(polygons, world.dd.res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD)
-    abs_social_costmap = compute_social_costmap(occ_grid.grid, occ_grid.res, log_costmaps=False, ns='simulation')
+def get_social_costs_stats(
+    world,
+    entities_to_compute_social_cost_for,
+):
+    polygons = {
+        uid: e.polygon
+        for uid, e in world.entities.items()
+        if uid not in entities_to_compute_social_cost_for
+    }
+    occ_grid = BinaryOccupancyGrid(
+        polygons, world.dd.res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+    )
+    abs_social_costmap = compute_social_costmap(
+        occ_grid.grid, occ_grid.res, log_costmaps=False, ns="simulation"
+    )
 
-    absolute_social_cost = 0.
+    absolute_social_cost = 0.0
     for entity_uid in entities_to_compute_social_cost_for:
         entity = world.entities[entity_uid]
         entity_cell_set = utils.accurate_rasterize_in_grid(
-            entity.polygon, occ_grid.res, occ_grid.grid_pose, occ_grid.d_width, occ_grid.d_height
+            entity.polygon,
+            occ_grid.res,
+            occ_grid.grid_pose,
+            occ_grid.d_width,
+            occ_grid.d_height,
         )
         for cell in entity_cell_set:
             absolute_social_cost += abs_social_costmap[cell[0]][cell[1]]
@@ -124,9 +159,11 @@ def get_social_costs_stats(world, entities_to_compute_social_cost_for, ):
 
 def relative_change(init_value, end_value, return_percentage=True):
     if init_value == end_value:
-        return 0.
+        return 0.0
     else:
-        if init_value == 0.:
-            return 1.
+        if init_value == 0.0:
+            return 1.0
         else:
-            return (float(end_value) / float(init_value) - 1.) * (100. if return_percentage else 1.)
+            return (float(end_value) / float(init_value) - 1.0) * (
+                100.0 if return_percentage else 1.0
+            )
