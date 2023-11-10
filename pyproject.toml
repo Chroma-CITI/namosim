@@ -18,17 +18,17 @@ numpy = "^1.26.1"     # For all matrix-based logic
 shapely = "^2.0.2"    # For all geometry-based logic
 
 # LOOSELY COUPLED LIBRARIES (used just in a few instances, could be easily replaced)
-bidict = "^0.22.1"                                                          # Two-way dictionnary library used in simulator main class
-jsonpickle = "^3.0.2"                                                       # Used for serialization and deserialization of simulation and world data
-mapbox-earcut = "^1.0.1"                                                    # To triangulate polygons (required for conversion to ROS messages)
-pillow = "^10.1.0"                                                          # Used to convert grids to images
-plotly = "^5.18.0"                                                          # Used for beautiful stats display
-psutil = "^5.9.6"                                                           # Used for large scale multi-process testing
-pycrunch-trace = "^0.2"                                                     # Used for detailed profiling
-scikit-image = "^0.22.0"                                                    # Used to rasterize polygon contours and for image skeleton computation
-svgpath2mpl = "^1.0.0"                                                      # Used to convert SVG geometries to Shapely geometries
-tqdm = "^4.66.1"                                                            # Used for progressbars
-box2d = { git = "https://github.com/pybox2d/pybox2d.git@2.3.10#egg=Box2D" }
+bidict = "^0.22.1"                                                # Two-way dictionnary library used in simulator main class
+jsonpickle = "^3.0.2"                                             # Used for serialization and deserialization of simulation and world data
+mapbox-earcut = "^1.0.1"                                          # To triangulate polygons (required for conversion to ROS messages)
+pillow = "^10.1.0"                                                # Used to convert grids to images
+plotly = "^5.18.0"                                                # Used for beautiful stats display
+psutil = "^5.9.6"                                                 # Used for large scale multi-process testing
+pycrunch-trace = "^0.2"                                           # Used for detailed profiling
+scikit-image = "^0.22.0"                                          # Used to rasterize polygon contours and for image skeleton computation
+svgpath2mpl = "^1.0.0"                                            # Used to convert SVG geometries to Shapely geometries
+tqdm = "^4.66.1"                                                  # Used for progressbars
+box2d = { git = "https://github.com/pybox2d/pybox2d.git#2.3.10" }
 
 # LIBRARIES THAT ARE BOUND TO GO AWAY
 future = "^0.18.3"  # Used for metaclass support needed for writing RosPublisher singleton
