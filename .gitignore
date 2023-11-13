@@ -116,3 +116,5 @@ tmp/
 data/
 
 .vscode
+
+.ruff_cache

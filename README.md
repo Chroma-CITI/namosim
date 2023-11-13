@@ -1,10 +1,6 @@
-# S-NAMO Sim
+# NAMOSIM
 
-S-NAMO simulator, scenarios data and algorithms.
-
-**Please have a look at the [wiki](https://gitlab.inria.fr/brenault/s-namo-sim/-/wikis/home) for more results ([such as interactive graphs](https://gitlab.inria.fr/brenault/s-namo-sim/-/wikis/uploads/interactive_stats.zip)).** Raw logs from experiments are accessible on demand from the author following the instructions below (because of a size of several gigabytes).
-
-*THIS IS AN ACTIVE WORK IN PROGRESS, DO NO HESITATE TO OPEN AN ISSUE / CONTACT THE AUTHOR (firstname.lastname@insa-lyon.fr, replace with Benoit Renault) IF YOU ENCOUNTER ANY TROUBLE.*
+A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable Obstacles.
 
 ## System Requirements
 
@@ -14,28 +10,27 @@ S-NAMO simulator, scenarios data and algorithms.
 
 ## Quickstart
 
-Download the repo (there is a submodule with the ICRA2022 paper submission scenarios data, if you don't want it for now, don't use the --recurse-submodules option, it will save you about 250Mb) :
+This project uses [poetry](https://python-poetry.org/) for packaging and dependency management. If you
+don't already have it, please install it before proceeding.
 
-```bash
-git clone --recurse-submodules https://gitlab.inria.fr/brenault/s-namo-sim-private.git
-```
+Install dependencies:
 
-Install the python dependencies with:
-
-```bash
-pip install .
-```
-
-If using [poetry](https://python-poetry.org/) (recommended), install with:
 ```bash
 poetry install
 ```
-And remember to activate the poetry environment:
+
+Activate the poetry environment:
 ```bash
 poetry shell
 ```
 
-You should be all set to start experimenting ! Individual experiments can be easily launched through python tests, like in the command below that should launch all scenarios presented in our ICRA2022 paper submission:
+You should be all set to start.
+
+## Examples
+
+### IROS 2021 Experiments
+
+The following command should launch all scenarios presented in our ICRA2022 paper submission.
 
 ```bash
 python3 ~/s-namo-sim-private/snamosim/tests/integration_tests/s-namo_cases/iros_2021.py IROS2021Tests.test_for_10_hours 0 199
@@ -44,9 +39,7 @@ python3 ~/s-namo-sim-private/snamosim/tests/integration_tests/s-namo_cases/iros_
 Results should be saved in the 'logs' folder that is automatically created the first time in the repository folder. 
 To get the full visual feedback, please install ROS2 and RVIZ. You will also need to install the grid-map ROS package if you don't already have it (e.g. `sudo apt install ros-iron-grid-map`).
 
-> If you want to edit the ROS compatibility layer using Pycharm, you may want to follow [this very good tutorial](https://www.youtube.com/watch?v=lTew9mbXrAs) as to how to properly setup the IDE so that it finds the ROS python files correctly.
-
-## Example
+### Run a Basic Scenario and Visualize in RVIZ
 
 The following example runs the most basic scenario with the (Stillman,2005) algorithm and assumes you have `ros2` and `rviz2` installed.
 
