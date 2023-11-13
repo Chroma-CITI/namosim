@@ -20,9 +20,6 @@ from snamosim.display.ros_publisher import RosPublisher
 from snamosim.worldreps.entity_based.world import World
 from snamosim.worldreps.entity_based.robot import Robot
 from snamosim.worldreps.entity_based.obstacle import Obstacle
-from snamosim.worldreps.occupation_based.binary_occupancy_grid import (
-    BinaryInflatedOccupancyGrid,
-)
 
 from snamosim.utils import stats_utils, utils, conversion, collision
 

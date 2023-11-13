@@ -109,7 +109,7 @@ class B2Sim:
                     shape=Box2D.b2PolygonShape(vertices=coords),
                 )
                 fixtures_defs.append(fixture_def)
-            except Exception as e:
+            except Exception:
                 # Catch exceptions caused by fixture coordinates too close to make a triangle Polygon in Box2D's
                 # opinion. Simply ignore the fixture.
                 # TODO: Either improve convexity verification to recognize after the feast tables as convex

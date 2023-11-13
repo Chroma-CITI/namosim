@@ -5,10 +5,8 @@ import time
 from collections import OrderedDict
 from shapely.geometry import Point
 import random
-from enum import Enum
 
 
-import snamosim.behaviors.algorithms.graph_search
 from .baseline_behavior import BaselineBehavior
 from snamosim.behaviors.algorithms import graph_search
 from snamosim.utils import utils
@@ -254,9 +252,7 @@ class RobotRobotConflict(Conflict):
             self.CONFLICT_STRING,
             self.robot_uid,
             robot_state,
-            self.other_robot_uid,
-            other_robot_state,
-        )
+            )
 
         robot_transfered_obstacle_pose_text = (
             ""
@@ -279,8 +275,7 @@ class RobotRobotConflict(Conflict):
             self.robot_pose,
             robot_transfered_obstacle_pose_text,
             self.other_robot_pose,
-            other_robot_transfered_obstacle_pose_text,
-        )
+            )
         return s
 
 
@@ -2286,8 +2281,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             self.simulation_log.append(
                                 utils.BasicLog(
                                     "Agent {}: I can not or should not evade, postponing...".format(
-                                        self._robot_name, potential_deadlocks
-                                    ),
+                                        self._robot_name, ),
                                     step_count,
                                 )
                             )
@@ -2446,8 +2440,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             utils.BasicLog(
                                 "Agent {}: Failing goal, no tries remaining to plan after conflicts "
                                 "were found with the plan ignoring dynamic obstacles.".format(
-                                    self._robot_name, conflicts
-                                ),
+                                    self._robot_name, ),
                                 step_count,
                             )
                         )
@@ -4057,7 +4050,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 inflated_grid_by_robot_max.grid_pose,
             )
 
-            if not transit_end_cell in r_acc_cells:
+            if transit_end_cell not in r_acc_cells:
                 continue
 
             prev_transit_end_robot_polygon = utils.set_polygon_pose(

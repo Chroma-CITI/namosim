@@ -1,5 +1,4 @@
 import sys
-import logging
 
 if "/home/brenault/s-namo-sim-private" not in sys.path:
     sys.path.append("/home/brenault/s-namo-sim-private")

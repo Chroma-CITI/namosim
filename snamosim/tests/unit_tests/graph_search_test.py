@@ -1,13 +1,11 @@
 import unittest
 import os
-import progressbar
 import snamosim.behaviors.algorithms.graph_search as graph_search
 import numpy as np
 from snamosim.utils import utils
 import multiprocessing
 
 import time
-from pathfinding.core.grid import Grid
 
 NB_USABLE_CORES = multiprocessing.cpu_count() - 1
 
@@ -215,10 +213,9 @@ class GraphSearchTest(unittest.TestCase):
                 if log_success:
                     print(
                         "Map {}, Scenario {} successful.".format(
-                            map_name, scenario_counter, str(scenario)
-                        )
+                            map_name, scenario_counter, )
                     )
-            except AssertionError as e:
+            except AssertionError:
                 print(
                     "Path found for Map {}, Scenario {}, but found cost <{}> not equal to expected cost <{}>".format(
                         map_name, scenario_counter, measured_length, scenario.length
@@ -227,7 +224,7 @@ class GraphSearchTest(unittest.TestCase):
         else:
             try:
                 self.assertTrue(path_found)
-            except AssertionError as e:
+            except AssertionError:
                 print(
                     "Path could not be found for Map {}, Scenario {}.".format(
                         map_name, scenario_counter
@@ -358,10 +355,9 @@ class GraphSearchTest(unittest.TestCase):
                     if log_success:
                         print(
                             "Map {}, Scenario {} successful.".format(
-                                map_name, scenario_counter, str(scenario)
-                            )
+                                map_name, scenario_counter, )
                         )
-                except AssertionError as e:
+                except AssertionError:
                     print(
                         "Path found for Map {}, Scenario {}, but found cost <{}> not equal to expected cost <{}>".format(
                             map_name, scenario_counter, measured_length, scenario.length
@@ -370,7 +366,7 @@ class GraphSearchTest(unittest.TestCase):
             else:
                 try:
                     self.assertTrue(path_dyn)
-                except AssertionError as e:
+                except AssertionError:
                     print(
                         "Path could not be found for Map {}, Scenario {}.".format(
                             map_name, scenario_counter

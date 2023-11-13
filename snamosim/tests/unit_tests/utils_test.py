@@ -2,8 +2,6 @@ import unittest
 from snamosim.utils import utils
 from shapely.geometry import Polygon
 from snamosim.worldreps.occupation_based import binary_occupancy_grid
-import matplotlib.pyplot as plt
-import numpy as np
 
 
 class GraphSearchTest(unittest.TestCase):

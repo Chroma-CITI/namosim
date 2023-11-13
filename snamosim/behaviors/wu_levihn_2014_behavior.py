@@ -1,6 +1,5 @@
 import numpy as np
 import copy
-import time
 from shapely import affinity
 from shapely.ops import cascaded_union
 

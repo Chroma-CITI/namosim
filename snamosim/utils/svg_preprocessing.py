@@ -11,7 +11,7 @@ def concave_to_convex_obstacles(world_json_path):
         entity = world.entities[uid]
         convex_polygons = utils.convert_to_convex_polygons_list(entity.polygon)
         if (
-            not (entity.polygon is convex_polygons[0])
+            entity.polygon is not convex_polygons[0]
             and isinstance(entity, Obstacle)
             and entity.movability == "static"
         ):

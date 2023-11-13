@@ -8,7 +8,6 @@ from snamosim.worldreps.occupation_based.binary_occupancy_grid import (
 )
 from snamosim.worldreps.occupation_based.social_topological_occupation_cost_grid import (
     SocialTopologicalOccupationCostGrid,
-    voronoi_skeleton,
 )
 
 

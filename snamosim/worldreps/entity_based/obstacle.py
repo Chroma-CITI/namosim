@@ -1,11 +1,6 @@
 from snamosim.worldreps.entity_based.entity import Entity
-from snamosim.utils import utils
-import numpy as np
 import copy
 
-import math
-from math import floor, ceil
-from shapely.geometry import Point
 
 
 class Obstacle(Entity):

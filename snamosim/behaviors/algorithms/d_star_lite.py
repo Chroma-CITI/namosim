@@ -23,7 +23,7 @@ class PriorityQueue:
     def first_key(self):
         try:
             key = heapq.nsmallest(1, self.elements)[0][0]
-        except IndexError as e:
+        except IndexError:
             print()
         return key
 

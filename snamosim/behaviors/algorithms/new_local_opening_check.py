@@ -102,7 +102,7 @@ def check_still_blocked(init_blocking_area, target_blocking_areas):
         for target_blocking_area in target_blocking_areas:
             if init_blocking_area.intersects(target_blocking_area):
                 return True  # If area is still blocked, there is no local opening here
-    except Exception as e:
+    except Exception:
         print(
             "There was an exception in check_still_blocked function, this is not normal."
         )

@@ -1,5 +1,4 @@
 import os
-import json
 import pickle
 import time
 import multiprocessing
@@ -17,9 +16,9 @@ def get_max_nb_steps(simulations_results_paths):
                 try:
                     sim_results = pickle.load(f)
                     max_steps = max(max_steps, len(sim_results["stats"]))
-                except Exception as e:
+                except Exception:
                     pass
-        except IOError as e:
+        except IOError:
             pass
     return max_steps
 
@@ -47,9 +46,9 @@ def zip_statistics(scenarios_stats_paths, max_steps, start=0, stop=None):
                             zipped_statistics[counter].append(stepstats)
                         else:
                             zipped_statistics[counter].append(last_stepstats)
-                except Exception as e:
+                except Exception:
                     pass
-        except IOError as e:
+        except IOError:
             pass
     return zipped_statistics
 
@@ -65,9 +64,9 @@ def zip_initial_and_final_statistics(scenarios_stats_paths):
                     init, final = stats[0], stats[-1]
                     initial_stats.append(init)
                     final_stats.append(final)
-                except Exception as e:
+                except Exception:
                     pass
-        except IOError as e:
+        except IOError:
             pass
     return [initial_stats, final_stats]
 

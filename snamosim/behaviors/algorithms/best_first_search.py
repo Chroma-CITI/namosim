@@ -1,4 +1,3 @@
-import heapq
 from snamosim.utils import utils
 
 

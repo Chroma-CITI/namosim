@@ -1,5 +1,4 @@
 from heapq import heappush, heappop
-import copy
 from snamosim.utils import utils
 from graph_search import heuristic_cost_estimate, dist_between
 from cell_heap_node import CellHeapNode

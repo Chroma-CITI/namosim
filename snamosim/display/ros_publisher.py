@@ -25,7 +25,6 @@ if not cfg.deactivate_gui:
         # Else try to import rclpy for ROS2
         import rclpy
         from rclpy.node import Node
-        import threading
 
         ROS2 = True
 
@@ -48,7 +47,6 @@ if not cfg.deactivate_gui:
         Quaternion,
         Pose,
         Point,
-        PoseStamped,
     )
     from std_msgs.msg import (
         Header,
@@ -57,7 +55,7 @@ if not cfg.deactivate_gui:
         MultiArrayDimension,
         ColorRGBA,
     )
-    from nav_msgs.msg import Path, OccupancyGrid, MapMetaData, GridCells
+    from nav_msgs.msg import OccupancyGrid, MapMetaData
     from grid_map_msgs.msg import GridMap
 
     USE_ROS = True
