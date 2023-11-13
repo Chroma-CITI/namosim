@@ -6,7 +6,7 @@ from namosim.simulator import Simulator
 class CitiSecondFloorTest(unittest.TestCase):
     def setUp(self):
         self.path_to_folder = os.path.join(
-            __file__, "../../../../../data/NAMO-socials/05_citi_second_floor/"
+            __file__, "../../../../data/NAMO-socials/05_citi_second_floor/"
         )
 
     def test_navigation_only_behavior(self):

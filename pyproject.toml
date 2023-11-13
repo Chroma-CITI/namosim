@@ -1,11 +1,14 @@
 [tool.poetry]
 name = "namosim"
-version = "0.3.2"
+version = "0.0.1"
 description = "NAMO and S-NAMO Algorithms and tools for robotics."
-authors = ["Benoit RENAULT <xia0ben-contact-pypi@littleroot.net>"]
+authors = [
+  "Benoit RENAULT <xia0ben-contact-pypi@littleroot.net>",
+  "david.brown@inria.fr",
+]
 license = "MIT"
 readme = "README.md"
-repository = "https://gitlab.inria.fr/brenault/s-namo-sim"
+repository = "https://gitlab.inria.fr/chroma/namo"
 keywords = ["namo", "robitics", "simulator"]
 
 [tool.poetry.dependencies]

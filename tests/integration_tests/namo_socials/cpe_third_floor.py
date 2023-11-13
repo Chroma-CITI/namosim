@@ -3,10 +3,10 @@ import os
 from namosim.simulator import Simulator
 
 
-class BasicTest(unittest.TestCase):
+class CpeThirdFloorTest(unittest.TestCase):
     def setUp(self):
         self.path_to_folder = os.path.join(
-            __file__, "../../../../../data/NAMO-socials/01_basic/"
+            __file__, "../../../../data/NAMO-socials/05_cpe_third_floor/"
         )
 
     def test_navigation_only_behavior(self):

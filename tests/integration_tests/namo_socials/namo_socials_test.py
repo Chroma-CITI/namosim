@@ -6,7 +6,7 @@ from namosim.simulator import Simulator
 class NAMOSocialsTests(unittest.TestCase):
     def setUp(self):
         self.path_to_folder = os.path.join(
-            __file__, "../../../../../data/NAMO-socials/"
+            __file__, "../../../../data/NAMO-socials/"
         )
 
     # region BASIC WITH OPENING CASE

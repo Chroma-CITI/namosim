@@ -19,10 +19,10 @@ class NAMOMultiTests(unittest.TestCase):
 
     def setUp(self):
         self.path_to_folder = os.path.join(
-            os.path.dirname(__file__), "../../../../data/NAMO-multi/"
+            os.path.dirname(__file__), "../../../data/NAMO-multi/"
         )
         self.logging_folder = os.path.join(
-            os.path.dirname(__file__), "../../../../logs/"
+            os.path.dirname(__file__), "../../../logs/"
         )
 
     # INTRO
