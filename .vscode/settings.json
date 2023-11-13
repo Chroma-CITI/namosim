@@ -2,7 +2,7 @@
   "python.testing.unittestArgs": [
     "-v",
     "-s",
-    "./namosim",
+    "./tests",
     "-p",
     "*_test.py"
   ],

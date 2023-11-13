@@ -1,11 +1,14 @@
 [tool.poetry]
 name = "namosim"
-version = "0.3.2"
+version = "0.0.1"
 description = "NAMO and S-NAMO Algorithms and tools for robotics."
-authors = ["Benoit RENAULT <xia0ben-contact-pypi@littleroot.net>"]
+authors = [
+  "Benoit RENAULT <xia0ben-contact-pypi@littleroot.net>",
+  "david.brown@inria.fr",
+]
 license = "MIT"
 readme = "README.md"
-repository = "https://gitlab.inria.fr/brenault/s-namo-sim"
+repository = "https://gitlab.inria.fr/chroma/namo"
 keywords = ["namo", "robitics", "simulator"]
 
 [tool.poetry.dependencies]
@@ -40,10 +43,9 @@ ruff = "^0.1.5"        # Used for code linting/formatting
 poethepoet = "^0.24.3"
 
 [tool.poe.tasks]
-lint_fix = "ruff check --fix ."                                                 # lint
-format = "ruff format ."                                                        # format
-test = "python -m unittest discover -s namosim.tests.unit_tests -p '*_test.py'" # test
-
+lint_fix = "ruff check --fix ."                                         # lint
+format = "ruff format ."                                                # format
+test = "python -m unittest discover -s tests.unit_tests -p '*_test.py'" # test
 
 [build-system]
 requires = ["poetry-core"]

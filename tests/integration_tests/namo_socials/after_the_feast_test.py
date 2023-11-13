@@ -12,7 +12,7 @@ from datetime import datetime
 class AfterTheFeastTest(unittest.TestCase):
     def setUp(self):
         self.path_to_folder = os.path.join(
-            __file__, "../../../../../data/NAMO-socials/04_after_the_feast/"
+            __file__, "../../../../data/NAMO-socials/04_after_the_feast/"
         )
 
     # def test_navigation_only_behavior(self):

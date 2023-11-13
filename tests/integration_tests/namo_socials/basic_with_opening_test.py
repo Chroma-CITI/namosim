@@ -3,10 +3,10 @@ import os
 from namosim.simulator import Simulator
 
 
-class CrossingTest(unittest.TestCase):
+class BasicWithOpeningTest(unittest.TestCase):
     def setUp(self):
         self.path_to_folder = os.path.join(
-            __file__, "../../../../../data/NAMO-socials/03_crossing/"
+            __file__, "../../../../data/NAMO-socials/02_basic_with_opening/"
         )
 
     def test_navigation_only_behavior(self):
@@ -41,22 +41,6 @@ class CrossingTest(unittest.TestCase):
     def test_stilman_2005_behavior(self):
         sim = Simulator(
             simulation_file_path=self.path_to_folder + "stilman_2005_behavior.json"
-        )
-        sim.run()
-        # Test should end up with a success
-
-    def test_stilman_2005_behavior_multigoal(self):
-        sim = Simulator(
-            simulation_file_path=self.path_to_folder
-            + "stilman_2005_behavior_multigoal.json"
-        )
-        sim.run()
-        # Test should end up with a success
-
-    def test_stilman_2005_behavior_multigoal_random(self):
-        sim = Simulator(
-            simulation_file_path=self.path_to_folder
-            + "stilman_2005_behavior_multigoal_random.json"
         )
         sim.run()
         # Test should end up with a success

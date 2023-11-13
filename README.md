@@ -40,7 +40,7 @@ git pull --recurse-submodules
 ```
 
 ```bash
-python -m namosim.tests.integration_tests.namo-socials.iros_2021 IROS2021Tests.test_for_10_hours 0 199
+python -m tests.integration_tests.namo_socials.iros_2021 IROS2021Tests.test_for_10_hours 0 199
 ```
 
 Results should be saved in the 'logs' folder that is automatically created the first time in the repository folder. 
@@ -58,7 +58,7 @@ rviz2 -d rviz/ROS2/basic_view.rviz
 
 Then, in a new terminal, run:
 ```
-python -m namosim.tests.integration_tests.namo-socials.basic_with_opening_test BasicWithOpeningTest.test_stilman_2005_behavior
+python -m namosim.tests.integration_tests.namo_socials.basic_with_opening_test BasicWithOpeningTest.test_stilman_2005_behavior
 ```
 
 ## Run Unit Tests

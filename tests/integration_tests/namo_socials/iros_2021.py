@@ -15,8 +15,8 @@ class IROS2021Tests(unittest.TestCase):
     NB_SCENARIOS = 200
 
     def setUp(self):
-        self.path_to_folder = os.path.join(os.path.dirname(__file__), "../../../../data/simulations/iros_2021/")
-        self.logging_folder = os.path.join(os.path.dirname(__file__), "../../../../logs/")
+        self.path_to_folder = os.path.join(os.path.dirname(__file__), "../../../data/simulations/iros_2021/")
+        self.logging_folder = os.path.join(os.path.dirname(__file__), "../../../logs/")
 
     # def test_basic_with_opening_namo(self):
     #     sim = Simulator(simulation_file_path=os.path.join(self.path_to_folder, "basic_with_opening/sim_namo.json"))
