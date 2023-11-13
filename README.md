@@ -33,7 +33,7 @@ You should be all set to start.
 The following command should launch all scenarios presented in our ICRA2022 paper submission.
 
 ```bash
-python3 ~/s-namo-sim-private/snamosim/tests/integration_tests/s-namo_cases/iros_2021.py IROS2021Tests.test_for_10_hours 0 199
+python3 ~/s-namo-sim-private/namosim/tests/integration_tests/s-namo_cases/iros_2021.py IROS2021Tests.test_for_10_hours 0 199
 ```
 
 Results should be saved in the 'logs' folder that is automatically created the first time in the repository folder. 
@@ -51,7 +51,7 @@ rviz2 -d rviz/ROS2/basic_view.rviz
 
 Then, in a new terminal, run:
 ```
-python -m snamosim.tests.integration_tests.namo-socials.basic_with_opening_test BasicWithOpeningTest.test_stilman_2005_behavior
+python -m namosim.tests.integration_tests.namo-socials.basic_with_opening_test BasicWithOpeningTest.test_stilman_2005_behavior
 ```
 
 ## Run Unit Tests
