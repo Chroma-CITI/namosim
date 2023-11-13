@@ -61,6 +61,12 @@ Then, in a new terminal, run:
 python -m snamosim.tests.integration_tests.namo-socials.basic_with_opening_test BasicWithOpeningTest.test_stilman_2005_behavior
 ```
 
+## Run Unit Tests
+
+```bash
+poetry run poe test
+```
+
 ## Credits
 
 If you reuse (even partially) of the provided data/code, please do cite the associated paper:
