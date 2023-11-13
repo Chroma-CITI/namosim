@@ -40,7 +40,9 @@ ruff = "^0.1.5"        # Used for code linting/formatting
 poethepoet = "^0.24.3"
 
 [tool.poe.tasks]
-test = "python -m unittest discover -s namosim.tests.unit_tests -p '*_test.py'" # unit tests
+lint_fix = "ruff check --fix ."                                                 # lint
+format = "ruff format ."                                                        # format
+test = "python -m unittest discover -s namosim.tests.unit_tests -p '*_test.py'" # test
 
 
 [build-system]
