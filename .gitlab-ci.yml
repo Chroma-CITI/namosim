@@ -1,0 +1,11 @@
+default:
+  image: ubuntu:22.04
+
+stages:
+  - build
+
+build-job:
+  stage: build
+  script:
+    - curl -sSL https://install.python-poetry.org | python3 -
+    - poetry install
