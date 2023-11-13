@@ -32,8 +32,15 @@ You should be all set to start.
 
 The following command should launch all scenarios presented in our ICRA2022 paper submission.
 
+First fetch the git submodule containing the IROS 2021 data:
+
 ```bash
-python3 ~/s-namo-sim-private/namosim/tests/integration_tests/s-namo_cases/iros_2021.py IROS2021Tests.test_for_10_hours 0 199
+git submodule update --init
+git pull --recurse-submodules
+```
+
+```bash
+python -m namosim.tests.integration_tests.namo-socials.iros_2021 IROS2021Tests.test_for_10_hours 0 199
 ```
 
 Results should be saved in the 'logs' folder that is automatically created the first time in the repository folder. 
