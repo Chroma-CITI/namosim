@@ -6,11 +6,11 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /snamosim1
-        - /snamosim1/Simulation1
-        - /snamosim1/robot_01
-        - /snamosim1/robot_01/test1
-        - /snamosim1/robot_01/test1/combined_gridmap1/Topic1
+        - /namosim1
+        - /namosim1/Simulation1
+        - /namosim1/robot_01
+        - /namosim1/robot_01/test1
+        - /namosim1/robot_01/test1/combined_gridmap1/Topic1
       Splitter Ratio: 0.5
     Tree Height: 712
   - Class: rviz_common/Selection
@@ -99,8 +99,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: close_set_cells
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -111,8 +110,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/Marker
                   Enabled: true
                   Name: open_heap_cells
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -124,8 +122,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: open_heap_cells_array
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -136,8 +133,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/Marker
                   Enabled: true
                   Name: path_grid_cells
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -149,8 +145,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: path_grid_cells_array
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -205,8 +200,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: close_set
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -217,8 +211,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/Marker
                   Enabled: true
                   Name: open_heap
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -375,8 +368,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: close_set
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -412,8 +404,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/Marker
                   Enabled: true
                   Name: social_cells
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -425,8 +416,7 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: social_cells_array
-                  Namespaces:
-                    {}
+                  Namespaces: {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -538,7 +528,7 @@ Visualization Manager:
           Enabled: true
           Name: robot_0
       Enabled: true
-      Name: snamosim
+      Name: namosim
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
