@@ -34,15 +34,14 @@ class World:
         dd=None,
         taboo_zones=None,
         goals: t.Optional[t.Dict[int, Goal]] = None,
-        geometry_scale=1.0,
-        init_json_filename="world_name_placeholder.json",
+        geometry_scale: float = 1.0,
+        init_json_filename: str = "world_name_placeholder.json",
         init_json_file=None,
-        init_geometry_filename="world_name_placeholder.svg",
+        init_geometry_filename: str = "world_name_placeholder.svg",
         init_geometry_file=None,
     ):
         self.entities = entities or dict()
         self.entity_to_agent = entities_to_agent or bidict()
-
         self.dd = dd
 
         self.geometry_scale = geometry_scale
@@ -61,25 +60,28 @@ class World:
 
     # Constructor
     @classmethod
-    def load_from_json(cls, abs_path_to_file: str) -> Self:
-        # Import YAML world configuration file
-        with open(abs_path_to_file) as f:
+    def load_from_json(cls, world_file_path: str) -> Self:
+        # Import world configuration file
+        with open(world_file_path) as f:
             config = json.load(f)
 
-        # Import SVG geometry file specified in YAML configuration
-        geometry_file_path = config["files"]["geometry_file"]
-        abs_geometry_file_path = geometry_file_path
-        if not os.path.isabs(geometry_file_path):
-            working_directory = os.path.dirname(abs_path_to_file)
-            abs_geometry_file_path = os.path.join(working_directory, geometry_file_path)
-        init_geometry_filename = os.path.basename(abs_geometry_file_path)
-        init_geometry_file = minidom.parse(abs_geometry_file_path)
+        # Import SVG geometry file
+        svg_path = config["files"]["geometry_file"]
+
+        if not os.path.isabs(svg_path):
+            working_directory = os.path.dirname(world_file_path)
+            svg_path = os.path.join(working_directory, svg_path)
+
+        svg_filename = os.path.basename(svg_path)
+        svg_doc = minidom.parse(svg_path)
         svg_paths = {
             path.getAttribute("id"): path.getAttribute("d")
-            for path in init_geometry_file.getElementsByTagName("path")
-            + init_geometry_file.getElementsByTagName("svg:path")
+            for path in svg_doc.getElementsByTagName("path")
+            + svg_doc.getElementsByTagName("svg:path")
         }
+
         shapely_geoms = dict()
+
         if "no_scaling_workaround" in config and config["no_scaling_workaround"]:
             scaling_value = config["geometry_scale"]
         else:
@@ -131,9 +133,9 @@ class World:
 
         world = cls(
             geometry_scale=scaling_value,
-            init_geometry_filename=init_geometry_filename,
-            init_geometry_file=init_geometry_file,
-            init_json_filename=abs_path_to_file,
+            init_geometry_filename=svg_filename,
+            init_geometry_file=svg_doc,
+            init_json_filename=world_file_path,
             init_json_file=config,
             dd=dd,
         )
@@ -324,7 +326,7 @@ class World:
 
         world.update_dd()
 
-        goals_node = init_geometry_file.getElementById("goals")
+        goals_node = svg_doc.getElementById("goals")
         if goals_node:
             goals_node.parentNode.removeChild(goals_node)
 
