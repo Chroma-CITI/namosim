@@ -1,6 +1,7 @@
-from shapely.geometry import Polygon, Point, MultiPolygon
-from namosim.display.ros_publisher import RosPublisher
+from shapely.geometry import MultiPolygon, Point, Polygon
+
 import namosim.utils.collision as collision
+from namosim.display.ros_publisher import RosPublisher
 
 
 def check_new_local_opening(

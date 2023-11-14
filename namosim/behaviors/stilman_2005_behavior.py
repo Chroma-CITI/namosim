@@ -1,29 +1,28 @@
 import copy
 import heapq
-import numpy as np
+import random
 import time
 from collections import OrderedDict
+
+import numpy as np
 from shapely.geometry import Point
-import random
 
-
-from .baseline_behavior import BaselineBehavior
+import namosim.behaviors.plan.action_result as ar
+import namosim.behaviors.plan.basic_actions as ba
+import namosim.utils.collision as collision
+import namosim.utils.connectivity as connectivity
+import namosim.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
 from namosim.behaviors.algorithms import graph_search
+from namosim.behaviors.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.utils import utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
-from namosim.behaviors.algorithms.new_local_opening_check import (
-    check_new_local_opening,
-)
-import namosim.behaviors.plan.basic_actions as ba
-import namosim.behaviors.plan.action_result as ar
 from namosim.worldreps.occupation_based.binary_occupancy_grid import (
-    BinaryOccupancyGrid,
     BinaryInflatedOccupancyGrid,
+    BinaryOccupancyGrid,
 )
-import namosim.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
-import namosim.utils.collision as collision
-import namosim.utils.connectivity as connectivity
+
+from .baseline_behavior import BaselineBehavior
 
 
 class RCHConfiguration:
@@ -241,7 +240,13 @@ class RobotRobotConflict(Conflict):
                 self.robot_transfered_obstacle_uid
             )
         )
-
+        other_robot_state = (
+            "in transit"
+            if self.other_robot_transfered_obstacle_uid is None
+            else "transfering obstacle uid {}".format(
+                self.other_robot_transfered_obstacle_uid
+            )
+        )
         s = "{} conflict between robot uid {} () and other robot uid {} ().".format(
             self.CONFLICT_STRING,
             self.robot_uid,
@@ -253,6 +258,14 @@ class RobotRobotConflict(Conflict):
             if self.robot_transfered_obstacle_pose is None
             else "robot's transfered obstacle: {}, ".format(
                 self.robot_transfered_obstacle_pose
+            )
+        )
+
+        other_robot_transfered_obstacle_pose_text = (
+            ""
+            if self.other_robot_transfered_obstacle_pose is None
+            else ", other robot's transfered obstacle: {}".format(
+                self.other_robot_transfered_obstacle_pose
             )
         )
 
@@ -591,6 +604,8 @@ class TransferPath:
             action = self.actions[index]
 
             if action is self.grab_action:
+                robot_before_grab_pose = self.robot_path.poses[0]
+
                 # Check that obstacle is at the expected pose (except if it supposed to be moved before that)
                 if self.obstacle_uid not in previously_moved_entities_uids:
                     current_obstacle_pose = world.entities[self.obstacle_uid].pose
@@ -3199,8 +3214,14 @@ class Stilman2005Behavior(BaselineBehavior):
             robot.polygon,
             robot.name,
         )
-
+        robot_cell = utils.real_to_grid(
+            robot_pose[0],
+            robot_pose[1],
+            inflated_grid_by_robot_max.res,
+            inflated_grid_by_robot_max.grid_pose,
+        )
         robot_min_inflation_radius = utils.get_inscribed_radius(robot_polygon)
+        robot_max_inflation_radius = utils.get_circumscribed_radius(robot_polygon)
 
         obstacle = w_t_plus_2.entities[o_1]
         obstacle_uid, obstacle_pose, obstacle_polygon = (
@@ -3399,8 +3420,15 @@ class Stilman2005Behavior(BaselineBehavior):
 
         robot = w_t_plus_2.entities[self._robot.uid]
         robot_uid, robot_pose, robot_name = robot.uid, robot.pose, robot.name
+        robot_cell = utils.real_to_grid(
+            robot_pose[0],
+            robot_pose[1],
+            inflated_grid_by_robot_max.res,
+            inflated_grid_by_robot_max.grid_pose,
+        )
         robot_polygon = robot.polygon
         robot_min_inflation_radius = utils.get_inscribed_radius(robot_polygon)
+        robot_max_inflation_radius = utils.get_circumscribed_radius(robot_polygon)
 
         obstacle = w_t_plus_2.entities[o_1]
         obstacle_uid, obstacle_pose = obstacle.uid, obstacle.pose
@@ -4421,7 +4449,9 @@ class Stilman2005Behavior(BaselineBehavior):
             entity_uid=obstacle_uid,
         )
         new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
-
+        old_cell = utils.real_to_grid(
+            robot_pose[0], robot_pose[1], grid.res, grid.grid_pose
+        )
         cell = utils.real_to_grid(
             new_robot_pose[0], new_robot_pose[1], grid.res, grid.grid_pose
         )

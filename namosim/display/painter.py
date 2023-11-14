@@ -1,6 +1,7 @@
 import logging
 
 from future.utils import with_metaclass
+
 from namosim.utils.singleton import Singleton
 
 

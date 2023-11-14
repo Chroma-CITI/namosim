@@ -1,13 +1,12 @@
+import numpy as np
+from shapely.errors import TopologicalError
+from shapely.geometry import Polygon
+from shapely.ops import cascaded_union
+
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.sensors.circular_sector_sensor import (
     CircularSectorSensor,
 )
-
-import numpy as np
-
-from shapely.ops import cascaded_union
-from shapely.errors import TopologicalError
-from shapely.geometry import Polygon
 
 
 class GFOVSensor(CircularSectorSensor):

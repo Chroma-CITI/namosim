@@ -11,8 +11,10 @@ Panels:
         - /namosim1/robot_01
         - /namosim1/robot_01/test1
         - /namosim1/robot_01/test1/combined_gridmap1/Topic1
+        - /namosim1/robot_01/costmap1
+        - /namosim1/robot_01/costmap1/Status1
       Splitter Ratio: 0.5
-    Tree Height: 712
+    Tree Height: 687
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -57,6 +59,8 @@ Visualization Manager:
         - Class: rviz_common/Group
           Displays:
             - Alpha: 0.699999988079071
+              Binary representation: false
+              Binary threshold: 100
               Class: rviz_default_plugins/Map
               Color Scheme: map
               Draw Behind: false
@@ -99,7 +103,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: close_set_cells
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -110,7 +115,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/Marker
                   Enabled: true
                   Name: open_heap_cells
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -122,7 +128,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: open_heap_cells_array
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -133,7 +140,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/Marker
                   Enabled: true
                   Name: path_grid_cells
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -145,7 +153,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: path_grid_cells_array
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -200,7 +209,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: close_set
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -211,7 +221,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/Marker
                   Enabled: true
                   Name: open_heap
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -326,6 +337,8 @@ Visualization Manager:
             - Class: rviz_common/Group
               Displays:
                 - Alpha: 0.699999988079071
+                  Binary representation: false
+                  Binary threshold: 100
                   Class: rviz_default_plugins/Map
                   Color Scheme: map
                   Draw Behind: false
@@ -368,7 +381,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: close_set
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -404,7 +418,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/Marker
                   Enabled: true
                   Name: social_cells
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -416,7 +431,8 @@ Visualization Manager:
                 - Class: rviz_default_plugins/MarkerArray
                   Enabled: true
                   Name: social_cells_array
-                  Namespaces: {}
+                  Namespaces:
+                    {}
                   Topic:
                     Depth: 5
                     Durability Policy: Volatile
@@ -505,9 +521,11 @@ Visualization Manager:
               Enabled: true
               Name: test
             - Alpha: 0.699999988079071
+              Binary representation: false
+              Binary threshold: 100
               Class: rviz_default_plugins/Map
-              Color Scheme: map
-              Draw Behind: false
+              Color Scheme: costmap
+              Draw Behind: true
               Enabled: true
               Name: costmap
               Topic:
@@ -516,13 +534,13 @@ Visualization Manager:
                 Filter size: 10
                 History Policy: Keep Last
                 Reliability Policy: Reliable
-                Value: /robot_0/costmap
+                Value: /robot_0/robot_sim/costmap
               Update Topic:
                 Depth: 5
                 Durability Policy: Volatile
                 History Policy: Keep Last
                 Reliability Policy: Reliable
-                Value: /robot_0/costmap_updates
+                Value: /robot_0/robot_sim/costmap_updates
               Use Timestamp: false
               Value: true
           Enabled: true
@@ -574,29 +592,34 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
-      Class: rviz_default_plugins/TopDownOrtho
+      Class: rviz_default_plugins/Orbit
+      Distance: 9.118623733520508
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 147.0474853515625
+      Pitch: 0.0547964945435524
       Target Frame: <Fixed Frame>
-      Value: TopDownOrtho (rviz_default_plugins)
-      X: -0.013810668140649796
-      Y: -0.006446112412959337
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 5.987405300140381
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1043
+  Height: 987
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000002cf00000364fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000006e00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000004700000364000000f100fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f00000364fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000004700000364000000c200fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000078000000040fc0100000002fb0000000800540069006d00650100000000000007800000038100fffffffb0000000800540069006d00650100000000000004500000000000000000000003940000036400000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000002cf0000033ffc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000033f000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000033ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003b0000033f000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000077400000040fc0100000002fb0000000800540069006d00650100000000000007740000025300fffffffb0000000800540069006d006501000000000000045000000000000000000000038a0000033f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -605,6 +628,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1920
-  X: 3840
-  Y: 0
+  Width: 1908
+  X: 23
+  Y: -33

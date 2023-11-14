@@ -1,7 +1,7 @@
 {
   "agents_behaviors": [
     {
-      "agent_name": "robot_01",
+      "agent_name": "robot_0",
       "behavior": {
         "name": "stilman_2005_behavior",
         "navigation_goals": [
@@ -23,7 +23,7 @@
           "robot_rotation_unit_angle": 30.0,
           "robot_translation_unit_length": 0.1,
           "solution_interval_bound_percentage": 0.01,
-          "use_social_cost": false
+          "use_social_cost": true
         }
       }
     }

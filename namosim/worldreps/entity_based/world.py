@@ -1,25 +1,25 @@
 import copy
+import json
 import os
 from xml.dom import minidom
-import json
+
 import numpy as np
-
 import shapely.affinity as affinity
-from shapely.geometry import Polygon, box, LineString
-from shapely.ops import unary_union
 from bidict import bidict
+from shapely.geometry import LineString, Polygon, box
+from shapely.ops import unary_union
 
-import namosim.utils.utils as utils
 import namosim.utils.conversion as conversion
+import namosim.utils.utils as utils
 from namosim.worldreps.discretization_data import DiscretizationData
+from namosim.worldreps.entity_based.entity import Style
+from namosim.worldreps.entity_based.goal import Goal
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
-from namosim.worldreps.entity_based.entity import Style
-from namosim.worldreps.entity_based.taboo import Taboo
-from namosim.worldreps.entity_based.goal import Goal
 from namosim.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
-from namosim.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
 from namosim.worldreps.entity_based.sensors.omniscient_sensor import OmniscientSensor
+from namosim.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
+from namosim.worldreps.entity_based.taboo import Taboo
 
 
 class World:

@@ -1,11 +1,13 @@
+import multiprocessing
 import os
 import pickle
 import time
-import multiprocessing
+
+import numpy as np
 import plotly.graph_objects as go
 import plotly.subplots as sp
-import numpy as np
-from namosim.simulator import AgentStepStats, WorldStepStats, StepStats
+
+from namosim.simulator import AgentStepStats, StepStats, WorldStepStats
 
 
 def get_max_nb_steps(simulations_results_paths):

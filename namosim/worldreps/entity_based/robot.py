@@ -1,7 +1,7 @@
-from namosim.worldreps.entity_based.entity import Entity
-from namosim.utils import utils
-
 import copy
+
+from namosim.utils import utils
+from namosim.worldreps.entity_based.entity import Entity
 
 
 class Robot(Entity):

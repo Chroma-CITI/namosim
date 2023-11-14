@@ -1,12 +1,13 @@
-from future.utils import with_metaclass
-import time
+import copy
 import math
+import subprocess
+import time
+
+import mapbox_earcut as earcut
 import numpy as np
+from future.utils import with_metaclass
 from shapely import affinity
 from shapely.geometry import Polygon
-import mapbox_earcut as earcut
-import copy
-import subprocess
 
 import namosim.display.ros_publisher_config as cfg
 
@@ -22,53 +23,54 @@ if not cfg.deactivate_gui:
 
     except ImportError:
         # Else try to import rclpy for ROS2
+
         import rclpy
         from rclpy.node import Node
 
         ROS2 = True
 
-        from builtin_interfaces.msg import Time
+        from typing import Optional, Type, Union
 
-        from typing import Union, Optional, Type
-        from rclpy.qos import QoSProfile
+        from builtin_interfaces.msg import Time
         from rclpy.callback_groups import CallbackGroup
+        from rclpy.publisher import Publisher
+        from rclpy.qos import QoSProfile
         from rclpy.qos_event import PublisherEventCallbacks
         from rclpy.qos_overriding_options import QoSOverridingOptions
-        from rclpy.publisher import Publisher
 
+    from geometry_msgs.msg import (
+        Point,
+        Pose,
+        PoseArray,
+        Quaternion,
+        Transform,
+        TransformStamped,
+        Vector3,
+    )
+    from grid_map_msgs.msg import GridMap
+    from nav_msgs.msg import MapMetaData, OccupancyGrid
+    from std_msgs.msg import (
+        ColorRGBA,
+        Float32MultiArray,
+        Header,
+        MultiArrayDimension,
+        MultiArrayLayout,
+    )
     from tf2_ros import StaticTransformBroadcaster
     from visualization_msgs.msg import Marker, MarkerArray
-    from geometry_msgs.msg import (
-        PoseArray,
-        TransformStamped,
-        Transform,
-        Vector3,
-        Quaternion,
-        Pose,
-        Point,
-    )
-    from std_msgs.msg import (
-        Header,
-        Float32MultiArray,
-        MultiArrayLayout,
-        MultiArrayDimension,
-        ColorRGBA,
-    )
-    from nav_msgs.msg import OccupancyGrid, MapMetaData
-    from grid_map_msgs.msg import GridMap
 
     USE_ROS = True
 else:
     USE_ROS = False
 
-from namosim.utils.singleton import Singleton
-from namosim.utils import utils
 from namosim.display import tf_replacement
-from namosim.worldreps.entity_based.robot import Robot
+from namosim.utils import utils
+from namosim.utils.singleton import Singleton
 from namosim.worldreps.entity_based.obstacle import Obstacle
+from namosim.worldreps.entity_based.robot import Robot
 from namosim.worldreps.occupation_based.binary_occupancy_grid import (
-    BinaryOccupancyGrid,
     BinaryInflatedOccupancyGrid,
+    BinaryOccupancyGrid,
 )
 
 
