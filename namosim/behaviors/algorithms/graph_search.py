@@ -21,6 +21,7 @@ Benoit Renault (benoit.renault@inria.fr)
 """
 
 import heapq
+
 from namosim.utils import utils
 
 
@@ -76,6 +77,10 @@ class HeapNode:
         self.cost = cost
         self.element = element
         self.uid = uid
+
+    def __cmp__(self, other):
+        # Meant for allowing heapq to properly order the heap's elements according to lowest cost
+        return utils.cmp(self.cost, other.cost)
 
     def __lt__(self, other):
         # Meant for allowing heapq to properly order the heap's elements according to lowest cost

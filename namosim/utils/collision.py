@@ -1,8 +1,10 @@
 import math
-from shapely.geometry import MultiPoint, Point
-import shapely.affinity as affinity
+
 import matplotlib.pyplot as plt
+import shapely.affinity as affinity
 from aabbtree import AABB, AABBTree
+from shapely.geometry import MultiPoint, Point
+
 import namosim.behaviors.plan.basic_actions as ba
 from namosim.utils import utils
 

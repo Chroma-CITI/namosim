@@ -17,11 +17,11 @@
         "force_pushes_only": true,
         "geometry": {
           "from": "file",
-          "id": "robot_01",
-          "orientation_id": "robot_01_dir"
+          "id": "robot_0",
+          "orientation_id": "robot_0_dir"
         },
         "movable_whitelist": ["box"],
-        "name": "robot_01",
+        "name": "robot_0",
         "push_only_list": ["box"],
         "sensors": [
           {

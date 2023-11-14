@@ -1,5 +1,6 @@
-import numpy as np
 import math
+
+import numpy as np
 from shapely.geometry import Polygon
 
 from namosim.utils import utils
@@ -115,6 +116,8 @@ class BinaryOccupancyGrid:
     def cells_sets_update(
         self, new_or_updated_cells_sets=None, removed_cells_sets=None, fill=True
     ):
+        fill_polygons = self.neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
+
         prev_cells_sets = {}
 
         if new_or_updated_cells_sets is not None:

@@ -1,15 +1,15 @@
-from namosim.behaviors.plan.action_result import ActionSuccess
-from namosim.utils.utils import euclidean_distance
 import namosim.utils.connectivity as connectivity
+from namosim.behaviors.plan.action_result import ActionSuccess
+from namosim.display.ros_publisher import RosPublisher
+from namosim.utils import utils
+from namosim.utils.utils import euclidean_distance
 from namosim.worldreps.occupation_based.binary_occupancy_grid import (
-    BinaryOccupancyGrid,
     BinaryInflatedOccupancyGrid,
+    BinaryOccupancyGrid,
 )
 from namosim.worldreps.occupation_based.social_topological_occupation_cost_grid import (
     compute_social_costmap,
 )
-from namosim.display.ros_publisher import RosPublisher
-from namosim.utils import utils
 
 
 def get_reallocated_obstacles(init_world, end_world):

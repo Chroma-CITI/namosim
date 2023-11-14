@@ -1,16 +1,17 @@
-import skimage.morphology as skimage_morph
-import scipy.ndimage as scipy_morph
-from scipy.spatial import Voronoi
-import numpy as np
-from namosim.utils import utils
 import os
 import time
-from PIL import Image
-from matplotlib import colormaps as cm
-import matplotlib.pyplot as plt
-from shapely.geometry import Point, LineString
-from namosim.display.ros_publisher import RosPublisher
 
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.ndimage as scipy_morph
+import skimage.morphology as skimage_morph
+from matplotlib import colormaps as cm
+from PIL import Image
+from scipy.spatial import Voronoi
+from shapely.geometry import LineString, Point
+
+from namosim.display.ros_publisher import RosPublisher
+from namosim.utils import utils
 
 rel_path_to_costmap_logs_dir = "../../../logs/costmaps/"
 abs_path_to_costmap_logs_dir = os.path.join(
@@ -362,8 +363,8 @@ def compute_social_costmap(
                     ):
                         values_in_neighborhood = []
                         # weights_in_neighborhood = []
-                        for k, h in neighborhood:
-                            neighbor_of_neighbor = neighbor[0] + k, neighbor[1] + h
+                        for k, l in neighborhood:
+                            neighbor_of_neighbor = neighbor[0] + k, neighbor[1] + l
                             if utils.is_in_matrix(neighbor_of_neighbor, width, height):
                                 n_o_n_value = final_array[neighbor_of_neighbor[0]][
                                     neighbor_of_neighbor[1]

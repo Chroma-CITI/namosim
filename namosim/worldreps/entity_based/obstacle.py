@@ -1,5 +1,7 @@
-from namosim.worldreps.entity_based.entity import Entity
 import copy
+
+
+from namosim.worldreps.entity_based.entity import Entity
 
 
 class Obstacle(Entity):

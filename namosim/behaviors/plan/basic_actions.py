@@ -1,5 +1,5 @@
 from shapely import affinity
-from shapely.geometry import Point, LineString
+from shapely.geometry import LineString, Point
 
 from namosim.utils import utils
 

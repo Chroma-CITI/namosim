@@ -198,16 +198,16 @@ def rect2pathd(rect):
     return d
 
 
-def line2pathd(line):
+def line2pathd(l):
     return (
         "M"
-        + line.attrib.get("x1", "0")
+        + l.attrib.get("x1", "0")
         + " "
-        + line.attrib.get("y1", "0")
+        + l.attrib.get("y1", "0")
         + "L"
-        + line.attrib.get("x2", "0")
+        + l.attrib.get("x2", "0")
         + " "
-        + line.attrib.get("y2", "0")
+        + l.attrib.get("y2", "0")
     )
 
 

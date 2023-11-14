@@ -256,6 +256,7 @@ class B2WorldEncoder(json.JSONEncoder):
             joint_json["groundAnchorA"] = self.b2_vec2_to_rube_vec(joint.groundAnchorA)
             joint_json["groundAnchorB"] = self.b2_vec2_to_rube_vec(joint.groundAnchorB)
         else:
+            joint_def = None
             print("Unsupported joint type")
 
         return joint_json
