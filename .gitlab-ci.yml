@@ -1,11 +1,19 @@
 default:
-  image: ubuntu:22.04
+  image: python:3.10-bookworm
+  tags:
+    - ci.inria.fr
+    - small
+    - linux
 
 stages:
-  - build
+  - build-and-test
 
-build-job:
-  stage: build
+build-and-test-job:
+  stage: build-and-test
   script:
+    - apt-get update -y
+    - apt-get install -y swig
     - curl -sSL https://install.python-poetry.org | python3 -
+    - export PATH="/root/.local/bin:$PATH"
     - poetry install
+    - poetry run poe test
