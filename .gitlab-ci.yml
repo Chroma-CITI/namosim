@@ -1,5 +1,9 @@
 default:
   image: ubuntu:22.04
+  tags:
+    - ci.inria.fr
+    - small
+    - linux
 
 stages:
   - build
