@@ -33,7 +33,7 @@ class World:
         entities=None,
         entities_to_agent=None,
         dd=None,
-        taboo_zones=None,
+        taboo_zones: t.Optional[t.Dict[int, Taboo]] = None,
         goals: t.Optional[t.Dict[int, Goal]] = None,
         geometry_scale: float = 1.0,
         init_json_filename: str = "world_name_placeholder.json",
@@ -55,7 +55,7 @@ class World:
         self.init_geometry_file = init_geometry_file
         self.init_json_filename = init_json_filename
 
-        self.taboo_zones = taboo_zones or dict()
+        self.taboo_zones: t.Dict[int, Taboo] = taboo_zones or dict()
         self.goals: t.Dict[int, Goal] = goals or dict()
 
     # Constructor
