@@ -161,9 +161,9 @@ class World:
                 try:
                     polygon = shapely_geoms[entity_data.geometry.id]
                     style = Style.from_string(
-                        world.init_geometry_file.getElementById(
-                            entity_data.geometry.id
-                        ).getAttribute("style")
+                        svg_doc.getElementById(entity_data.geometry.id).getAttribute(
+                            "style"
+                        )
                     )
                 except KeyError:
                     print(
@@ -262,7 +262,7 @@ class World:
                                 # If a drawn vector in the SVG is defined as orientation, use it
                                 orientation_geom = list(
                                     shapely_geoms[
-                                        goal_data.geometry.orientation_id,
+                                        goal_data.geometry.orientation_id
                                     ].coords
                                 )
                                 orientation_vector = [
