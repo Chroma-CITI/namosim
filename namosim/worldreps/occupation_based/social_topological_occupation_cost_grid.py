@@ -294,7 +294,7 @@ def compute_social_costmap(
     )
 
     # Extract the skeleton cells into two arrays of coordinates
-    skeleton_cells_xy = np.where(skeletonized_grid is True)
+    skeleton_cells_xy = np.where(skeletonized_grid)
 
     final_array = np.full(distance_transformed_grid.shape, -1.0)
     width, height = final_array.shape[0], final_array.shape[1]

@@ -826,7 +826,9 @@ if __name__ == "__main__":
     nb_steps_per_aggregation_op_2 = 1000
     nb_steps_per_aggregation_op_1 = 1000
 
-    MAIN_FOLDER = "/home/xia0ben/INRIA/Code/s-namo-sim/logs/SESSION_2/after_the_feast/5_robots/20_goals"
+    MAIN_FOLDER = os.path.join(
+        __file__, "../../../logs/SESSION_2/after_the_feast/5_robots/20_goals"
+    )
     scenarios_ids = {
         name
         for name in os.listdir(MAIN_FOLDER)

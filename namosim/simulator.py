@@ -1,32 +1,35 @@
-import time
 import copy
 import json
-import jsonpickle
 import os
-import traceback
-import signal
-from contextlib import contextmanager
 import pickle
 import random
+import signal
+import time
+import traceback
+import typing as t
+from contextlib import contextmanager
 
+import jsonpickle
+
+import namosim.behaviors.plan.action_result as ar
+import namosim.behaviors.plan.basic_actions as ba
 import namosim.behaviors.stilman_2005_behavior as stilman_2005_behavior
 from namosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
-
-import namosim.behaviors.plan.basic_actions as ba
-import namosim.behaviors.plan.action_result as ar
-
 from namosim.display.ros_publisher import RosPublisher
-
-from namosim.worldreps.entity_based.world import World
-from namosim.worldreps.entity_based.robot import Robot
+from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
-
-from namosim.utils import stats_utils, utils, conversion, collision
+from namosim.worldreps.entity_based.robot import Robot
+from namosim.worldreps.entity_based.world import World
 
 
 class SimulationStepResult:
     def __init__(
-        self, sense_durations, think_durations, act_duration, action_results, step_index
+        self,
+        sense_durations: t.Dict[int, float],
+        think_durations: t.Dict[int, float],
+        act_duration: float,
+        action_results: t.Dict[int, ar.BaseAction],
+        step_index: int,
     ):
         self.sense_durations = sense_durations
         self.think_durations = think_durations
@@ -38,29 +41,29 @@ class SimulationStepResult:
 class AgentStepStats:
     def __init__(
         self,
-        transit_path_length=0.0,
-        transfer_path_length=0.0,
-        path_length=0.0,
-        nb_transfers=0,
-        nb_successful_goals=0,
-        nb_failed_goals=0,
-        nb_goals=0,
-        nb_conflicts=0,
-        nb_robot_robot_conflicts=0,
-        nb_robot_obstacle_conflicts=0,
-        nb_stolen_movable_conflicts=0,
-        nb_stealing_movable_conflicts=0,
-        nb_concurrent_grab_conflicts=0,
-        nb_simultaneous_space_access_conflicts=0,
-        nb_wait_steps=0,
-        nb_transit_steps=0,
-        nb_transfer_steps=0,
-        nb_steps=0,
-        nb_of_postponements=0,
-        nb_of_unpostponements=0,
-        nb_of_plan_computations=0,
-        sense_time=0.0,
-        think_time=0.0,
+        transit_path_length: float = 0.0,
+        transfer_path_length: float = 0.0,
+        path_length: float = 0.0,
+        nb_transfers: int = 0,
+        nb_successful_goals: int = 0,
+        nb_failed_goals: int = 0,
+        nb_goals: int = 0,
+        nb_conflicts: int = 0,
+        nb_robot_robot_conflicts: int = 0,
+        nb_robot_obstacle_conflicts: int = 0,
+        nb_stolen_movable_conflicts: int = 0,
+        nb_stealing_movable_conflicts: int = 0,
+        nb_concurrent_grab_conflicts: int = 0,
+        nb_simultaneous_space_access_conflicts: int = 0,
+        nb_wait_steps: int = 0,
+        nb_transit_steps: int = 0,
+        nb_transfer_steps: int = 0,
+        nb_steps: int = 0,
+        nb_of_postponements: int = 0,
+        nb_of_unpostponements: int = 0,
+        nb_of_plan_computations: int = 0,
+        sense_time: float = 0.0,
+        think_time: float = 0.0,
     ):
         self.transit_path_length = transit_path_length
         self.transfer_path_length = transfer_path_length
@@ -92,11 +95,11 @@ class AgentStepStats:
 class WorldStepStats:
     def __init__(
         self,
-        nb_components=0,
-        biggest_component_size=0,
-        free_space_size=0,
-        fragmentation=0.0,
-        absolute_social_cost=0.0,
+        nb_components: int = 0,
+        biggest_component_size: int = 0,
+        free_space_size: int = 0,
+        fragmentation: float = 0.0,
+        absolute_social_cost: float = 0.0,
     ):
         self.nb_components = nb_components
         self.biggest_component_size = biggest_component_size
@@ -106,19 +109,24 @@ class WorldStepStats:
 
 
 class StepStats:
-    def __init__(self, world_stats=None, agents_stats=None, act_time=0.0):
+    def __init__(
+        self,
+        world_stats: t.Optional[WorldStepStats] = None,
+        agents_stats: t.Optional[AgentStepStats] = None,
+        act_time: float = 0.0,
+    ):
         self.world_stats = world_stats or WorldStepStats()
         self.agents_stats = agents_stats or AgentStepStats()
         self.act_time = act_time
 
 
 class TimeoutError(Exception):
-    def __init(self):
+    def __init__(self):
         pass
 
 
 @contextmanager
-def timeout(time):
+def timeout(time: int):
     # Register a function to raise a TimeoutError on the signal.
     signal.signal(signal.SIGALRM, raise_timeout)
     # Schedule the signal to be sent after ``time``.
@@ -134,13 +142,17 @@ def timeout(time):
         signal.signal(signal.SIGALRM, signal.SIG_IGN)
 
 
-def raise_timeout(signum, frame):
+def raise_timeout(signum: int, frame: t.Any):
     raise TimeoutError
 
 
 class Simulator:
     def __init__(
-        self, simulation_file_path, simulation_log_stub="", goals=None, timestring=None
+        self,
+        simulation_file_path: str,
+        simulation_log_stub: str = "",
+        goals=None,
+        timestring: t.Optional[str] = None,
     ):
         # Load simulation file and initialize logs
         if timestring:
@@ -206,7 +218,7 @@ class Simulator:
 
         if self.pickle_saved_data:
 
-            def pickle_save(obj, filepath):
+            def pickle_save(obj: t.Any, filepath: str):
                 filepath += ".pickle"
                 with open(filepath, "wb") as f:
                     pickle.dump(obj, f)
@@ -214,7 +226,7 @@ class Simulator:
             self.save = pickle_save
         else:
 
-            def json_save(obj, filepath):
+            def json_save(obj: t.Any, filepath: str):
                 filepath += ".json"
                 p = jsonpickle.Pickler(unpicklable=False)
                 flattened_obj = p.flatten(obj)
@@ -252,12 +264,13 @@ class Simulator:
                 + ".json",
                 svg_filepath=self.init_ref_world.init_geometry_filename,
             )
-        self.ref_world = copy.deepcopy(self.init_ref_world)
+        self.ref_world: World = copy.deepcopy(self.init_ref_world)
 
         # Associate autonomous agents with goals and behaviors
         self.goals_geometries = {
             goal.name: goal.pose for goal in self.init_ref_world.goals.values()
         }
+
         if goals:
             self.saved_goals = goals
             self.agent_uid_to_goals = {

@@ -40,6 +40,8 @@ rasterio = "^1.3.9" # Used for testing the library's rasterization capabilities
 # DEV LIBRARIES (for build/test purposes only)
 ruff = "^0.1.5"        # Used for code linting/formatting
 poethepoet = "^0.24.3"
+pyright = "^1.1.335"
+typing-extensions = "^4.8.0"
 
 [tool.poe.tasks]
 lint_check = "ruff check ."                                             # lint check
@@ -110,3 +112,7 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
+
+[tool.pyright]
+reportMissingTypeStubs = false
+reportUnknownVariableType = false
