@@ -31,7 +31,6 @@ pycrunch-trace = "^0.2"                                           # Used for det
 scikit-image = "^0.22.0"                                          # Used to rasterize polygon contours and for image skeleton computation
 svgpath2mpl = "^1.0.0"                                            # Used to convert SVG geometries to Shapely geometries
 tqdm = "^4.66.1"                                                  # Used for progressbars
-box2d = { git = "https://github.com/pybox2d/pybox2d.git#2.3.10" }
 
 # LIBRARIES THAT ARE BOUND TO GO AWAY
 future = "^0.18.3"  # Used for metaclass support needed for writing RosPublisher singleton
@@ -43,7 +42,8 @@ ruff = "^0.1.5"        # Used for code linting/formatting
 poethepoet = "^0.24.3"
 
 [tool.poe.tasks]
-lint_fix = "ruff check --fix ."                                         # lint
+lint_check = "ruff check ."                                             # lint check
+lint_fix = "ruff check --fix ."                                         # lint fix
 format = "ruff format ."                                                # format
 test = "python -m unittest discover -s tests.unit_tests -p '*_test.py'" # test
 

@@ -21,9 +21,7 @@ class NAMOMultiTests(unittest.TestCase):
         self.path_to_folder = os.path.join(
             os.path.dirname(__file__), "../../../data/NAMO-multi/"
         )
-        self.logging_folder = os.path.join(
-            os.path.dirname(__file__), "../../../logs/"
-        )
+        self.logging_folder = os.path.join(os.path.dirname(__file__), "../../../logs/")
 
     # INTRO
     def test_basic_with_opening_namo(self):
