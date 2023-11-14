@@ -10,6 +10,7 @@ from shapely import affinity
 from shapely.geometry import Polygon
 
 import namosim.display.ros_publisher_config as cfg
+from namosim.worldreps.entity_based.world import World
 
 if not cfg.deactivate_gui:
     import namosim.display.colors as colors
@@ -922,7 +923,7 @@ class RosPublisher(with_metaclass(Singleton)):
         )
 
     # region SIM WORLD
-    def publish_sim_world(self, world, robot_uid=None):
+    def publish_sim_world(self, world: World, robot_uid=None):
         self.observers[self.sim_knowledge_topic].update(
             world=world, robot_uid=robot_uid
         )

@@ -121,7 +121,7 @@ class StepStats:
 
 
 class TimeoutError(Exception):
-    def __init(self):
+    def __init__(self):
         pass
 
 
