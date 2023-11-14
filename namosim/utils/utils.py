@@ -436,17 +436,6 @@ class OrderedSet(MutableSet):
         return set(self) == set(other)
 
 
-class CustomLogger(list):
-    def __init__(self, printout=True):
-        list.__init__(self)
-        self.printout = printout
-
-    def append(self, object):
-        list.append(self, object)
-        if self.printout:
-            print(object)
-
-
 class BasicLog:
     def __init__(self, message, step, timestamp=timestamp_string()):
         self.message = message
@@ -459,6 +448,17 @@ class BasicLog:
 
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
+
+class CustomLogger(list[BasicLog]):
+    def __init__(self, printout: bool = True):
+        super(CustomLogger, self).__init__(self)
+        self.printout = printout
+
+    def append(self, log: BasicLog):
+        super(CustomLogger, self).append(log)
+        if self.printout:
+            print(log)
 
 
 def euclidean_distance(a, b):

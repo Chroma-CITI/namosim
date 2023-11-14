@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import typing as t
 from xml.dom import minidom
 
 import numpy as np
@@ -8,6 +9,7 @@ import shapely.affinity as affinity
 from bidict import bidict
 from shapely.geometry import LineString, Polygon, box
 from shapely.ops import unary_union
+from typing_extensions import Self
 
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
@@ -59,7 +61,7 @@ class World:
 
     # Constructor
     @classmethod
-    def load_from_json(cls, abs_path_to_file):
+    def load_from_json(cls, abs_path_to_file: str) -> Self:
         # Import YAML world configuration file
         with open(abs_path_to_file) as f:
             config = json.load(f)
@@ -329,7 +331,11 @@ class World:
         return world
 
     def save_to_files(
-        self, json_filepath=None, svg_filepath=None, json_data=None, svg_data=None
+        self,
+        json_filepath: t.Optional[str] = None,
+        svg_filepath: t.Optional[str] = None,
+        json_data: t.Optional[t.Any] = None,
+        svg_data: t.Optional[t.Any] = None,
     ):
         json_filepath = json_filepath or "./" + self.init_json_filename
         svg_filepath = svg_filepath or "./" + self.init_geometry_filename
@@ -349,7 +355,7 @@ class World:
         with open(abs_svg_filepath, "w+") as f:
             svg_data.writexml(f)
 
-    def to_json(self, svg_filepath):
+    def to_json(self, svg_filepath: str) -> t.Any:
         return {
             "files": {"geometry_file": svg_filepath},
             "geometry_scale": self.geometry_scale,
@@ -370,7 +376,7 @@ class World:
             },
         }
 
-    def to_svg(self):
+    def to_svg(self) -> t.Any:
         if self.init_geometry_file:
             svg_data = copy.deepcopy(self.init_geometry_file)
             init_geometries_ids = {

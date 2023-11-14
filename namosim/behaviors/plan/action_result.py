@@ -1,4 +1,8 @@
-class ActionSuccess:
+class BaseAction:
+    pass
+
+
+class ActionSuccess(BaseAction):
     def __init__(self, action, robot_pose, is_transfer=False, obstacle_uid=None):
         self.action = action
         # TODO remove these temporary attributes
@@ -10,7 +14,7 @@ class ActionSuccess:
         return "Action was a success"
 
 
-class ActionFailure:
+class ActionFailure(BaseAction):
     def __init__(self, action):
         self.action = action
 
