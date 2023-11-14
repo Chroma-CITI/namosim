@@ -1,5 +1,5 @@
 default:
-  image: ros:ros-iron-core-jammy
+  image: ros:iron-ros-core-jammy
   tags:
     - ci.inria.fr
     - small
