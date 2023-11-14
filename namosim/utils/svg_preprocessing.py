@@ -36,5 +36,8 @@ def concave_to_convex_obstacles(world_json_path):
 
 if __name__ == "__main__":
     concave_to_convex_obstacles(
-        "/home/xia0ben/INRIA/Code/s-namo-sim/data/simulations/iros_2021/citi/1_robots/100_goals/0007/world_0007.json"
+        os.path.join(
+            __file__,
+            "../../../data/simulations/iros_2021/citi/1_robots/100_goals/0007/world_0007.json",
+        )
     )
