@@ -1,5 +1,5 @@
 default:
-  image: ubuntu:22.04
+  image: python:3.10-bookworm
   tags:
     - ci.inria.fr
     - small
