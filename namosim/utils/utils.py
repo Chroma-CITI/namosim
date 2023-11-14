@@ -15,6 +15,7 @@ else:
     from collections import MutableSet
 
 import json
+import typing as t
 from datetime import datetime
 
 # Constants
@@ -615,7 +616,7 @@ def real_pose_to_fixed_precision_pose(real_pose, trans_mult, rot_mult):
     )
 
 
-def yaw_from_direction(direction_vector, radians=False):
+def yaw_from_direction(direction_vector: t.List[float], radians=False) -> float:
     # TODO Replace this by atan2(y, x) with direction vector (x, y)
     # if direction_vector[1] < 0:
     #     yaw = 2 * math.pi - math.acos(

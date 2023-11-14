@@ -16,6 +16,7 @@ import namosim.utils.utils as utils
 from namosim.worldreps.discretization_data import DiscretizationData
 from namosim.worldreps.entity_based.entity import Style
 from namosim.worldreps.entity_based.goal import Goal
+from namosim.worldreps.entity_based.models import WorldModel
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
 from namosim.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
@@ -63,10 +64,11 @@ class World:
     def load_from_json(cls, world_file_path: str) -> Self:
         # Import world configuration file
         with open(world_file_path) as f:
-            config = json.load(f)
+            world_json = json.load(f)
+        config = WorldModel.model_validate(world_json)
 
         # Import SVG geometry file
-        svg_path = config["files"]["geometry_file"]
+        svg_path = config.files.geometry_file
 
         if not os.path.isabs(svg_path):
             working_directory = os.path.dirname(world_file_path)
@@ -82,11 +84,11 @@ class World:
 
         shapely_geoms = dict()
 
-        if "no_scaling_workaround" in config and config["no_scaling_workaround"]:
-            scaling_value = config["geometry_scale"]
+        if config.no_scaling_workaround:
+            scaling_value = config.geometry_scale
         else:
             # TODO Remove the scaling constant once all the worlds SVGs have been fixed
-            scaling_value = World.SCALING_CONSTANT * config["geometry_scale"]
+            scaling_value = World.SCALING_CONSTANT * config.geometry_scale
         # Convert imported geometry to shapely polygons
         for svg_id, svg_path in svg_paths.items():
             try:
@@ -121,14 +123,12 @@ class World:
 
         # Get map discretization parameters
         dd = DiscretizationData(
-            res=config["discretization_data"]["res"],
-            inflation_radius=config["discretization_data"]["inflation_radius"],
-            cost_lethal=config["discretization_data"]["cost_lethal"],
-            cost_inscribed=config["discretization_data"]["cost_inscribed"],
-            cost_circumscribed=config["discretization_data"]["cost_circumscribed"],
-            cost_possibly_nonfree=config["discretization_data"][
-                "cost_possibly_nonfree"
-            ],
+            res=config.discretization_data.res,
+            inflation_radius=config.discretization_data.inflation_radius,
+            cost_lethal=config.discretization_data.cost_lethal,
+            cost_inscribed=config.discretization_data.cost_inscribed,
+            cost_circumscribed=config.discretization_data.cost_circumscribed,
+            cost_possibly_nonfree=config.discretization_data.cost_possibly_nonfree,
         )
 
         world = cls(
@@ -143,13 +143,13 @@ class World:
         first_robot = None
 
         # Get all things
-        for entity_data in config["things"]["entities"]:
+        for entity_data in config.things.entities:
             # Pose of object definition
             pose = [None, None, 0.0]  # x, y, theta
-            if "orientation_id" in entity_data["geometry"]:
+            if entity_data.geometry.orientation_id is not None:
                 # If a drawn vector in the SVG is defined as orientation, use it
-                orientation_geom = list(
-                    shapely_geoms[entity_data["geometry"]["orientation_id"]].coords
+                orientation_geom: t.List[t.List[float]] = list(
+                    shapely_geoms[entity_data.geometry.orientation_id].coords
                 )
                 orientation_vector = [
                     orientation_geom[1][0] - orientation_geom[0][0],
@@ -158,19 +158,19 @@ class World:
                 pose[2] = utils.yaw_from_direction(orientation_vector)
 
             # Polygonal geometry object definition
-            if entity_data["geometry"]["from"] == "file":
+            if entity_data.geometry.from_ == "file":
                 # If geometry is defined in SVG file, prioritize using it
                 try:
-                    polygon = shapely_geoms[entity_data["geometry"]["id"]]
+                    polygon = shapely_geoms[entity_data.geometry.id]
                     style = Style.from_string(
                         world.init_geometry_file.getElementById(
-                            entity_data["geometry"]["id"]
+                            entity_data.geometry.id
                         ).getAttribute("style")
                     )
                 except KeyError:
                     print(
                         "Could not find geometry {} in svg file. Next entity.".format(
-                            entity_data["geometry"]["id"]
+                            entity_data.geometry.id
                         )
                     )
                     continue
@@ -186,41 +186,41 @@ class World:
                     list(polygon.centroid.coords)[0][1],
                 ]
 
-            if entity_data["type"] == "robot":
-                sensors_data = entity_data["sensors"]
+            if entity_data.type_ == "robot":
+                sensors_data = entity_data.sensors
 
-                sensors = []
+                sensors: t.List[t.Union[OmniscientSensor, GFOVSensor, SFOVSensor]] = []
                 for sensor_data in sensors_data:
-                    if sensor_data["type"] == "perfect_g_fov":
+                    if sensor_data.type_ == "perfect_g_fov":
                         sensors.append(
                             GFOVSensor(
-                                sensor_data["max_radius"],
-                                sensor_data["min_radius"],
-                                sensor_data["opening_angle"],
+                                sensor_data.max_radius,
+                                sensor_data.min_radius,
+                                sensor_data.opening_angle,
                                 pose,
                             )
                         )
-                    elif sensor_data["type"] == "perfect_s_fov":
+                    elif sensor_data.type_ == "perfect_s_fov":
                         sensors.append(
                             SFOVSensor(
-                                sensor_data["max_radius"],
-                                sensor_data["min_radius"],
-                                sensor_data["opening_angle"],
+                                sensor_data.max_radius,
+                                sensor_data.min_radius,
+                                sensor_data.opening_angle,
                                 pose,
                             )
                         )
-                    elif sensor_data["type"] == "omniscient":
+                    elif sensor_data.type_ == "omniscient":
                         sensors.append(OmniscientSensor())
 
                 new_robot = Robot(
-                    name=entity_data["name"],
+                    name=entity_data.name,
                     full_geometry_acquired=True,
                     polygon=polygon,
                     pose=tuple(pose),
                     sensors=sensors,
-                    push_only_list=entity_data["push_only_list"],
-                    force_pushes_only=entity_data["force_pushes_only"],
-                    movable_whitelist=entity_data["movable_whitelist"],
+                    push_only_list=entity_data.push_only_list,
+                    force_pushes_only=entity_data.force_pushes_only,
+                    movable_whitelist=entity_data.movable_whitelist,
                     style=style,
                 )
                 if not first_robot:
@@ -234,13 +234,13 @@ class World:
                 world.add_entity(new_robot)
             else:
                 new_object = Obstacle(
-                    name=entity_data["name"],
+                    name=entity_data.name,
                     polygon=polygon,
                     pose=pose,
-                    type_in=entity_data["type"],
+                    type_in=entity_data.type_,
                     full_geometry_acquired=True,
                     movability="static"
-                    if entity_data["type"] in ["wall", "pillar", "table"]
+                    if entity_data.type_ in ["wall", "pillar", "table"]
                     else "unknown",
                     style=style,
                 )
@@ -248,25 +248,23 @@ class World:
                 world.add_entity(new_object)
 
         # Get zones
-        if "zones" in config["things"]:
-            if "goals" in config["things"]["zones"] and isinstance(
-                config["things"]["zones"]["goals"], list
-            ):
-                for goal_data in config["things"]["zones"]["goals"]:
+        if config.things.zones is not None:
+            if config.things.zones.goals:
+                for goal_data in config.things.zones.goals:
                     try:
-                        if "geometry" in goal_data:
-                            goal_polygon = shapely_geoms[goal_data["geometry"]["id"]]
+                        if goal_data.geometry is not None:
+                            goal_polygon = shapely_geoms[goal_data.geometry.id]
                             pose = [
                                 goal_polygon.centroid.coords[0][0],
                                 goal_polygon.centroid.coords[0][1],
                                 0.0,
                             ]
 
-                            if "orientation_id" in goal_data["geometry"]:
+                            if goal_data.geometry.orientation_id is not None:
                                 # If a drawn vector in the SVG is defined as orientation, use it
                                 orientation_geom = list(
                                     shapely_geoms[
-                                        goal_data["geometry"]["orientation_id"]
+                                        goal_data.geometry.orientation_id,
                                     ].coords
                                 )
                                 orientation_vector = [
@@ -280,14 +278,12 @@ class World:
                                 )
                             goal = Goal(
                                 polygon=goal_polygon,
-                                name=goal_data["name"],
+                                name=goal_data.name,
                                 pose=tuple(pose),
                             )
                             world.goals[goal.uid] = goal
-                        elif "pose" in goal_data:
-                            if not goal_data["pose"]:
-                                raise KeyError
-                            pose = tuple(goal_data["pose"])
+                        elif goal_data.pose is not None:
+                            pose = tuple(goal_data.pose)
                             # TODO: Change goal polygon to an arrow
                             if first_robot:
                                 goal_polygon = utils.set_polygon_pose(
@@ -297,32 +293,26 @@ class World:
                                 goal_polygon = None
                             goal = Goal(
                                 polygon=goal_polygon,
-                                name=goal_data["name"],
+                                name=goal_data.name,
                                 pose=tuple(pose),
                             )
                             world.goals[goal.uid] = goal
                     except KeyError:
                         print(
                             "No goal named in geometry data... {}".format(
-                                goal_data["name"]
+                                goal_data.name
                             )
                         )
-            if "taboos" in config["things"]["zones"] and isinstance(
-                config["things"]["zones"]["taboos"], list
-            ):
-                for thing_data in config["things"]["zones"]["taboos"]:
+            if config.things.zones.taboos is not None:
+                for taboo_data in config.things.zones.taboos:
                     try:
-                        taboo_polygon = shapely_geoms[thing_data["geometry"]["id"]]
+                        taboo_polygon = shapely_geoms[taboo_data.geometry.id]
                         new_taboo = Taboo(
-                            name=thing_data["name"], polygon=Polygon(taboo_polygon)
+                            name=taboo_data.name, polygon=Polygon(taboo_polygon)
                         )
                         world.taboo_zones[new_taboo.uid] = new_taboo
                     except Exception:
-                        print(
-                            "No taboo zone named... {}".format(
-                                thing_data["geometry"]["id"]
-                            )
-                        )
+                        print("No taboo zone named... {}".format(taboo_data.name))
 
         world.update_dd()
 
