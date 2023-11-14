@@ -37,7 +37,6 @@ class World:
         goals: t.Optional[t.Dict[int, Goal]] = None,
         geometry_scale: float = 1.0,
         init_json_filename: str = "world_name_placeholder.json",
-        init_json_file=None,
         init_geometry_filename: str = "world_name_placeholder.svg",
         init_geometry_file=None,
     ):
@@ -131,12 +130,11 @@ class World:
             cost_possibly_nonfree=config.discretization_data.cost_possibly_nonfree,
         )
 
-        world = cls(
+        world = World(
             geometry_scale=scaling_value,
             init_geometry_filename=svg_filename,
             init_geometry_file=svg_doc,
             init_json_filename=world_file_path,
-            init_json_file=config,
             dd=dd,
         )
 
