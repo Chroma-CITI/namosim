@@ -72,6 +72,26 @@ lint = ["pre-commit"]
 test = ["hypothesis", "pytest", "pytest-benchmark[histogram]", "pytest-cov", "pytest-xdist", "sortedcollections", "sortedcontainers", "sphinx"]
 
 [[package]]
+name = "catkin-pkg"
+version = "1.0.0"
+description = "catkin package library"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "catkin_pkg-1.0.0-py3-none-any.whl", hash = "sha256:10a6589e9edf3cd5bd18e35e094d20b516e6351bcf0da891c28a0ff526fdb7cc"},
+    {file = "catkin_pkg-1.0.0.tar.gz", hash = "sha256:476e9f52917282f464739241b4bcaf5ebbfba9a7a68d9af8f875225feac0e1b5"},
+]
+
+[package.dependencies]
+docutils = "*"
+pyparsing = "*"
+python-dateutil = "*"
+setuptools = "*"
+
+[package.extras]
+test = ["flake8", "flake8-blind-except", "flake8-builtins", "flake8-class-newline", "flake8-comprehensions", "flake8-deprecated", "flake8-docstrings", "flake8-import-order", "flake8-quotes", "pytest"]
+
+[[package]]
 name = "certifi"
 version = "2023.7.22"
 description = "Python package for providing Mozilla's CA Bundle."
@@ -284,6 +304,28 @@ files = [
     {file = "Cython-3.0.5-cp39-cp39-win_amd64.whl", hash = "sha256:ada4852db0e33dbdd1425322db081d22b9725cb9f5eba42885467b4e2c4f2ac0"},
     {file = "Cython-3.0.5-py2.py3-none-any.whl", hash = "sha256:75206369504fc442c10a86ecf57b91592dca744e4592af22a47e9a774d53dd10"},
     {file = "Cython-3.0.5.tar.gz", hash = "sha256:39318348db488a2f24e7c84e08bdc82f2624853c0fea8b475ea0b70b27176492"},
+]
+
+[[package]]
+name = "distro"
+version = "1.8.0"
+description = "Distro - an OS platform information API"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "distro-1.8.0-py3-none-any.whl", hash = "sha256:99522ca3e365cac527b44bde033f64c6945d90eb9f769703caaec52b09bbd3ff"},
+    {file = "distro-1.8.0.tar.gz", hash = "sha256:02e111d1dc6a50abb8eed6bf31c3e48ed8b0830d1ea2a1b78c61765c2513fdd8"},
+]
+
+[[package]]
+name = "docutils"
+version = "0.20.1"
+description = "Docutils -- Python Documentation Utilities"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "docutils-0.20.1-py3-none-any.whl", hash = "sha256:96f387a2c5562db4476f09f13bbab2192e764cac08ebbf3a34a95d9b1e4a59d6"},
+    {file = "docutils-0.20.1.tar.gz", hash = "sha256:f08a4e276c3a1583a86dce3e34aba3fe04d02bba2dd51ed16106244e8a923e3b"},
 ]
 
 [[package]]
@@ -1223,6 +1265,25 @@ s3 = ["boto3 (>=1.2.4)"]
 test = ["boto3 (>=1.2.4)", "hypothesis", "packaging", "pytest (>=2.8.2)", "pytest-cov (>=2.2.0)", "shapely"]
 
 [[package]]
+name = "rospkg"
+version = "1.5.0"
+description = "ROS package library"
+optional = false
+python-versions = "*"
+files = [
+    {file = "rospkg-1.5.0-py3-none-any.whl", hash = "sha256:420f2f23a4751ecbd6ab6ab02f1f7ce692f1f9f897b87210cdb59e2a3a00f0f7"},
+    {file = "rospkg-1.5.0.tar.gz", hash = "sha256:a51a1415b0cd91ba4e858a2c30cddd51269d7e5a5e1c93eb9482b5bc0792918b"},
+]
+
+[package.dependencies]
+catkin-pkg = "*"
+distro = {version = ">=1.4.0", markers = "python_version >= \"3.8\""}
+PyYAML = "*"
+
+[package.extras]
+test = ["mock", "pytest"]
+
+[[package]]
 name = "ruff"
 version = "0.1.5"
 description = "An extremely fast Python linter and code formatter, written in Rust."
@@ -1546,4 +1607,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.13"
-content-hash = "3865f9540d27564fff8cb050a9779d5e7a9542b25b17648ef3c480ecc623d600"
+content-hash = "f20eea79cdd32f9c74ed4913c65cabc42d6297b117af675c3c58123d2f3144d9"

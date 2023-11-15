@@ -1,6 +1,7 @@
 import typing as t
 
 from namosim.behaviors.plan.basic_actions import BasicAction
+from namosim.models import PoseModel
 
 
 class ActionResult:
@@ -12,7 +13,7 @@ class ActionSuccess(ActionResult):
     def __init__(
         self,
         action: BasicAction,
-        robot_pose: t.Tuple[float, float, float],
+        robot_pose: PoseModel,
         is_transfer: bool = False,
         obstacle_uid: t.Optional[int] = None,
     ):

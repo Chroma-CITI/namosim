@@ -10,7 +10,7 @@ from PIL import Image
 from scipy.spatial import Voronoi
 from shapely.geometry import LineString, Point
 
-from namosim.display.ros_publisher import RosPublisher
+from namosim.display.ros2_publisher import RosPublisher
 from namosim.utils import utils
 
 rel_path_to_costmap_logs_dir = "../../../logs/costmaps/"

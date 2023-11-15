@@ -2,7 +2,7 @@ import abc
 import copy
 from decimal import Decimal
 
-from namosim.display.ros_publisher import RosPublisher
+from namosim.display.ros2_publisher import RosPublisher
 from namosim.utils import utils
 
 

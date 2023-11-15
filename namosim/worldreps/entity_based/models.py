@@ -3,6 +3,8 @@ import typing as t
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
+from namosim.models import PoseModel
+
 
 class DiscretizationDataModel(BaseModel):
     cost_circumscribed: int
@@ -59,7 +61,7 @@ class ObstacleEntityModel(BaseModel):
 
 class GoalModel(BaseModel):
     geometry: t.Optional[GeometryModel] = None
-    pose: t.Optional[t.Tuple[float, float, float]] = None
+    pose: t.Optional[PoseModel] = None
     name: str
 
 

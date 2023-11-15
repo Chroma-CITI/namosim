@@ -16,7 +16,8 @@ import namosim.behaviors.plan.action_result as ar
 import namosim.behaviors.plan.basic_actions as ba
 import namosim.behaviors.stilman_2005_behavior as stilman_2005_behavior
 from namosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
-from namosim.display.ros_publisher import RosPublisher
+from namosim.display.ros2_publisher import RosPublisher
+from namosim.models import PoseModel
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
@@ -152,7 +153,7 @@ class Simulator:
         self,
         simulation_file_path: str,
         simulation_log_stub: str = "",
-        goals: t.Optional[t.Dict[str, t.Tuple[float, float, float]]] = None,
+        goals: t.Optional[t.Dict[str, PoseModel]] = None,
         timestring: t.Optional[str] = None,
     ):
         # Load simulation file and initialize logs
@@ -238,7 +239,9 @@ class Simulator:
             self.save = json_save
 
         # Reinitialize rviz display
-        self.rp = RosPublisher(self)
+        self.rp = RosPublisher(
+            node_name=self.simulation_filename, sim_config=self.config
+        )
         self.rp.cleanup_all()
 
         self.simulation_log.append(utils.BasicLog("Display backend initialized.", 0))
@@ -717,9 +720,9 @@ class Simulator:
 
     def initialize_agents_goals(
         self,
-        goals_geometries: t.Dict[str, t.Tuple[float, float, float]],
+        goals_geometries: t.Dict[str, PoseModel],
         max_nb_goals: float = float("inf"),
-    ) -> t.Dict[int, t.Tuple[float, float, float]]:
+    ) -> t.Dict[int, PoseModel]:
         agent_uid_to_goals = {}
         for agent_to_behavior_config in self.config["agents_behaviors"]:
             agent_name = agent_to_behavior_config["agent_name"]
@@ -750,7 +753,7 @@ class Simulator:
         return agent_uid_to_goals
 
     def initialize_agents_behaviors(
-        self, agents_navigation_goals: t.Dict[int, t.Tuple[float, float, float]]
+        self, agents_navigation_goals: t.Dict[int, PoseModel]
     ) -> t.Dict[int, t.Any]:
         agent_uid_to_behavior = dict()
 

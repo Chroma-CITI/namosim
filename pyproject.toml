@@ -43,6 +43,7 @@ poethepoet = "^0.24.3"
 pyright = "^1.1.335"
 typing-extensions = "^4.8.0"
 pydantic = "^2.5.0"
+rospkg = "^1.5.0"
 
 [tool.poe.tasks]
 lint_check = "ruff check ." # lint check

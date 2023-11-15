@@ -2,77 +2,58 @@ import copy
 import math
 import subprocess
 import time
+import typing as t
 
 import mapbox_earcut as earcut
 import numpy as np
+import rclpy
+from builtin_interfaces.msg import Time
 from future.utils import with_metaclass
+from geometry_msgs.msg import (
+    Point,
+    Pose,
+    PoseArray,
+    Quaternion,
+    Transform,
+    TransformStamped,
+    Vector3,
+)
+from grid_map_msgs.msg import GridMap
+from nav_msgs.msg import MapMetaData, OccupancyGrid
+from rclpy.callback_groups import CallbackGroup
+from rclpy.node import Node
+from rclpy.publisher import Publisher
+from rclpy.qos import QoSProfile
+from rclpy.qos_event import PublisherEventCallbacks
+from rclpy.qos_overriding_options import QoSOverridingOptions
 from shapely import affinity
 from shapely.geometry import Polygon
+from std_msgs.msg import (
+    ColorRGBA,
+    Float32MultiArray,
+    Header,
+    MultiArrayDimension,
+    MultiArrayLayout,
+)
+from tf2_ros import StaticTransformBroadcaster
+from visualization_msgs.msg import Marker, MarkerArray
 
+import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
-from namosim.worldreps.entity_based.world import World
-
-if not cfg.deactivate_gui:
-    import namosim.display.colors as colors
-
-    try:
-        # Try to import rospy for ROS1
-        import rospy
-
-        ROS2 = False
-        from std_msgs.msg import Time
-
-    except ImportError:
-        # Else try to import rclpy for ROS2
-
-        import rclpy
-        from rclpy.node import Node
-
-        ROS2 = True
-
-        from typing import Optional, Type, Union
-
-        from builtin_interfaces.msg import Time
-        from rclpy.callback_groups import CallbackGroup
-        from rclpy.publisher import Publisher
-        from rclpy.qos import QoSProfile
-        from rclpy.qos_event import PublisherEventCallbacks
-        from rclpy.qos_overriding_options import QoSOverridingOptions
-
-    from geometry_msgs.msg import (
-        Point,
-        Pose,
-        PoseArray,
-        Quaternion,
-        Transform,
-        TransformStamped,
-        Vector3,
-    )
-    from grid_map_msgs.msg import GridMap
-    from nav_msgs.msg import MapMetaData, OccupancyGrid
-    from std_msgs.msg import (
-        ColorRGBA,
-        Float32MultiArray,
-        Header,
-        MultiArrayDimension,
-        MultiArrayLayout,
-    )
-    from tf2_ros import StaticTransformBroadcaster
-    from visualization_msgs.msg import Marker, MarkerArray
-
-    USE_ROS = True
-else:
-    USE_ROS = False
-
+from namosim import simulator as namosim_simulator
 from namosim.display import tf_replacement
+from namosim.models import PoseModel
 from namosim.utils import utils
 from namosim.utils.singleton import Singleton
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
+from namosim.worldreps.entity_based.world import World
 from namosim.worldreps.occupation_based.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
+
+ROS2 = True
 
 
 class NamespaceCache:
@@ -86,111 +67,58 @@ class NamespaceCache:
         self.current_fixed_robot_pose_marker_current_id = 1
 
 
-try:
-    # Try to use ROS2 compatibility class
-    class MyNode(Node):
-        def __init__(self, node_name):
-            rclpy.init(args=None)
-            super().__init__(node_name=node_name)
+class MyNode(Node):
+    def __init__(self, node_name: str):
+        rclpy.init(args=None)
+        super().__init__(node_name=node_name)
 
-        def get_timestamp(self):
-            return self.get_clock().now().to_msg()
+    def get_timestamp(self) -> Time:
+        return self.get_clock().now().to_msg()
 
-        def log_warn(self, text):
-            self.get_logger().warn(text)
+    def log_warn(self, text: str):
+        self.get_logger().warn(text)
 
-        def get_transform_broadcaster(self):
-            return StaticTransformBroadcaster(self)
+    def get_transform_broadcaster(self):
+        return StaticTransformBroadcaster(self)
 
-        @staticmethod
-        def get_publisher_subscription_count(publisher):
-            return publisher.get_subscription_count()
+    @staticmethod
+    def get_nodes_names():
+        cmd_str = "ros2 node list"
+        result = subprocess.run(cmd_str, shell=True, capture_output=True, text=True)
+        nodes_names = [name for name in result.stdout.split("\n") if name]
+        return nodes_names
 
-        def check_duration(self, last_time, duration_in_secs=1.0):
-            # ruff: noqa: F821
-            return self.get_timestamp() - last_time > Duration.from_sec(
-                duration_in_secs
-            )
-
-        @staticmethod
-        def get_nodes_names():
-            cmd_str = "ros2 node list"
-            result = subprocess.run(cmd_str, shell=True, capture_output=True, text=True)
-            nodes_names = [name for name in result.stdout.split("\n") if name]
-            return nodes_names
-
-        def create_publisher(
-            self,
-            msg_type,
-            topic: str,
-            qos_profile: Union[QoSProfile, int] = cfg.default_queue_size,
-            *,
-            callback_group: Optional[CallbackGroup] = None,
-            event_callbacks: Optional[PublisherEventCallbacks] = None,
-            qos_overriding_options: Optional[QoSOverridingOptions] = None,
-            publisher_class: Type[Publisher] = Publisher,
-        ) -> Publisher:
-            return super(MyNode, self).create_publisher(
-                msg_type=msg_type,
-                topic=topic,
-                qos_profile=qos_profile,
-                callback_group=callback_group,
-                event_callbacks=event_callbacks,
-                qos_overriding_options=qos_overriding_options,
-                publisher_class=publisher_class,
-            )
-
-except NameError:
-    # Else use ROS1 compatibility class
-    class MyNode:
-        def __init__(self, node_name):
-            self.name = node_name
-            rospy.init_node(node_name)
-
-        @staticmethod
-        def create_publisher(topic_type, topic_name, queue_size=cfg.default_queue_size):
-            return rospy.Publisher(topic_name, topic_type, queue_size)
-
-        @staticmethod
-        def get_timestamp():
-            return rospy.Time.now()
-
-        @staticmethod
-        def log_warn(text):
-            rospy.logwarn(text)
-
-        @staticmethod
-        def get_transform_broadcaster():
-            return StaticTransformBroadcaster()
-
-        @staticmethod
-        def get_publisher_subscription_count(publisher):
-            return publisher.get_num_connections()
-
-        @staticmethod
-        def check_duration(last_time, duration_in_secs=1.0):
-            return rospy.Time.now() - last_time > rospy.Duration.from_sec(
-                duration_in_secs
-            )
-
-        @staticmethod
-        def shutdown():
-            rospy.shutdown()
-
-        @staticmethod
-        def get_nodes_names():
-            cmd_str = "rosnode list"
-            result = subprocess.run(cmd_str, shell=True, capture_output=True, text=True)
-            nodes_names = [name for name in result.stdout.split("\n") if name]
-            return nodes_names
-
-        def get_name(self):
-            return self.name
+    def create_publisher(
+        self,
+        msg_type: type,
+        topic: str,
+        qos_profile: t.Union[QoSProfile, int] = cfg.default_queue_size,
+        *,
+        callback_group: t.Optional[CallbackGroup] = None,
+        event_callbacks: t.Optional[PublisherEventCallbacks] = None,
+        qos_overriding_options: t.Optional[QoSOverridingOptions] = None,
+        publisher_class: t.Type[Publisher] = Publisher,
+    ) -> Publisher:
+        return super(MyNode, self).create_publisher(
+            msg_type=msg_type,
+            topic=topic,
+            qos_profile=qos_profile,
+            callback_group=callback_group,
+            event_callbacks=event_callbacks,
+            qos_overriding_options=qos_overriding_options,
+            publisher_class=publisher_class,
+        )
 
 
 # Basic conversion functions
 def polygon_to_triangle_list(
-    polygon, namespace, p_id, frame_id, color, z_index, stamp=Time()
+    polygon: Polygon,
+    namespace: str,
+    p_id: str,
+    frame_id: str,
+    color: str,
+    z_index: int,
+    stamp: Time = Time(),
 ):
     marker = Marker(
         type=Marker.TRIANGLE_LIST,
@@ -232,16 +160,16 @@ def polygon_to_line_strip(
         for i in range(len(polygon.exterior.coords) - 1):
             point = polygon.exterior.coords[i]
             next_point = polygon.exterior.coords[i + 1]
-            marker.points.append(Point(x=point[0], y=point[1], z=z_index))
-            marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))
-        marker.points.append(
+            marker.points.append(Point(x=point[0], y=point[1], z=z_index))  # type: ignore
+            marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))  # type: ignore
+        marker.points.append(  # type: ignore
             Point(
                 x=polygon.exterior.coords[0][0],
                 y=polygon.exterior.coords[0][1],
                 z=z_index,
             )
         )
-        marker.points.append(
+        marker.points.append(  # type: ignore
             Point(
                 x=polygon.exterior.coords[1][0],
                 y=polygon.exterior.coords[1][1],
@@ -313,14 +241,14 @@ def costmap_to_grid_map(
     return grid_map
 
 
-def geom_quat_from_yaw(yaw):
+def geom_quat_from_yaw(yaw: float):
     explicit_quat = tf_replacement.quaternion_from_euler(0.0, 0.0, math.radians(yaw))
     return Quaternion(
         x=explicit_quat[0], y=explicit_quat[1], z=explicit_quat[2], w=explicit_quat[3]
     )
 
 
-def pose_to_ros_pose(pose):
+def pose_to_ros_pose(pose: PoseModel) -> Pose:
     x, y, z = pose[0], pose[1], 0.0
     return Pose(
         position=(Point(x=x, y=y, z=z) if ROS2 else Vector3(x=x, y=y, z=z)),
@@ -328,10 +256,10 @@ def pose_to_ros_pose(pose):
     )
 
 
-def poses_to_poses_array(poses, stamp=Time()):
+def poses_to_poses_array(poses: t.List[PoseModel], stamp: Time = Time()):
     pose_array = PoseArray(header=init_header(stamp), poses=[])
     for pose in poses:
-        pose_array.poses.append(pose_to_ros_pose(pose))
+        pose_array.poses.append(pose_to_ros_pose(pose))  # type: ignore
     return pose_array
 
 
@@ -453,7 +381,7 @@ class RosObserver:
         self._duration = 1.0 / self.rate
 
     def update(self, **kwargs):
-        if USE_ROS and self.is_active:
+        if not cfg.deactivate_gui and self.is_active:
             connections = self.get_subscription_count()
             if connections > 0:
                 elapsed_time = time.time() - self._last_time
@@ -467,7 +395,7 @@ class RosObserver:
         raise NotImplementedError
 
     def reset(self, reset_msg=None):
-        if USE_ROS and reset_msg is not None:
+        if not cfg.deactivate_gui and reset_msg is not None:
             self._publisher.publish(reset_msg)
 
 
@@ -765,20 +693,18 @@ class PlanObserver(RosObserver):
         RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
 
 
-class RosPublisher(with_metaclass(Singleton)):
-    def __init__(self, simulator=None, prefix_topics_with_node_name=False):
-        if simulator is None:
-            raise ValueError(
-                "Cannot create RosPublisher instance with None 'simulator' parameter."
-            )
-
-        if not USE_ROS or cfg.deactivate_gui:
+class RosPublisher(with_metaclass(Singleton)):  # noqa: F821
+    def __init__(
+        self,
+        node_name: str,
+        sim_config: t.Any,
+        prefix_topics_with_node_name: bool = False,
+    ):
+        if cfg.deactivate_gui:
             return
 
-        # HACK: Must necessarily be invoked in the init method of this singleton and not at module-level (rospy bug...)
-        self.ros_node = MyNode(
-            node_name=self.create_valid_node_name(simulator.simulation_filename)
-        )
+        # HACK: Must necessarily be invoked in the init method of this singleton and not at module-level (rclpy bug...)
+        self.ros_node = MyNode(node_name=self.create_valid_node_name(node_name))
         self.prefix = (
             "" if not prefix_topics_with_node_name else self.ros_node.get_name()
         )
@@ -816,8 +742,9 @@ class RosPublisher(with_metaclass(Singleton)):
 
         self.agents_names = [
             a_to_b_config["agent_name"]
-            for a_to_b_config in simulator.config["agents_behaviors"]
+            for a_to_b_config in sim_config["agents_behaviors"]
         ]
+
         # Add robot-specific publishers for each robot namespace
         for agent_name in self.agents_names:
             ns = self.prefix + "/" + agent_name
@@ -919,10 +846,7 @@ class RosPublisher(with_metaclass(Singleton)):
             return False
         elif not cfg.deactivate_gui and not topic:
             return True
-        return (
-            self.ros_node.get_publisher_subscription_count(self.my_publishers[topic])
-            > 0
-        )
+        return self.my_publishers[topic].get_subscription_count() > 0
 
     # region SIM WORLD
     def publish_sim_world(self, world: World, robot_uid=None):

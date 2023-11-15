@@ -24,13 +24,13 @@ class Painter(with_metaclass(Singleton)):
             if self._rp_active:
                 try:
                     # noinspection PyUnresolvedReferences
-                    from ros_publisher import RosPublisher
+                    from ros2_publisher import RosPublisher
 
                     self._rp = RosPublisher(self._top_level_namespaces)
                     self._rp_initialized = True
                 except ImportError as e:
                     logging.warning(
-                        "Could not import ros_publisher module, because importing the {} module failed."
+                        "Could not import ros2_publisher module, because importing the {} module failed."
                         "Visualizations will only be provided through matplotlib and not through RViz."
                         "Problem sources can be:\n"
                         "- ROS is not installed on your system\n"

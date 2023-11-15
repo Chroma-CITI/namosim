@@ -1532,3 +1532,20 @@ class Circle:
 
 def cmp(a, b):
     return (a > b) - (a < b)
+
+
+def get_ros_version():
+    import rospkg
+
+    # Initialize the ROS package database
+    rospack = rospkg.RosPack()
+
+    # Check if the 'rospy' package (ROS1) is available
+    if rospack.get_manifest("rospy"):
+        return "ROS1"
+
+    # Check if the 'rclpy' package (ROS2) is available
+    if rospack.get_manifest("rclpy"):
+        return "ROS2"
+
+    return None

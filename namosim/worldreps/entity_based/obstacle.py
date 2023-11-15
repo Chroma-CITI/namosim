@@ -160,7 +160,7 @@ class Obstacle(Entity):
     #     min_inflated_polygon = self.polygon.buffer(fov_min_r)
     #     max_inflated_polygon = self.polygon.buffer(fov_max_r)
     #
-    #     from namosim.display.ros_publisher import RosPublisher
+    #     from namosim.display.ros2_publisher import RosPublisher
     #     RosPublisher().publish_min_max_inflated(min_inflated_polygon, max_inflated_polygon, ns=ns)
     #
     #     map_min_x, map_min_y = world.discretization_data.grid_pose[0], world.discretization_data.grid_pose[1]

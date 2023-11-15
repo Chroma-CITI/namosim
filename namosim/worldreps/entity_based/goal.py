@@ -1,6 +1,6 @@
-import typing as t
-
 from shapely import Polygon
+
+from namosim.models import PoseModel
 
 
 class Goal:
@@ -10,7 +10,7 @@ class Goal:
         self,
         name: str,
         polygon: Polygon,
-        pose: t.Tuple[float, float, float],
+        pose: PoseModel,
         uid: int = 0,
     ):
         if uid == 0:
