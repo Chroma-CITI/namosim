@@ -1,6 +1,5 @@
 import copy
 
-
 from namosim.worldreps.entity_based.entity import Entity
 
 
@@ -164,21 +163,21 @@ class Obstacle(Entity):
     #     from namosim.display.ros_publisher import RosPublisher
     #     RosPublisher().publish_min_max_inflated(min_inflated_polygon, max_inflated_polygon, ns=ns)
     #
-    #     map_min_x, map_min_y = world.dd.grid_pose[0], world.dd.grid_pose[1]
+    #     map_min_x, map_min_y = world.discretization_data.grid_pose[0], world.discretization_data.grid_pose[1]
     #
     #     min_x, min_y, max_x, max_y = max_inflated_polygon.bounds
     #
     #     width, height = max_x - min_x, max_y - min_y
-    #     d_width, d_height = int(ceil(width / world.dd.res)), int(ceil(height / world.dd.res))
+    #     d_width, d_height = int(ceil(width / world.discretization_data.res)), int(ceil(height / world.discretization_data.res))
     #
-    #     min_cell_x = int(floor((min_x - map_min_x) / world.dd.res))
+    #     min_cell_x = int(floor((min_x - map_min_x) / world.discretization_data.res))
     #     min_cell_x = min_cell_x if min_cell_x >= 0 else 0
-    #     min_cell_y = int(floor((min_y - map_min_y) / world.dd.res))
+    #     min_cell_y = int(floor((min_y - map_min_y) / world.discretization_data.res))
     #     min_cell_y = min_cell_y if min_cell_y >= 0 else 0
     #     max_cell_x = min_cell_x + d_width
-    #     max_cell_x = max_cell_x if max_cell_x <= world.dd.d_width else world.dd.d_width
+    #     max_cell_x = max_cell_x if max_cell_x <= world.discretization_data.d_width else world.discretization_data.d_width
     #     max_cell_y = min_cell_y + d_height
-    #     max_cell_y = max_cell_y if max_cell_y <= world.dd.d_height else world.dd.d_height
+    #     max_cell_y = max_cell_y if max_cell_y <= world.discretization_data.d_height else world.discretization_data.d_height
     #
     #     q_look = dict()
     #
@@ -186,14 +185,14 @@ class Obstacle(Entity):
     #
     #     for i in range(min_cell_x, max_cell_x):
     #         for j in range(min_cell_y, max_cell_y):
-    #             # cell_poly = Polygon([(min_x + float(i) * world.dd.res, min_y + float(j) * world.dd.res),
-    #             #                      (min_x + float(i+1) * world.dd.res, min_y + float(j) * world.dd.res),
-    #             #                      (min_x + float(i+1) * world.dd.res, min_y + float(j+1) * world.dd.res),
-    #             #                      (min_x + float(i) * world.dd.res, min_y + float(j+1) * world.dd.res)])
+    #             # cell_poly = Polygon([(min_x + float(i) * world.discretization_data.res, min_y + float(j) * world.discretization_data.res),
+    #             #                      (min_x + float(i+1) * world.discretization_data.res, min_y + float(j) * world.discretization_data.res),
+    #             #                      (min_x + float(i+1) * world.discretization_data.res, min_y + float(j+1) * world.discretization_data.res),
+    #             #                      (min_x + float(i) * world.discretization_data.res, min_y + float(j+1) * world.discretization_data.res)])
     #             # if cell_poly.intersects(max_inflated_polygon) and not cell_poly.intersects(min_inflated_polygon):
     #
-    #             observation_position = (map_min_x + float(i) * world.dd.res + 0.5 * world.dd.res,
-    #                                     map_min_y + float(j) * world.dd.res + 0.5 * world.dd.res)
+    #             observation_position = (map_min_x + float(i) * world.discretization_data.res + 0.5 * world.discretization_data.res,
+    #                                     map_min_y + float(j) * world.discretization_data.res + 0.5 * world.discretization_data.res)
     #             obs_pos_point = Point(observation_position[0], observation_position[1])
     #
     #             # Check if point is in a reasonable approximation of the configuration space to allow observation
@@ -205,11 +204,11 @@ class Obstacle(Entity):
     #                 # point_not_in_any_inflated_obstacle = True
     #                 # for entity in world.entities.values():
     #                 #     if entity.uid != self.uid and entity.uid != world.robot_uid:
-    #                 #         if obs_pos_point.within(entity.get_inflated_polygon(world.dd)):
+    #                 #         if obs_pos_point.within(entity.get_inflated_polygon(world.discretization_data)):
     #                 #             point_not_in_any_inflated_obstacle = False
     #                 #             break
     #                 # if point_not_in_any_inflated_obstacle:
-    #                 if grid[i][j] < world.dd.cost_possibly_nonfree:
+    #                 if grid[i][j] < world.discretization_data.cost_possibly_nonfree:
     #
     #                     # Check if the obstacle can be seen from this point, and get best angle to view it
     #                     best_angle = self._best_q_angle(observation_position, fov_min_r, fov_max_r, fov_angle)

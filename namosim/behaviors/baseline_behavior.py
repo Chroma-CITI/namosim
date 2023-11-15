@@ -26,7 +26,7 @@ class BaselineBehavior(object):
         self._behavior_config = behavior_config
         self.abs_path_to_logs_dir = abs_path_to_logs_dir
 
-        decimal_res = Decimal(initial_world.dd.res).as_tuple()
+        decimal_res = Decimal(initial_world.discretization_data.res).as_tuple()
         precision_exponent = -len(decimal_res.digits) - decimal_res.exponent + 2
 
         self.rounder = 1.0 * (10**precision_exponent)

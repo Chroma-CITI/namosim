@@ -94,7 +94,7 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
     }
     occ_grid = BinaryInflatedOccupancyGrid(
         polygons,
-        world.dd.res,
+        world.discretization_data.res,
         inflation_radius,
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
     )
@@ -104,7 +104,7 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
     connected_components = ccs_data.ccs
     connected_components_grid = ccs_data.grid
     RosPublisher().publish_connected_components_grid(
-        connected_components_grid, world.dd.res, ns="simulation"
+        connected_components_grid, world.discretization_data.res, ns="simulation"
     )
 
     # cc is abbreviation of connected component
@@ -135,7 +135,9 @@ def get_social_costs_stats(
         if uid not in entities_to_compute_social_cost_for
     }
     occ_grid = BinaryOccupancyGrid(
-        polygons, world.dd.res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+        polygons,
+        world.discretization_data.res,
+        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
     )
     abs_social_costmap = compute_social_costmap(
         occ_grid.grid, occ_grid.res, log_costmaps=False, ns="simulation"

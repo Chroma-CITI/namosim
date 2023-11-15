@@ -630,13 +630,15 @@ class CostmapObserver(RosObserver):
             )
             grid = BinaryInflatedOccupancyGrid(
                 polygons,
-                world.dd.res,
+                world.discretization_data.res,
                 robot_max_inflation_radius,
                 neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
             )
         else:
             grid = BinaryOccupancyGrid(
-                polygons, world.dd.res, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD
+                polygons,
+                world.discretization_data.res,
+                neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
             )
 
         costmap = OccupancyGrid(header=init_header(self.node.get_timestamp()))
