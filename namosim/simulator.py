@@ -17,6 +17,7 @@ import namosim.behaviors.stilman_2005_behavior as stilman_2005_behavior
 from namosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 from namosim.display.ros_publisher import RosPublisher
 from namosim.utils import collision, conversion, stats_utils, utils
+from namosim.worldreps.entity_based.goal import Goal
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
 from namosim.worldreps.entity_based.world import World
@@ -151,7 +152,7 @@ class Simulator:
         self,
         simulation_file_path: str,
         simulation_log_stub: str = "",
-        goals=None,
+        goals: t.Optional[t.Dict[str, t.List[Goal]]] = None,
         timestring: t.Optional[str] = None,
     ):
         # Load simulation file and initialize logs
@@ -301,7 +302,7 @@ class Simulator:
 
         self.rp.cleanup_sim_world()
 
-        self.history = []
+        self.history: t.List[SimulationStepResult] = []
 
         # Time stats
         self.agent_uid_and_goal_to_world_snapshot = {
@@ -312,7 +313,7 @@ class Simulator:
 
         self.simulation_log.append(utils.BasicLog("Simulation successfully loaded.", 0))
 
-    def run(self):
+    def run(self) -> t.List[SimulationStepResult]:
         run_active = True
 
         run_exceptions_traces = []
@@ -334,7 +335,9 @@ class Simulator:
                 "Sim steps: {}".format(step_count),
                 pose=(
                     0.0,
-                    self.ref_world.dd.grid_pose[1] + self.ref_world.dd.height + 0.25,
+                    self.ref_world.discretization_data.grid_pose[1]
+                    + self.ref_world.discretization_data.height
+                    + 0.25,
                     0.0,
                 ),
                 font_size=0.5,
@@ -350,8 +353,8 @@ class Simulator:
                         "Sim steps: {}".format(step_count),
                         pose=(
                             0.0,
-                            self.ref_world.dd.grid_pose[1]
-                            + self.ref_world.dd.height
+                            self.ref_world.discretization_data.grid_pose[1]
+                            + self.ref_world.discretization_data.height
                             + 0.25,
                             0.0,
                         ),
@@ -523,7 +526,7 @@ class Simulator:
         return World(
             entities=entities,
             taboo_zones=copy.deepcopy(self.ref_world.taboo_zones),
-            dd=copy.deepcopy(self.ref_world.dd),
+            discretization_data=copy.deepcopy(self.ref_world.discretization_data),
         )
 
     def create_simulation_report(self):
@@ -858,8 +861,8 @@ class Simulator:
                 svg_data,
                 new_group,
                 self.ref_world.scaling_value,
-                self.ref_world.dd.width,
-                self.ref_world.dd.height,
+                self.ref_world.discretization_data.width,
+                self.ref_world.discretization_data.height,
             )
         del trace_polygons[: len(trace_polygons)]
 

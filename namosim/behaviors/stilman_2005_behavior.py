@@ -1841,7 +1841,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.absolute_translations = True
         self.robot_base_drive_type = "holonomic"
         # self.robot_base_drive_type = "differential"
-        self.trans_mult = 1.0 / self._world.dd.res * 10.0
+        self.trans_mult = 1.0 / self._world.discretization_data.res * 10.0
         self.rot_mult = 1.0
 
         # - S-NAMO parameters
@@ -1914,7 +1914,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.check_horizon = 10
 
         self.angular_tolerance = 0.1
-        self.position_tolerance = self._world.dd.res / 2.0
+        self.position_tolerance = self._world.discretization_data.res / 2.0
 
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
@@ -1946,13 +1946,13 @@ class Stilman2005Behavior(BaselineBehavior):
         )
         self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
             static_obs_polygons,
-            self._world.dd.res,
+            self._world.discretization_data.res,
             self.robot_max_inflation_radius,
             neighborhood=self.neighborhood,
         )
         self.static_obs_grid = BinaryOccupancyGrid(
             static_obs_polygons,
-            self._world.dd.res,
+            self._world.discretization_data.res,
             neighborhood=self.neighborhood,
             params=self.static_obs_inf_grid.params,
         )
@@ -1961,7 +1961,7 @@ class Stilman2005Behavior(BaselineBehavior):
         }
         self.inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
             all_entities_polygons,
-            self._world.dd.res,
+            self._world.discretization_data.res,
             self.robot_max_inflation_radius,
             neighborhood=self.neighborhood,
             params=self.static_obs_inf_grid.params,
@@ -1987,13 +1987,15 @@ class Stilman2005Behavior(BaselineBehavior):
         if self.use_social_cost and self._social_costmap is None:
             self._social_costmap = stocg.compute_social_costmap(
                 self.static_obs_grid.grid,
-                self._world.dd.res,
+                self._world.discretization_data.res,
                 log_costmaps=self.activate_grids_logging,
                 abs_path_to_logs_dir=self.abs_path_to_logs_dir,
                 ns=self._robot_name,
             )
             self._rp.publish_social_grid_map(
-                self._social_costmap, self._world.dd.res, ns=self._robot_name
+                self._social_costmap,
+                self._world.discretization_data.res,
+                ns=self._robot_name,
             )
             pass
 
@@ -2664,7 +2666,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
         connected_components_grid = ccs_data.grid
         self._rp.publish_connected_components_grid(
-            connected_components_grid, w_t.dd.res, ns=robot.name
+            connected_components_grid, w_t.discretization_data.res, ns=robot.name
         )
 
         c_0 = ccs_data.grid[robot_cell[0]][robot_cell[1]]
@@ -3193,7 +3195,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
 
-        res = w_t_plus_2.dd.res
+        res = w_t_plus_2.discretization_data.res
 
         other_entities = [
             entity
@@ -3404,7 +3406,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
 
-        res = w_t_plus_2.dd.res
+        res = w_t_plus_2.discretization_data.res
 
         other_entities = [
             entity

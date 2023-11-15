@@ -22,8 +22,8 @@
 #     #     connected_components = connected_components_grid.get_components()
 #     #     goal_cell = utils.real_to_grid(self.behavior._navigation_goals[0][0],
 #     #                                    self.behavior._navigation_goals[0][1],
-#     #                                    ref_world.dd.res,
-#     #                                    ref_world.dd.grid_pose)
+#     #                                    ref_world.discretization_data.res,
+#     #                                    ref_world.discretization_data.grid_pose)
 #     #     goal_cell_component_id = connected_components_grid_costmap[goal_cell[0]][goal_cell[1]]
 #     #     goal_cell_component_cells = copy.deepcopy(connected_components[goal_cell_component_id])
 #     #     r_f = self.behavior._navigation_goals.pop(0)

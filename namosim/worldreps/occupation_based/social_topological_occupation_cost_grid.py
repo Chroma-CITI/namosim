@@ -471,8 +471,8 @@ class SocialTopologicalOccupationCostGrid:
     # def from_world(cls, world, entities_to_ignore, skeleton_function=skeleteton_social_cost_function,
     #                decay_function=exp_decay_function, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
     #     occ_grid = BinaryOccupancyGrid(
-    #         world.dd.d_width, world.dd.d_height, world.dd.res, world.dd.grid_pose,
-    #         world.dd.inflation_radius, world.entities, entities_to_ignore=entities_to_ignore)
+    #         world.discretization_data.d_width, world.discretization_data.d_height, world.discretization_data.res, world.discretization_data.grid_pose,
+    #         world.discretization_data.inflation_radius, world.entities, entities_to_ignore=entities_to_ignore)
     #
 
     def _update_grid(self):

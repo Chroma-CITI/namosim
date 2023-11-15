@@ -59,7 +59,7 @@ def add_shapely_geometry_to_svg(
 
 def svg_pathd_to_shapely_geometry(
     svg_path: str, scaling_value: float = 1.0, precision: float = 1e9
-):
+) -> t.Union[Polygon, LineString, Point]:
     parse_result = parse_path(svg_path)
     geom_pts: npt.NDArray[np.float_] = (
         t.cast(npt.NDArray[np.float_], parse_result.vertices) * scaling_value

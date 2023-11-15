@@ -38,7 +38,7 @@ pyyaml = "^6.0.1"   # Used to import world and simulation config files in their 
 rasterio = "^1.3.9" # Used for testing the library's rasterization capabilities
 
 # DEV LIBRARIES (for build/test purposes only)
-ruff = "^0.1.5"        # Used for code linting/formatting
+ruff = "^0.1.5"              # Used for code linting/formatting
 poethepoet = "^0.24.3"
 pyright = "^1.1.335"
 typing-extensions = "^4.8.0"
@@ -117,3 +117,5 @@ line-ending = "auto"
 [tool.pyright]
 reportMissingTypeStubs = false
 reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportUnknownArgumentType = false
