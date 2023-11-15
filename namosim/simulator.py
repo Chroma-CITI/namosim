@@ -14,7 +14,14 @@ from shapely.geometry import Polygon
 
 import namosim.behaviors.plan.action_result as ar
 import namosim.behaviors.plan.basic_actions as ba
-import namosim.behaviors.stilman_2005_behavior as stilman_2005_behavior
+from namosim.behaviors.plan.conflict import (
+    ConcurrentGrabConflict,
+    RobotObstacleConflict,
+    RobotRobotConflict,
+    SimultaneousSpaceAccess,
+    StealingMovableConflict,
+    StolenMovableConflict,
+)
 from namosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.models import PoseModel
@@ -667,29 +674,17 @@ class Simulator:
                     if step_index in current_dynamic_plan.conflicts_history:
                         conflict = current_dynamic_plan.conflicts_history[step_index]
                         agent_stats.nb_conflicts += 1
-                        if isinstance(
-                            conflict, stilman_2005_behavior.RobotRobotConflict
-                        ):
+                        if isinstance(conflict, RobotRobotConflict):
                             agent_stats.nb_robot_robot_conflicts += 1
-                        elif isinstance(
-                            conflict, stilman_2005_behavior.RobotObstacleConflict
-                        ):
+                        elif isinstance(conflict, RobotObstacleConflict):
                             agent_stats.nb_robot_obstacle_conflicts += 1
-                        elif isinstance(
-                            conflict, stilman_2005_behavior.StolenMovableConflict
-                        ):
+                        elif isinstance(conflict, StolenMovableConflict):
                             agent_stats.nb_stolen_movable_conflicts += 1
-                        elif isinstance(
-                            conflict, stilman_2005_behavior.StealingMovableConflict
-                        ):
+                        elif isinstance(conflict, StealingMovableConflict):
                             agent_stats.nb_stealing_movable_conflicts += 1
-                        elif isinstance(
-                            conflict, stilman_2005_behavior.ConcurrentGrabConflict
-                        ):
+                        elif isinstance(conflict, ConcurrentGrabConflict):
                             agent_stats.nb_concurrent_grab_conflicts += 1
-                        elif isinstance(
-                            conflict, stilman_2005_behavior.SimultaneousSpaceAccess
-                        ):
+                        elif isinstance(conflict, SimultaneousSpaceAccess):
                             agent_stats.nb_simultaneous_space_access_conflicts += 1
 
                     if step_index in current_dynamic_plan.postponements_history:

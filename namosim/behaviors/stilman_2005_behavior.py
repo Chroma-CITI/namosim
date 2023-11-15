@@ -15,9 +15,10 @@ import namosim.worldreps.occupation_based.social_topological_occupation_cost_gri
 from namosim.behaviors.algorithms import graph_search
 from namosim.behaviors.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.behaviors.plan.conflict import (
-    Conflict,
+    ConcurrentGrabConflict,
     RobotObstacleConflict,
     RobotRobotConflict,
+    StolenMovableConflict,
 )
 from namosim.behaviors.plan.path import EvasionTransitPath, TransferPath, TransitPath
 from namosim.behaviors.plan.plan import Plan
