@@ -54,7 +54,8 @@ type_check = """
 pyright \
   namosim/simulator.py \
   namosim/worldreps/entity_based/world.py \
-  namosim/display/ros2_publisher.py
+  namosim/display/ros2_publisher.py \
+  namosim/utils/utils.py
 """
 
 [build-system]
