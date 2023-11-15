@@ -10,6 +10,7 @@ import typing as t
 from contextlib import contextmanager
 
 import jsonpickle
+from shapely.geometry import Polygon
 
 import namosim.behaviors.plan.action_result as ar
 import namosim.behaviors.plan.basic_actions as ba
@@ -17,7 +18,6 @@ import namosim.behaviors.stilman_2005_behavior as stilman_2005_behavior
 from namosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 from namosim.display.ros_publisher import RosPublisher
 from namosim.utils import collision, conversion, stats_utils, utils
-from namosim.worldreps.entity_based.goal import Goal
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
 from namosim.worldreps.entity_based.world import World
@@ -29,7 +29,7 @@ class SimulationStepResult:
         sense_durations: t.Dict[int, float],
         think_durations: t.Dict[int, float],
         act_duration: float,
-        action_results: t.Dict[int, ar.BaseAction],
+        action_results: t.Dict[int, ar.ActionResult],
         step_index: int,
     ):
         self.sense_durations = sense_durations
@@ -113,11 +113,11 @@ class StepStats:
     def __init__(
         self,
         world_stats: t.Optional[WorldStepStats] = None,
-        agents_stats: t.Optional[AgentStepStats] = None,
+        agents_stats: t.Optional[t.Dict[str, AgentStepStats]] = None,
         act_time: float = 0.0,
     ):
         self.world_stats = world_stats or WorldStepStats()
-        self.agents_stats = agents_stats or AgentStepStats()
+        self.agents_stats = agents_stats or {}
         self.act_time = act_time
 
 
@@ -152,7 +152,7 @@ class Simulator:
         self,
         simulation_file_path: str,
         simulation_log_stub: str = "",
-        goals: t.Optional[t.Dict[str, t.List[Goal]]] = None,
+        goals: t.Optional[t.Dict[str, t.Tuple[float, float, float]]] = None,
         timestring: t.Optional[str] = None,
     ):
         # Load simulation file and initialize logs
@@ -196,11 +196,6 @@ class Simulator:
         self.random_seed = self.config.get("random_seed", 10)
         random.seed(self.random_seed)
         self.provide_walls = self.config["provide_walls"]
-        self.reset_after_first_goal = (
-            False
-            if "reset_after_first_goal" not in self.config
-            else self.config["reset_after_first_goal"]
-        )
         self.human_inflation_radius = 0.55 / 2.0  # [m]
 
         self.simulation_log.append(
@@ -287,15 +282,7 @@ class Simulator:
                 for agent_uid, goals in self.agent_uid_to_goals.items()
             }
 
-        if self.reset_after_first_goal:
-            # Only give first goal if reset after first goal
-            agent_uid_to_goals = {
-                agent_uid: [goals.pop(0)]
-                for agent_uid, goals in self.agent_uid_to_goals.items()
-                if goals
-            }
-        else:
-            agent_uid_to_goals = self.agent_uid_to_goals
+        agent_uid_to_goals = self.agent_uid_to_goals
         self.agent_uid_to_behavior = self.initialize_agents_behaviors(
             agent_uid_to_goals
         )
@@ -322,11 +309,11 @@ class Simulator:
         step_count = 0
 
         while run_active:
-            active_agents = set(self.agent_uid_to_behavior.keys())
+            active_agents: set[int] = set(self.agent_uid_to_behavior.keys())
 
             self.rp.publish_sim_world(self.ref_world)
 
-            trace_polygons = []
+            trace_polygons: t.List[Polygon] = []
 
             step_count = 0
 
@@ -406,29 +393,7 @@ class Simulator:
                         exception = e
                         break
 
-            # If the simulation is set to be reset after all agents have reached their first goal,
-            # and there are goals left to reach, reset the simulation world and give the agents their next goal
-            goals_left = any(
-                [bool(goals) for goals in self.agent_uid_to_goals.values()]
-            )
-            if self.reset_after_first_goal and goals_left:
-                self.ref_world = copy.deepcopy(self.init_ref_world)
-                agent_uid_to_goals = {
-                    agent_uid: [goals.pop(0)]
-                    for agent_uid, goals in self.agent_uid_to_goals.items()
-                    if goals
-                }
-                self.agent_uid_to_behavior = self.initialize_agents_behaviors(
-                    agent_uid_to_goals
-                )
-                self.rp.cleanup_sim_world()
-
-                self.simulation_log.append(
-                    utils.BasicLog("Reset world and executing next goal.", step_count)
-                )
-            else:
-                # Otherwise, simply leave and finish up the simulation
-                run_active = False
+            run_active = False
 
         # Save simulation results
         # - Save exception traces
@@ -750,7 +715,11 @@ class Simulator:
 
         return report
 
-    def initialize_agents_goals(self, goals_geometries, max_nb_goals=float("inf")):
+    def initialize_agents_goals(
+        self,
+        goals_geometries: t.Dict[str, t.Tuple[float, float, float]],
+        max_nb_goals: float = float("inf"),
+    ) -> t.Dict[int, t.Tuple[float, float, float]]:
         agent_uid_to_goals = {}
         for agent_to_behavior_config in self.config["agents_behaviors"]:
             agent_name = agent_to_behavior_config["agent_name"]
@@ -780,7 +749,9 @@ class Simulator:
 
         return agent_uid_to_goals
 
-    def initialize_agents_behaviors(self, agents_navigation_goals):
+    def initialize_agents_behaviors(
+        self, agents_navigation_goals: t.Dict[int, t.Tuple[float, float, float]]
+    ) -> t.Dict[int, t.Any]:
         agent_uid_to_behavior = dict()
 
         for agent_to_behavior_config in self.config["agents_behaviors"]:
@@ -817,11 +788,17 @@ class Simulator:
                     )
         return agent_uid_to_behavior
 
-    def save_world_snapshot(self, agent_uid, action, trace_polygons, step_count):
+    def save_world_snapshot(
+        self,
+        agent_uid: int,
+        action: ba.BasicAction,
+        trace_polygons: t.List[Polygon],
+        step_count: int,
+    ):
         world_snapshot = copy.deepcopy(self.ref_world)
         self.agent_uid_and_goal_to_world_snapshot[agent_uid].append(
             {
-                "goal": action.goal,
+                "goal": action.goal,  # type: ignore
                 "goal_status": str(action),
                 "world_snapshot": copy.deepcopy(self.ref_world),
             }
@@ -874,7 +851,12 @@ class Simulator:
             svg_filepath=svg_filepath,
         )
 
-    def sense(self, active_agents, step_count, sense_durations):
+    def sense(
+        self,
+        active_agents: set[int],
+        step_count: int,
+        sense_durations: t.Dict[int, float],
+    ):
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
                 sense_start = time.time()
@@ -886,8 +868,14 @@ class Simulator:
                 behavior.sense(self.ref_world, last_action_result, step_count)
                 sense_durations[agent_uid] = time.time() - sense_start
 
-    def think(self, active_agents, trace_polygons, step_count, think_durations):
-        agent_uid_to_next_action = {}
+    def think(
+        self,
+        active_agents: set[int],
+        trace_polygons: t.List[Polygon],
+        step_count: int,
+        think_durations: t.Dict[int, float],
+    ):
+        agent_uid_to_next_action: t.Dict[int, ba.BasicAction] = {}
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
                 think_start = time.time()
@@ -938,7 +926,15 @@ class Simulator:
                 agent_uid_to_next_action[agent_uid] = agent_next_action
         return agent_uid_to_next_action
 
-    def act(self, agent_uid_to_next_action, step_count, ignore_collisions=True):
+    def act(
+        self,
+        agent_uid_to_next_action: t.Dict[int, ba.BasicAction],
+        step_count: int,
+        ignore_collisions: bool = True,
+    ) -> t.Dict[int, ar.ActionResult]:
+        """
+        Processes agent actions and produce the actions results
+        """
         # Only Grab and Release actions require further checks, and Wait actions are necessarily valid
         to_check = {
             uid: a
@@ -946,7 +942,7 @@ class Simulator:
             if isinstance(a, (ba.Translation, ba.Rotation))
             and not isinstance(a, (ba.Grab, ba.Release))
         }
-        action_results = {
+        action_results: t.Dict[int, ar.ActionResult] = {
             uid: ar.ActionSuccess(a, self.ref_world.entities[uid].pose)
             for uid, a in agent_uid_to_next_action.items()
             if isinstance(a, (ba.Wait, ba.GoalSuccess, ba.GoalFailed, ba.GoalsFinished))
