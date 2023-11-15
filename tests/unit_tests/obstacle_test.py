@@ -1,7 +1,10 @@
 import unittest
-from namosim.worldreps.entity_based.obstacle import Obstacle
-from shapely.geometry import Polygon
+
 import matplotlib.pyplot as plt
+from shapely.geometry import Polygon
+
+from namosim.worldreps.entity_based.entity import Style
+from namosim.worldreps.entity_based.obstacle import Obstacle
 
 
 class ObstacleTest(unittest.TestCase):
@@ -11,7 +14,8 @@ class ObstacleTest(unittest.TestCase):
             polygon=Polygon([(-1, -1), (-1, 1), (1, 1), (1, -1)]),
             pose=(0.0, 0.0, 0.0),
             full_geometry_acquired=True,
-            type_in="box",
+            type_="box",
+            style=Style(),
         )
 
     def test_polygon_by_visualization(self):

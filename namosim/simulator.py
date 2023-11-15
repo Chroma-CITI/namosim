@@ -492,7 +492,7 @@ class Simulator:
         entities = dict()
         for entity_uid, entity in self.ref_world.entities.items():
             if isinstance(entity, Robot) or (
-                (isinstance(entity, Obstacle) and entity.type == "wall")
+                (isinstance(entity, Obstacle) and entity.type_ == "wall")
                 if self.provide_walls
                 else True
             ):
@@ -513,7 +513,7 @@ class Simulator:
         all_movables_uids = {
             entity_uid
             for entity_uid, entity in self.init_ref_world.entities.items()
-            if isinstance(entity, Obstacle) and entity.type in all_movable_types
+            if isinstance(entity, Obstacle) and entity.type_ in all_movable_types
         }
 
         (

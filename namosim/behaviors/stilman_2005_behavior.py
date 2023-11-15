@@ -465,7 +465,7 @@ class Stilman2005Behavior(BaselineBehavior):
         # Initialize movability status of obstacles
         for entity in self._world.entities.values():
             if entity.movability != "static":
-                entity.movability = self._robot.deduce_movability(entity.type)
+                entity.movability = self._robot.deduce_movability(entity.type_)
 
         self.replan_count = 20
         self.goal_to_plans = OrderedDict()

@@ -24,8 +24,9 @@ class SFOVSensor(CircularSectorSensor):
                     polygon=entity.polygon,
                     pose=entity.pose,
                     full_geometry_acquired=True,
-                    type_in=entity.type,
+                    type_=entity.type_,
                     uid=entity_uid,
+                    style=entity.style,
                 )
         return entities_in_fov
 
@@ -37,7 +38,7 @@ class SFOVSensor(CircularSectorSensor):
                 # If entity is already registered, update it
                 try:
                     target_world.entities[entity_uid].name = reference_entity.name
-                    target_world.entities[entity_uid].type = reference_entity.type
+                    target_world.entities[entity_uid].type_ = reference_entity.type_
 
                 # If entity is not registered yet, create it
                 except KeyError as e:

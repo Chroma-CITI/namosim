@@ -46,7 +46,7 @@ class GFOVSensor(CircularSectorSensor):
                             entity.pose[2],
                         ],
                         full_geometry_acquired=full_geometry_acquired,
-                        type_in="unknown",
+                        type_="unknown",
                         uid=entity_uid,
                     )
         return entities_in_fov

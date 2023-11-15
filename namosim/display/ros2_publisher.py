@@ -273,7 +273,7 @@ def poses_to_poses_array(poses: t.List[PoseModel], stamp: Time = Time()):
 
 
 def real_path_to_linestrip(
-    real_path: t.List[PoseModel],
+    real_path: t.List[t.Tuple[float, float]],
     namespace: str,
     p_id: int,
     frame_id: str,
@@ -431,7 +431,7 @@ class WorldObserver(RosObserver):
         current_world_draw_data = {
             entity.uid: {
                 "polygon": entity.polygon,
-                "type": "robot" if isinstance(entity, Robot) else entity.type,
+                "type": "robot" if isinstance(entity, Robot) else entity.type_,
                 "pose": entity.pose,
             }
             for entity in world.entities.values()

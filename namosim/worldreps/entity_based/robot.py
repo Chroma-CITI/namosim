@@ -15,20 +15,21 @@ class Robot(Entity):
         push_only_list,
         force_pushes_only,
         movable_whitelist,
+        style: Style,
         movability="unknown",
         uid=0,
-        style: Style = None,
     ):
         polygon = polygon
         Entity.__init__(
             self,
-            name,
-            polygon,
-            pose,
-            full_geometry_acquired,
+            name=name,
+            polygon=polygon,
+            pose=pose,
+            full_geometry_acquired=full_geometry_acquired,
             movability=movability,
             uid=uid,
             style=style,
+            type_="robot",
         )
 
         self.sensors = sensors
@@ -38,7 +39,6 @@ class Robot(Entity):
         self.push_only_list = push_only_list
         self.force_pushes_only = force_pushes_only
         self.movable_whitelist = movable_whitelist
-        self.type = "robot"
         self.min_inflation_radius = self.compute_inflation_radius()
 
     def update_world_from_sensors(self, reference_world, target_world):
@@ -84,6 +84,7 @@ class Robot(Entity):
             force_pushes_only=self.force_pushes_only,
             movable_whitelist=copy.copy(self.movable_whitelist),
             uid=self.uid,
+            style=self.style,
         )
 
     def to_json(self):

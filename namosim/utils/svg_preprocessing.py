@@ -24,8 +24,9 @@ def concave_to_convex_obstacles(world_json_path):
                     polygon=polygon,
                     pose=(center[0], center[1], 0.0),
                     full_geometry_acquired=entity.full_geometry_acquired,
-                    type_in=entity.type,
+                    type_=entity.type_,
                     movability=entity.movability,
+                    style=entity.style,
                 )
                 world.add_entity(new_entity)
             world.remove_entity(uid)
