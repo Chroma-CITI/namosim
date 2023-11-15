@@ -1,13 +1,13 @@
 import copy
 
 from namosim.utils import utils
-from namosim.worldreps.entity_based.entity import Entity
+from namosim.worldreps.entity_based.entity import Entity, Style
 
 
 class Robot(Entity):
     def __init__(
         self,
-        name,
+        name: str,
         full_geometry_acquired,
         polygon,
         pose,
@@ -17,7 +17,7 @@ class Robot(Entity):
         movable_whitelist,
         movability="unknown",
         uid=0,
-        style=None,
+        style: Style = None,
     ):
         polygon = polygon
         Entity.__init__(

@@ -6,6 +6,7 @@ import typing as t
 
 import mapbox_earcut as earcut
 import numpy as np
+import numpy.typing as npt
 import rclpy
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import (
@@ -40,6 +41,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
+from namosim.behaviors.plan.plan import Plan
 from namosim.display import tf_replacement
 from namosim.models import PoseModel
 from namosim.utils import utils
@@ -142,7 +144,14 @@ def polygon_to_triangle_list(
 
 
 def polygon_to_line_strip(
-    polygon, namespace, p_id, frame_id, color, z_index, line_width, stamp=Time()
+    polygon: Polygon,
+    namespace: str,
+    p_id: int,
+    frame_id: str,
+    color: ColorRGBA,
+    z_index: float,
+    line_width: float,
+    stamp: Time = Time(),
 ):
     marker = Marker(
         type=Marker.LINE_STRIP,
@@ -153,39 +162,38 @@ def polygon_to_line_strip(
         scale=Vector3(x=line_width, y=0.0, z=0.0),
         points=[],
     )
-    if polygon is not None:
-        for i in range(len(polygon.exterior.coords) - 1):
-            point = polygon.exterior.coords[i]
-            next_point = polygon.exterior.coords[i + 1]
-            marker.points.append(Point(x=point[0], y=point[1], z=z_index))  # type: ignore
-            marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))  # type: ignore
-        marker.points.append(  # type: ignore
-            Point(
-                x=polygon.exterior.coords[0][0],
-                y=polygon.exterior.coords[0][1],
-                z=z_index,
-            )
+    for i in range(len(polygon.exterior.coords) - 1):
+        point = polygon.exterior.coords[i]
+        next_point = polygon.exterior.coords[i + 1]
+        marker.points.append(Point(x=point[0], y=point[1], z=z_index))  # type: ignore
+        marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))  # type: ignore
+    marker.points.append(  # type: ignore
+        Point(
+            x=polygon.exterior.coords[0][0],
+            y=polygon.exterior.coords[0][1],
+            z=z_index,
         )
-        marker.points.append(  # type: ignore
-            Point(
-                x=polygon.exterior.coords[1][0],
-                y=polygon.exterior.coords[1][1],
-                z=z_index,
-            )
+    )
+    marker.points.append(  # type: ignore
+        Point(
+            x=polygon.exterior.coords[1][0],
+            y=polygon.exterior.coords[1][1],
+            z=z_index,
         )
+    )
     return marker
 
 
 def string_to_text(
-    string,
-    coordinates,
-    namespace,
-    p_id,
-    frame_id,
-    color,
-    z_index,
-    text_height,
-    stamp=Time(),
+    string: str,
+    coordinates: t.Tuple[float | int, float | int],
+    namespace: str,
+    p_id: int,
+    frame_id: str,
+    color: ColorRGBA,
+    z_index: float,
+    text_height: float,
+    stamp: Time = Time(),
 ):
     x, y, z = coordinates[0], coordinates[1], z_index
     marker = Marker(
@@ -205,7 +213,10 @@ def string_to_text(
 
 
 def costmap_to_grid_map(
-    costmap, res, frame_id=cfg.social_gridmap_frame_id, stamp=Time()
+    costmap: npt.NDArray[t.Any],
+    resolution: float,
+    frame_id: str = cfg.social_gridmap_frame_id,
+    stamp: Time = Time(),
 ):
     grid_map = GridMap()
     if hasattr(grid_map.info, "header"):
@@ -213,9 +224,9 @@ def costmap_to_grid_map(
     elif hasattr(grid_map, "header"):
         grid_map.header = Header(stamp=stamp, frame_id=frame_id)
 
-    grid_map.info.resolution = res
-    grid_map.info.length_x = costmap.shape[0] * res
-    grid_map.info.length_y = costmap.shape[1] * res
+    grid_map.info.resolution = resolution
+    grid_map.info.length_x = costmap.shape[0] * resolution
+    grid_map.info.length_y = costmap.shape[1] * resolution
     # grid_map.info.pose.position.z = 0. # The lib does not take this parameter into account...
     grid_map.layers = ["elevation"]
     inflated_costmap_data = Float32MultiArray(
@@ -262,15 +273,15 @@ def poses_to_poses_array(poses: t.List[PoseModel], stamp: Time = Time()):
 
 
 def real_path_to_linestrip(
-    real_path,
-    namespace,
-    p_id,
-    frame_id,
-    color,
-    line_width,
-    z_index,
-    link_point=None,
-    stamp=Time(),
+    real_path: t.List[PoseModel],
+    namespace: str,
+    p_id: int,
+    frame_id: str,
+    color: ColorRGBA,
+    line_width: float,
+    z_index: float,
+    link_point: t.Optional[t.Tuple[float, float]] = None,
+    stamp: Time = Time(),
 ):
     marker = Marker(
         type=Marker.LINE_STRIP,
@@ -292,7 +303,7 @@ def real_path_to_linestrip(
     return marker
 
 
-def plan_to_markerarray(plan, robot, frame_id, stamp=Time()):
+def plan_to_markerarray(plan: Plan, robot: Robot, frame_id: str, stamp: Time = Time()):
     markerarray = MarkerArray()
     markers = []
     p_id = 0
@@ -354,7 +365,14 @@ def init_header(stamp=Time()):
 
 
 class RosObserver:
-    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=None):
+    def __init__(
+        self,
+        msg_type: type,
+        node: MyNode,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+    ):
         self.node = node
         self.topic = topic
         self._publisher = node.create_publisher(msg_type, topic)
@@ -374,7 +392,7 @@ class RosObserver:
         self._rate = r
         self._duration = 1.0 / self.rate
 
-    def update(self, **kwargs):
+    def update(self, **kwargs: t.Any):
         if not cfg.deactivate_gui and self.is_active:
             connections = self.get_subscription_count()
             if connections > 0:
@@ -385,7 +403,7 @@ class RosObserver:
                 self._publisher.publish(self.convert(**kwargs))
                 self._last_time = time.time()
 
-    def convert(self, **kwargs):
+    def convert(self, **kwargs: t.Any):
         raise NotImplementedError
 
     def reset(self, reset_msg=None):
@@ -394,11 +412,20 @@ class RosObserver:
 
 
 class WorldObserver(RosObserver):
-    def __init__(self, node, topic, is_active=True, rate=cfg.rate):
-        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=MarkerArray)
+    def __init__(
+        self, node: MyNode, topic: str, is_active: bool = True, rate: int = cfg.rate
+    ):
+        RosObserver.__init__(
+            self,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            msg_type=MarkerArray,
+        )
         self.prev_sim_world_draw_data = None
 
-    def convert(self, **kwargs):
+    def convert(self, **kwargs: t.Any):
         world, robot_uid = kwargs["world"], kwargs["robot_uid"]
 
         current_world_draw_data = {
@@ -533,10 +560,19 @@ class WorldObserver(RosObserver):
 
 
 class CostmapObserver(RosObserver):
-    def __init__(self, node, topic, is_active=True, rate=cfg.rate):
-        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=OccupancyGrid)
+    def __init__(
+        self, node: MyNode, topic: str, is_active: bool = True, rate: int = cfg.rate
+    ):
+        RosObserver.__init__(
+            self,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            msg_type=OccupancyGrid,
+        )
 
-    def convert(self, **kwargs):
+    def convert(self, **kwargs: t.Any):
         world, robot_uid = kwargs["world"], kwargs["robot_uid"]
         return self.world_to_costmap(world, robot_uid)
 
@@ -584,10 +620,24 @@ class CostmapObserver(RosObserver):
 
 
 class GridMapObserver(RosObserver):
-    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=GridMap):
-        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
+    def __init__(
+        self,
+        node: MyNode,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+        msg_type: type = GridMap,
+    ):
+        RosObserver.__init__(
+            self,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            msg_type=msg_type,
+        )
 
-    def convert(self, **kwargs):
+    def convert(self, **kwargs: t.Any):
         costmap, res = kwargs["costmap"], kwargs["res"]
         fixed_costmap = np.copy(costmap)
         fixed_costmap[fixed_costmap == -1.0] = 0.0
@@ -601,10 +651,24 @@ class GridMapObserver(RosObserver):
 
 
 class CombinedCostGridMapObserver(GridMapObserver):
-    def __init__(self, node, topic, is_active=True, rate=10, msg_type=GridMap):
-        GridMapObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
+    def __init__(
+        self,
+        node: MyNode,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+        msg_type: type = GridMap,
+    ):
+        RosObserver.__init__(
+            self,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            msg_type=msg_type,
+        )
 
-    def convert(self, **kwargs):
+    def convert(self, **kwargs: t.Any):
         sorted_cell_to_combined_cost, inflated_grid_by_obstacle = (
             kwargs["sorted_cell_to_combined_cost"],
             kwargs["inflated_grid_by_obstacle"],
@@ -625,11 +689,23 @@ class CombinedCostGridMapObserver(GridMapObserver):
 
 class GoalObserver(RosObserver):
     def __init__(
-        self, node, topic, is_active=True, rate=cfg.rate, msg_type=MarkerArray
+        self,
+        node: MyNode,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+        msg_type: type = MarkerArray,
     ):
-        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
+        RosObserver.__init__(
+            self,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            msg_type=msg_type,
+        )
 
-    def convert(self, **kwargs):
+    def convert(self, **kwargs: t.Any):
         q_init, q_goal, entity = kwargs["q_init"], kwargs["q_goal"], kwargs["entity"]
         if q_goal is None:
             return MarkerArray()
@@ -658,10 +734,24 @@ class GoalObserver(RosObserver):
 
 
 class PosesObserver(RosObserver):
-    def __init__(self, node, topic, is_active=True, rate=cfg.rate, msg_type=PoseArray):
-        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
+    def __init__(
+        self,
+        node: MyNode,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+        msg_type: type = PoseArray,
+    ):
+        RosObserver.__init__(
+            self,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            msg_type=msg_type,
+        )
 
-    def convert(self, **kwargs):
+    def convert(self, **kwargs: t.Any):
         poses = kwargs["poses"]
         return poses_to_poses_array(poses, self.node.get_timestamp())
 
@@ -673,17 +763,29 @@ class PosesObserver(RosObserver):
 
 class PlanObserver(RosObserver):
     def __init__(
-        self, node, topic, is_active=True, rate=cfg.rate, msg_type=MarkerArray
+        self,
+        node: MyNode,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+        msg_type: type = MarkerArray,
     ):
-        RosObserver.__init__(self, node, topic, is_active, rate, msg_type=msg_type)
+        RosObserver.__init__(
+            self,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            msg_type=msg_type,
+        )
 
-    def convert(self, **kwargs):
+    def convert(self, **kwargs: t.Any):
         plan, robot = kwargs["plan"], kwargs["robot"]
         return plan_to_markerarray(
             plan, robot, cfg.main_frame_id, stamp=self.node.get_timestamp()
         )
 
-    def reset(self, reset_msg=None):
+    def reset(self, reset_msg: t.Optional[t.Any] = None):
         RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
 
 
@@ -1453,13 +1555,15 @@ class RosPublisher(with_metaclass(Singleton)):  # noqa: F821
     # endregion
 
     # region GOAL
-    def publish_goal(self, q_init, q_goal, entity, ns=""):
+    def publish_goal(
+        self, q_init: PoseModel, q_goal: PoseModel, entity: Robot, ns: str = ""
+    ):
         topic = self.prefix + (
             cfg.robot_goal_topic if not ns else "/" + ns + cfg.robot_goal_topic
         )
         self.observers[topic].update(q_init=q_init, q_goal=q_goal, entity=entity)
 
-    def cleanup_goal(self, ns=""):
+    def cleanup_goal(self, ns: str = ""):
         topic = self.prefix + (
             cfg.robot_goal_topic if not ns else "/" + ns + cfg.robot_goal_topic
         )

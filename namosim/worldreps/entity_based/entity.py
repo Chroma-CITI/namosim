@@ -1,5 +1,6 @@
 import copy
 import re
+import typing as t
 
 
 class Style:
@@ -46,7 +47,7 @@ class Entity:
         full_geometry_acquired,
         movability="unknown",
         uid=0,
-        style=None,
+        style: t.Optional[Style] = None,
     ):
         if uid == 0:
             self.uid = Entity.last_id
