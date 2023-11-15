@@ -1,10 +1,12 @@
-from svgpath2mpl import parse_path
-from shapely.geometry import Polygon, Point, LineString
-from xml.dom import minidom
-import numpy as np
 import re
-from shapely import affinity
+import typing as t
+from xml.dom import minidom
 
+import numpy as np
+import numpy.typing as npt
+from shapely import affinity
+from shapely.geometry import LineString, Point, Polygon
+from svgpath2mpl import parse_path
 
 SVG_PATH_ATTRIBUTES_WHITELIST = ["id", "d", "style"]
 
@@ -55,15 +57,18 @@ def add_shapely_geometry_to_svg(
         svg_data.childNodes[0].appendChild(new_path)
 
 
-def svg_pathd_to_shapely_geometry(svg_path, scaling_value=1.0, precision=1e9):
+def svg_pathd_to_shapely_geometry(
+    svg_path: str, scaling_value: float = 1.0, precision: float = 1e9
+):
     parse_result = parse_path(svg_path)
-    geom_pts = parse_result.vertices * scaling_value
-    geom_pts[:, 1] = -geom_pts[:, 1]  # Mirror
-    geom_pts = list(geom_pts)
+    geom_pts: npt.NDArray[np.float_] = (
+        t.cast(npt.NDArray[np.float_], parse_result.vertices) * scaling_value
+    )
+    geom_pts[:, 1] = -geom_pts[:, 1]  # type: ignore # Mirror
 
     # Remove duplicates
-    pts_set = set()
-    dedup_geom_pts = []
+    pts_set: t.Set[t.Tuple[float, float]] = set()
+    dedup_geom_pts: t.List[t.Tuple[float, float]] = []
     for pt in geom_pts:
         pt_tuple = (round(pt[0] * precision), round(pt[1] * precision))
         if pt_tuple not in pts_set:
