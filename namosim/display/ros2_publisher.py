@@ -40,7 +40,6 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
-from namosim import simulator as namosim_simulator
 from namosim.display import tf_replacement
 from namosim.models import PoseModel
 from namosim.utils import utils
