@@ -1,22 +1,16 @@
+import json
 import math
 import os
 import random
-import sys
+import typing as t
+from collections.abc import MutableSet
+from datetime import datetime
 
 import mapbox_earcut as earcut
 import numpy as np
 import shapely.affinity as affinity
 from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
-
-if sys.version_info.major == 3 and sys.version_info.minor >= 10:
-    from collections.abc import MutableSet
-else:
-    from collections import MutableSet
-
-import json
-import typing as t
-from datetime import datetime
 
 # Constants
 SQRT_OF_2 = math.sqrt(2.0)
