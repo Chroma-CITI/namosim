@@ -1,7 +1,7 @@
 # import unittest
 # from namosim.simulator import Simulator
 # from namosim.utils import utils
-# from namosim.display.ros_publisher import RosPublisher
+# from namosim.display.ros2_publisher import RosPublisher
 # import copy
 #
 #

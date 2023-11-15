@@ -1,15 +1,21 @@
+from abc import ABC
+
 from shapely import affinity
 from shapely.geometry import LineString, Point
 
 from namosim.utils import utils
 
 
-class GoalResult:
+class BasicAction(ABC):
+    pass
+
+
+class GoalResult(BasicAction):
     def __init__(self, goal):
         self.goal = goal
 
 
-class GoalsFinished:
+class GoalsFinished(BasicAction):
     def __init__(self):
         pass
 
@@ -30,12 +36,12 @@ class GoalFailed(GoalResult):
         return "failure"
 
 
-class Wait:
+class Wait(BasicAction):
     def __init__(self):
         pass
 
 
-class Rotation:
+class Rotation(BasicAction):
     def __init__(self, angle):
         self.angle = angle
 
@@ -56,7 +62,7 @@ class Rotation:
         return (new_point[0], new_point[1], orientation)
 
 
-class Translation:
+class Translation(BasicAction):
     def __init__(self, translation_vector):
         self.translation_vector = translation_vector
         self.translation_length = utils.euclidean_distance(

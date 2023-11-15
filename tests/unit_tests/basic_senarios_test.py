@@ -13,6 +13,10 @@ class BasicTest(unittest.TestCase):
             simulation_file_path=os.path.join(self.scenarios_folder, "minimal_sim.json")
         )
         sim.run()
+        assert (
+            sim.simulation_log[7].message
+            == "Agent robot_0 finished executing all its goals."
+        )
 
 
 if __name__ == "__main__":

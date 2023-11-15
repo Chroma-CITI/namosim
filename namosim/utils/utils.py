@@ -1,22 +1,16 @@
+import json
 import math
 import os
 import random
-import sys
+import typing as t
+from collections.abc import MutableSet
+from datetime import datetime
 
 import mapbox_earcut as earcut
 import numpy as np
 import shapely.affinity as affinity
 from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
-
-if sys.version_info.major == 3 and sys.version_info.minor >= 10:
-    from collections.abc import MutableSet
-else:
-    from collections import MutableSet
-
-import json
-import typing as t
-from datetime import datetime
 
 # Constants
 SQRT_OF_2 = math.sqrt(2.0)
@@ -1532,3 +1526,20 @@ class Circle:
 
 def cmp(a, b):
     return (a > b) - (a < b)
+
+
+def get_ros_version():
+    import rospkg
+
+    # Initialize the ROS package database
+    rospack = rospkg.RosPack()
+
+    # Check if the 'rospy' package (ROS1) is available
+    if rospack.get_manifest("rospy"):
+        return "ROS1"
+
+    # Check if the 'rclpy' package (ROS2) is available
+    if rospack.get_manifest("rclpy"):
+        return "ROS2"
+
+    return None

@@ -32,7 +32,7 @@ class World:
         self,
         discretization_data: DiscretizationData,
         entities: t.Optional[t.Dict[int, t.Any]] = None,
-        entity_to_agent: t.Optional[t.Dict[int, int]] = None,
+        entity_to_agent: t.Optional[bidict[int, int]] = None,
         taboo_zones: t.Optional[t.Dict[int, Taboo]] = None,
         goals: t.Optional[t.Dict[int, Goal]] = None,
         geometry_scale: float = 1.0,
@@ -133,7 +133,7 @@ class World:
             cost_possibly_nonfree=config.discretization_data.cost_possibly_nonfree,
         )
 
-        world = World(
+        world = cls(
             geometry_scale=scaling_value,
             init_geometry_filename=svg_filename,
             init_geometry_file=svg_doc,
@@ -529,7 +529,7 @@ class World:
         )
 
     def light_copy(self, ignored_entities: t.Iterable[int]):
-        entity_to_agent: t.Dict[int, int] = bidict()  # type: ignore
+        entity_to_agent: bidict[int, int] = bidict()
         for e, a in self.entity_to_agent.items():
             if a not in ignored_entities and e not in ignored_entities:
                 entity_to_agent[e] = a
