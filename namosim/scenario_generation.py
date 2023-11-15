@@ -1,10 +1,10 @@
+import copy
 import json
 import os
 import random
-import copy
 from xml.dom import minidom
 
-from namosim.utils import utils, collision, conversion
+from namosim.utils import collision, conversion, utils
 from namosim.worldreps.occupation_based.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
 )
@@ -127,12 +127,12 @@ def generate_scenarios_alternatives(
         svg_base_robot_direction.getAttribute("d"), scaling_value=0.01
     )
     base_robot_orientation_geom_coords = list(base_robot_orientation_polygon.coords)
-    base_robot_orientation_vector = [
+    base_robot_orientation_vector = (
         base_robot_orientation_geom_coords[1][0]
         - base_robot_orientation_geom_coords[0][0],
         base_robot_orientation_geom_coords[1][1]
         - base_robot_orientation_geom_coords[0][1],
-    ]
+    )
     base_robot_pose = (
         base_robot_polygon.centroid.coords[0][0],
         base_robot_polygon.centroid.coords[0][1],

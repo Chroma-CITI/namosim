@@ -552,9 +552,9 @@ class World:
 
 def get_orientation(geom: (Polygon | LineString)) -> float:
     orientation_geom: t.List[t.List[float]] = list(geom.coords)  # type: ignore
-    orientation_vector = [
+    orientation_vector = (
         orientation_geom[1][0] - orientation_geom[0][0],
         orientation_geom[1][1] - orientation_geom[0][1],
-    ]
+    )
     theta = utils.yaw_from_direction(orientation_vector)
     return theta

@@ -9,6 +9,7 @@ from datetime import datetime
 import mapbox_earcut as earcut
 import numpy as np
 import shapely.affinity as affinity
+import typing_extensions as tx
 from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
 
@@ -425,7 +426,7 @@ class OrderedSet(MutableSet):
             return "%s()" % (self.__class__.__name__,)
         return "%s(%r)" % (self.__class__.__name__, list(self))
 
-    def __eq__(self, other):
+    def __eq__(self, other: tx.Self | t.Iterable[t.Any]):
         if isinstance(other, OrderedSet):
             return len(self) == len(other) and list(self) == list(other)
         return set(self) == set(other)
@@ -610,14 +611,7 @@ def real_pose_to_fixed_precision_pose(real_pose, trans_mult, rot_mult):
     )
 
 
-def yaw_from_direction(direction_vector: t.List[float], radians=False) -> float:
-    # TODO Replace this by atan2(y, x) with direction vector (x, y)
-    # if direction_vector[1] < 0:
-    #     yaw = 2 * math.pi - math.acos(
-    #         direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
-    # else:
-    #     yaw = math.acos(
-    #         direction_vector[0] / math.sqrt(direction_vector[0] ** 2 + direction_vector[1] ** 2))
+def yaw_from_direction(direction_vector: t.Tuple[float, float], radians=False) -> float:
     yaw = math.atan2(direction_vector[1], direction_vector[0])
     if radians:
         return yaw
@@ -911,89 +905,15 @@ def polygon_coords_to_triangles_coords(polygon):
     return triangles
 
 
-def is_shapely_polygon_convex(polygon):
-    if not isinstance(polygon, Polygon):
-        raise TypeError(
-            "is_shapely_polygon_convex method expects a shapely.geometry.Polygon object, received: {}".format(
-                str(type(polygon))
-            )
-        )
-    return is_convex_polygon(list(polygon.exterior.coords)[:-1])
-
-
-def is_convex_polygon(polygon):
-    """Return True if the polynomial defined by the sequence of 2D
-    points is 'strictly convex': points are valid, side lengths non-
-    zero, interior angles are strictly between zero and a straight
-    angle, and the polygon does not intersect itself.
-
-    WARNING : The first point must not be repeated at the end of the
-        sequence, i.e. the triangle defined by the sequence
-        [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0), (0.0, 0.0)]
-        should be [(0.0, 0.0), (0.0, 1.0), (1.0, 1.0)].
-
-    NOTES:  1.  Algorithm: the signed changes of the direction angles
-                from one side to the next side must be all positive or
-                all negative, and their sum must equal plus-or-minus
-                one full turn (2 pi radians). Also check for too few,
-                invalid, or repeated points.
-            2.  No check is explicitly done for zero internal angles
-                (180 degree direction-change angle) as this is covered
-                in other ways, including the `n < 3` check.
-
-    Code by StackOverflow user Rory Daulton, available here:
-    https://stackoverflow.com/questions/471962/how-do-i-efficiently-determine-if-a-polygon-is-convex-non-convex-or-complex/472001#472001
-    """
-    try:  # needed for any bad points or direction changes
-        # Check for too few points
-        if len(polygon) < 3:
-            return False
-        # Get starting information
-        old_x, old_y = polygon[-2]
-        new_x, new_y = polygon[-1]
-        new_direction = math.atan2(new_y - old_y, new_x - old_x)
-        angle_sum = 0.0
-        # Check each point (the side ending there, its angle) and accum. angles
-        for ndx, newpoint in enumerate(polygon):
-            # Update point coordinates and side directions, check side length
-            old_x, old_y, old_direction = new_x, new_y, new_direction
-            new_x, new_y = newpoint
-            new_direction = math.atan2(new_y - old_y, new_x - old_x)
-            if old_x == new_x and old_y == new_y:
-                return False  # repeated consecutive points
-            # Calculate & check the normalized direction-change angle
-            angle = new_direction - old_direction
-            if angle <= -math.pi:
-                angle += TWO_PI  # make it in half-open interval (-Pi, Pi]
-            elif angle > math.pi:
-                angle -= TWO_PI
-            if ndx == 0:  # if first time through loop, initialize orientation
-                if angle == 0.0:
-                    return False
-                orientation = 1.0 if angle > 0.0 else -1.0
-            else:  # if other time through loop, check orientation is stable
-                if orientation * angle <= 0.0:  # not both pos. or both neg.
-                    return False
-            # Accumulate the direction-change angle
-            angle_sum += angle
-        # Check that the total number of full turns is plus-or-minus 1
-        return abs(round(angle_sum / TWO_PI)) == 1
-    except (ArithmeticError, TypeError, ValueError):
-        return False  # any exception means not a proper convex polygon
+def is_convex(polygon: Polygon):
+    return polygon.convex_hull.equals(polygon)
 
 
 def convert_to_convex_polygons_list(polygon):
-    if is_shapely_polygon_convex(polygon):
+    if is_convex(polygon):
         return [polygon]
     else:
         return shapely_polygon_to_shapely_triangles(polygon)
-
-
-def convert_to_convex_polygons_coordinates_list(polygon):
-    if is_shapely_polygon_convex(polygon):
-        return [coords(polygon)]
-    else:
-        return shapely_polygon_to_triangles_coords(polygon)
 
 
 def find_circle_terms(x1, y1, x2, y2, x3, y3):
@@ -1176,8 +1096,8 @@ def sample_poses_at_middle_of_inflated_sides(
             for x_r, y_r in points:
                 scalar_product = (x_b - x_a) * (x_r - x_m) + (y_b - y_a) * (y_r - y_m)
                 if abs(scalar_product - 0.0) <= close_to_zero_atol:
-                    norm_r_poly_center = np.linalg.norm(
-                        [poly_center[0] - x_r, poly_center[1] - y_r]
+                    norm_r_poly_center = float(
+                        np.linalg.norm([poly_center[0] - x_r, poly_center[1] - y_r])
                     )
                     if norm_r_poly_center > max_dist:
                         manip_point = (x_r, y_r)
@@ -1469,14 +1389,18 @@ def shapely_geom_to_local(global_geom, local_cs_pose_in_global):
         global_geom, -local_cs_pose_in_global[0], -local_cs_pose_in_global[1]
     )
     final_geometry = affinity.rotate(
-        translated_geometry, angle=-local_cs_pose_in_global[2], origin=(0.0, 0.0)
+        translated_geometry,
+        angle=-local_cs_pose_in_global[2],
+        origin=(0.0, 0.0),  # type: ignore
     )
     return final_geometry
 
 
 def shapely_geom_to_global(local_geom, local_cs_pose_in_global):
     rotated_geometry = affinity.rotate(
-        local_geom, angle=local_cs_pose_in_global[2], origin=(0.0, 0.0)
+        local_geom,
+        angle=local_cs_pose_in_global[2],
+        origin=(0.0, 0.0),  # type: ignore
     )
     final_geometry = affinity.translate(
         rotated_geometry, local_cs_pose_in_global[0], local_cs_pose_in_global[1]
