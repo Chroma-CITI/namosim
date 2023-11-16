@@ -293,6 +293,7 @@ class Simulator:
             }
 
         agent_uid_to_goals = self.agent_uid_to_goals
+
         self.agent_uid_to_behavior = self.initialize_agents_behaviors(
             agent_uid_to_goals
         )
