@@ -768,9 +768,8 @@ class Simulator:
                 )
             else:
                 behavior_config = agent_to_behavior_config.behavior
-                agent_behavior_name = behavior_config.name
 
-                if agent_behavior_name == "stilman_2005_behavior":
+                if behavior_config.name == "stilman_2005_behavior":
                     agent_world = copy.deepcopy(self.ref_world)
                     self.rp.cleanup_robot_world(ns=agent_name)
                     agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
@@ -785,7 +784,7 @@ class Simulator:
                         "You tried to associate entity '{agent_name}' with a behavior named"
                         "'{b_name}' that is not implemented yet."
                         "Maybe you mispelled something ?".format(
-                            agent_name=agent_name, b_name=agent_behavior_name
+                            agent_name=agent_name, b_name=behavior_config.name
                         )
                     )
         return agent_uid_to_behavior
