@@ -43,7 +43,7 @@ import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 from namosim.behaviors.plan.plan import Plan
 from namosim.display import tf_replacement
-from namosim.models import PoseModel
+from namosim.models import PoseModel, SimulationModel
 from namosim.utils import utils
 from namosim.utils.singleton import Singleton
 from namosim.worldreps.entity_based.obstacle import Obstacle
@@ -793,7 +793,7 @@ class RosPublisher(with_metaclass(Singleton)):  # noqa: F821
     def __init__(
         self,
         node_name: str,
-        sim_config: t.Any,
+        sim_config: SimulationModel,
         prefix_topics_with_node_name: bool = False,
     ):
         if cfg.deactivate_gui:
@@ -837,8 +837,7 @@ class RosPublisher(with_metaclass(Singleton)):  # noqa: F821
         )
 
         self.agents_names = [
-            a_to_b_config["agent_name"]
-            for a_to_b_config in sim_config["agents_behaviors"]
+            a_to_b_config.agent_name for a_to_b_config in sim_config.agents_behaviors
         ]
 
         # Add robot-specific publishers for each robot namespace

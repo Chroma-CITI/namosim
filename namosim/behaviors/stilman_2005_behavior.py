@@ -22,6 +22,7 @@ from namosim.behaviors.plan.conflict import (
 )
 from namosim.behaviors.plan.path import EvasionTransitPath, TransferPath, TransitPath
 from namosim.behaviors.plan.plan import Plan
+from namosim.models import StilmanBehaviorConfigModel
 from namosim.utils import utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
@@ -340,7 +341,7 @@ class Stilman2005Behavior(BaselineBehavior):
         initial_world,
         robot_uid,
         navigation_goals,
-        behavior_config,
+        behavior_config: StilmanBehaviorConfigModel,
         abs_path_to_logs_dir,
     ):
         BaselineBehavior.__init__(
@@ -353,7 +354,7 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
         # Configuration parameters
-        parameters = behavior_config["parameters"]
+        parameters = behavior_config.parameters
 
         # For each, specify collision model, action space
         # self.transit_search_config =
@@ -364,7 +365,7 @@ class Stilman2005Behavior(BaselineBehavior):
         # self.plan_execution_config =
 
         # - Original Stilman method configuration parameters
-        self.alpha = parameters["alpha_for_obstacle_choice_heur"]
+        self.alpha = parameters.alpha_for_obstacle_choice_heur
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD  # default if bad parameter
         # self.heur_w = parameters["heuristic_cost_for_traversing_obstacle_in_choice_heur"]
         # self.basic_trans_force = parameters["basic_translation_force"]
@@ -373,10 +374,10 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_unit_cost = 1.0
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
-        self.angular_res = parameters["collision_check_angular_res"]
+        self.angular_res = parameters.collision_check_angular_res
         self.rotation_unit_angle = 60.0  # parameters["robot_rotation_unit_angle"]
-        self.translation_unit_length = parameters["robot_translation_unit_length"]
-        self.forbid_rotations = parameters["forbid_rotations"]
+        self.translation_unit_length = parameters.robot_translation_unit_length
+        self.forbid_rotations = parameters.forbid_rotations
         self.translation_factor = (
             self.translation_unit_cost / self.translation_unit_length
         )
@@ -388,25 +389,25 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rot_mult = 1.0
 
         # - S-NAMO parameters
-        self.use_social_cost = parameters["use_social_cost"]
-        self.bound_percentage = parameters["solution_interval_bound_percentage"]
-        if parameters["manipulation_search_procedure"] == "DFS":
+        self.use_social_cost = parameters.use_social_cost
+        self.bound_percentage = parameters.solution_interval_bound_percentage
+        if parameters.manipulation_search_procedure == "DFS":
             if self.use_social_cost:
                 self.manip_search_procedure = self.focused_manip_search
             else:
                 raise ValueError(
                     "Focused manipulation search requires the use_social_cost variable to be True !"
                 )
-        elif parameters["manipulation_search_procedure"] == "BFS":
+        elif parameters.manipulation_search_procedure == "BFS":
             self.manip_search_procedure = self.manip_search
         self.w_social, self.w_obs, self.w_goal = 15.0, 10.0, 2.0
         self.w_sum = self.w_social + self.w_obs + self.w_goal
         self.distance_to_obs_cost_is_realistic = True
 
         # - Extra performance parameters
-        self.check_new_local_opening_before_global = parameters[
-            "check_new_local_opening_before_global"
-        ]
+        self.check_new_local_opening_before_global = (
+            parameters.check_new_local_opening_before_global
+        )
         self.activate_grids_logging = True  # not parameters["deactivate_grids_logging"]
 
         if self.robot_base_drive_type == "differential":

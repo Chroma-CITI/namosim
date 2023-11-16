@@ -46,10 +46,16 @@ class NavigationOnlyBehaviorConfigModel(BaseModel):
     navigation_goals: t.List[NavigationGoalModel]
 
 
+class StilmanBehaviorConfigModel(BaseModel):
+    name: t.Literal["stilman_2005_behavior"]
+    navigation_goals: t.List[NavigationGoalModel]
+    parameters: StilmanBehaviorParametersModel
+
+
 class AgentBehaviorModel(BaseModel):
     agent_name: str
     behavior: t.Union[
-        StilmanBehaviorParametersModel,
+        StilmanBehaviorConfigModel,
         WuLevihnBehaviorConfigModel,
         NavigationOnlyBehaviorConfigModel,
     ]
@@ -64,3 +70,4 @@ class SimulationModel(BaseModel):
     display_sim_knowledge_only_once: bool
     provide_walls: bool
     files: SimulationFilesModel
+    random_seed: t.Optional[int] = None
