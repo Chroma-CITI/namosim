@@ -4,9 +4,9 @@ A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable O
 
 ## System Requirements
 
-* Python >=3.9,<3.13
-* ROS2 (we have tested ros-iron but others may work too)
-* RVIZ2
+- Python >=3.9,<3.13
+- ROS2 (we have tested ros-iron but others may work too)
+- RVIZ2
 
 ## Quickstart
 
@@ -20,6 +20,7 @@ poetry install
 ```
 
 Activate the poetry environment:
+
 ```bash
 poetry shell
 ```
@@ -43,7 +44,7 @@ git pull --recurse-submodules
 python -m tests.integration_tests.namo_socials.iros_2021 IROS2021Tests.test_for_10_hours 0 199
 ```
 
-Results should be saved in the 'logs' folder that is automatically created the first time in the repository folder. 
+Results should be saved in the 'logs' folder that is automatically created the first time in the repository folder.
 To get the full visual feedback, please install ROS2 and RVIZ. You will also need to install the grid-map ROS package if you don't already have it (e.g. `sudo apt install ros-iron-grid-map`).
 
 ### Run a Basic Scenario and Visualize in RVIZ
@@ -57,6 +58,7 @@ rviz2 -d rviz/ROS2/basic_view.rviz
 ```
 
 Then, in a new terminal, run:
+
 ```
 python -m namosim.tests.integration_tests.namo_socials.basic_with_opening_test BasicWithOpeningTest.test_stilman_2005_behavior
 ```
@@ -92,8 +94,8 @@ If you reuse (even partially) of the provided data/code, please do cite the asso
 
 ## Contributing
 
-To contribute to this project, please make your changes in a new branch and open a merge request when ready. Don't forget to format the code with:
+To contribute to this project, please make your changes in a new branch and open a merge request when ready. Don't forget to run the lint checks, type checks, and unit tests:
 
-```
-ruff format .
+```bash
+poetry run poe all_checks
 ```

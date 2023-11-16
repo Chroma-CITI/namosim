@@ -57,6 +57,7 @@ pyright \
   namosim/display/ros2_publisher.py \
   namosim/utils/utils.py
 """
+all_checks = ["lint_check", "type_check", "test"]
 
 [build-system]
 requires = ["poetry-core"]
