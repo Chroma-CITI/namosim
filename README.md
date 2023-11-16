@@ -2,6 +2,8 @@
 
 A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable Obstacles.
 
+![NAMO Simulator](namo-sim.jpg)
+
 ## System Requirements
 
 - Python >=3.9,<3.13
