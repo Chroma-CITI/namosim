@@ -13,6 +13,8 @@ import typing_extensions as tx
 from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
 
+from namosim.models import PoseModel
+
 # Constants
 SQRT_OF_2 = math.sqrt(2.0)
 SQRT_OF_2_MIN_1 = SQRT_OF_2 - 1.0
@@ -579,10 +581,16 @@ def real_to_grid(real_x, real_y, res, grid_pose):
     )
 
 
-def grid_to_real(cell_x, cell_y, res, grid_pose):
-    return res * float(cell_x) + grid_pose[0] + res * 0.5, res * float(
-        cell_y
-    ) + grid_pose[1] + res * 0.5
+def grid_to_real(
+    cell_x: int, cell_y: int, res: float, grid_pose: PoseModel
+) -> t.Tuple[float, float]:
+    """
+    Converts a grid cell's (x,y) coordinates into continuous world (x,y) coordinates
+    """
+    return (
+        res * float(cell_x) + grid_pose[0] + res * 0.5,
+        res * float(cell_y) + grid_pose[1] + res * 0.5,
+    )
 
 
 def real_pose_to_grid_pose(real_pose, res, grid_pose, clamp_angle=None):

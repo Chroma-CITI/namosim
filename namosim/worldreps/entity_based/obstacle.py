@@ -1,6 +1,6 @@
 import copy
 
-from namosim.worldreps.entity_based.entity import Entity
+from namosim.worldreps.entity_based.entity import Entity, Style
 
 
 class Obstacle(Entity):
@@ -10,23 +10,22 @@ class Obstacle(Entity):
         polygon,
         pose,
         full_geometry_acquired,
-        type_in,
+        type_,
+        style: Style,
         movability="unknown",
         uid=0,
-        style=None,
     ):
         Entity.__init__(
             self,
-            name,
-            polygon,
-            pose,
-            full_geometry_acquired,
+            name=name,
+            type_=type_,
+            polygon=polygon,
+            pose=pose,
+            full_geometry_acquired=full_geometry_acquired,
             movability=movability,
             uid=uid,
             style=style,
         )
-        self.type = type_in
-
         self.actions = dict()
         self._is_actions_valid = False
 
@@ -259,13 +258,14 @@ class Obstacle(Entity):
 
     def light_copy(self, copy_polygon=True):
         return Obstacle(
-            self.name,
-            None if not copy_polygon else copy.deepcopy(self.polygon),
-            self.pose,
-            self.full_geometry_acquired,
-            type_in=self.type,
+            name=self.name,
+            polygon=None if not copy_polygon else copy.deepcopy(self.polygon),
+            pose=self.pose,
+            full_geometry_acquired=self.full_geometry_acquired,
+            type_=self.type_,
             uid=self.uid,
+            style=self.style,
         )
 
     def get_type(self):
-        return self.type
+        return self.type_

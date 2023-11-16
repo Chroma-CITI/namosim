@@ -14,7 +14,7 @@ from typing_extensions import Self
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
 from namosim.worldreps.discretization_data import DiscretizationData
-from namosim.worldreps.entity_based.entity import Style
+from namosim.worldreps.entity_based.entity import Entity, Style
 from namosim.worldreps.entity_based.goal import Goal
 from namosim.worldreps.entity_based.models import WorldModel
 from namosim.worldreps.entity_based.obstacle import Obstacle
@@ -31,7 +31,7 @@ class World:
     def __init__(
         self,
         discretization_data: DiscretizationData,
-        entities: t.Optional[t.Dict[int, t.Any]] = None,
+        entities: t.Optional[t.Dict[int, Entity]] = None,
         entity_to_agent: t.Optional[bidict[int, int]] = None,
         taboo_zones: t.Optional[t.Dict[int, Taboo]] = None,
         goals: t.Optional[t.Dict[int, Goal]] = None,
@@ -215,6 +215,7 @@ class World:
                     movable_whitelist=entity_data.movable_whitelist,
                     style=style,
                 )
+
                 if not first_robot:
                     first_robot = new_robot
 
@@ -229,7 +230,7 @@ class World:
                     name=entity_data.name,
                     polygon=polygon,
                     pose=pose,
-                    type_in=entity_data.type_,
+                    type_=entity_data.type_,
                     full_geometry_acquired=True,
                     movability="static"
                     if entity_data.type_ in ["wall", "pillar", "table"]

@@ -1,8 +1,9 @@
 import colorsys
+
 from std_msgs.msg import ColorRGBA
 
 
-def hex_to_rgba(hex_string_in):
+def hex_to_rgba(hex_string_in: str):
     hex_string = hex_string_in.lstrip("#")
     if len(hex_string) == 6:
         argb_tuple = tuple(
