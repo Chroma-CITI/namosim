@@ -24,7 +24,7 @@ from namosim.behaviors.plan.conflict import (
 )
 from namosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import PoseModel
+from namosim.models import PoseModel, SimulationModel
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
@@ -169,8 +169,11 @@ class Simulator:
         else:
             self.sim_start_timestring = utils.timestamp_string()
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
+
         with open(simulation_file_abs_path) as f:
-            self.config = json.load(f)
+            config_json = json.load(f)
+        self.config = SimulationModel.model_validate(config_json)
+
         sim_file_parent_dirname = os.path.basename(
             os.path.normpath(
                 os.path.abspath(os.path.join(simulation_file_abs_path, ".."))
@@ -201,9 +204,9 @@ class Simulator:
         )
 
         # Save general simulation parameters
-        self.random_seed = self.config.get("random_seed", 10)
+        self.random_seed = self.config.random_seed or 10
         random.seed(self.random_seed)
-        self.provide_walls = self.config["provide_walls"]
+        self.provide_walls = self.config.provide_walls
         self.human_inflation_radius = 0.55 / 2.0  # [m]
 
         self.simulation_log.append(
@@ -254,7 +257,7 @@ class Simulator:
         self.simulation_log.append(utils.BasicLog("Display backend initialized.", 0))
 
         # Create world from world description json file
-        world_file_path = self.config["files"]["world_file"]
+        world_file_path = self.config.files.world_file
         world_abs_path = os.path.join(
             os.path.dirname(simulation_file_abs_path), world_file_path
         )
@@ -720,8 +723,8 @@ class Simulator:
         max_nb_goals: float = float("inf"),
     ) -> t.Dict[int, PoseModel]:
         agent_uid_to_goals = {}
-        for agent_to_behavior_config in self.config["agents_behaviors"]:
-            agent_name = agent_to_behavior_config["agent_name"]
+        for agent_to_behavior_config in self.config.agents_behaviors:
+            agent_name = agent_to_behavior_config.agent_name
             agent_uid = self.ref_world.get_entity_uid_from_name(agent_name)
             if agent_name in agent_uid_to_goals:
                 raise RuntimeError(
@@ -730,18 +733,18 @@ class Simulator:
                     )
                 )
             else:
-                behavior_config = agent_to_behavior_config["behavior"]
+                behavior_config = agent_to_behavior_config.behavior
                 agent_navigation_goals = []
 
-                if "navigation_goals" in behavior_config:
+                if behavior_config.navigation_goals is not None:
                     for count, config_goal in enumerate(
-                        behavior_config["navigation_goals"]
+                        behavior_config.navigation_goals
                     ):
                         if count > max_nb_goals:
                             break
-                        if config_goal["name"] in goals_geometries:
+                        if config_goal.name in goals_geometries:
                             agent_navigation_goals.append(
-                                goals_geometries[config_goal["name"]]
+                                goals_geometries[config_goal.name]
                             )
 
                 agent_uid_to_goals[agent_uid] = agent_navigation_goals
@@ -753,8 +756,8 @@ class Simulator:
     ) -> t.Dict[int, t.Any]:
         agent_uid_to_behavior = dict()
 
-        for agent_to_behavior_config in self.config["agents_behaviors"]:
-            agent_name = agent_to_behavior_config["agent_name"]
+        for agent_to_behavior_config in self.config.agents_behaviors:
+            agent_name = agent_to_behavior_config.agent_name
             agent_uid = self.ref_world.get_entity_uid_from_name(agent_name)
             agent_navigation_goals = agents_navigation_goals[agent_uid]
             if agent_name in agent_uid_to_behavior:
@@ -764,10 +767,9 @@ class Simulator:
                     )
                 )
             else:
-                behavior_config = agent_to_behavior_config["behavior"]
-                agent_behavior_name = behavior_config["name"]
+                behavior_config = agent_to_behavior_config.behavior
 
-                if agent_behavior_name == "stilman_2005_behavior":
+                if behavior_config.name == "stilman_2005_behavior":
                     agent_world = copy.deepcopy(self.ref_world)
                     self.rp.cleanup_robot_world(ns=agent_name)
                     agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
@@ -782,7 +784,7 @@ class Simulator:
                         "You tried to associate entity '{agent_name}' with a behavior named"
                         "'{b_name}' that is not implemented yet."
                         "Maybe you mispelled something ?".format(
-                            agent_name=agent_name, b_name=agent_behavior_name
+                            agent_name=agent_name, b_name=behavior_config.name
                         )
                     )
         return agent_uid_to_behavior
