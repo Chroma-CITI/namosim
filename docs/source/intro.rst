@@ -11,8 +11,8 @@ NAMOSIM is a research focused simulator that simulates robots navigating in 2D p
 obstacles may be manipulated (moved). This problem is pertinent for real-world robotics applications such as indoor, social environments
 where robots may need to move or manipulate objects in order to navigate and complete their tasks.
 
-Cite Us
-***********
+Cite NAMOSIM
+============
 If you use NAMO in any capacity for your research, please do cite the associated paper:
 ::
   @inproceedings{renault:hal-02912925,
