@@ -36,14 +36,17 @@ tqdm = "^4.66.1"         # Used for progressbars
 pyyaml = "^6.0.1"   # Used to import world and simulation config files in their old format, now in JSON, less error-prone
 rasterio = "^1.3.9" # Used for testing the library's rasterization capabilities
 
-# DEV LIBRARIES (for build/test purposes only)
-ruff = "^0.1.5"              # Used for code linting/formatting
-poethepoet = "^0.24.3"
-pyright = "^1.1.335"
 typing-extensions = "^4.8.0"
 pydantic = "^2.5.0"
 rospkg = "^1.5.0"
 six = "^1.16.0"
+
+[tool.poetry.group.dev.dependencies]
+sphinx = "^7.2.6"
+poethepoet = "^0.24.3"
+ruff = "^0.1.5"        # Used for code linting/formatting
+pyright = "^1.1.335"
+sphinx-rtd-theme = "^1.3.0"
 
 [tool.poe.tasks]
 lint_check = "ruff check ." # lint check
