@@ -7,6 +7,7 @@ default:
 
 stages:
   - build-and-test
+  - docs
 
 build-and-test-job:
   stage: build-and-test
@@ -17,3 +18,19 @@ build-and-test-job:
     - export PATH="/root/.local/bin:$PATH"
     - poetry install
     - poetry run poe all_checks
+
+pages:
+  stage: docs
+  script:
+    - apt-get update -y
+    - apt-get install -y swig curl ros-iron-tf2 ros-iron-grid-map
+    - curl -sSL https://install.python-poetry.org | python3 -
+    - export PATH="/root/.local/bin:$PATH"
+    - poetry install
+    - cd docs
+    - make html
+  artifacts:
+    paths:
+      - docs/build/html
+  only:
+    - main
