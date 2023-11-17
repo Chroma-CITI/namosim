@@ -7,7 +7,6 @@ default:
 
 stages:
   - build-and-test
-  - docs
 
 build-and-test-job:
   stage: build-and-test
@@ -20,7 +19,7 @@ build-and-test-job:
     - poetry run poe all_checks
 
 pages:
-  stage: docs
+  stage: build-and-test
   script:
     - apt-get update -y
     - apt-get install -y swig curl ros-iron-tf2 ros-iron-grid-map
@@ -28,7 +27,7 @@ pages:
     - export PATH="/root/.local/bin:$PATH"
     - poetry install
     - cd docs
-    - make html
+    - poetry run make html
   artifacts:
     paths:
       - docs/build/html
