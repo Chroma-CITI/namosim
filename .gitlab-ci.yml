@@ -28,7 +28,7 @@ pages:
     - export PATH="/root/.local/bin:$PATH"
     - poetry install
     - cd docs
-    - make html
+    - poetry run make html
   artifacts:
     paths:
       - docs/build/html
