@@ -28,14 +28,6 @@ namosim.utils.conversion module
    :undoc-members:
    :show-inheritance:
 
-namosim.utils.import\_export module
------------------------------------
-
-.. automodule:: namosim.utils.import_export
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 namosim.utils.singleton module
 ------------------------------
 

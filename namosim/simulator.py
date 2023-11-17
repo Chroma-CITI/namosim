@@ -3,11 +3,9 @@ import json
 import os
 import pickle
 import random
-import signal
 import time
 import traceback
 import typing as t
-from contextlib import contextmanager
 
 import jsonpickle
 from shapely.geometry import Polygon
@@ -24,6 +22,7 @@ from namosim.behaviors.plan.conflict import (
 )
 from namosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
 from namosim.display.ros2_publisher import RosPublisher
+from namosim.exceptions import timeout
 from namosim.models import PoseModel, SimulationModel
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
@@ -129,33 +128,11 @@ class StepStats:
         self.act_time = act_time
 
 
-class TimeoutError(Exception):
-    def __init__(self):
-        pass
-
-
-@contextmanager
-def timeout(time: int):
-    # Register a function to raise a TimeoutError on the signal.
-    signal.signal(signal.SIGALRM, raise_timeout)
-    # Schedule the signal to be sent after ``time``.
-    signal.alarm(time)
-
-    try:
-        yield
-    except TimeoutError:
-        pass
-    finally:
-        # Unregister the signal so it won't be triggered
-        # if the timeout is not reached.
-        signal.signal(signal.SIGALRM, signal.SIG_IGN)
-
-
-def raise_timeout(signum: int, frame: t.Any):
-    raise TimeoutError
-
-
 class Simulator:
+    """The main simulator class manages all aspects of the simulation. It initializes
+    the world and agents and executes a **sense** -> **think** -> **act** loop until all agents have
+    either completed or failed their navigation goals."""
+
     def __init__(
         self,
         simulation_file_path: str,

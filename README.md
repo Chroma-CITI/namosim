@@ -2,17 +2,13 @@
 
 A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable Obstacles.
 
-![NAMO Simulator](namo-sim.jpg)
+![NAMO Simulator](docs/source/_static/namo-sim.jpg)
 
 ## System Requirements
 
 - Python >=3.9,<3.13
 - ROS2 (we have tested ros-iron but others may work too)
 - RVIZ2
-
-## Documentation
-
-You can find the docs site [here](https://chroma.gitlabpages.inria.fr/namo/namosim/).
 
 ## Quickstart
 
@@ -74,6 +70,18 @@ python -m namosim.tests.integration_tests.namo_socials.basic_with_opening_test B
 ```bash
 poetry run poe test
 ```
+
+## Documentation
+
+You can find the docs site [here](https://chroma.gitlabpages.inria.fr/namo/namosim/).
+
+To build the docs site locally, run:
+
+```bash
+./scripts/make_docs.sh
+```
+
+The poetry shell will need to be activated.
 
 ## Credits
 
