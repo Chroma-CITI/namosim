@@ -28,8 +28,9 @@ pages:
     - poetry install
     - cd docs
     - poetry run make html
+    - mv build/html ../public
   artifacts:
     paths:
-      - docs/build/html
+      - public
   only:
     - main
