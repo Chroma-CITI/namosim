@@ -10,6 +10,10 @@ A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable O
 - ROS2 (we have tested ros-iron but others may work too)
 - RVIZ2
 
+## Documentation
+
+You can find the docs site [here](https://chroma.gitlabpages.inria.fr/namo/namosim/).
+
 ## Quickstart
 
 This project uses [poetry](https://python-poetry.org/) for packaging and dependency management. If you
