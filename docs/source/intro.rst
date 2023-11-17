@@ -1,18 +1,21 @@
 Introduction
 ============
 
+Overview
+***********
+
 NAMOSIM is a simulator designed for research on problem of **N**\ avigation **A**\ mong **M**\ ovable **O**\ bstacles (NAMO).
 
 .. image:: _static/namo-sim.jpg
   :width: 600
   :alt: NAMO Simulator
 
-NAMOSIM is a research focused simulator that simulates robots navigating in 2D polygonal environments in which certain
+NAMOSIM is a research focused simulator that simulates robots navigating in 2D polygonal environment in which certain
 obstacles may be manipulated (moved). This problem is pertinent for real-world robotics applications such as indoor, social environments
 where robots may need to move or manipulate objects in order to navigate and complete their tasks.
 
-Cite NAMOSIM
-============
+Cite Us
+***********
 If you use NAMO in any capacity for your research, please do cite the associated paper:
 ::
   @inproceedings{renault:hal-02912925,
