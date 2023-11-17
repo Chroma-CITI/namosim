@@ -1,9 +1,9 @@
 import numpy as np
-from baseline_behavior import BaselineBehavior
 from plan.basic_actions import GoalFailed, GoalsFinished, GoalSuccess
 
 from namosim import utils
 from namosim.behaviors.algorithms.graph_search import real_to_grid_search_a_star
+from namosim.behaviors.baseline_behavior import BaselineBehavior
 
 
 class Path:

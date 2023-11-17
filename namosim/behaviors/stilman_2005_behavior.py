@@ -14,6 +14,7 @@ import namosim.utils.connectivity as connectivity
 import namosim.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
 from namosim.behaviors.algorithms import graph_search
 from namosim.behaviors.algorithms.new_local_opening_check import check_new_local_opening
+from namosim.behaviors.baseline_behavior import BaselineBehavior
 from namosim.behaviors.plan.conflict import (
     ConcurrentGrabConflict,
     RobotObstacleConflict,
@@ -30,8 +31,6 @@ from namosim.worldreps.occupation_based.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
-
-from .baseline_behavior import BaselineBehavior
 
 
 class RCHConfiguration:
