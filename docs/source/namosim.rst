@@ -15,6 +15,14 @@ Subpackages
 Submodules
 ----------
 
+namosim.exceptions module
+-------------------------
+
+.. automodule:: namosim.exceptions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 namosim.main module
 -------------------
 

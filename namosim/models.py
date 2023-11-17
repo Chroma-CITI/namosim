@@ -48,7 +48,7 @@ class NavigationOnlyBehaviorConfigModel(BaseModel):
 
 class StilmanBehaviorConfigModel(BaseModel):
     name: t.Literal["stilman_2005_behavior"]
-    navigation_goals: t.List[NavigationGoalModel]
+    navigation_goals: t.Optional[t.List[NavigationGoalModel]] = None
     parameters: StilmanBehaviorParametersModel
 
 
