@@ -10,10 +10,14 @@ import typing as t
 import jsonpickle
 from shapely.geometry import Polygon
 
-import namosim.behaviors.plan.action_result as ar
-import namosim.behaviors.plan.basic_actions as ba
+import namosim.navigation.action_result as ar
+import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior
-from namosim.behaviors.plan.conflict import (
+from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
+from namosim.display.ros2_publisher import RosPublisher
+from namosim.exceptions import timeout
+from namosim.models import PoseModel, SimulationModel
+from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
     RobotObstacleConflict,
     RobotRobotConflict,
@@ -21,10 +25,6 @@ from namosim.behaviors.plan.conflict import (
     StealingMovableConflict,
     StolenMovableConflict,
 )
-from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
-from namosim.display.ros2_publisher import RosPublisher
-from namosim.exceptions import timeout
-from namosim.models import PoseModel, SimulationModel
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot

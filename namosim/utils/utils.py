@@ -611,7 +611,13 @@ def grid_pose_to_real_pose(grid_pose, res, parent_grid_pose):
     )
 
 
-def real_pose_to_fixed_precision_pose(real_pose, trans_mult, rot_mult):
+def real_pose_to_fixed_precision_pose(
+    real_pose: PoseModel, trans_mult: float, rot_mult: float
+) -> t.Tuple[int, int, int]:
+    """
+    Takes a regular real-valued pose and converts to an integer-valued pose with a fixed degree of precision
+    determined by the given multipler values.
+    """
     return (
         round(real_pose[0] * trans_mult),
         round(real_pose[1] * trans_mult),
@@ -619,7 +625,10 @@ def real_pose_to_fixed_precision_pose(real_pose, trans_mult, rot_mult):
     )
 
 
-def yaw_from_direction(direction_vector: t.Tuple[float, float], radians=False) -> float:
+def yaw_from_direction(
+    direction_vector: t.Tuple[float, float], radians: bool = False
+) -> float:
+    """Takes an (x,y) direction vector and converts it to a `yaw` angle in either degrees or radians"""
     yaw = math.atan2(direction_vector[1], direction_vector[0])
     if radians:
         return yaw

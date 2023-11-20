@@ -3,9 +3,9 @@ import copy
 import typing as t
 from decimal import Decimal
 
-from namosim.behaviors.plan.plan import Plan
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.models import PoseModel
+from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
 
 

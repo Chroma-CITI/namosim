@@ -12,6 +12,14 @@ namosim.display.colors module
    :undoc-members:
    :show-inheritance:
 
+namosim.display.conversions module
+----------------------------------
+
+.. automodule:: namosim.display.conversions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 namosim.display.ros2\_publisher module
 --------------------------------------
 

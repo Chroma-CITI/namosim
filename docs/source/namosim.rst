@@ -9,6 +9,7 @@ Subpackages
 
    namosim.behaviors
    namosim.display
+   namosim.navigation
    namosim.utils
    namosim.worldreps
 

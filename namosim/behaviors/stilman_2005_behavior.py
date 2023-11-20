@@ -7,24 +7,28 @@ from collections import OrderedDict
 import numpy as np
 from shapely.geometry import Point
 
-import namosim.behaviors.plan.action_result as ar
-import namosim.behaviors.plan.basic_actions as ba
+import namosim.navigation.action_result as ar
+import namosim.navigation.basic_actions as ba
 import namosim.utils.collision as collision
 import namosim.utils.connectivity as connectivity
 import namosim.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
 from namosim.behaviors.algorithms import graph_search
 from namosim.behaviors.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.behaviors.baseline_behavior import BaselineBehavior
-from namosim.behaviors.plan.conflict import (
+from namosim.display.ros2_publisher import RosPublisher
+from namosim.models import StilmanBehaviorConfigModel
+from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
     RobotObstacleConflict,
     RobotRobotConflict,
     StolenMovableConflict,
 )
-from namosim.behaviors.plan.path import EvasionTransitPath, TransferPath, TransitPath
-from namosim.behaviors.plan.plan import Plan
-from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import StilmanBehaviorConfigModel
+from namosim.navigation.navigation_path import (
+    EvasionTransitPath,
+    TransferPath,
+    TransitPath,
+)
+from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
@@ -273,8 +277,8 @@ class DynamicPlan(Plan):
         return True
 
     # Actions
-    def pop_next_step(self):
-        return Plan.pop_next_step(self)
+    def pop_next_action(self):
+        return Plan.pop_next_action(self)
 
     def new_postpone(
         self, t_min, t_max, step_count, conflicts, simulation_log, robot_name
@@ -759,7 +763,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     )
                     plan.timer.is_running = False
                     plan.unpostponements_history.append(step_count)
-                return plan.pop_next_step()  # Normal case, don't log
+                return plan.pop_next_action()  # Normal case, don't log
             else:
                 if self.use_social_cost:
                     potential_deadlocks = self.potential_deadlocks(
@@ -824,7 +828,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             self._rp.publish_p_opt(
                                 self._p_opt, self._robot, ns=self._robot_name
                             )
-                            return plan.pop_next_step()
+                            return plan.pop_next_action()
                         else:
                             self.simulation_log.append(
                                 utils.BasicLog(
@@ -970,7 +974,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             step_count,
                         )
                     )
-                    return plan.pop_next_step()
+                    return plan.pop_next_action()
                 else:
                     self.simulation_log.append(
                         utils.BasicLog(
@@ -1156,7 +1160,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                     )
                                 )
 
-                                return plan.pop_next_step()
+                                return plan.pop_next_action()
 
     def select_connect(
         self,

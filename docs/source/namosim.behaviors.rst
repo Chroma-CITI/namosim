@@ -8,7 +8,6 @@ Subpackages
    :maxdepth: 4
 
    namosim.behaviors.algorithms
-   namosim.behaviors.plan
 
 Submodules
 ----------

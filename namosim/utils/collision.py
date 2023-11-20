@@ -5,7 +5,7 @@ import shapely.affinity as affinity
 from aabbtree import AABB, AABBTree
 from shapely.geometry import MultiPoint, Point
 
-import namosim.behaviors.plan.basic_actions as ba
+import namosim.navigation.basic_actions as ba
 from namosim.utils import utils
 
 

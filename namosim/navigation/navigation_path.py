@@ -1,5 +1,11 @@
-from namosim.behaviors.plan import basic_actions as ba
-from namosim.behaviors.plan.conflict import (
+import typing as t
+
+from shapely import GeometryCollection, Polygon
+
+from namosim.display.ros2_publisher import RosPublisher
+from namosim.models import PoseModel
+from namosim.navigation import basic_actions as ba
+from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
     RobotObstacleConflict,
     RobotRobotConflict,
@@ -12,8 +18,18 @@ from namosim.worldreps.entity_based.robot import Robot
 
 
 class Path:
+    """
+    Represents a sequence of entity poses and their associated geometries such as covered grid cells,
+    convex-swept volumes (CSVs) and bounding-box verticies.
+    """
+
     def __init__(
-        self, poses, polygons, cells=None, csv_polygons=None, bb_vertices=None
+        self,
+        poses: t.List[PoseModel],
+        polygons: t.List[Polygon],
+        cells: t.Optional[set[t.Tuple[int, int]]] = None,
+        csv_polygons: t.Optional[t.Dict[t.Tuple[int], GeometryCollection]] = None,
+        bb_vertices: t.Optional[t.List[t.List[t.Tuple[float, float]]]] = None,
     ):
         self.poses = poses
         self.polygons = polygons
@@ -22,36 +38,42 @@ class Path:
         self.bb_vertices = bb_vertices
 
     # TODO Have these trans and rot precision values be passed from calling functions !
-    def is_start_pose(self, pose, trans_mult=100.0, rot_mult=1.0):
-        fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(
-            pose, trans_mult, rot_mult
-        )
-        fixed_precision_self_pose = utils.real_pose_to_fixed_precision_pose(
+    def is_start_pose(
+        self, pose: PoseModel, trans_mult: float = 100.0, rot_mult: float = 1.0
+    ):
+        """
+        Returns `True` if the given pose is equivalen to the first pose in the path,
+        up to a fixed degree of precision, otherwise `False`.
+        """
+        other_pose = utils.real_pose_to_fixed_precision_pose(pose, trans_mult, rot_mult)
+        start_pose = utils.real_pose_to_fixed_precision_pose(
             self.poses[0], trans_mult, rot_mult
         )
-        return fixed_precision_pose == fixed_precision_self_pose
+        return other_pose == start_pose
 
 
 class TransferPath:
+    """
+    Represents a sequence of configurations in which a robot moves (transfers) a particular obstacle.
+    """
+
     def __init__(
         self,
-        robot_path,
-        obstacle_path,
-        actions,
-        grab_action,
-        release_action,
-        obstacle_uid,
-        manip_pose_id,
-        phys_cost=None,
-        social_cost=0.0,
-        weight=1.0,
+        robot_path: Path,
+        obstacle_path: Path,
+        actions: t.List[ba.BasicAction],
+        grab_action: ba.Grab,
+        release_action: ba.Release,
+        obstacle_uid: int,
+        manip_pose_id: int,
+        phys_cost: t.Optional[float] = None,
+        social_cost: float = 0.0,
+        weight: float = 1.0,
     ):
         self.robot_path = robot_path
         self.obstacle_path = obstacle_path
-
         self.obstacle_uid = obstacle_uid
         self.manip_pose_id = manip_pose_id
-
         self.phys_cost = (
             phys_cost
             if phys_cost is not None
@@ -688,7 +710,7 @@ class TransferPath:
 
         return conflicts
 
-    def pop_next_step(self):
+    def pop_next_action(self):
         action = self.actions[self.action_index]
         self.action_index += 1
         return action
@@ -802,7 +824,7 @@ class TransitPath:
         apply_strict_horizon=False,
         exit_early_for_any_conflict=False,
         exit_early_only_for_long_term_conflicts=True,
-        rp=None,
+        rp: RosPublisher = None,
         robot_name="",
     ):
         if not self.actions:
@@ -980,7 +1002,7 @@ class TransitPath:
         )
         return conflicts
 
-    def pop_next_step(self):
+    def pop_next_action(self):
         action = self.actions[self.action_index]
         self.action_index += 1
         return action
@@ -1012,9 +1034,9 @@ class EvasionTransitPath(TransitPath):
         self.transit_configuration_after_release = transit_configuration_after_release
         self.release_executed = False
 
-    def pop_next_step(self):
+    def pop_next_action(self):
         if self.transit_configuration_after_release and not self.release_executed:
             self.release_executed = True
             return self.transit_configuration_after_release.action
         else:
-            return TransitPath.pop_next_step(self)
+            return TransitPath.pop_next_action(self)

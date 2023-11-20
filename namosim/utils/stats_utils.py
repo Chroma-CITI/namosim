@@ -1,6 +1,6 @@
 import namosim.utils.connectivity as connectivity
-from namosim.behaviors.plan.action_result import ActionSuccess
 from namosim.display.ros2_publisher import RosPublisher
+from namosim.navigation.action_result import ActionSuccess
 from namosim.utils import utils
 from namosim.utils.utils import euclidean_distance
 from namosim.worldreps.entity_based.world import World
