@@ -3,6 +3,7 @@ from namosim.behaviors.plan.action_result import ActionSuccess
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.utils import utils
 from namosim.utils.utils import euclidean_distance
+from namosim.worldreps.entity_based.world import World
 from namosim.worldreps.occupation_based.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
@@ -86,7 +87,9 @@ def get_transit_transfer_ratio(actions_results):
         return float("inf")
 
 
-def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
+def get_connectivity_stats(
+    world, inflation_radius, entities_to_ignore, ros_publisher: RosPublisher
+):
     polygons = {
         uid: e.polygon
         for uid, e in world.entities.items()
@@ -103,7 +106,7 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
     )
     connected_components = ccs_data.ccs
     connected_components_grid = ccs_data.grid
-    RosPublisher().publish_connected_components_grid(
+    ros_publisher.publish_connected_components_grid(
         connected_components_grid, world.discretization_data.res, ns="simulation"
     )
 
@@ -126,8 +129,7 @@ def get_connectivity_stats(world, inflation_radius, entities_to_ignore):
 
 
 def get_social_costs_stats(
-    world,
-    entities_to_compute_social_cost_for,
+    world: World, entities_to_compute_social_cost_for, ros_publisher: RosPublisher
 ):
     polygons = {
         uid: e.polygon
@@ -140,7 +142,11 @@ def get_social_costs_stats(
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
     )
     abs_social_costmap = compute_social_costmap(
-        occ_grid.grid, occ_grid.res, log_costmaps=False, ns="simulation"
+        occ_grid.grid,
+        occ_grid.res,
+        log_costmaps=False,
+        ns="simulation",
+        ros_publisher=ros_publisher,
     )
 
     absolute_social_cost = 0.0

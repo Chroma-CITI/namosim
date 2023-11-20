@@ -11,6 +11,7 @@ def check_new_local_opening(
     other_entities_aabb_tree,
     inflation_radius,
     goal_pose,
+    ros_publisher: RosPublisher,
     init_blocking_areas=None,
     init_entity_inflated_polygon=None,
     ns="",
@@ -34,7 +35,7 @@ def check_new_local_opening(
     ):
         return False, init_blocking_areas, init_entity_inflated_polygon
 
-    RosPublisher().publish_diameter_inflated_polygons(
+    ros_publisher.publish_diameter_inflated_polygons(
         init_entity_inflated_polygon, target_entity_inflated_polygon, ns=ns
     )
 
@@ -85,7 +86,7 @@ def check_new_local_opening(
                 for sub_intersection_geometry in intersection_geometry.geoms:
                     target_blocking_areas.append(sub_intersection_geometry)
 
-    RosPublisher().publish_blocking_areas(
+    ros_publisher.publish_blocking_areas(
         init_blocking_areas, target_blocking_areas, ns=ns
     )
 

@@ -240,6 +240,7 @@ def voronoi_skeleton(entities, entities_to_ignore=tuple()):
 def compute_social_costmap(
     binary_occ_grid,
     res,
+    ros_publisher: RosPublisher,
     neighborhood=utils.TAXI_NEIGHBORHOOD,
     skeleton_function=skeleteton_social_cost_function_02,
     decay_function=exp_decay_function,
@@ -326,7 +327,7 @@ def compute_social_costmap(
             distance_transformed_grid.max() * res,
         )
 
-    RosPublisher().publish_social_grid_map(final_array, res, ns=ns)
+    ros_publisher.publish_social_grid_map(final_array, res, ns=ns)
     # time.sleep(3.0)
 
     cur_set = skeleton_cell_set
@@ -382,7 +383,7 @@ def compute_social_costmap(
         prev_set = cur_set
         cur_set = next_set
 
-        RosPublisher().publish_social_grid_map(final_array, res, ns=ns)
+        ros_publisher.publish_social_grid_map(final_array, res, ns=ns)
 
     # prev_set = skeleton_cell_set
     # cur_set = utils.get_set_neighbors_no_coll(skeleton_cell_set, binary_occ_grid, neighborhood)
@@ -428,6 +429,7 @@ class SocialTopologicalOccupationCostGrid:
         res,
         grid_pose,
         inflation_radius,
+        ros_publisher: RosPublisher,
         skeleton_function=skeleteton_social_cost_function,
         decay_function=exp_decay_function,
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -444,11 +446,13 @@ class SocialTopologicalOccupationCostGrid:
         self.ns = ns
         self._grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
         self._update_grid()
+        self.ros_publisher = ros_publisher
 
     @classmethod
     def from_binary_occ_grid(
         cls,
         binary_occ_grid,
+        ros_publisher: RosPublisher,
         skeleton_function=skeleteton_social_cost_function,
         decay_function=exp_decay_function,
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -461,6 +465,7 @@ class SocialTopologicalOccupationCostGrid:
             binary_occ_grid.res,
             binary_occ_grid.grid_pose,
             binary_occ_grid.inflation_radius,
+            ros_publisher=ros_publisher,
             skeleton_function=skeleton_function,
             decay_function=decay_function,
             neighborhood=neighborhood,
@@ -476,7 +481,12 @@ class SocialTopologicalOccupationCostGrid:
     #
 
     def _update_grid(self):
-        self._grid = compute_social_costmap(self.occupation_grid, self.res, ns=self.ns)
+        self._grid = compute_social_costmap(
+            binary_occ_grid=self.occupation_grid,
+            res=self.res,
+            ros_publisher=self.ros_publisher,
+            ns=self.ns,
+        )
 
     def get_grid(self):
         return self._grid

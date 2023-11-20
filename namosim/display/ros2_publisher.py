@@ -26,9 +26,9 @@ from rclpy.publisher import Publisher
 from rclpy.qos import QoSProfile
 from rclpy.qos_event import PublisherEventCallbacks
 from rclpy.qos_overriding_options import QoSOverridingOptions
+from rclpy.utilities import ok  # noqa: F401 forwarding to this module
 from shapely import affinity
 from shapely.geometry import Polygon
-from six import with_metaclass
 from std_msgs.msg import (
     ColorRGBA,
     Float32MultiArray,
@@ -45,7 +45,6 @@ from namosim.behaviors.plan.plan import Plan
 from namosim.display import tf_replacement
 from namosim.models import PoseModel, SimulationModel
 from namosim.utils import utils
-from namosim.utils.singleton import Singleton
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
 from namosim.worldreps.entity_based.world import World
@@ -68,6 +67,10 @@ class NamespaceCache:
 
 class MyNode(Node):
     def __init__(self, node_name: str):
+        # Shutdown the ROS Context if it is already running.
+        # This is necessary when running multiple unit tests since each may create their own context.
+        if ok():
+            rclpy.shutdown()
         rclpy.init(args=None)
         super().__init__(node_name=node_name)
 
@@ -789,7 +792,7 @@ class PlanObserver(RosObserver):
         RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
 
 
-class RosPublisher(with_metaclass(Singleton)):  # noqa: F821
+class RosPublisher:  # noqa: F821
     def __init__(
         self,
         node_name: str,
@@ -970,11 +973,13 @@ class RosPublisher(with_metaclass(Singleton)):  # noqa: F821
         )
         self.observers[costmap_topic].update(world=world, robot_uid=robot_uid)
 
-    def cleanup_robot_world(self, ns=""):
+    def cleanup_robot_world(self, ns: str = ""):
         world_topic = self.prefix + "/" + ns + cfg.robot_knowledge_topic
-        self.observers[world_topic].reset()
+        if world_topic in self.observers:
+            self.observers[world_topic].reset()
         costmap_topic = self.prefix + "/" + ns + cfg.robot_costmap_topic
-        self.observers[costmap_topic].reset()
+        if costmap_topic in self.observers:
+            self.observers[costmap_topic].reset()
 
     # endregion
 

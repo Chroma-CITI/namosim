@@ -16,7 +16,6 @@ class Plan:
         self.social_cost = 0.0
         self.total_cost = 0.0
         self.plan_error = plan_error
-
         self.component_index = 0
 
         if path_components:

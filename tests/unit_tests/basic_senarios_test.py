@@ -28,6 +28,23 @@ class BasicTest(unittest.TestCase):
             == "Agent robot_0 finished executing all its goals."
         )
 
+    def test_multi_robot(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "multi_robot/multi_robot_sim.json"
+            )
+        )
+        sim.run()
+        assert (
+            sim.simulation_log[7].message
+            == "Agent robot_0 finished executing all its goals."
+        )
+        assert (
+            sim.simulation_log[9].message
+            == "Agent robot_1 finished executing all its goals."
+        )
+        assert True
+
 
 if __name__ == "__main__":
     unittest.main()

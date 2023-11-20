@@ -23,6 +23,7 @@ from namosim.behaviors.plan.conflict import (
 )
 from namosim.behaviors.plan.path import EvasionTransitPath, TransferPath, TransitPath
 from namosim.behaviors.plan.plan import Plan
+from namosim.display.ros2_publisher import RosPublisher
 from namosim.models import StilmanBehaviorConfigModel
 from namosim.utils import utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
@@ -342,6 +343,7 @@ class Stilman2005Behavior(BaselineBehavior):
         navigation_goals,
         behavior_config: StilmanBehaviorConfigModel,
         abs_path_to_logs_dir,
+        ros_publisher: RosPublisher,
     ):
         BaselineBehavior.__init__(
             self,
@@ -350,6 +352,7 @@ class Stilman2005Behavior(BaselineBehavior):
             navigation_goals,
             behavior_config,
             abs_path_to_logs_dir,
+            ros_publisher=ros_publisher,
         )
 
         # Configuration parameters
@@ -531,6 +534,7 @@ class Stilman2005Behavior(BaselineBehavior):
             self._social_costmap = stocg.compute_social_costmap(
                 self.static_obs_grid.grid,
                 self._world.discretization_data.res,
+                ros_publisher=self._rp,
                 log_costmaps=self.activate_grids_logging,
                 abs_path_to_logs_dir=self.abs_path_to_logs_dir,
                 ns=self._robot_name,
@@ -3085,9 +3089,10 @@ class Stilman2005Behavior(BaselineBehavior):
                 other_entities_aabb_tree,
                 inflated_grid_by_robot_max.inflation_radius,
                 goal_pose,
-                init_blocking_areas,
-                init_entity_inflated_polygon,
-                robot_name,
+                ros_publisher=self._rp,
+                init_blocking_areas=init_blocking_areas,
+                init_entity_inflated_polygon=init_entity_inflated_polygon,
+                ns=robot_name,
             )
         else:
             has_new_local_opening = True
@@ -3679,9 +3684,9 @@ class Stilman2005Behavior(BaselineBehavior):
         normalized_distance_to_goal=None,
     ):
         stocg.display_or_log(
-            np.invert(inflated_grid_by_obstacle.grid.astype(bool)),
-            "-obs_inf_grid",
-            time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+            grid=np.invert(inflated_grid_by_obstacle.grid.astype(bool)),
+            suffix="-obs_inf_grid",
+            start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False,
             log_costmaps=True,
             abs_path_to_logs_dir=self.abs_path_to_logs_dir,
@@ -3709,26 +3714,26 @@ class Stilman2005Behavior(BaselineBehavior):
                 ] = normalized_distance_to_goal[i]
 
         stocg.display_or_log(
-            normalized_social_cost_costmap,
-            "-n_social_costmap",
-            time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+            grid=normalized_social_cost_costmap,
+            suffix="-n_social_costmap",
+            start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False,
             log_costmaps=True,
             abs_path_to_logs_dir=self.abs_path_to_logs_dir,
         )
         stocg.display_or_log(
-            normalized_distance_from_obs_costmap,
-            "-n_d_to_obs_costmap",
-            time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+            grid=normalized_distance_from_obs_costmap,
+            suffix="-n_d_to_obs_costmap",
+            start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False,
             log_costmaps=True,
             abs_path_to_logs_dir=self.abs_path_to_logs_dir,
         )
         if normalized_distance_to_goal is not None:
             stocg.display_or_log(
-                normalized_distance_from_goal_costmap,
-                "-n_d_to_goal_costmap",
-                time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+                grid=normalized_distance_from_goal_costmap,
+                suffix="-n_d_to_goal_costmap",
+                start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
                 debug_display=False,
                 log_costmaps=True,
                 abs_path_to_logs_dir=self.abs_path_to_logs_dir,
@@ -3740,9 +3745,9 @@ class Stilman2005Behavior(BaselineBehavior):
         for cell, combined_cost in sorted_cell_to_combined_cost.items():
             combined_costmap[cell[0]][cell[1]] = combined_cost
         stocg.display_or_log(
-            combined_costmap,
-            "-combined_costmap",
-            time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+            grid=combined_costmap,
+            suffix="-combined_costmap",
+            start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False,
             log_costmaps=True,
             abs_path_to_logs_dir=self.abs_path_to_logs_dir,

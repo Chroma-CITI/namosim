@@ -3,10 +3,12 @@ Function extracted from tf_conversions library.
 """
 
 import math
+import typing as t
+
 import numpy
 
 # map axes strings to/from tuples of inner axis, parity, repetition, frame
-_AXES2TUPLE = {
+_AXES2TUPLE: t.Dict[str, t.Tuple[int, int, int, int]] = {
     "sxyz": (0, 0, 0, 0),
     "sxyx": (0, 0, 1, 0),
     "sxzy": (0, 1, 0, 0),
@@ -33,13 +35,15 @@ _AXES2TUPLE = {
     "rzyz": (2, 1, 1, 1),
 }
 
-_TUPLE2AXES = dict((v, k) for k, v in _AXES2TUPLE.items())
+_TUPLE2AXES: t.Dict[t.Tuple[int, int, int, int], str] = dict(
+    (v, k) for k, v in _AXES2TUPLE.items()
+)
 
 # axis sequences for Euler angles
 _NEXT_AXIS = [1, 2, 0, 1]
 
 
-def quaternion_from_euler(ai, aj, ak, axes="sxyz"):
+def quaternion_from_euler(ai: float, aj: float, ak: float, axes: str = "sxyz"):
     """Return quaternion from Euler angles and axis sequence.
 
     ai, aj, ak : Euler's roll, pitch and yaw angles
@@ -50,11 +54,7 @@ def quaternion_from_euler(ai, aj, ak, axes="sxyz"):
     True
 
     """
-    try:
-        firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
-    except (AttributeError, KeyError):
-        _ = _TUPLE2AXES[axes]
-        firstaxis, parity, repetition, frame = axes
+    firstaxis, parity, repetition, frame = _AXES2TUPLE[axes.lower()]
 
     i = firstaxis
     j = _NEXT_AXIS[i + parity]
