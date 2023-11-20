@@ -2,7 +2,7 @@ default:
   image: osrf/ros:iron-desktop-full
   tags:
     - ci.inria.fr
-    - small
+    - medium
     - linux
 
 stages:
