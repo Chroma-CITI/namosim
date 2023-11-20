@@ -1,0 +1,105 @@
+{
+  "discretization_data": {
+    "cost_possibly_nonfree": 10,
+    "cost_circumscribed": 20,
+    "res": 0.1,
+    "inflation_radius": 0.0,
+    "cost_inscribed": 50,
+    "cost_lethal": 100
+  },
+  "files": {
+    "geometry_file": "./multi_robot.svg"
+  },
+  "geometry_scale": 0.01,
+  "things": {
+    "zones": {
+      "goals": [
+        {
+          "geometry": {
+            "orientation_id": "robot_0_goal_0_direction",
+            "from": "file",
+            "id": "robot_0_goal_0_shape"
+          },
+          "name": "robot_0_goal_0"
+        },
+        {
+          "geometry": {
+            "orientation_id": "robot_1_goal_0_direction",
+            "from": "file",
+            "id": "robot_1_goal_0_shape"
+          },
+          "name": "robot_1_goal_0"
+        }
+      ]
+    },
+    "entities": [
+      {
+        "name": "robot_0",
+        "force_pushes_only": true,
+        "geometry": {
+          "orientation_id": "robot_0_direction",
+          "from": "file",
+          "id": "robot_0_shape"
+        },
+        "push_only_list": ["stool", "box", "chair"],
+        "sensors": [
+          {
+            "type": "omniscient"
+          }
+        ],
+        "type": "robot",
+        "movable_whitelist": ["stool", "box", "chair"]
+      },
+      {
+        "name": "robot_1",
+        "force_pushes_only": true,
+        "geometry": {
+          "orientation_id": "robot_1_direction",
+          "from": "file",
+          "id": "robot_1_shape"
+        },
+        "push_only_list": ["stool", "box", "chair"],
+        "sensors": [
+          {
+            "type": "omniscient"
+          }
+        ],
+        "type": "robot",
+        "movable_whitelist": ["stool", "box", "chair"]
+      },
+      {
+        "geometry": {
+          "from": "file",
+          "id": "wall_top_left"
+        },
+        "name": "wall_top_left",
+        "type": "wall"
+      },
+      {
+        "geometry": {
+          "from": "file",
+          "id": "wall_top_right"
+        },
+        "name": "wall_top_right",
+        "type": "wall"
+      },
+      {
+        "geometry": {
+          "from": "file",
+          "id": "wall_bottom"
+        },
+        "name": "wall_bottom",
+        "type": "wall"
+      },
+      {
+        "geometry": {
+          "from": "file",
+          "id": "movable_box"
+        },
+        "name": "movable_box",
+        "type": "box"
+      }
+    ]
+  },
+  "no_scaling_workaround": true
+}
