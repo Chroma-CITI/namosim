@@ -3,6 +3,7 @@ import typing as t
 from pydantic import BaseModel
 
 PoseModel = t.Tuple[float, float, float]
+FixedPrecisionPoseModel = t.Tuple[int, int, int]
 
 
 class NavigationGoalModel(BaseModel):

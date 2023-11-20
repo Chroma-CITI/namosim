@@ -35,7 +35,7 @@ class Path:
         self.polygons = polygons
         self.cells = cells
         self.csv_polygons = csv_polygons
-        self.bb_vertices = bb_vertices
+        self.bb_vertices = bb_vertices or []
 
     # TODO Have these trans and rot precision values be passed from calling functions !
     def is_start_pose(
@@ -90,102 +90,6 @@ class TransferPath:
         self.release_action = release_action
         self.actions = actions
         self.action_index = 0
-
-    @classmethod
-    def from_configurations(
-        cls,
-        prev_transit_end_configuration,
-        next_transit_start_configuration,
-        transfer_configurations,
-        obstacle_uid,
-        phys_cost=None,
-        social_cost=0.0,
-        weight=1.0,
-    ):
-        if not transfer_configurations:
-            return None
-
-        manip_pose_id = transfer_configurations[0].manip_pose_id
-
-        actions = [
-            configuration.action
-            for configuration in transfer_configurations
-            if configuration.action
-        ]
-        grab_action = actions[0] if prev_transit_end_configuration else None
-        release_action = next_transit_start_configuration.action
-        actions.append(release_action)
-
-        robot_poses = [
-            configuration.robot.floating_point_pose
-            for configuration in transfer_configurations
-        ]
-        robot_poses.append(next_transit_start_configuration.floating_point_pose)
-        robot_polygons = [
-            configuration.robot.polygon for configuration in transfer_configurations
-        ]
-        robot_polygons.append(next_transit_start_configuration.polygon)
-        robot_csv_polygons = {
-            (i + 1,): config.robot.csv_polygon
-            for i, config in enumerate(transfer_configurations)
-        }
-        robot_csv_polygons[
-            (len(transfer_configurations),)
-        ] = next_transit_start_configuration.csv_polygon
-        robot_bb_vertices = [
-            config.robot.bb_vertices for config in transfer_configurations
-        ]
-        robot_bb_vertices.append(next_transit_start_configuration.bb_vertices)
-        if prev_transit_end_configuration:
-            robot_poses.insert(0, prev_transit_end_configuration.floating_point_pose)
-            robot_polygons.insert(0, prev_transit_end_configuration.polygon)
-            robot_csv_polygons[(0,)] = prev_transit_end_configuration.csv_polygon
-            robot_bb_vertices.insert(0, prev_transit_end_configuration.bb_vertices)
-
-        robot_path = Path(
-            poses=robot_poses,
-            polygons=robot_polygons,
-            csv_polygons=robot_csv_polygons,
-            bb_vertices=robot_bb_vertices,
-        )
-
-        obstacle_path = Path(
-            poses=[
-                configuration.obstacle.floating_point_pose
-                for configuration in transfer_configurations
-            ],
-            polygons=[
-                configuration.obstacle.polygon
-                for configuration in transfer_configurations
-            ],
-            csv_polygons={
-                (i + 1,): config.obstacle.csv_polygon
-                for i, config in enumerate(transfer_configurations)
-            },
-            bb_vertices=[
-                config.obstacle.bb_vertices for config in transfer_configurations
-            ],
-        )
-        obstacle_path.poses.append(obstacle_path.poses[-1])
-        obstacle_path.polygons.append(obstacle_path.polygons[-1])
-        obstacle_path.bb_vertices.append([])
-        if prev_transit_end_configuration:
-            obstacle_path.poses.insert(0, obstacle_path.poses[0])
-            obstacle_path.polygons.insert(0, obstacle_path.polygons[0])
-            obstacle_path.bb_vertices.insert(0, [])
-
-        return cls(
-            robot_path,
-            obstacle_path,
-            actions,
-            grab_action,
-            release_action,
-            obstacle_uid,
-            manip_pose_id,
-            phys_cost,
-            social_cost,
-            weight,
-        )
 
     def has_infinite_cost(self):
         return True if self.total_cost == float("inf") else False
