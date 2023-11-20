@@ -85,8 +85,7 @@ Visualization Manager:
               Enabled: true
               Name: Reference world
               Namespaces:
-                /robot/polygon: true
-                obstacles/polygon: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -168,10 +167,7 @@ Visualization Manager:
               Enabled: true
               Name: conflicts_check
               Namespaces:
-                /transfer_horizon_csv_polygons: true
-                /transit_conflicting_cells: true
-                /transit_conflicting_entities_cells: true
-                /transit_horizon_cells: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -183,7 +179,7 @@ Visualization Manager:
               Enabled: true
               Name: goal
               Namespaces:
-                /polygon: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -195,8 +191,7 @@ Visualization Manager:
               Enabled: true
               Name: knowledge
               Namespaces:
-                /robot/polygon: true
-                obstacles/polygon: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -325,8 +320,7 @@ Visualization Manager:
               Enabled: true
               Name: plan
               Namespaces:
-                /end_obstacles: true
-                /plan: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -365,10 +359,7 @@ Visualization Manager:
               Enabled: true
               Name: sim
               Namespaces:
-                /rch_came_from: true
-                /rch_close_set: true
-                /rch_current_cell: true
-                /rch_current_cell_neighbors: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -608,7 +599,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.0547964945435524
+      Pitch: 0.4797963798046112
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz_default_plugins)
       Yaw: 5.987405300140381
@@ -629,5 +620,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1908
-  X: 23
-  Y: -33
+  X: 0
+  Y: 0
