@@ -1,4 +1,5 @@
 import colorsys
+import typing as t
 
 from std_msgs.msg import ColorRGBA
 
@@ -27,7 +28,10 @@ def hex_to_rgba(hex_string_in: str):
 
 
 def generate_equally_spread_hues(
-    nb_colors, saturation=1.0, brightness=1.0, transparency=0.5
+    nb_colors: int,
+    saturation: float = 1.0,
+    brightness: float = 1.0,
+    transparency: float = 0.5,
 ):
     hsv_tuples = [
         (hue, saturation, brightness) for hue in generate_intervals_values(nb_colors)
@@ -38,7 +42,10 @@ def generate_equally_spread_hues(
 
 
 def generate_equally_spread_ros_colors(
-    nb_colors, saturation=1.0, brightness=1.0, transparency=0.5
+    nb_colors: int,
+    saturation: float = 1.0,
+    brightness: float = 1.0,
+    transparency: float = 0.5,
 ):
     return [
         ColorRGBA(r=r, g=g, b=b, a=a)
@@ -48,7 +55,7 @@ def generate_equally_spread_ros_colors(
     ]
 
 
-def generate_intervals_values(nb_values):
+def generate_intervals_values(nb_values: int) -> t.List[float]:
     if nb_values == 0:
         return []
     elif nb_values == 1:
@@ -73,7 +80,7 @@ def generate_intervals_values(nb_values):
         return values
 
 
-def blend_colors(colorRGBA1, colorRGBA2):
+def blend_colors(colorRGBA1: ColorRGBA, colorRGBA2: ColorRGBA) -> ColorRGBA:
     alpha = 1.0 - ((1.0 - colorRGBA1.a) * (1.0 - colorRGBA2.a))
     red = colorRGBA1.r * (1.0 - colorRGBA2.a) + colorRGBA2.r * colorRGBA2.a
     green = colorRGBA1.g * (1.0 - colorRGBA2.a) + colorRGBA2.g * colorRGBA2.a
@@ -81,7 +88,7 @@ def blend_colors(colorRGBA1, colorRGBA2):
     return ColorRGBA(r=red, g=green, b=blue, a=alpha)
 
 
-def rgba_to_hex(r, g, b, a):
+def rgba_to_hex(r: float, g: float, b: float, a: float):
     return "#%02x%02x%02x%02x" % (
         int(a * 255),
         int(r * 255),
@@ -90,7 +97,7 @@ def rgba_to_hex(r, g, b, a):
     )
 
 
-def darken(hex_string, multiplier=0.8):
+def darken(hex_string: str, multiplier: float = 0.8):
     rgba_dict = hex_to_rgba(hex_string)
     hsv = colorsys.rgb_to_hsv(rgba_dict["r"], rgba_dict["g"], rgba_dict["b"])
     darker_v = min(1.0, max(0.0, hsv[2] * multiplier))

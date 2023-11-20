@@ -16,6 +16,7 @@ class BaselineBehavior(object):
         navigation_goals,
         behavior_config,
         abs_path_to_logs_dir,
+        ros_publisher: RosPublisher,
     ):
         self.simulation_log = utils.CustomLogger()
 
@@ -40,7 +41,7 @@ class BaselineBehavior(object):
 
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
 
-        self._rp = RosPublisher()
+        self._rp = ros_publisher
 
     def sense(self, ref_world, last_action_result, step_count):
         self._last_action_result = last_action_result

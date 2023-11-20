@@ -510,9 +510,10 @@ class Simulator:
                 for uid, entity in self.init_ref_world.entities.items()
                 if isinstance(entity, Robot)
             ],
+            ros_publisher=self.rp,
         )
         init_abs_social_cost = stats_utils.get_social_costs_stats(
-            self.init_ref_world, tuple(all_movables_uids)
+            self.init_ref_world, tuple(all_movables_uids), ros_publisher=self.rp
         )
 
         replay_world = copy.deepcopy(self.init_ref_world)
@@ -581,12 +582,14 @@ class Simulator:
                         if isinstance(entity, Robot)
                         or uid in replay_world.entity_to_agent.keys()
                     ],
+                    ros_publisher=self.rp,
                 )
                 end_abs_social_cost = stats_utils.get_social_costs_stats(
                     replay_world,
                     all_movables_uids.difference(
                         set(replay_world.entity_to_agent.keys())
                     ),
+                    ros_publisher=self.rp,
                 )
                 world_stats = WorldStepStats(
                     end_nb_cc,
@@ -755,6 +758,7 @@ class Simulator:
                         agent_navigation_goals,
                         behavior_config,
                         self.abs_path_to_logs_dir,
+                        ros_publisher=self.rp,
                     )
                 else:
                     raise NotImplementedError(
