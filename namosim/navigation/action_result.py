@@ -1,7 +1,7 @@
 import typing as t
 
-from namosim.behaviors.plan.basic_actions import BasicAction
 from namosim.models import PoseModel
+from namosim.navigation.basic_actions import BasicAction
 
 
 class ActionResult:

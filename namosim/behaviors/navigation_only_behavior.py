@@ -1,81 +1,10 @@
 import numpy as np
-from plan.basic_actions import GoalFailed, GoalsFinished, GoalSuccess
+from navigation.basic_actions import GoalFailed, GoalsFinished, GoalSuccess
 
-from namosim import utils
 from namosim.behaviors.algorithms.graph_search import real_to_grid_search_a_star
 from namosim.behaviors.baseline_behavior import BaselineBehavior
-
-
-class Path:
-    def __init__(
-        self, poses, polygons, cells=None, csv_polygons=None, bb_vertices=None
-    ):
-        self.poses = poses
-        self.polygons = polygons
-        self.cells = cells
-        self.csv_polygons = csv_polygons
-        self.bb_vertices = bb_vertices
-
-    # TODO Have these trans and rot precision values be passed from calling functions !
-    def is_start_pose(self, pose, trans_mult=100.0, rot_mult=1.0):
-        fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(
-            pose, trans_mult, rot_mult
-        )
-        fixed_precision_self_pose = utils.real_pose_to_fixed_precision_pose(
-            self.poses[0], trans_mult, rot_mult
-        )
-        return fixed_precision_pose == fixed_precision_self_pose
-
-
-class Plan:
-    def __init__(self, path_components=[], goal=None, robot_uid=None, plan_error=None):
-        self.path_components = path_components
-        self.goal = goal
-        self.robot_uid = robot_uid
-        self.phys_cost = 0.0
-        self.social_cost = 0.0
-        self.total_cost = 0.0
-        self.plan_error = plan_error
-
-        self.component_index = 0
-
-        if path_components:
-            for path in path_components:
-                self.phys_cost += path.phys_cost
-                self.social_cost += path.social_cost
-                self.total_cost += path.total_cost
-        else:
-            self.phys_cost = float("inf")
-            self.social_cost = float("inf")
-            self.total_cost = float("inf")
-
-    def append(self, future_plan):
-        self.path_components += future_plan.path_components
-        self.phys_cost += future_plan.phys_cost
-        self.social_cost += future_plan.social_cost
-        self.total_cost += future_plan.total_cost
-        return self
-
-    def has_infinite_cost(self):
-        return True if self.total_cost == float("inf") else False
-
-    def exists(self):
-        return bool(self.path_components)
-
-    def pop_next_step(self):
-        """
-        Get the next plan step to execute
-        :return: the action object to be executed if there is one, None if the plan is empty
-        :rtype: action or None
-        :except: if pop_next_step is called when the plan is fully executed
-        :exception: IndexError
-        """
-        current_component = self.path_components[self.component_index]
-        if current_component.is_fully_executed():
-            if self.component_index < len(self.path_components) - 1:
-                self.component_index += 1
-            current_component = self.path_components[self.component_index]
-        return current_component.pop_next_step()
+from namosim.navigation.navigation_path import Path
+from namosim.navigation.navigation_plan import Plan
 
 
 class NavigationOnlyBehavior(BaselineBehavior):
@@ -126,7 +55,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
                 )
 
             if not self._p_opt.is_empty():
-                next_step = self._p_opt.pop_next_step()
+                next_step = self._p_opt.pop_next_action()
                 return next_step
             elif self._p_opt.has_infinite_cost():
                 print(

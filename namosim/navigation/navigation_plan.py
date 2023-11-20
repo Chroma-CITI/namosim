@@ -1,14 +1,34 @@
 import copy
+import typing as t
+
+from typing_extensions import Self
 
 import namosim.utils.collision as collision
-from namosim.behaviors.plan.conflict import RobotObstacleConflict, StolenMovableConflict
-from namosim.behaviors.plan.path import EvasionTransitPath, TransferPath, TransitPath
+from namosim.display.ros2_publisher import RosPublisher
+from namosim.models import PoseModel
+from namosim.navigation.basic_actions import BasicAction
+from namosim.navigation.conflict import RobotObstacleConflict, StolenMovableConflict
+from namosim.navigation.navigation_path import (
+    EvasionTransitPath,
+    TransferPath,
+    TransitPath,
+)
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
+from namosim.worldreps.entity_based.world import World
+from namosim.worldreps.occupation_based.binary_occupancy_grid import (
+    BinaryInflatedOccupancyGrid,
+)
 
 
 class Plan:
-    def __init__(self, path_components=[], goal=None, robot_uid=None, plan_error=None):
+    def __init__(
+        self,
+        path_components: t.List[TransitPath | TransferPath] = [],
+        goal: t.Optional[PoseModel] = None,
+        robot_uid: t.Optional[int] = None,
+        plan_error: t.Optional[str] = None,
+    ):
         self.path_components = path_components
         self.goal = goal
         self.robot_uid = robot_uid
@@ -28,7 +48,7 @@ class Plan:
             self.social_cost = float("inf")
             self.total_cost = float("inf")
 
-    def append(self, future_plan):
+    def append(self, future_plan: Self):
         self.path_components += future_plan.path_components
         self.phys_cost += future_plan.phys_cost
         self.social_cost += future_plan.social_cost
@@ -43,15 +63,15 @@ class Plan:
 
     def get_conflicts(
         self,
-        world,
-        inflated_grid_by_robot,
-        step_count,
-        check_horizon=None,
-        apply_strict_horizon=False,
-        exit_early_for_any_conflict=False,
-        exit_early_only_for_long_term_conflicts=True,
-        rp=None,
-        robot_name="",
+        world: World,
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        step_count: int,
+        check_horizon: t.Optional[int] = None,
+        apply_strict_horizon: bool = False,
+        exit_early_for_any_conflict: bool = False,
+        exit_early_only_for_long_term_conflicts: bool = True,
+        rp: t.Optional[RosPublisher] = None,
+        robot_name: str = "",
     ):
         # Check validity of each component
         shared_horizon = check_horizon
@@ -161,7 +181,7 @@ class Plan:
                         rp=rp,
                         robot_name=robot_name,
                     )
-                elif isinstance(path, TransferPath):
+                else:
                     # If the previously checked path components are valid, we assume it leaves any manipulated
                     # obstacles in the right place so we don't check again:
                     # - We simply deactivate collisions with them from the world representation
@@ -188,8 +208,6 @@ class Plan:
 
                     # inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
                     inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
-                else:
-                    raise TypeError("Expected TransitPath or TransferPath instance.")
 
                 if exit_early_for_any_conflict and conflicts:
                     break
@@ -220,12 +238,12 @@ class Plan:
 
         return conflicts
 
-    def pop_next_step(self):
+    def pop_next_action(self) -> BasicAction:
         """
         Get the next plan step to execute
         :return: the action object to be executed if there is one, None if the plan is empty
         :rtype: action or None
-        :except: if pop_next_step is called when the plan is fully executed
+        :except: if pop_next_action is called when the plan is fully executed
         :exception: IndexError
         """
         current_component = self.path_components[self.component_index]
@@ -233,7 +251,7 @@ class Plan:
             if self.component_index < len(self.path_components) - 1:
                 self.component_index += 1
             current_component = self.path_components[self.component_index]
-        return current_component.pop_next_step()
+        return current_component.pop_next_action()
 
     def is_evading(self):
         return self.exists() and isinstance(

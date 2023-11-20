@@ -28,14 +28,6 @@ namosim.utils.conversion module
    :undoc-members:
    :show-inheritance:
 
-namosim.utils.singleton module
-------------------------------
-
-.. automodule:: namosim.utils.singleton
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 namosim.utils.stats\_analysis module
 ------------------------------------
 
