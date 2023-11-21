@@ -853,7 +853,7 @@ class Simulator:
                 last_action_result = (
                     self.history[-1].action_results[agent_uid]
                     if (self.history and agent_uid in self.history[-1].action_results)
-                    else ar.ActionSuccess
+                    else ar.ActionSuccess()
                 )
                 behavior.sense(self.ref_world, last_action_result, step_count)
                 sense_durations[agent_uid] = time.time() - sense_start
@@ -913,7 +913,9 @@ class Simulator:
                             step_count,
                         )
                     )
-                agent_uid_to_next_action[agent_uid] = agent_next_action
+
+                if agent_next_action:
+                    agent_uid_to_next_action[agent_uid] = agent_next_action
         return agent_uid_to_next_action
 
     def act(

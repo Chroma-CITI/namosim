@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 PoseModel = t.Tuple[float, float, float]
 FixedPrecisionPoseModel = t.Tuple[int, int, int]
+GridCellModel = t.Tuple[int, int]
+VertexModel = t.Tuple[float, float]
 
 
 class NavigationGoalModel(BaseModel):
@@ -36,18 +38,22 @@ class WuLevihnBehaviorParametersModel(BaseModel):
     use_social_layer: bool
 
 
-class WuLevihnBehaviorConfigModel(BaseModel):
+class BaseBehaviorConfigModel(BaseModel):
+    pass
+
+
+class WuLevihnBehaviorConfigModel(BaseBehaviorConfigModel):
     name: t.Literal["wu_levihn_2014_behavior"]
     navigation_goals: t.List[NavigationGoalModel]
     parameters: WuLevihnBehaviorParametersModel
 
 
-class NavigationOnlyBehaviorConfigModel(BaseModel):
+class NavigationOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
     name: t.Literal["navigation_only_behavior"]
     navigation_goals: t.List[NavigationGoalModel]
 
 
-class StilmanBehaviorConfigModel(BaseModel):
+class StilmanBehaviorConfigModel(BaseBehaviorConfigModel):
     name: t.Literal["stilman_2005_behavior"]
     navigation_goals: t.Optional[t.List[NavigationGoalModel]] = None
     parameters: StilmanBehaviorParametersModel
