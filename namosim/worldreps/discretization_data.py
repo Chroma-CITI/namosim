@@ -6,20 +6,23 @@
 #  from the class into a separate inflation_radius field and ProbabilisticInflationData class
 
 
+from namosim.models import PoseModel
+
+
 class DiscretizationData:
     def __init__(
         self,
-        res,
-        inflation_radius,
-        cost_lethal=1.0,
-        cost_inscribed=0.5,
-        cost_circumscribed=0.25,
-        cost_possibly_nonfree=0.10,
-        grid_pose=(0.0, 0.0, 0.0),
-        width=0.0,
-        height=0.0,
-        d_width=0,
-        d_height=0,
+        res: float,
+        inflation_radius: float,
+        cost_lethal: float = 1.0,
+        cost_inscribed: float = 0.5,
+        cost_circumscribed: float = 0.25,
+        cost_possibly_nonfree: float = 0.10,
+        grid_pose: PoseModel = (0.0, 0.0, 0.0),
+        width: float = 0.0,
+        height: float = 0.0,
+        d_width: int = 0,
+        d_height: int = 0,
     ):
         self.res = res
         self.inflation_radius = inflation_radius
@@ -53,10 +56,10 @@ class DiscretizationData:
     def __hash__(self):
         return hash(self.__key())
 
-    def __eq__(self, other):
+    def __eq__(self, other: object):
         if isinstance(other, DiscretizationData):
             return self.__key() == other.__key()
         return False
 
-    def __ne__(self, other):
+    def __ne__(self, other: object):
         return not self.__eq__(other)

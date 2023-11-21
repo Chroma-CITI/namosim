@@ -38,6 +38,7 @@ import namosim.display.ros_publisher_config as cfg
 from namosim.display.conversions import (
     costmap_to_grid_map,
     geom_quat_from_yaw,
+    init_header,
     make_delete_all_marker,
     plan_to_markerarray,
     polygon_to_line_strip,
@@ -113,10 +114,6 @@ class MyNode(Node):
             qos_overriding_options=qos_overriding_options,
             publisher_class=publisher_class,
         )
-
-
-def init_header(stamp: Time = Time()):
-    return Header(stamp=stamp, frame_id=cfg.main_frame_id)
 
 
 class RosObserver:
@@ -1513,6 +1510,9 @@ class RosPublisher:  # noqa: F821
             self.cleanup_social_grid_map(ns=ns)
             self.cleanup_combined_costmap(ns=ns)
             self.cleanup_conflicts_checks(ns=ns)
+
+    def init_header(self):
+        return Header(stamp=self.ros_node.get_timestamp(), frame_id="map")
 
     def grid_cells_to_cube_list_markers(
         self, grid_cells, res, grid_pose, color, z_index=-0.5, cube_list=None, ns=""

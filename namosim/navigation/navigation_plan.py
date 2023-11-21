@@ -7,7 +7,11 @@ import namosim.utils.collision as collision
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.models import PoseModel
 from namosim.navigation.basic_actions import BasicAction
-from namosim.navigation.conflict import RobotObstacleConflict, StolenMovableConflict
+from namosim.navigation.conflict import (
+    Conflict,
+    RobotObstacleConflict,
+    StolenMovableConflict,
+)
 from namosim.navigation.navigation_path import (
     EvasionTransitPath,
     TransferPath,
@@ -24,7 +28,7 @@ from namosim.worldreps.occupation_based.binary_occupancy_grid import (
 class Plan:
     def __init__(
         self,
-        path_components: t.List[TransitPath | TransferPath] = [],
+        path_components: t.List[t.Union[TransitPath, TransferPath]] = [],
         goal: t.Optional[PoseModel] = None,
         robot_uid: t.Optional[int] = None,
         plan_error: t.Optional[str] = None,
@@ -65,14 +69,13 @@ class Plan:
         self,
         world: World,
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        step_count: int,
+        rp: RosPublisher,
         check_horizon: t.Optional[int] = None,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
-        rp: t.Optional[RosPublisher] = None,
         robot_name: str = "",
-    ):
+    ) -> t.List[Conflict]:
         # Check validity of each component
         shared_horizon = check_horizon
         previously_moved_entities_uids = set()

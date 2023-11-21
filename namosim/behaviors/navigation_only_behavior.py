@@ -10,11 +10,12 @@ from namosim.navigation.navigation_plan import Plan
 class NavigationOnlyBehavior(BaselineBehavior):
     def __init__(
         self,
-        initial_world,
+        initial_world: World,
         robot_uid,
         navigation_goals,
         behavior_config,
-        abs_path_to_logs_dir,
+        logs_dir,
+        ros_publisher,
     ):
         BaselineBehavior.__init__(
             self,
@@ -22,7 +23,8 @@ class NavigationOnlyBehavior(BaselineBehavior):
             robot_uid,
             navigation_goals,
             behavior_config,
-            abs_path_to_logs_dir,
+            logs_dir,
+            ros_publisher=ros_publisher,
         )
 
     def think(self):

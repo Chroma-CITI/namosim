@@ -171,7 +171,7 @@ class SimultaneousSpaceAccess(RobotRobotConflict):
         )
 
 
-class RobotObstacleConflict:
+class RobotObstacleConflict(Conflict):
     def __init__(self, obstacle_uid):
         self.obstacle_uid = obstacle_uid
 

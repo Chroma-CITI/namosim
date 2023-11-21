@@ -6,6 +6,7 @@ import typing as t
 from collections import OrderedDict
 
 import numpy as np
+import numpy.typing as npt
 from shapely import Polygon
 from shapely.geometry import Point
 
@@ -20,11 +21,14 @@ from namosim.behaviors.baseline_behavior import BaselineBehavior
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.models import (
     FixedPrecisionPoseModel,
+    GridCellModel,
     PoseModel,
     StilmanBehaviorConfigModel,
+    VertexModel,
 )
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
+    Conflict,
     RobotObstacleConflict,
     RobotRobotConflict,
     StolenMovableConflict,
@@ -39,6 +43,7 @@ from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
 from namosim.worldreps.entity_based.obstacle import Obstacle
 from namosim.worldreps.entity_based.robot import Robot
+from namosim.worldreps.entity_based.world import World
 from namosim.worldreps.occupation_based.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
@@ -49,8 +54,8 @@ class RCHConfiguration(object):
     def __init__(
         self,
         cell: t.Tuple[int, int],
-        first_obstacle_uid: str,
-        first_component_uid: str,
+        first_obstacle_uid: int,
+        first_component_uid: int,
     ):
         self.cell = cell
         self.first_obstacle_uid = first_obstacle_uid
@@ -79,9 +84,9 @@ class Configuration:
         polygon: Polygon,
         cell_in_grid: t.Tuple[int, int],
         fixed_precision_pose: FixedPrecisionPoseModel,
-        action: ba.BasicAction,
-        csv_polygon=None,
-        bb_vertices=None,
+        action: ba.BasicAction | None = None,
+        csv_polygon: Polygon | None = None,
+        bb_vertices: t.List[VertexModel] | None = None,
     ):
         self.floating_point_pose = floating_point_pose
         self.polygon = polygon
@@ -91,13 +96,15 @@ class Configuration:
         self.csv_polygon = csv_polygon
         self.bb_vertices = bb_vertices
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, graph_search.HeapNode):
             return self.fixed_precision_pose == other.element.fixed_precision_pose
         elif isinstance(other, tuple):
             return self.fixed_precision_pose == other
-        else:
+        elif isinstance(other, Configuration):
             return self.fixed_precision_pose == other.fixed_precision_pose
+        else:
+            raise Exception("Invalid comparison")
 
     def __hash__(self):
         return hash(self.fixed_precision_pose)
@@ -108,18 +115,18 @@ class RobotObstacleConfiguration(object):
         self,
         robot_floating_point_pose: PoseModel,
         robot_polygon: Polygon,
-        robot_cell_in_grid,
-        robot_fixed_precision_pose,
-        obstacle_floating_point_pose,
-        obstacle_polygon,
-        obstacle_cell_in_grid,
-        obstacle_fixed_precision_pose,
-        action=None,
-        manip_pose_id=None,
-        robot_csv_polygon=None,
-        robot_bb_vertices=None,
-        obstacle_csv_polygon=None,
-        obstacle_bb_vertices=None,
+        robot_cell_in_grid: GridCellModel,
+        robot_fixed_precision_pose: FixedPrecisionPoseModel,
+        obstacle_floating_point_pose: PoseModel,
+        obstacle_polygon: Polygon,
+        obstacle_cell_in_grid: GridCellModel,
+        obstacle_fixed_precision_pose: FixedPrecisionPoseModel,
+        action: ba.BasicAction | None = None,
+        manip_pose_id: int | None = None,
+        robot_csv_polygon: Polygon | None = None,
+        robot_bb_vertices: t.List[VertexModel] | None = None,
+        obstacle_csv_polygon: Polygon | None = None,
+        obstacle_bb_vertices: t.List[VertexModel] | None = None,
     ):
         self.robot = Configuration(
             robot_floating_point_pose,
@@ -202,17 +209,19 @@ class RobotObstacleConfiguration(object):
 
 
 class Timer:
-    def __init__(self, start_time=0, duration=0, is_running=False):
+    def __init__(
+        self, start_time: int = 0, duration: int = 0, is_running: bool = False
+    ):
         self.start_time = start_time
         self.duration = duration
         self.is_running = is_running
 
-    def start_timer(self, start_time, duration):
+    def start_timer(self, start_time: int, duration: int):
         self.start_time = start_time
         self.duration = duration
         self.is_running = True
 
-    def is_timer_over(self, current_time):
+    def is_timer_over(self, current_time: int):
         if current_time - self.start_time >= self.duration:
             self.is_running = False
             return True
@@ -242,27 +251,24 @@ class DynamicPlan(Plan):
 
         self.timer = Timer()
 
-    def was_last_step_success(self, w_t, last_action_result):
+    def was_last_step_success(self, w_t: World, last_action_result: ar.ActionResult):
         # TODO Check if robot state (position and grab) are coherent with next step's preconditions
         return isinstance(last_action_result, ar.ActionSuccess)
 
     def get_conflicts(
         self,
-        world,
-        inflated_grid_by_robot,
-        step_count,
-        check_horizon=None,
-        apply_strict_horizon=False,
-        exit_early_for_any_conflict=False,
-        exit_early_only_for_long_term_conflicts=True,
-        rp=None,
-        robot_name="",
+        world: World,
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        rp: RosPublisher,
+        check_horizon: int | None = None,
+        apply_strict_horizon: bool = False,
+        exit_early_for_any_conflict: bool = False,
+        exit_early_only_for_long_term_conflicts: bool = True,
+        robot_name: str = "",
     ):
-        conflicts = Plan.get_conflicts(
-            self,
-            world,
-            inflated_grid_by_robot,
-            step_count,
+        conflicts = super().get_conflicts(
+            world=world,
+            inflated_grid_by_robot=inflated_grid_by_robot,
             check_horizon=check_horizon,
             apply_strict_horizon=apply_strict_horizon,
             exit_early_for_any_conflict=exit_early_for_any_conflict,
@@ -273,7 +279,7 @@ class DynamicPlan(Plan):
         self.current_conflicts += conflicts
         return conflicts
 
-    def save_conflicts(self, step_count):
+    def save_conflicts(self, step_count: int):
         if self.current_conflicts:
             if step_count in self.conflicts_history:
                 self.conflicts_history[step_count] += self.current_conflicts
@@ -281,7 +287,7 @@ class DynamicPlan(Plan):
                 self.conflicts_history[step_count] = self.current_conflicts
         self.current_conflicts = []
 
-    def has_tries_remaining(self, nb_max_tries):
+    def has_tries_remaining(self, nb_max_tries: int):
         return self.plan_counter < nb_max_tries
 
     def can_even_be_found(self):
@@ -297,7 +303,13 @@ class DynamicPlan(Plan):
         return Plan.pop_next_action(self)
 
     def new_postpone(
-        self, t_min, t_max, step_count, conflicts, simulation_log, robot_name
+        self,
+        t_min: int,
+        t_max: int,
+        step_count: int,
+        conflicts: t.List[Conflict],
+        simulation_log: t.List[utils.BasicLog],
+        robot_name: str,
     ):
         if self.timer.is_running:
             if self.timer.is_timer_over(step_count):
@@ -339,7 +351,7 @@ class DynamicPlan(Plan):
     #     self.wait_counter = 0
     #     self.unpostponements_history.append(step_count)
 
-    def update_plan(self, plan, step_count):
+    def update_plan(self, plan: Plan, step_count: int):
         if step_count in self.plan_history:
             self.plan_history[step_count].append(plan)
         else:
@@ -358,22 +370,23 @@ class DynamicPlan(Plan):
 class Stilman2005Behavior(BaselineBehavior):
     def __init__(
         self,
-        initial_world,
-        robot_uid,
-        navigation_goals,
+        initial_world: World,
+        robot_uid: int,
+        navigation_goals: t.List[PoseModel],
         behavior_config: StilmanBehaviorConfigModel,
-        abs_path_to_logs_dir,
+        logs_dir: str,
         ros_publisher: RosPublisher,
     ):
         BaselineBehavior.__init__(
             self,
-            initial_world,
-            robot_uid,
-            navigation_goals,
-            behavior_config,
-            abs_path_to_logs_dir,
+            initial_world=initial_world,
+            robot_uid=robot_uid,
+            navigation_goals=navigation_goals,
+            behavior_config=behavior_config,
+            logs_dir=logs_dir,
             ros_publisher=ros_publisher,
         )
+        self._p_opt: DynamicPlan
 
         # Configuration parameters
         parameters = behavior_config.parameters
@@ -405,8 +418,7 @@ class Stilman2005Behavior(BaselineBehavior):
         )
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
-        self.robot_base_drive_type = "holonomic"
-        # self.robot_base_drive_type = "differential"
+        self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
         self.trans_mult = 1.0 / self._world.discretization_data.res * 10.0
         self.rot_mult = 1.0
 
@@ -432,7 +444,7 @@ class Stilman2005Behavior(BaselineBehavior):
         )
         self.activate_grids_logging = True  # not parameters["deactivate_grids_logging"]
 
-        if self.robot_base_drive_type == "differential":
+        if self.robot_base_drive_type == "differential":  # pyright: ignore[reportUnnecessaryComparison]
             self._trans_vectors = np.array(
                 [
                     (self.translation_unit_length, 0.0),
@@ -556,7 +568,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._world.discretization_data.res,
                 ros_publisher=self._rp,
                 log_costmaps=self.activate_grids_logging,
-                abs_path_to_logs_dir=self.abs_path_to_logs_dir,
+                logs_dir=self.logs_dir,
                 ns=self._robot_name,
             )
             self._rp.publish_social_grid_map(
@@ -569,7 +581,10 @@ class Stilman2005Behavior(BaselineBehavior):
     def are_all_goals_finished(self):
         return not self._navigation_goals and self._q_goal is None
 
-    def is_goal_success(self, q_r):
+    def is_goal_success(self, q_r: PoseModel):
+        if self._q_goal is None:
+            raise Exception("No goal has been set")
+
         return all(
             [
                 utils.is_close(
@@ -587,7 +602,12 @@ class Stilman2005Behavior(BaselineBehavior):
     def get_current_goal(self):
         return self._q_goal
 
-    def potential_deadlocks(self, current_conflicts, dynamic_plan, current_step):
+    def potential_deadlocks(
+        self,
+        current_conflicts: t.List[Conflict],
+        dynamic_plan: DynamicPlan,
+        current_step: int,
+    ):
         rr_conflicts = [
             conflict
             for conflict in current_conflicts
@@ -607,7 +627,9 @@ class Stilman2005Behavior(BaselineBehavior):
             )
         }
 
-    def sense(self, ref_world, last_action_result, step_count):
+    def sense(
+        self, ref_world: World, last_action_result: ar.ActionResult, step_count: int
+    ):
         # Update baseline world representation (polygons)
         BaselineBehavior.sense(self, ref_world, last_action_result, step_count)
 
@@ -621,7 +643,7 @@ class Stilman2005Behavior(BaselineBehavior):
             removed_polygons=self._removed_uids,
         )
 
-    def think(self):
+    def think(self) -> ba.BasicAction | None:
         if self._social_costmap is None:
             self.init_social_costmap()
 
@@ -630,7 +652,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._q_goal = self._navigation_goals.pop(
                     0
                 )  # TODO Stop popping goals, use an index
-                self._p_opt = DynamicPlan()
+                self._p_opt = DynamicPlan()  # pyright: ignore[reportIncompatibleMethodOverride]
                 self.goal_to_plans[self._q_goal] = self._p_opt
             else:
                 return ba.GoalsFinished()
@@ -662,7 +684,13 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return next_step
 
-    def is_goal_reached(self, q_t, q_f, pos_tol=0.05, ang_tol=0.1):
+    def is_goal_reached(
+        self,
+        q_t: PoseModel,
+        q_f: PoseModel,
+        pos_tol: float = 0.05,
+        ang_tol: float = 0.1,
+    ):
         return all(
             [
                 utils.is_close(q_t[0], q_f[0], rel_tol=pos_tol),
@@ -671,7 +699,7 @@ class Stilman2005Behavior(BaselineBehavior):
             ]
         )
 
-    def must_replan_now(self, conflicts):
+    def must_replan_now(self, conflicts: t.List[Conflict]):
         for conflict in conflicts:
             if isinstance(conflict, (StolenMovableConflict, RobotObstacleConflict)):
                 return True
@@ -679,23 +707,23 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def full_coordination_strategy(
         self,
-        w_t,
-        static_obs_inf_grid,
-        inflated_grid_by_robot,
-        robot_uid,
-        goal,
-        plan,
-        fov,
-        try_max,
-        t_min,
-        t_max,
-        pos_tol,
-        ang_tol,
-        neighborhood,
-        step_count,
-        trans_mult,
-        rot_mult,
-        action_space_reduction,
+        w_t: World,
+        static_obs_inf_grid: BinaryInflatedOccupancyGrid,
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        robot_uid: int,
+        goal: PoseModel,
+        plan: DynamicPlan,
+        fov: int,
+        try_max: int,
+        t_min: int,
+        t_max: int,
+        pos_tol: float,
+        ang_tol: float,
+        neighborhood: t.Sequence[GridCellModel],
+        step_count: int,
+        trans_mult: float,
+        rot_mult: float,
+        action_space_reduction: str,
     ):
         # If current robot pose is close enough to goal, return Success
         if self.is_goal_reached(w_t.entities[robot_uid].pose, goal, pos_tol, ang_tol):
@@ -760,10 +788,9 @@ class Stilman2005Behavior(BaselineBehavior):
                 )
 
             conflicts = plan.get_conflicts(
-                w_t,
-                inflated_grid_by_robot,
-                step_count,
-                fov,
+                world=w_t,
+                inflated_grid_by_robot=inflated_grid_by_robot,
+                check_horizon=fov,
                 rp=self._rp,
                 robot_name=self._robot_name,
             )
@@ -902,23 +929,23 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def replan(
         self,
-        w_t,
-        static_obs_inf_grid,
-        inflated_grid_by_robot,
-        robot_uid,
-        goal,
-        plan,
-        fov,
-        try_max,
-        t_min,
-        t_max,
-        pos_tol,
-        ang_tol,
-        neighborhood,
-        step_count,
-        trans_mult,
-        rot_mult,
-        action_space_reduction,
+        w_t: World,
+        static_obs_inf_grid: BinaryInflatedOccupancyGrid,
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        robot_uid: int,
+        goal: PoseModel,
+        plan: DynamicPlan,
+        fov: int,
+        try_max: int,
+        t_min: int,
+        t_max: int,
+        pos_tol: float,
+        ang_tol: float,
+        neighborhood: t.Sequence[GridCellModel],
+        step_count: int,
+        trans_mult: float,
+        rot_mult: float,
+        action_space_reduction: str,
     ):
         if not plan.has_tries_remaining(try_max):
             self.simulation_log.append(
@@ -975,10 +1002,9 @@ class Stilman2005Behavior(BaselineBehavior):
                 return ba.GoalFailed(goal)
             else:
                 conflicts = plan.get_conflicts(
-                    w_t,
-                    inflated_grid_by_robot,
-                    step_count,
-                    fov,
+                    world=w_t,
+                    inflated_grid_by_robot=inflated_grid_by_robot,
+                    check_horizon=fov,
                     rp=self._rp,
                     robot_name=self._robot_name,
                 )
@@ -1019,7 +1045,9 @@ class Stilman2005Behavior(BaselineBehavior):
                         # II - Compute plan (with conflicting dynamic obstacles as static)
                         # Get uids of conflicting robots and associated
                         conflicting_robots_uids = {
-                            conflict.other_robot_uid for conflict in conflicts
+                            conflict.other_robot_uid
+                            for conflict in conflicts
+                            if isinstance(conflict, RobotRobotConflict)
                         }
                         conflicting_transfered_obstacles_uids = {
                             w_t.entity_to_agent.inverse[uid]
@@ -1140,10 +1168,9 @@ class Stilman2005Behavior(BaselineBehavior):
                             )
 
                             conflicts = plan.get_conflicts(
-                                w_t,
-                                inflated_grid_by_robot,
-                                step_count,
-                                fov,
+                                world=w_t,
+                                inflated_grid_by_robot=inflated_grid_by_robot,
+                                check_horizon=fov,
                                 rp=self._rp,
                                 robot_name=self._robot_name,
                             )
@@ -1180,16 +1207,16 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def select_connect(
         self,
-        w_t,
-        static_obs_inf_grid,
-        inflated_grid_by_robot_max,
-        r_f,
-        trans_mult,
-        rot_mult,
-        ccs_data=None,
-        prev_list=set(),
-        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-        action_space_reduction="only_r_acc_then_c_1_x",
+        w_t: World,
+        static_obs_inf_grid: BinaryInflatedOccupancyGrid,
+        inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
+        r_f: PoseModel,
+        trans_mult: float,
+        rot_mult: float,
+        ccs_data: connectivity.CCSData | None = None,
+        prev_list: set[int] = set(),
+        neighborhood: t.Sequence[GridCellModel] = utils.CHESSBOARD_NEIGHBORHOOD,
+        action_space_reduction: str = "only_r_acc_then_c_1_x",
     ):
         """
         High Level Planner _select_connect (SC).
@@ -1384,17 +1411,19 @@ class Stilman2005Behavior(BaselineBehavior):
                 inflated_grid_by_robot_max.cells_sets_update(prev_cells_sets)
                 if not future_plan.plan_error:
                     tho_n = self.find_path(
-                        r_t,
-                        tho_m.robot_path.poses[0],
-                        w_t,
-                        inflated_grid_by_robot_max,
-                        robot.polygon,
+                        robot_pose=r_t,
+                        goal_pose=tho_m.robot_path.poses[0],
+                        w_t=w_t,
+                        inflated_grid_by_robot=inflated_grid_by_robot_max,
+                        robot_polygon=robot.polygon,
                     )
                     if not tho_n:
                         raise ValueError(
                             "It should not be possible not to find a transit path when the transfer path is found."
                         )
-                    plan_components = [tho_n, tho_m] if tho_n.actions else [tho_m]
+                    plan_components: t.List[TransitPath | TransferPath] = (
+                        [tho_n, tho_m] if tho_n.actions else [tho_m]
+                    )
                     return Plan(plan_components, r_f, self._robot_uid).append(
                         future_plan
                     )
@@ -1430,20 +1459,20 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def rch_get_neighbors(
         self,
-        current,
-        gscore,
-        close_set,
-        open_queue,
-        came_from,
-        static_obs_grid,
-        connected_components_grid,
-        inflated_robot_grid,
-        avoid_list,
-        prev_list,
-        g_function,
-        traversed_obstacles_ids,
-        forbidden_obstacles,
-        neighborhood=utils.TAXI_NEIGHBORHOOD,
+        current: RCHConfiguration,
+        gscore: t.Dict[RCHConfiguration, float],
+        close_set: t.Set[RCHConfiguration],
+        open_queue: graph_search.PriorityQueue,
+        came_from: t.Dict[RCHConfiguration, RCHConfiguration],
+        static_obs_grid: BinaryInflatedOccupancyGrid,
+        connected_components_grid: npt.NDArray[np.int_],
+        inflated_robot_grid: BinaryInflatedOccupancyGrid,
+        avoid_list: t.List[GridCellModel],
+        prev_list: t.Set[int],
+        g_function: t.Callable[[RCHConfiguration, RCHConfiguration, bool], float],
+        traversed_obstacles_ids: utils.OrderedSet,
+        forbidden_obstacles: t.Set[int],
+        neighborhood: t.Sequence[GridCellModel] = utils.TAXI_NEIGHBORHOOD,
     ):
         """
         Combined formulation from Stilman's thesis and his article.
@@ -1515,9 +1544,9 @@ class Stilman2005Behavior(BaselineBehavior):
                         )
                         if neighbor_cell_not_in_prev_component_nor_avoid_list_nor_in_init_obstacle:
                             neighbor = RCHConfiguration(
-                                neighbor_cell,
-                                current.first_obstacle_uid,
-                                neighbor_cell_component_uid,
+                                cell=neighbor_cell,
+                                first_obstacle_uid=current.first_obstacle_uid,
+                                first_component_uid=neighbor_cell_component_uid,
                             )
                         else:
                             # Either the neighbor tries to go back to robot acc. space, or in a (obs., comp.)
@@ -1561,9 +1590,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     + g_function(
                         current,
                         neighbor,
-                        is_transfer=inflated_robot_grid.grid[neighbor.cell[0]][
-                            neighbor.cell[1]
-                        ]
+                        inflated_robot_grid.grid[neighbor.cell[0]][neighbor.cell[1]]
                         > 0,
                     )
                 )
@@ -1667,7 +1694,11 @@ class Stilman2005Behavior(BaselineBehavior):
             inflated_robot_grid.grid_pose,
         )
 
-        def g_function(current, neighbor, is_transfer=False):
+        def g_function(
+            current: RCHConfiguration,
+            neighbor: RCHConfiguration,
+            is_transfer: bool = False,
+        ) -> float:
             dist = (
                 sqrt_of_2_times_res
                 if neighbor.cell
@@ -1682,7 +1713,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 1.0 if not is_transfer else self.transfer_coefficient
             )
 
-        def h_function(_c, _g):
+        def h_function(_c: RCHConfiguration, _g: RCHConfiguration) -> float:
             translation_cost = self.translation_factor * utils.euclidean_distance(
                 utils.grid_to_real(
                     _c.cell[0],
@@ -1697,7 +1728,11 @@ class Stilman2005Behavior(BaselineBehavior):
         traversed_obstacles_ids = utils.OrderedSet()
 
         def rch_get_neighbors_instance(
-            current, gscore, close_set, open_queue, came_from
+            current: RCHConfiguration,
+            gscore: t.Dict[RCHConfiguration, float],
+            close_set: t.Set[RCHConfiguration],
+            open_queue: graph_search.PriorityQueue,
+            came_from: t.Dict[RCHConfiguration, RCHConfiguration],
         ):
             return self.rch_get_neighbors(
                 current,
@@ -1716,7 +1751,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 neighborhood,
             )
 
-        def exit_condition(_current, _goal):
+        def exit_condition(_current: RCHConfiguration, _goal: RCHConfiguration) -> bool:
             return _current.cell == _goal.cell
 
         start = RCHConfiguration(
@@ -3710,7 +3745,7 @@ class Stilman2005Behavior(BaselineBehavior):
             start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False,
             log_costmaps=True,
-            abs_path_to_logs_dir=self.abs_path_to_logs_dir,
+            logs_dir=self.logs_dir,
         )
 
         normalized_social_cost_costmap = np.zeros(
@@ -3740,7 +3775,7 @@ class Stilman2005Behavior(BaselineBehavior):
             start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False,
             log_costmaps=True,
-            abs_path_to_logs_dir=self.abs_path_to_logs_dir,
+            logs_dir=self.logs_dir,
         )
         stocg.display_or_log(
             grid=normalized_distance_from_obs_costmap,
@@ -3748,7 +3783,7 @@ class Stilman2005Behavior(BaselineBehavior):
             start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False,
             log_costmaps=True,
-            abs_path_to_logs_dir=self.abs_path_to_logs_dir,
+            logs_dir=self.logs_dir,
         )
         if normalized_distance_to_goal is not None:
             stocg.display_or_log(
@@ -3757,7 +3792,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
                 debug_display=False,
                 log_costmaps=True,
-                abs_path_to_logs_dir=self.abs_path_to_logs_dir,
+                logs_dir=self.logs_dir,
             )
 
         combined_costmap = np.zeros(
@@ -3771,7 +3806,7 @@ class Stilman2005Behavior(BaselineBehavior):
             start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
             debug_display=False,
             log_costmaps=True,
-            abs_path_to_logs_dir=self.abs_path_to_logs_dir,
+            logs_dir=self.logs_dir,
         )
 
     def compute_evasion(
