@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "namosim"
-version = "0.0.1"
+version = "0.0.2"
 description = "NAMO and S-NAMO Algorithms and tools for robotics."
 authors = [
   "Benoit RENAULT <xia0ben-contact-pypi@littleroot.net>",
