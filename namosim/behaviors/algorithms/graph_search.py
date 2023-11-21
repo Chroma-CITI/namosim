@@ -21,6 +21,7 @@ Benoit Renault (benoit.renault@inria.fr)
 """
 
 import heapq
+import typing as t
 
 from namosim.utils import utils
 
@@ -61,7 +62,12 @@ class PriorityQueue:
         return bool(self.heap)
 
 
-def reconstruct_path(came_from, end, reverse=True):
+T = t.TypeVar("T")
+
+
+def reconstruct_path(
+    came_from: t.Dict[T, T], end: T, reverse: bool = True
+) -> t.List[T]:
     path = [end]
     current = end
     while current in came_from:
