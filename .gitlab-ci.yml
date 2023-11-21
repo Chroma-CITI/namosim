@@ -7,6 +7,7 @@ default:
 
 stages:
   - build-and-test
+  - release
 
 build-and-test-job:
   stage: build-and-test
@@ -32,5 +33,20 @@ pages:
   artifacts:
     paths:
       - public
+  only:
+    - main
+
+release:
+  stage: release
+  variables:
+    GL_TOKEN: $GL_TOKEN
+  script:
+    - apt-get update -y
+    - apt-get install -y swig curl ros-iron-tf2 ros-iron-grid-map
+    - curl -sSL https://install.python-poetry.org | python3 -
+    - export PATH="/root/.local/bin:$PATH"
+    - poetry install
+    - poetry run semantic-release version
+    - poetry run semantic-release publish
   only:
     - main
