@@ -2,6 +2,29 @@
 
 
 
+## v0.0.1 (2023-11-21)
+
+### Fix
+
+* fix: add more typings to behavior modules and fix rviz bug ([`6e21363`](https://gitlab.inria.fr/chroma/namo/namosim/-/commit/6e21363a387456fb02398b8683e78ca04e3ee4b5))
+
+* fix: add more typings to behavior modules and fix rviz bug ([`1796dc8`](https://gitlab.inria.fr/chroma/namo/namosim/-/commit/1796dc82a5b6b590de9011a51c6aee14b1256c9f))
+
+### Unknown
+
+* Merge branch &#39;dev&#39; into &#39;main&#39;
+
+Dev
+
+See merge request chroma/namo/namosim!36 ([`c0b94b3`](https://gitlab.inria.fr/chroma/namo/namosim/-/commit/c0b94b3c349ef5e6bf5d170050423ff7955914e1))
+
+* Merge branch &#39;db/typings&#39; into &#39;dev&#39;
+
+fix: add more typings to behavior modules and fix rviz bug
+
+See merge request chroma/namo/namosim!35 ([`1895e4d`](https://gitlab.inria.fr/chroma/namo/namosim/-/commit/1895e4d33a9de112425b17e671a70fced9cd09f9))
+
+
 ## v0.0.0 (2023-11-21)
 
 ### Unknown
