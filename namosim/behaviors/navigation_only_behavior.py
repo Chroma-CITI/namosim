@@ -5,16 +5,18 @@ from namosim.behaviors.algorithms.graph_search import real_to_grid_search_a_star
 from namosim.behaviors.baseline_behavior import BaselineBehavior
 from namosim.navigation.navigation_path import Path
 from namosim.navigation.navigation_plan import Plan
+from namosim.worldreps.entity_based.world import World
 
 
 class NavigationOnlyBehavior(BaselineBehavior):
     def __init__(
         self,
-        initial_world,
+        initial_world: World,
         robot_uid,
         navigation_goals,
         behavior_config,
-        abs_path_to_logs_dir,
+        logs_dir,
+        ros_publisher,
     ):
         BaselineBehavior.__init__(
             self,
@@ -22,7 +24,8 @@ class NavigationOnlyBehavior(BaselineBehavior):
             robot_uid,
             navigation_goals,
             behavior_config,
-            abs_path_to_logs_dir,
+            logs_dir,
+            ros_publisher=ros_publisher,
         )
 
     def think(self):

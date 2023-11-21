@@ -25,7 +25,7 @@ def display_or_log(
     start_time_str,
     debug_display=True,
     log_costmaps=True,
-    abs_path_to_logs_dir=abs_path_to_costmap_logs_dir,
+    logs_dir=abs_path_to_costmap_logs_dir,
 ):
     if debug_display or log_costmaps:
         if grid.dtype == np.float64:
@@ -48,7 +48,7 @@ def display_or_log(
             img.show()
         if log_costmaps:
             log_filename = os.path.join(
-                os.path.dirname(abs_path_to_logs_dir), start_time_str + suffix
+                os.path.dirname(logs_dir), start_time_str + suffix
             )
             counter = 0
             while os.path.isfile(
@@ -164,11 +164,11 @@ def skeleteton_social_cost_function_02(dist_in_cells, res=1.0):
 #     tikzplotlib.save("test.tex")
 
 
-def adaptive_lambda(v_skel_min, v_skel_max, max_dist_from_skell):
+def adaptive_lambda(v_skel_min: float, v_skel_max: float, max_dist_from_skell: float):
     return (v_skel_min / v_skel_max) ** max_dist_from_skell
 
 
-def exp_decay_function(cost, decay_factor):
+def exp_decay_function(cost: float, decay_factor: float):
     return cost * decay_factor
 
 
@@ -250,7 +250,7 @@ def compute_social_costmap(
     skeleton_transform_function=skimage_morph.thin,  # skimage_skeletonize,
     debug_display=False,
     log_costmaps=True,
-    abs_path_to_logs_dir=abs_path_to_costmap_logs_dir,
+    logs_dir=abs_path_to_costmap_logs_dir,
     skeleton_filepath=None,
     ns="",
 ):  # rel_path_to_costmap_logs_dir + "citi_saved_skeleton.png"):
@@ -265,7 +265,7 @@ def compute_social_costmap(
         start_time_str,
         debug_display,
         log_costmaps,
-        abs_path_to_logs_dir,
+        logs_dir,
     )
 
     # Apply distance transform to booleanized grid
@@ -276,7 +276,7 @@ def compute_social_costmap(
         start_time_str,
         debug_display,
         log_costmaps,
-        abs_path_to_logs_dir,
+        logs_dir,
     )
 
     # Apply skeleton transform to booleanized grid
@@ -291,7 +291,7 @@ def compute_social_costmap(
         start_time_str,
         debug_display,
         log_costmaps,
-        abs_path_to_logs_dir,
+        logs_dir,
     )
 
     # Extract the skeleton cells into two arrays of coordinates
@@ -316,7 +316,7 @@ def compute_social_costmap(
         start_time_str,
         debug_display,
         log_costmaps,
-        abs_path_to_logs_dir,
+        logs_dir,
     )
 
     # Compute adaptive lambda decay
@@ -405,7 +405,7 @@ def compute_social_costmap(
         start_time_str,
         debug_display,
         log_costmaps,
-        abs_path_to_logs_dir,
+        logs_dir,
     )
 
     # time.sleep(10.0)

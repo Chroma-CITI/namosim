@@ -32,8 +32,8 @@ from namosim.models import PoseModel
 from namosim.worldreps.entity_based.robot import Robot
 
 
-def init_header(self):
-    return Header(stamp=self.ros_node.get_timestamp(), frame_id="map")
+def init_header(stamp: Time = Time()):
+    return Header(stamp=stamp, frame_id=cfg.main_frame_id)
 
 
 def plan_to_markerarray(plan: t.Any, robot: Robot, frame_id: str, stamp: Time = Time()):
