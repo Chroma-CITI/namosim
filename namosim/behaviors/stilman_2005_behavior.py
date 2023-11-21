@@ -1232,7 +1232,7 @@ class Stilman2005Behavior(BaselineBehavior):
         robot = w_t.entities[self._robot_uid]
         r_t = robot.pose
 
-        avoid_list = set()
+        avoid_list: t.Set[GridCellModel] = set()
 
         robot_cell = utils.real_to_grid(
             r_t[0], r_t[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose
@@ -1301,15 +1301,15 @@ class Stilman2005Behavior(BaselineBehavior):
             )
         }
         o_1, c_1 = self.rch(
-            robot_cell,
-            goal_cell,
-            static_obs_inf_grid,
-            connected_components_grid,
-            inflated_grid_by_robot_max,
-            avoid_list,
-            prev_list,
-            forbidden_obstacles,
-            neighborhood,
+            start_cell=robot_cell,
+            goal_cell=goal_cell,
+            static_obs_grid=static_obs_inf_grid,
+            connected_components_grid=connected_components_grid,
+            inflated_robot_grid=inflated_grid_by_robot_max,
+            avoid_list=avoid_list,
+            prev_list=prev_list,
+            forbidden_obstacles=forbidden_obstacles,
+            neighborhood=neighborhood,
         )
         while o_1 != 0:
             self.simulation_log.append(
@@ -1467,13 +1467,13 @@ class Stilman2005Behavior(BaselineBehavior):
         static_obs_grid: BinaryInflatedOccupancyGrid,
         connected_components_grid: npt.NDArray[np.int_],
         inflated_robot_grid: BinaryInflatedOccupancyGrid,
-        avoid_list: t.List[GridCellModel],
+        avoid_list: t.Set[GridCellModel],
         prev_list: t.Set[int],
         g_function: t.Callable[[RCHConfiguration, RCHConfiguration, bool], float],
         traversed_obstacles_ids: utils.OrderedSet,
         forbidden_obstacles: t.Set[int],
         neighborhood: t.Sequence[GridCellModel] = utils.TAXI_NEIGHBORHOOD,
-    ):
+    ) -> t.Tuple[t.List[RCHConfiguration], t.List[float]]:
         """
         Combined formulation from Stilman's thesis and his article.
         """
@@ -1525,12 +1525,14 @@ class Stilman2005Behavior(BaselineBehavior):
                         current.first_component_uid,
                     )
             else:
-                neighbor_cell_component_uid = connected_components_grid[
-                    neighbor_cell[0]
-                ][neighbor_cell[1]]
+                neighbor_cell_component_uid: int = t.cast(
+                    int, connected_components_grid[neighbor_cell[0]][neighbor_cell[1]]
+                )
+
                 neighbor_cell_in_free_space = (
                     inflated_robot_grid.grid[neighbor_cell[0]][neighbor_cell[1]] == 0
                 )
+
                 if path_has_traversed_first_obstacle:
                     if neighbor_cell_in_free_space:
                         neighbor_cell_not_in_prev_component_nor_avoid_list_nor_in_init_obstacle = (
@@ -1613,15 +1615,15 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def rch(
         self,
-        start_cell,
-        goal_cell,
-        static_obs_grid,
-        connected_components_grid,
-        inflated_robot_grid,
-        avoid_list,
-        prev_list,
-        forbidden_obstacles,
-        neighborhood=utils.TAXI_NEIGHBORHOOD,
+        start_cell: GridCellModel,
+        goal_cell: GridCellModel,
+        static_obs_grid: BinaryInflatedOccupancyGrid,
+        connected_components_grid: npt.NDArray[np.int_],
+        inflated_robot_grid: BinaryInflatedOccupancyGrid,
+        avoid_list: t.Set[GridCellModel],
+        prev_list: t.Set[int],
+        forbidden_obstacles: t.Set[int],
+        neighborhood: t.Sequence[GridCellModel] = utils.TAXI_NEIGHBORHOOD,
     ):
         if static_obs_grid.grid[start_cell[0]][start_cell[1]] > 0:
             obstacle_names = {
@@ -1761,9 +1763,11 @@ class Stilman2005Behavior(BaselineBehavior):
             goal_cell, 0, 0
         )  # Note the zeroes are never used, this line is just for coherence
 
+        end_config: RCHConfiguration
         path_found, end_config, _, _, _, _ = graph_search.new_generic_a_star(
             start, goal, exit_condition, rch_get_neighbors_instance, h_function
-        )
+        )  # type: ignore
+
         if path_found:
             if end_config.first_obstacle_uid == 0:
                 raise ValueError(
@@ -1775,18 +1779,18 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def manip_search(
         self,
-        w_t,
-        o_1,
-        c_1,
-        ccs_data,
-        r_acc_cells,
-        r_f,
-        inflated_grid_by_robot_max,
-        trans_mult,
-        rot_mult,
-        check_new_local_opening_before_global=True,
-        obstacle_can_intrude_r_acc=True,
-        obstacle_can_intrude_c_1_x=True,
+        w_t: World,
+        o_1: int,
+        c_1: int,
+        ccs_data: connectivity.CCSData,
+        r_acc_cells: t.Set[GridCellModel],
+        r_f: PoseModel,
+        inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
+        trans_mult: float,
+        rot_mult: float,
+        check_new_local_opening_before_global: bool = True,
+        obstacle_can_intrude_r_acc: bool = True,
+        obstacle_can_intrude_c_1_x: bool = True,
     ):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
@@ -1922,6 +1926,7 @@ class Stilman2005Behavior(BaselineBehavior):
             obstacle_can_intrude_r_acc=obstacle_can_intrude_r_acc,
             obstacle_can_intrude_c_1_x=obstacle_can_intrude_c_1_x,
         )
+
         if path_found:
             # self._rp.publish_sim(
             #     transfer_end_configuration.robot.polygon, transfer_end_configuration.obstacle.polygon,
@@ -1929,11 +1934,11 @@ class Stilman2005Behavior(BaselineBehavior):
             # )
             raw_path: t.List[
                 RobotObstacleConfiguration
-            ] = graph_search.reconstruct_path(came_from, transfer_end_configuration)
+            ] = graph_search.reconstruct_path(came_from, transfer_end_configuration)  # type: ignore
 
-            prev_transit_end_configuration = transfer_start_to_prev_transit_end[
-                raw_path[0]
-            ]
+            prev_transit_end_configuration: RCHConfiguration = (
+                transfer_start_to_prev_transit_end[raw_path[0]]
+            )
             next_transit_start_configuration = (
                 self.get_next_transit_start_configuration(
                     inflated_grid_by_robot_max,

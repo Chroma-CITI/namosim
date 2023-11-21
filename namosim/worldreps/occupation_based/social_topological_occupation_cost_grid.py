@@ -250,9 +250,9 @@ def compute_social_costmap(
     skeleton_transform_function=skimage_morph.thin,  # skimage_skeletonize,
     debug_display=False,
     log_costmaps=True,
-    logs_dir=abs_path_to_costmap_logs_dir,
+    logs_dir: str = abs_path_to_costmap_logs_dir,
     skeleton_filepath=None,
-    ns="",
+    ns: str = "",
 ):  # rel_path_to_costmap_logs_dir + "citi_saved_skeleton.png"):
     start_time_str = time.strftime("%Y-%m-%d-%Hh%Mm%Ss")
 

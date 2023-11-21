@@ -18,6 +18,8 @@ build-and-test-job:
     - export PATH="/root/.local/bin:$PATH"
     - poetry install
     - poetry run poe all_checks
+  except:
+    - tags
 
 pages:
   stage: build-and-test
@@ -35,6 +37,8 @@ pages:
       - public
   only:
     - main
+  except:
+    - tags
 
 release:
   stage: release
@@ -51,3 +55,5 @@ release:
     - poetry run semantic-release publish
   only:
     - main
+  except:
+    - tags
