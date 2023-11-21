@@ -2,9 +2,11 @@ import copy
 import heapq
 import random
 import time
+import typing as t
 from collections import OrderedDict
 
 import numpy as np
+from shapely import Polygon
 from shapely.geometry import Point
 
 import namosim.navigation.action_result as ar
@@ -16,7 +18,11 @@ from namosim.behaviors.algorithms import graph_search
 from namosim.behaviors.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.behaviors.baseline_behavior import BaselineBehavior
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import StilmanBehaviorConfigModel
+from namosim.models import (
+    FixedPrecisionPoseModel,
+    PoseModel,
+    StilmanBehaviorConfigModel,
+)
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
     RobotObstacleConflict,
@@ -25,6 +31,7 @@ from namosim.navigation.conflict import (
 )
 from namosim.navigation.navigation_path import (
     EvasionTransitPath,
+    Path,
     TransferPath,
     TransitPath,
 )
@@ -38,21 +45,28 @@ from namosim.worldreps.occupation_based.binary_occupancy_grid import (
 )
 
 
-class RCHConfiguration:
-    def __init__(self, cell, first_obstacle_uid, first_component_uid):
+class RCHConfiguration(object):
+    def __init__(
+        self,
+        cell: t.Tuple[int, int],
+        first_obstacle_uid: str,
+        first_component_uid: str,
+    ):
         self.cell = cell
         self.first_obstacle_uid = first_obstacle_uid
         self.first_component_uid = first_component_uid
 
-    def __eq__(self, other):
+    def __eq__(self, other: object):
         if isinstance(other, tuple):
             return self.cell == other
-        else:
+        elif isinstance(other, RCHConfiguration):
             return (
                 self.cell == other.cell
                 and self.first_obstacle_uid == other.first_obstacle_uid
                 and self.first_component_uid == other.first_component_uid
             )
+        else:
+            raise Exception("Invalid comparison")
 
     def __hash__(self):
         return hash((self.cell, self.first_obstacle_uid, self.first_component_uid))
@@ -61,11 +75,11 @@ class RCHConfiguration:
 class Configuration:
     def __init__(
         self,
-        floating_point_pose,
-        polygon,
-        cell_in_grid,
-        fixed_precision_pose,
-        action,
+        floating_point_pose: PoseModel,
+        polygon: Polygon,
+        cell_in_grid: t.Tuple[int, int],
+        fixed_precision_pose: FixedPrecisionPoseModel,
+        action: ba.BasicAction,
         csv_polygon=None,
         bb_vertices=None,
     ):
@@ -89,11 +103,11 @@ class Configuration:
         return hash(self.fixed_precision_pose)
 
 
-class RobotObstacleConfiguration:
+class RobotObstacleConfiguration(object):
     def __init__(
         self,
-        robot_floating_point_pose,
-        robot_polygon,
+        robot_floating_point_pose: PoseModel,
+        robot_polygon: Polygon,
         robot_cell_in_grid,
         robot_fixed_precision_pose,
         obstacle_floating_point_pose,
@@ -128,7 +142,7 @@ class RobotObstacleConfiguration:
         self.action = action
         self.manip_pose_id = manip_pose_id
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if isinstance(other, graph_search.HeapNode):
             return (
                 self.robot.fixed_precision_pose
@@ -141,12 +155,14 @@ class RobotObstacleConfiguration:
                 self.robot.fixed_precision_pose == other[0]
                 and self.obstacle.fixed_precision_pose == other[1]
             )
-        else:
+        elif isinstance(other, RobotObstacleConfiguration):
             return (
                 self.robot.fixed_precision_pose == other.robot.fixed_precision_pose
                 and self.obstacle.fixed_precision_pose
                 == other.obstacle.fixed_precision_pose
             )
+        else:
+            raise Exception("Invalid comparison")
 
     def __hash__(self):
         return hash(
@@ -1876,9 +1892,10 @@ class Stilman2005Behavior(BaselineBehavior):
             #     transfer_end_configuration.robot.polygon, transfer_end_configuration.obstacle.polygon,
             #     "/target", ns=self._robot_name
             # )
-            raw_path = graph_search.reconstruct_path(
-                came_from, transfer_end_configuration
-            )
+            raw_path: t.List[
+                RobotObstacleConfiguration
+            ] = graph_search.reconstruct_path(came_from, transfer_end_configuration)
+
             prev_transit_end_configuration = transfer_start_to_prev_transit_end[
                 raw_path[0]
             ]
@@ -1901,7 +1918,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 next_transit_start_configuration.floating_point_pose,
                 is_transfer=True,
             )
-            tho_m = TransferPath.from_configurations(
+            tho_m = self.get_transfer_path_from_config(
                 prev_transit_end_configuration,
                 next_transit_start_configuration,
                 raw_path,
@@ -2161,7 +2178,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     next_transit_start_configuration.floating_point_pose,
                     is_transfer=True,
                 )
-                tho_m = TransferPath.from_configurations(
+                tho_m = self.get_transfer_path_from_config(
                     prev_transit_end_configuration,
                     next_transit_start_configuration,
                     raw_path,
@@ -2228,7 +2245,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         next_transit_start_configuration.floating_point_pose,
                         is_transfer=True,
                     )
-                    tho_m = TransferPath.from_configurations(
+                    tho_m = self.get_transfer_path_from_config(
                         prev_transit_end_configuration,
                         next_transit_start_configuration,
                         raw_path,
@@ -4024,4 +4041,99 @@ class Stilman2005Behavior(BaselineBehavior):
         rotation_cost = self.rotation_factor * abs(r_j[2] - r_i[2])
         return (translation_cost + rotation_cost) * (
             1.0 if not is_transfer else self.transfer_coefficient
+        )
+
+    def get_transfer_path_from_config(
+        self,
+        prev_transit_end_configuration: Configuration,
+        next_transit_start_configuration: Configuration,
+        transfer_configurations: t.List[RobotObstacleConfiguration],
+        obstacle_uid: int,
+        phys_cost: t.Optional[float] = None,
+        social_cost: float = 0.0,
+        weight: float = 1.0,
+    ) -> TransferPath | None:
+        if not transfer_configurations:
+            return None
+
+        manip_pose_id = transfer_configurations[0].manip_pose_id
+
+        actions = [
+            configuration.action
+            for configuration in transfer_configurations
+            if configuration.action
+        ]
+        grab_action = actions[0] if prev_transit_end_configuration else None
+        release_action = next_transit_start_configuration.action
+        actions.append(release_action)
+
+        robot_poses = [
+            configuration.robot.floating_point_pose
+            for configuration in transfer_configurations
+        ]
+        robot_poses.append(next_transit_start_configuration.floating_point_pose)
+        robot_polygons = [
+            configuration.robot.polygon for configuration in transfer_configurations
+        ]
+        robot_polygons.append(next_transit_start_configuration.polygon)
+        robot_csv_polygons = {
+            (i + 1,): config.robot.csv_polygon
+            for i, config in enumerate(transfer_configurations)
+        }
+        robot_csv_polygons[
+            (len(transfer_configurations),)
+        ] = next_transit_start_configuration.csv_polygon
+        robot_bb_vertices = [
+            config.robot.bb_vertices for config in transfer_configurations
+        ]
+        robot_bb_vertices.append(next_transit_start_configuration.bb_vertices)
+        if prev_transit_end_configuration:
+            robot_poses.insert(0, prev_transit_end_configuration.floating_point_pose)
+            robot_polygons.insert(0, prev_transit_end_configuration.polygon)
+            robot_csv_polygons[(0,)] = prev_transit_end_configuration.csv_polygon
+            robot_bb_vertices.insert(0, prev_transit_end_configuration.bb_vertices)
+
+        robot_path = Path(
+            poses=robot_poses,
+            polygons=robot_polygons,
+            csv_polygons=robot_csv_polygons,
+            bb_vertices=robot_bb_vertices,
+        )
+
+        obstacle_path = Path(
+            poses=[
+                configuration.obstacle.floating_point_pose
+                for configuration in transfer_configurations
+            ],
+            polygons=[
+                configuration.obstacle.polygon
+                for configuration in transfer_configurations
+            ],
+            csv_polygons={
+                (i + 1,): config.obstacle.csv_polygon
+                for i, config in enumerate(transfer_configurations)
+            },
+            bb_vertices=[
+                config.obstacle.bb_vertices for config in transfer_configurations
+            ],
+        )
+        obstacle_path.poses.append(obstacle_path.poses[-1])
+        obstacle_path.polygons.append(obstacle_path.polygons[-1])
+        obstacle_path.bb_vertices.append([])
+        if prev_transit_end_configuration:
+            obstacle_path.poses.insert(0, obstacle_path.poses[0])
+            obstacle_path.polygons.insert(0, obstacle_path.polygons[0])
+            obstacle_path.bb_vertices.insert(0, [])
+
+        return TransferPath(
+            robot_path=robot_path,
+            obstacle_path=obstacle_path,
+            actions=actions,
+            grab_action=grab_action,
+            release_action=release_action,
+            obstacle_uid=obstacle_uid,
+            manip_pose_id=manip_pose_id,
+            phys_cost=phys_cost,
+            social_cost=social_cost,
+            weight=weight,
         )
