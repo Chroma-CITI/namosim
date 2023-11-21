@@ -49,6 +49,7 @@ pyright = "^1.1.335"
 sphinx-rtd-theme = "^1.3.0"
 sphinx-copybutton = "^0.5.2"
 python-semantic-release = "^8.3.0"
+pre-commit = "^3.5.0"
 
 [tool.poe.tasks]
 lint_check = "ruff check ." # lint check
@@ -64,6 +65,7 @@ pyright \
   namosim/worldreps/entity_based/world.py
 """
 all_checks = ["lint_check", "type_check", "test"]
+
 
 [build-system]
 requires = ["poetry-core"]
@@ -194,7 +196,7 @@ type = "gitlab"
 ignore_token_for_push = false
 
 [tool.semantic_release.remote.token]
-env = "GH_TOKEN"
+env = "GL_TOKEN"
 
 [tool.semantic_release.publish]
 dist_glob_patterns = ["dist/*"]
