@@ -190,7 +190,7 @@ patch_tags = ["fix", "perf"]
 
 [tool.semantic_release.remote]
 name = "origin"
-type = "github"
+type = "gitlab"
 ignore_token_for_push = false
 
 [tool.semantic_release.remote.token]
