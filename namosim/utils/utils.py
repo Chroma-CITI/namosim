@@ -828,7 +828,7 @@ def reference_polygon_to_subgrid(polygon, res, grid_pose, fill=True):
 #     return circumscribed_radius
 
 
-def get_circumscribed_radius(polygon):
+def get_circumscribed_radius(polygon: Polygon) -> float:
     return polygon.hausdorff_distance(polygon.centroid)
 
 

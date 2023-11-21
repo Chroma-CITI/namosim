@@ -1,7 +1,10 @@
+from shapely import Polygon
+
+
 class Taboo:
     last_id = 1
 
-    def __init__(self, name, polygon, uid=0):
+    def __init__(self, name: str, polygon: Polygon, uid: int = 0):
         if uid == 0:
             self.uid = Taboo.last_id
             Taboo.last_id = Taboo.last_id + 1

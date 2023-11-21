@@ -84,9 +84,9 @@ class Configuration:
         polygon: Polygon,
         cell_in_grid: t.Tuple[int, int],
         fixed_precision_pose: FixedPrecisionPoseModel,
+        bb_vertices: t.List[VertexModel] | None = None,
         action: ba.BasicAction | None = None,
         csv_polygon: Polygon | None = None,
-        bb_vertices: t.List[VertexModel] | None = None,
     ):
         self.floating_point_pose = floating_point_pose
         self.polygon = polygon
@@ -121,27 +121,27 @@ class RobotObstacleConfiguration(object):
         obstacle_polygon: Polygon,
         obstacle_cell_in_grid: GridCellModel,
         obstacle_fixed_precision_pose: FixedPrecisionPoseModel,
+        robot_bb_vertices: t.List[VertexModel] | None = None,
+        obstacle_bb_vertices: t.List[VertexModel] | None = None,
         action: ba.BasicAction | None = None,
         manip_pose_id: int | None = None,
         robot_csv_polygon: Polygon | None = None,
-        robot_bb_vertices: t.List[VertexModel] | None = None,
         obstacle_csv_polygon: Polygon | None = None,
-        obstacle_bb_vertices: t.List[VertexModel] | None = None,
     ):
         self.robot = Configuration(
-            robot_floating_point_pose,
-            robot_polygon,
-            robot_cell_in_grid,
-            robot_fixed_precision_pose,
+            floating_point_pose=robot_floating_point_pose,
+            polygon=robot_polygon,
+            cell_in_grid=robot_cell_in_grid,
+            fixed_precision_pose=robot_fixed_precision_pose,
             action=action,
             csv_polygon=robot_csv_polygon,
             bb_vertices=robot_bb_vertices,
         )
         self.obstacle = Configuration(
-            obstacle_floating_point_pose,
-            obstacle_polygon,
-            obstacle_cell_in_grid,
-            obstacle_fixed_precision_pose,
+            floating_point_pose=obstacle_floating_point_pose,
+            polygon=obstacle_polygon,
+            cell_in_grid=obstacle_cell_in_grid,
+            fixed_precision_pose=obstacle_fixed_precision_pose,
             action=action,
             csv_polygon=obstacle_csv_polygon,
             bb_vertices=obstacle_bb_vertices,
@@ -2760,15 +2760,15 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def find_best_transfer_end_configuration(
         self,
-        robot_pose,
-        robot_polygon,
-        robot_name,
-        robot_uid,
-        obstacle_uid,
-        obstacle_pose,
-        obstacle_polygon,
-        goal_pose,
-        goal_cell,
+        robot_pose: PoseModel,
+        robot_polygon: Polygon,
+        robot_name: str,
+        robot_uid: int,
+        obstacle_uid: int,
+        obstacle_pose: PoseModel,
+        obstacle_polygon: Polygon,
+        goal_pose: PoseModel,
+        goal_cell: GridCellModel,
         other_entities_polygons,
         other_entities_aabb_tree,
         inflated_grid_by_robot_max,
@@ -3102,11 +3102,11 @@ class Stilman2005Behavior(BaselineBehavior):
                 new_robot_pose, trans_mult, rot_mult
             )
             next_transit_start_configuration = Configuration(
-                new_robot_pose,
-                new_robot_polygon,
-                cell,
-                new_fixed_precision_pose,
-                release_action,
+                floating_point_pose=new_robot_pose,
+                polygon=new_robot_polygon,
+                cell_in_grid=cell,
+                fixed_precision_pose=new_fixed_precision_pose,
+                action=release_action,
                 csv_polygon=csv_polygons[(0,)],
                 bb_vertices=bb_vertices[0],
             )
@@ -4093,18 +4093,18 @@ class Stilman2005Behavior(BaselineBehavior):
         social_cost: float = 0.0,
         weight: float = 1.0,
     ) -> TransferPath | None:
-        if not transfer_configurations:
+        if len(transfer_configurations) == 0:
             return None
 
-        manip_pose_id = transfer_configurations[0].manip_pose_id
+        manip_pose_id: int = transfer_configurations[0].manip_pose_id  # type: ignore
 
         actions = [
             configuration.action
             for configuration in transfer_configurations
             if configuration.action
         ]
-        grab_action = actions[0] if prev_transit_end_configuration else None
-        release_action = next_transit_start_configuration.action
+        grab_action: ba.Grab = actions[0] if prev_transit_end_configuration else None  # type: ignore
+        release_action: ba.Release = next_transit_start_configuration.action
         actions.append(release_action)
 
         robot_poses = [
@@ -4124,7 +4124,9 @@ class Stilman2005Behavior(BaselineBehavior):
             (len(transfer_configurations),)
         ] = next_transit_start_configuration.csv_polygon
         robot_bb_vertices = [
-            config.robot.bb_vertices for config in transfer_configurations
+            config.robot.bb_vertices
+            for config in transfer_configurations
+            if config.robot.bb_vertices
         ]
         robot_bb_vertices.append(next_transit_start_configuration.bb_vertices)
         if prev_transit_end_configuration:

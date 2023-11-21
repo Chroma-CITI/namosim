@@ -60,12 +60,18 @@ type_check = """
 pyright \
   namosim/display/colors.py \
   namosim/display/ros2_publisher.py \
+  namosim/exceptions.py \
+  namosim/models.py \
   namosim/simulator.py \
   namosim/utils/utils.py \
+  namosim/worldreps/entity_based/entity.py \
+  namosim/worldreps/entity_based/goal.py \
+  namosim/worldreps/entity_based/models.py \
+  namosim/worldreps/entity_based/obstacle.py \
+  namosim/worldreps/entity_based/robot.py \
   namosim/worldreps/entity_based/world.py
 """
 all_checks = ["lint_check", "type_check", "test"]
-
 
 [build-system]
 requires = ["poetry-core"]
