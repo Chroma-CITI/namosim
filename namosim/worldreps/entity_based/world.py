@@ -13,12 +13,12 @@ from typing_extensions import Self
 
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
+import namosim.worldreps.entity_based.robot as robot
 from namosim.worldreps.discretization_data import DiscretizationData
 from namosim.worldreps.entity_based.entity import Entity, Style
 from namosim.worldreps.entity_based.goal import Goal
 from namosim.worldreps.entity_based.models import WorldModel
 from namosim.worldreps.entity_based.obstacle import Obstacle
-from namosim.worldreps.entity_based.robot import Robot
 from namosim.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
 from namosim.worldreps.entity_based.sensors.omniscient_sensor import OmniscientSensor
 from namosim.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
@@ -172,11 +172,11 @@ class World:
                 )
 
             # Adjust initial position in pose if not given only by SVG file
-            pose = [
-                list(polygon.centroid.coords)[0][0],
-                list(polygon.centroid.coords)[0][1],
+            pose = (
+                t.cast(float, list(polygon.centroid.coords)[0][0]),
+                t.cast(float, list(polygon.centroid.coords)[0][1]),
                 theta,
-            ]
+            )
 
             if entity_data.type_ == "robot":
                 sensors_data = entity_data.sensors
@@ -186,10 +186,10 @@ class World:
                     if sensor_data.type_ == "perfect_g_fov":
                         sensors.append(
                             GFOVSensor(
-                                sensor_data.max_radius,
-                                sensor_data.min_radius,
-                                sensor_data.opening_angle,
-                                pose,
+                                fov_max_radius=sensor_data.max_radius,
+                                fov_min_radius=sensor_data.min_radius,
+                                fov_opening_angle=sensor_data.opening_angle,
+                                parent_entity_pose=pose,
                             )
                         )
                     elif sensor_data.type_ == "perfect_s_fov":
@@ -204,11 +204,11 @@ class World:
                     elif sensor_data.type_ == "omniscient":
                         sensors.append(OmniscientSensor())
 
-                new_robot = Robot(
+                new_robot = robot.Robot(
                     name=entity_data.name,
                     full_geometry_acquired=True,
                     polygon=polygon,
-                    pose=tuple(pose),
+                    pose=pose,
                     sensors=sensors,
                     push_only_list=entity_data.push_only_list,
                     force_pushes_only=entity_data.force_pushes_only,
@@ -247,7 +247,7 @@ class World:
                     try:
                         if goal_data.geometry is not None:
                             goal_polygon = shapely_geoms[goal_data.geometry.id]
-                            pose: t.List[float] = [
+                            pose = [
                                 goal_polygon.centroid.coords[0][0],
                                 goal_polygon.centroid.coords[0][1],
                                 0.0,
@@ -409,7 +409,7 @@ class World:
                         map_width=self.discretization_data.width,
                         map_height=self.discretization_data.height,
                     )
-                elif isinstance(entity, Robot):
+                elif isinstance(entity, robot.Robot):
                     robot_group = conversion.add_group(
                         svg_data, entity.name, is_layer=False
                     )
@@ -549,6 +549,9 @@ class World:
             init_geometry_filename=self.init_geometry_filename,
             init_geometry_file=self.init_geometry_file,
         )
+
+    def set_entity_polygon(self, id: int, polygon: Polygon):
+        self.entities[id].polygon = polygon
 
 
 def get_orientation(geom: (Polygon | LineString)) -> float:

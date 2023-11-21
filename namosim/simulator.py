@@ -250,7 +250,7 @@ class Simulator:
         self.ref_world: World = copy.deepcopy(self.init_ref_world)
 
         # Associate autonomous agents with goals and behaviors
-        self.goals_geometries = {
+        self.goal_poses = {
             goal.name: goal.pose for goal in self.init_ref_world.goals.values()
         }
 
@@ -276,9 +276,7 @@ class Simulator:
                 for agent_name, gls in goals.items()
             }
         else:
-            self.agent_uid_to_goals = self.initialize_agents_goals(
-                self.goals_geometries
-            )
+            self.agent_uid_to_goals = self.initialize_agents_goals(self.goal_poses)
             self.saved_goals = {
                 self.ref_world.entities[id].name: copy.deepcopy(goals)
                 for id, goals in self.agent_uid_to_goals.items()
