@@ -41,6 +41,7 @@ release:
   variables:
     GL_TOKEN: $GL_TOKEN
   script:
+    - git checkout main
     - apt-get update -y
     - apt-get install -y swig curl ros-iron-tf2 ros-iron-grid-map
     - curl -sSL https://install.python-poetry.org | python3 -
