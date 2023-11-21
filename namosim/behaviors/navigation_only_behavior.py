@@ -5,6 +5,7 @@ from namosim.behaviors.algorithms.graph_search import real_to_grid_search_a_star
 from namosim.behaviors.baseline_behavior import BaselineBehavior
 from namosim.navigation.navigation_path import Path
 from namosim.navigation.navigation_plan import Plan
+from namosim.worldreps.entity_based.world import World
 
 
 class NavigationOnlyBehavior(BaselineBehavior):

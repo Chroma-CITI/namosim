@@ -5,15 +5,15 @@ from namosim.navigation.basic_actions import BasicAction
 
 
 class ActionResult:
-    def __init__(self, action: BasicAction):
+    def __init__(self, action: BasicAction | None = None):
         self.action = action
 
 
 class ActionSuccess(ActionResult):
     def __init__(
         self,
-        action: BasicAction,
-        robot_pose: PoseModel,
+        action: BasicAction | None = None,
+        robot_pose: PoseModel | None = None,
         is_transfer: bool = False,
         obstacle_uid: t.Optional[int] = None,
     ):
