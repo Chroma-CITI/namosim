@@ -1,6 +1,8 @@
 import unittest
-from namosim.utils import utils
+
 from shapely.geometry import Polygon
+
+from namosim.utils import utils
 from namosim.worldreps.occupation_based import binary_occupancy_grid
 
 
@@ -19,7 +21,7 @@ class GraphSearchTest(unittest.TestCase):
         res = 1.0
 
         grid_params = binary_occupancy_grid.grid_parameters(
-            {1: bounds_polygon, 2: test_polygon}, res
+            [bounds_polygon, test_polygon], res
         )
 
         (
@@ -103,7 +105,9 @@ class GraphSearchTest(unittest.TestCase):
         inflated_basic_polygons = {
             uid: p.buffer(res_2) for uid, p in basic_polygons.items()
         }
-        basic_grid_params = binary_occupancy_grid.grid_parameters(basic_polygons, res_2)
+        basic_grid_params = binary_occupancy_grid.grid_parameters(
+            basic_polygons.values(), res_2
+        )
 
         (
             basic_polygon_3_projected,

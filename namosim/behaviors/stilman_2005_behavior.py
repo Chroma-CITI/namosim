@@ -634,7 +634,7 @@ class Stilman2005Behavior(BaselineBehavior):
         BaselineBehavior.sense(self, ref_world, last_action_result, step_count)
 
         # Update grid(s)
-        self.inflated_grid_by_robot.polygon_update(
+        self.inflated_grid_by_robot.update(
             new_or_updated_polygons={
                 uid: self._world.entities[uid].polygon
                 for uid in self._added_uids.union(self._updated_uids)
@@ -1120,7 +1120,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 conflicting_robot_uid
                             ] = conflicting_robot.polygon
                             conflicting_robot.polygon = encompassing_circle
-                            inflated_grid_by_robot.polygon_update(
+                            inflated_grid_by_robot.update(
                                 {conflicting_robot_uid: conflicting_robot.polygon}
                             )
                         # Plan using this modified version of the world
@@ -1137,7 +1137,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         )
                         # Reset the inflated grid's state
                         for conflicting_uid, prev_polygon in polygons_tmp.items():
-                            inflated_grid_by_robot.polygon_update(
+                            inflated_grid_by_robot.update(
                                 {conflicting_uid: prev_polygon}
                             )
                         inflated_grid_by_robot.activate_entities(new_dynamic_entities)
@@ -1393,7 +1393,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         self._step_count,
                     )
                 )
-                prev_cells_sets = inflated_grid_by_robot_max.polygon_update(
+                prev_cells_sets = inflated_grid_by_robot_max.update(
                     {o_1: w_t_plus_2.entities[o_1].polygon}
                 )
                 future_plan = self.select_connect(
@@ -3165,7 +3165,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
             if obstacle_initially_deactivated:
                 inflated_grid_by_robot_max.activate_entities({obstacle_uid})
-            previous_cells_sets = inflated_grid_by_robot_max.polygon_update(
+            previous_cells_sets = inflated_grid_by_robot_max.update(
                 new_or_updated_polygons={obstacle_uid: new_obstacle_polygon}
             )
 
@@ -3849,7 +3849,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 for potential_deadlock in potential_deadlocks
                 if isinstance(potential_deadlock, RobotRobotConflict)
             }
-            inflated_grid_by_robot_max.polygon_update(
+            inflated_grid_by_robot_max.update(
                 new_or_updated_polygons={main_robot_uid: main_robot.polygon}
             )
 

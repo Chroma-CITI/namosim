@@ -69,7 +69,8 @@ pyright \
   namosim/worldreps/entity_based/models.py \
   namosim/worldreps/entity_based/obstacle.py \
   namosim/worldreps/entity_based/robot.py \
-  namosim/worldreps/entity_based/world.py
+  namosim/worldreps/entity_based/world.py \
+  namosim/worldreps/occupation_based/binary_occupancy_grid.py
 """
 all_checks = ["lint_check", "type_check", "test"]
 
