@@ -3,8 +3,10 @@ import math
 import subprocess
 import time
 import typing as t
+from collections import OrderedDict
 
 import numpy as np
+import numpy.typing as npt
 import rclpy
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import (
@@ -347,7 +349,7 @@ class CostmapObserver(RosObserver):
         world, robot_uid = kwargs["world"], kwargs["robot_uid"]
         return self.world_to_costmap(world, robot_uid)
 
-    def world_to_costmap(self, world, robot_uid=None):
+    def world_to_costmap(self, world: World, robot_uid: int | None = None):
         polygons = {
             uid: entity.polygon
             for uid, entity in world.entities.items()
@@ -384,7 +386,7 @@ class CostmapObserver(RosObserver):
 
         return costmap
 
-    def reset(self, reset_msg=None):
+    def reset(self, reset_msg: OccupancyGrid | None = None):
         RosObserver.reset(
             self, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0])
         )
@@ -417,7 +419,7 @@ class GridMapObserver(RosObserver):
         )
         return grid_map
 
-    def reset(self, reset_msg=None):
+    def reset(self):
         RosObserver.reset(self, costmap_to_grid_map(np.full((1000, 1000), np.nan), 1.0))
 
 
@@ -500,7 +502,7 @@ class GoalObserver(RosObserver):
             )
             return marker_array
 
-    def reset(self, reset_msg=None):
+    def reset(self):
         RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
 
 
@@ -526,7 +528,7 @@ class PosesObserver(RosObserver):
         poses = kwargs["poses"]
         return poses_to_poses_array(poses, self.node.get_timestamp())
 
-    def reset(self, reset_msg=None):
+    def reset(self):
         RosObserver.reset(
             self, PoseArray(header=init_header(self.node.get_timestamp()), poses=[])
         )
@@ -687,7 +689,7 @@ class RosPublisher:  # noqa: F821
             self.namespaces_caches[ns] = NamespaceCache()
 
     @staticmethod
-    def create_valid_node_name(root_name):
+    def create_valid_node_name(root_name: str):
         nodes_names = MyNode.get_nodes_names()
         node_name = (
             root_name
@@ -700,14 +702,14 @@ class RosPublisher:  # noqa: F821
             i += 1
         return node_name
 
-    def publish(self, topic, msg):
+    def publish(self, topic: str, msg: t.Any):
         publisher = self.my_publishers[topic]
         connections = publisher.get_subscription_count()
         if connections > 0:
             time.sleep(1.0 / cfg.rate)
             publisher.publish(msg)
 
-    def is_activated(self, topic=""):
+    def is_activated(self, topic: str = ""):
         if cfg.deactivate_gui or (topic and topic not in self.my_publishers):
             return False
         elif not cfg.deactivate_gui and not topic:
@@ -715,7 +717,7 @@ class RosPublisher:  # noqa: F821
         return self.my_publishers[topic].get_subscription_count() > 0
 
     # region SIM WORLD
-    def publish_sim_world(self, world: World, robot_uid=None):
+    def publish_sim_world(self, world: World, robot_uid: int | None = None):
         self.observers[self.sim_knowledge_topic].update(
             world=world, robot_uid=robot_uid
         )
@@ -728,7 +730,7 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region ROBOT WORLD
-    def publish_robot_world(self, world, robot_uid):
+    def publish_robot_world(self, world: World, robot_uid: int):
         world_topic = (
             self.prefix
             + "/"
@@ -752,7 +754,7 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region ROBOT SIM
-    def publish_robot_sim_world(self, world, robot_uid, ns=""):
+    def publish_robot_sim_world(self, world: World, robot_uid: int):
         topic = (
             self.prefix
             + "/"
@@ -761,11 +763,11 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
-    def cleanup_robot_sim_world(self, ns=""):
+    def cleanup_robot_sim_world(self, ns: str = ""):
         topic = self.prefix + "/" + ns + cfg.robot_sim_world_topic
         self.observers[topic].reset()
 
-    def publish_robot_sim_costmap(self, world, robot_uid):
+    def publish_robot_sim_costmap(self, world: World, robot_uid: int):
         topic = (
             self.prefix
             + "/"
@@ -774,7 +776,7 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
-    def cleanup_robot_sim_costmap(self, world, robot_uid):
+    def cleanup_robot_sim_costmap(self, world: World, robot_uid: int):
         topic = (
             self.prefix
             + "/"
@@ -786,7 +788,9 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region GRID MAP
-    def publish_social_grid_map(self, costmap, res, ns=""):
+    def publish_social_grid_map(
+        self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
+    ):
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
             if not ns
@@ -794,7 +798,7 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(costmap=costmap, res=res)
 
-    def cleanup_social_grid_map(self, ns=""):
+    def cleanup_social_grid_map(self, ns: str = ""):
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
             if not ns
@@ -803,7 +807,10 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].reset()
 
     def publish_combined_costmap(
-        self, sorted_cell_to_combined_cost, inflated_grid_by_obstacle, ns=""
+        self,
+        sorted_cell_to_combined_cost: OrderedDict[GridCellModel, float],
+        inflated_grid_by_obstacle: BinaryInflatedOccupancyGrid,
+        ns: str = "",
     ):
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
@@ -815,7 +822,7 @@ class RosPublisher:  # noqa: F821
             inflated_grid_by_obstacle=inflated_grid_by_obstacle,
         )
 
-    def cleanup_combined_costmap(self, ns=""):
+    def cleanup_combined_costmap(self, ns: str = ""):
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
             if not ns
@@ -826,7 +833,9 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region CONNECTED COMPONENTS GRID
-    def publish_connected_components_grid(self, costmap, res, ns=""):
+    def publish_connected_components_grid(
+        self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
+    ):
         topic = self.prefix + (
             cfg.test_connected_components_topic
             if not ns
@@ -834,7 +843,7 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(costmap=costmap, res=res)
 
-    def cleanup_connected_components_grid(self, ns=""):
+    def cleanup_connected_components_grid(self, ns: str = ""):
         topic = self.prefix + (
             cfg.test_connected_components_topic
             if not ns
@@ -854,9 +863,9 @@ class RosPublisher:  # noqa: F821
         came_from,
         neighbors,
         traversed_obstacles_ids,
-        res,
-        grid_pose,
-        ns="",
+        res: float,
+        grid_pose: PoseModel,
+        ns: str = "",
     ):
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):

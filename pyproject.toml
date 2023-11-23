@@ -143,6 +143,7 @@ reportMissingTypeStubs = false
 reportUnknownVariableType = false
 reportUnknownMemberType = false
 reportUnknownArgumentType = false
+reportIncompatibleMethodOverride = false
 # reportUnknownParameterType = true
 
 [tool.semantic_release]

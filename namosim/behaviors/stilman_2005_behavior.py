@@ -1795,9 +1795,7 @@ class Stilman2005Behavior(BaselineBehavior):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
 
-        self._rp.publish_robot_sim_world(
-            w_t_plus_2, self._robot_uid, ns=self._robot_name
-        )
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid)
 
         c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
 
@@ -1981,9 +1979,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 tho_m.obstacle_path.polygons[-1],
             )
 
-        self._rp.publish_robot_sim_world(
-            w_t_plus_2, self._robot_uid, ns=self._robot_name
-        )
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid)
         self._rp.cleanup_robot_sim(ns=self._robot_name)
         self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
 
@@ -2008,9 +2004,7 @@ class Stilman2005Behavior(BaselineBehavior):
     ):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
-        self._rp.publish_robot_sim_world(
-            w_t_plus_2, self._robot_uid, ns=self._robot_name
-        )
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid)
 
         c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
 
@@ -2312,9 +2306,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 tho_m.obstacle_path.polygons[-1],
             )
 
-        self._rp.publish_robot_sim_world(
-            w_t_plus_2, self._robot_uid, ns=self._robot_name
-        )
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid)
         self._rp.cleanup_robot_sim(ns=self._robot_name)
         self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
 
