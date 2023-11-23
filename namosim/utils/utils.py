@@ -13,7 +13,7 @@ import typing_extensions as tx
 from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
 
-from namosim.models import PoseModel
+from namosim.models import PoseModel, VertexModel
 
 # Constants
 SQRT_OF_2 = math.sqrt(2.0)
@@ -828,7 +828,7 @@ def reference_polygon_to_subgrid(polygon, res, grid_pose, fill=True):
 #     return circumscribed_radius
 
 
-def get_circumscribed_radius(polygon):
+def get_circumscribed_radius(polygon: Polygon) -> float:
     return polygon.hausdorff_distance(polygon.centroid)
 
 
@@ -1030,10 +1030,10 @@ def points_to_angle(x1, y1, x2, y2, x3, y3):
     return math.acos(term)
 
 
-def map_bounds(polygons):
+def map_bounds(polygons: t.Iterable[Polygon]):
     if not polygons:
         raise ValueError(
-            "There are no entities to populate the grid, it can't be created !"
+            "There are no entities to populate the grid, it can't be created!"
         )
 
     map_min_x, map_min_y, map_max_x, map_max_y = (
@@ -1043,7 +1043,7 @@ def map_bounds(polygons):
         -float("inf"),
     )
 
-    for uid, polygon in polygons.items():
+    for polygon in polygons:
         min_x, min_y, max_x, max_y = polygon.bounds
         map_min_x, map_min_y = min(map_min_x, min_x), min(map_min_y, min_y)
         map_max_x, map_max_y = max(map_max_x, max_x), max(map_max_y, max_y)
@@ -1156,8 +1156,8 @@ def generate_random_polygon(
     :return: a list of vertices, in counter-clockwise order
     :rtype: list(tuple(float, float))
     """
-    irregularity = clip(irregularity, 0.0, 1.0) * TWO_PI / num_verts
-    spikeyness = clip(spikeyness, 0.0, 1.0) * ave_radius
+    irregularity = np.clip(irregularity, 0.0, 1.0) * TWO_PI / num_verts
+    spikeyness = np.clip(spikeyness, 0.0, 1.0) * ave_radius
 
     # generate n angle steps
     angle_steps = []
@@ -1178,7 +1178,7 @@ def generate_random_polygon(
     points = []
     angle = random.uniform(0.0, 2.0 * math.pi)
     for i in range(num_verts):
-        r_i = clip(random.gauss(ave_radius, spikeyness), 0.0, 2.0 * ave_radius)
+        r_i = np.clip(random.gauss(ave_radius, spikeyness), 0.0, 2.0 * ave_radius)
         x = ctr_x + r_i * math.cos(angle)
         y = ctr_y + r_i * math.sin(angle)
         points.append((x, y))
@@ -1186,17 +1186,6 @@ def generate_random_polygon(
         angle = angle + angle_steps[i]
 
     return points
-
-
-def clip(value, minimum, maximum):
-    if minimum > maximum:
-        return value
-    elif value < minimum:
-        return minimum
-    elif value > maximum:
-        return maximum
-    else:
-        return value
 
 
 def polygon_to_subgrid_polygon_and_parameters(polygon, res, grid_pose):
@@ -1382,7 +1371,14 @@ def accurate_rasterize_to_subgrid(projected_polygon, d_width, d_height, res, fil
     return subgrid
 
 
-def accurate_rasterize_in_grid(polygon, res, grid_pose, d_width, d_height, fill=True):
+def accurate_rasterize_in_grid(
+    polygon: Polygon,
+    res: float,
+    grid_pose: PoseModel,
+    d_width: int,
+    d_height: int,
+    fill: bool = True,
+):
     (
         projected_polygon,
         subgrid_d_width,
@@ -1425,21 +1421,21 @@ def shapely_geom_to_global(local_geom, local_cs_pose_in_global):
     return final_geometry
 
 
-def coords(polygon):
+def coords(polygon: Polygon):
     return polygon.exterior.coords[:-1]
 
 
-def angle_to_360_interval(angle):
+def angle_to_360_interval(angle: float):
     final_angle = angle % 360.0
     final_angle = final_angle if final_angle >= 0.0 else final_angle + 360.0
     return final_angle
 
 
-def is_close(a, b, rel_tol=1e-09):
+def is_close(a: float, b: float, rel_tol: float = 1e-09):
     return b - rel_tol <= a <= b + rel_tol or a - rel_tol <= b <= a + rel_tol
 
 
-def angle_is_close(a, b, rel_tol=1e-09):
+def angle_is_close(a: float, b: float, rel_tol: float = 1e-09):
     return (
         is_close(a, b, rel_tol)
         or is_close(a - 360.0, b, rel_tol)
@@ -1453,19 +1449,19 @@ def angle_is_close(a, b, rel_tol=1e-09):
 
 
 class Circle:
-    def __init__(self, x, y, r):
+    def __init__(self, x: float, y: float, r: float):
         self.x = x
         self.y = y
         self.r = r
 
-    def intersects(self, x, y):
+    def intersects(self, x: float, y: float):
         return euclidean_distance((self.x, self.y), (x, y)) <= self.r
 
-    def tuple_intersects(self, position):
+    def tuple_intersects(self, position: VertexModel):
         return euclidean_distance((self.x, self.y), position) <= self.r
 
 
-def cmp(a, b):
+def cmp(a: float | int, b: float | int):
     return (a > b) - (a < b)
 
 

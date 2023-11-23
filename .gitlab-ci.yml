@@ -18,6 +18,8 @@ build-and-test-job:
     - export PATH="/root/.local/bin:$PATH"
     - poetry install
     - poetry run poe all_checks
+  except:
+    - tags
 
 pages:
   stage: build-and-test
@@ -35,19 +37,5 @@ pages:
       - public
   only:
     - main
-
-release:
-  stage: release
-  variables:
-    GL_TOKEN: $GL_TOKEN
-  script:
-    - git checkout main
-    - apt-get update -y
-    - apt-get install -y swig curl ros-iron-tf2 ros-iron-grid-map
-    - curl -sSL https://install.python-poetry.org | python3 -
-    - export PATH="/root/.local/bin:$PATH"
-    - poetry install
-    - poetry run semantic-release version
-    - poetry run semantic-release publish
-  only:
-    - main
+  except:
+    - tags

@@ -2,17 +2,20 @@ import copy
 import re
 import typing as t
 
+from shapely import Polygon
+from typing_extensions import Self
+
 from namosim.models import PoseModel
 
 
 class Style:
     def __init__(
         self,
-        fill="#000000",
-        fill_opacity="1",
-        stroke="#000000",
-        stroke_width="1",
-        stroke_opacity="1",
+        fill: str = "#000000",
+        fill_opacity: str = "1",
+        stroke: str = "#000000",
+        stroke_width: str = "1",
+        stroke_opacity: str = "1",
         **_,
     ):
         self.fill = fill
@@ -28,7 +31,7 @@ class Style:
 
     # noinspection PyTypeChecker
     @classmethod
-    def from_string(cls, style):
+    def from_string(cls, style: str):
         d: t.Dict[str, str] = dict(
             [a.strip().replace("-", "_") for a in attribute.split(":", 1)]
             for attribute in style.split(";")
@@ -44,13 +47,13 @@ class Entity:
     def __init__(
         self,
         type_: str,
-        name,
-        polygon,
+        name: str,
+        polygon: Polygon,
         pose: PoseModel,
-        full_geometry_acquired,
+        full_geometry_acquired: bool,
         style: Style,
-        movability="unknown",
-        uid=0,
+        movability: str = "unknown",
+        uid: int = 0,
     ):
         if uid == 0:
             self.uid = Entity.last_id
@@ -66,7 +69,7 @@ class Entity:
         self.style = style
         self.type_ = type_
 
-    def within(self, other_entity):
+    def within(self, other_entity: Self) -> bool:
         return self.polygon.within(other_entity.polygon)
 
     def light_copy(self):
@@ -80,7 +83,7 @@ class Entity:
             style=self.style,
         )
 
-    def to_json(self):
+    def to_json(self) -> t.Dict[str, t.Any]:
         return {
             "name": self.name,
             "type": self.type_,

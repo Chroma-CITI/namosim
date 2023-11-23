@@ -159,7 +159,7 @@ class Plan:
                     collision.polygon_to_aabb(encompassing_circle), temp_uid
                 )
                 encompassing_circle_uid_to_robot_uid[temp_uid] = other_robot.uid
-                inflated_grid_by_robot.polygon_update(
+                inflated_grid_by_robot.update(
                     new_or_updated_polygons={temp_uid: encompassing_circle}
                 )
 
@@ -235,7 +235,7 @@ class Plan:
         # Reactivate entities that had been deactivated during checks
         # inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
         inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
-        inflated_grid_by_robot.polygon_update(
+        inflated_grid_by_robot.update(
             removed_polygons=set(encompassing_circle_uid_to_robot_uid.keys())
         )
 

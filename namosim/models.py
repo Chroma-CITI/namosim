@@ -5,6 +5,7 @@ from pydantic import BaseModel
 PoseModel = t.Tuple[float, float, float]
 FixedPrecisionPoseModel = t.Tuple[int, int, int]
 GridCellModel = t.Tuple[int, int]
+GridCellSet = t.Set[GridCellModel]
 VertexModel = t.Tuple[float, float]
 
 

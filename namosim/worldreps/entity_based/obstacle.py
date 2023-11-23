@@ -1,19 +1,22 @@
 import copy
 
+from shapely import Polygon
+
+from namosim.models import PoseModel
 from namosim.worldreps.entity_based.entity import Entity, Style
 
 
 class Obstacle(Entity):
     def __init__(
         self,
-        name,
-        polygon,
-        pose,
-        full_geometry_acquired,
-        type_,
+        name: str,
+        polygon: Polygon,
+        pose: PoseModel,
+        full_geometry_acquired: bool,
+        type_: str,
         style: Style,
-        movability="unknown",
-        uid=0,
+        movability: str = "unknown",
+        uid: int = 0,
     ):
         Entity.__init__(
             self,
@@ -256,7 +259,7 @@ class Obstacle(Entity):
     #     else:
     #         return None
 
-    def light_copy(self, copy_polygon=True):
+    def light_copy(self, copy_polygon: bool = True):
         return Obstacle(
             name=self.name,
             polygon=None if not copy_polygon else copy.deepcopy(self.polygon),
