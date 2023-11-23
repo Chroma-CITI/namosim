@@ -2151,7 +2151,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 best_transfer_end_configuration.robot.polygon,
                 best_transfer_end_configuration.obstacle.polygon,
                 "/target",
-                ns=self._robot_name,
+                robot_name=self._robot_name,
             )
 
             # 2. If a best obstacle transfer end configuration has been found, use A Star to find a path toward it
@@ -3234,7 +3234,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def get_neighbors(
         self,
-        current_configuration,
+        current_configuration: RobotObstacleConfiguration,
         gscore,
         close_set,
         open_queue,
@@ -3258,7 +3258,7 @@ class Stilman2005Behavior(BaselineBehavior):
         Creates list of neighbors that are not in close set, do not collide dynamically nor statically
         """
         # TODO Add debug display option for intersections, be it on grid(s) or in between polygons
-        neighbors = []
+        neighbors: t.List[RobotObstacleConfiguration] = []
         tentative_g_scores = []
 
         for action in self._new_actions:
@@ -3463,16 +3463,18 @@ class Stilman2005Behavior(BaselineBehavior):
             neighbors.append(neighbor_configuration)
             tentative_g_scores.append(gscore[current_configuration] + extra_g_cost)
 
+        manip_poses_ids = [c.manip_pose_id for c in start.keys()]
+
         self._rp.publish_manip_search_data(
-            current_configuration,
-            gscore,
-            close_set,
-            open_queue,
-            came_from,
-            neighbors,
-            start,
-            inflated_grid_by_robot_min.res,
-            inflated_grid_by_robot_min.grid_pose,
+            current_manip_pose_id=current_configuration.manip_pose_id,  # type: ignore
+            manip_poses_ids=manip_poses_ids,
+            robot_pose=current_configuration.robot.floating_point_pose,
+            robot_fixed_precision_pos=current_configuration.robot.fixed_precision_pose,
+            robot_polygon=current_configuration.robot.polygon,
+            obstacle_polygon=current_configuration.obstacle.polygon,
+            obstacle_pose=current_configuration.obstacle.floating_point_pose,
+            res=inflated_grid_by_robot_min.res,
+            neighbor_poses=[n.robot.floating_point_pose for n in neighbors],
             ns=self._robot_name,
         )
 

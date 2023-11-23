@@ -2,7 +2,7 @@ import typing as t
 
 from shapely import GeometryCollection, Polygon
 
-from namosim.display.ros2_publisher import RosPublisher
+import namosim.display.ros2_publisher as ros2
 from namosim.models import PoseModel
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
@@ -728,7 +728,7 @@ class TransitPath:
         apply_strict_horizon=False,
         exit_early_for_any_conflict=False,
         exit_early_only_for_long_term_conflicts=True,
-        rp: RosPublisher = None,
+        rp: t.Optional["ros2.RosPublisher"] = None,
         robot_name="",
     ):
         if not self.actions:

@@ -10,11 +10,11 @@ import typing as t
 import jsonpickle
 from shapely.geometry import Polygon
 
+import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior
 from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
-from namosim.display.ros2_publisher import RosPublisher
 from namosim.exceptions import timeout
 from namosim.models import PoseModel, SimulationModel
 from namosim.navigation.conflict import (
@@ -223,7 +223,7 @@ class Simulator:
             self.save = json_save
 
         # Reinitialize rviz display
-        self.ros_publisher = RosPublisher(
+        self.ros_publisher = ros2.RosPublisher(
             node_name=self.simulation_filename, sim_config=self.config
         )
         self.ros_publisher.cleanup_all()

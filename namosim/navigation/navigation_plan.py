@@ -3,8 +3,8 @@ import typing as t
 
 from typing_extensions import Self
 
+import namosim.display.ros2_publisher as ros2
 import namosim.utils.collision as collision
-from namosim.display.ros2_publisher import RosPublisher
 from namosim.models import PoseModel
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.conflict import (
@@ -69,7 +69,7 @@ class Plan:
         self,
         world: World,
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        rp: RosPublisher,
+        rp: "ros2.RosPublisher",
         check_horizon: t.Optional[int] = None,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
