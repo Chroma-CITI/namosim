@@ -44,7 +44,7 @@ from namosim.display.conversions import (
     polygon_to_line_strip,
     polygon_to_triangle_list,
     poses_to_poses_array,
-    real_path_to_linestrip,
+    real_path_to_triangle_list,
     string_to_text,
 )
 from namosim.models import PoseModel, SimulationModel
@@ -940,7 +940,7 @@ class RosPublisher:  # noqa: F821
                         res,
                         grid_pose,
                     )
-                    came_from_marker = real_path_to_linestrip(
+                    came_from_marker = real_path_to_triangle_list(
                         [cur_pose, from_pose],
                         "/rch_came_from",
                         _id,
