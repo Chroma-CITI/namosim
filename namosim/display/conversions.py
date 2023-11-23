@@ -16,6 +16,7 @@ from geometry_msgs.msg import (
 )
 from grid_map_msgs.msg import GridMap
 from shapely.geometry import Polygon
+from shapely.ops import triangulate
 from std_msgs.msg import (
     ColorRGBA,
     Float32MultiArray,
@@ -92,7 +93,8 @@ def polygon_to_triangle_list(
         points=[],
     )
     if isinstance(polygon, Polygon):
-        verts = np.array(list(polygon.exterior.coords)).reshape(-1, 2)
+        verts = list(zip(*polygon.exterior.coords.xy))[:-1]
+        verts = np.array(verts)
         rings = np.array([verts.shape[0]])
         triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
         triangles = [
@@ -236,37 +238,40 @@ def poses_to_poses_array(poses: t.List[PoseModel], stamp: Time = Time()):
 
 
 def real_path_to_linestrip(
-    real_path: t.List[t.Tuple[float, float]],
+    real_path: t.List[t.Tuple[float, float, float]],
     namespace: str,
     p_id: int,
     frame_id: str,
     color: ColorRGBA,
     line_width: float,
     z_index: float,
-    link_point: t.Optional[t.Tuple[float, float]] = None,
     stamp: Time = Time(),
 ):
-    marker = Marker(
-        type=Marker.LINE_STRIP,
-        ns=namespace,
-        id=p_id,
-        header=Header(frame_id=frame_id, stamp=stamp),
+    points = []
+
+    # Remove duplicate points in the path. Why are there duplicates??
+    visited = set()
+    for point in real_path:
+        (x, y) = point[0], point[1]
+        if (x, y) in visited:
+            continue
+        else:
+            visited.add((x, y))
+        points.append(np.array((x, y, z_index)))
+
+    polygon = points_to_triangle_list(points=points, line_width=line_width)
+    return polygon_to_triangle_list(
+        polygon=polygon,
+        namespace=namespace,
+        p_id=p_id,
+        frame_id=frame_id,
         color=color,
-        scale=Vector3(x=line_width, y=0.0, z=0.0),
-        points=[],
+        z_index=z_index,
+        stamp=stamp,
     )
-    for i in range(len(real_path) - 1):
-        point = real_path[i]
-        next_point = real_path[i + 1]
-        marker.points.append(Point(x=point[0], y=point[1], z=z_index))  # type: ignore
-        marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))  # type: ignore
-    if link_point:
-        marker.points.append(Point(x=real_path[-1][0], y=real_path[-1][1], z=z_index))  # type: ignore
-        marker.points.append(Point(x=link_point[0], y=link_point[1], z=z_index))  # type: ignore
-    return marker
 
 
-def make_delete_marker(namespace, p_id, frame_id, stamp=Time()):
+def make_delete_marker(namespace: str, p_id: int, frame_id: str, stamp: Time = Time()):
     return Marker(
         ns=namespace,
         id=p_id,
@@ -275,7 +280,7 @@ def make_delete_marker(namespace, p_id, frame_id, stamp=Time()):
     )
 
 
-def make_delete_all_marker(frame_id, ns="", stamp=Time()):
+def make_delete_all_marker(frame_id: str, ns: str = "", stamp: Time = Time()):
     return MarkerArray(
         markers=[
             Marker(
@@ -285,3 +290,24 @@ def make_delete_all_marker(frame_id, ns="", stamp=Time()):
             )
         ]
     )
+
+
+def points_to_triangle_list(
+    points: t.List[npt.NDArray[np.float_]], line_width: float
+) -> Polygon:
+    if len(points) < 2:
+        raise Exception("Less than two points")
+
+    forward_coords = []
+    backward_coords = []
+    for a, b in zip(points, points[1:]):
+        a_to_b = b - a
+        z = np.array((0.0, 0.0, 1.0))
+        ortho = np.cross(a_to_b, z)
+        ortho = (ortho / np.linalg.norm(ortho)) * line_width / 2
+        forward_coords.append(a[:2] + ortho[:2])
+        backward_coords.append(a[:2] - ortho[:2])
+
+    backward_coords.reverse()
+    backward_coords.append(forward_coords[0])
+    return Polygon(forward_coords + backward_coords)
