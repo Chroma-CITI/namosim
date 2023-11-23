@@ -16,7 +16,6 @@ from geometry_msgs.msg import (
 )
 from grid_map_msgs.msg import GridMap
 from shapely.geometry import Polygon
-from shapely.ops import triangulate
 from std_msgs.msg import (
     ColorRGBA,
     Float32MultiArray,
