@@ -15,6 +15,7 @@ from namosim.navigation.conflict import (
 )
 from namosim.utils import collision, utils
 from namosim.worldreps.entity_based.robot import Robot
+from namosim.worldreps.entity_based.world import World
 
 
 class Path:
@@ -99,8 +100,8 @@ class TransferPath:
 
     def get_conflicts(
         self,
-        robot_uid,
-        world,
+        robot_uid: int,
+        world: World,
         inflated_grid_by_robot,
         other_entities_polygons,
         other_entities_aabb_tree,
@@ -114,7 +115,7 @@ class TransferPath:
         exit_early_for_any_conflict=False,
         exit_early_only_for_long_term_conflicts=True,
         rp=None,
-        robot_name="",
+        robot_name: str = "",
     ):
         if shared_horizon is None:
             # If no horizon is given, check all unexecuted actions
