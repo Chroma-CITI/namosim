@@ -185,7 +185,7 @@ class TransferPath:
                     # and is a grab action, we also check the possibility of SimultaneousGrab conflicts t+1
                     radius = 2.0 * inflated_grid_by_robot.res
                     grab_zone = world.entities[self.obstacle_uid].polygon.buffer(
-                        radius, join_style=2
+                        radius, join_style="mitre"
                     )
                     collides_with = collision.check_static_collision(
                         self.obstacle_uid,

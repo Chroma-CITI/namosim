@@ -19,16 +19,16 @@ def check_new_local_opening(
     # Build inflated polygons
     if not init_entity_inflated_polygon:
         init_entity_inflated_polygon = init_entity_polygon.buffer(
-            2.0 * inflation_radius, join_style=2
+            2.0 * inflation_radius, join_style="mitre"
         )
         if init_entity_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
             # Exit early if goal in init_entity_inflated_polygon
             return True, init_blocking_areas, init_entity_inflated_polygon
     target_entity_inflated_polygon = target_entity_polygon.buffer(
-        2.0 * inflation_radius, join_style=2
+        2.0 * inflation_radius, join_style="mitre"
     )
     target_entity_radius_inflated_polygon = target_entity_polygon.buffer(
-        inflation_radius, join_style=2
+        inflation_radius, join_style="mitre"
     )
     if target_entity_radius_inflated_polygon.intersects(
         Point(goal_pose[0], goal_pose[1])

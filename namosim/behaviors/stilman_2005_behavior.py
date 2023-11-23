@@ -1098,7 +1098,6 @@ class Stilman2005Behavior(BaselineBehavior):
                                 ):
                                     if obstacle.polygon.buffer(
                                         2.0 * inflated_grid_by_robot.inflation_radius,
-                                        join_style=2,
                                     ).intersects(conflicting_robot.polygon):
                                         radius = min_radius_for_release
                                         break
@@ -1599,15 +1598,12 @@ class Stilman2005Behavior(BaselineBehavior):
                 traversed_obstacles_ids.add(neighbor.first_obstacle_uid)
 
         self._rp.publish_rch_data(
-            current,
-            gscore,
-            close_set,
-            open_queue,
-            came_from,
-            neighbors,
-            traversed_obstacles_ids,
-            inflated_robot_grid.res,
-            inflated_robot_grid.grid_pose,
+            current=current,
+            came_from=came_from,
+            neighbors=neighbors,
+            traversed_obstacles_ids=traversed_obstacles_ids,
+            res=inflated_robot_grid.res,
+            grid_pose=inflated_robot_grid.grid_pose,
             ns=self._robot_name,
         )
 
@@ -1839,8 +1835,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
         inf_robot, inf_obstacle = copy.deepcopy(robot), copy.deepcopy(obstacle)
         inf_robot.polygon, inf_obstacle.polygon = (
-            robot.polygon.buffer(res, join_style=2),
-            obstacle.polygon.buffer(res, join_style=2),
+            robot.polygon.buffer(res, join_style="mitre"),
+            obstacle.polygon.buffer(res, join_style="mitre"),
         )
 
         goal_pose, goal_cell = (

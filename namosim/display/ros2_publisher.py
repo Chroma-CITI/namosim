@@ -856,13 +856,10 @@ class RosPublisher:  # noqa: F821
     # region STILMAN 2005 RCH DATA
     def publish_rch_data(
         self,
-        current,
-        gscore,
-        close_set,
-        open_queue,
-        came_from,
-        neighbors,
-        traversed_obstacles_ids,
+        current: t.Any,
+        came_from: t.Any,
+        neighbors: t.Any,
+        traversed_obstacles_ids: t.Any,
         res: float,
         grid_pose: PoseModel,
         ns: str = "",
