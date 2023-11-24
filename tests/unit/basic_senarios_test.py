@@ -6,7 +6,7 @@ from namosim.simulator import Simulator
 
 class BasicTest(unittest.TestCase):
     def setUp(self):
-        self.scenarios_folder = os.path.join(__file__, "../test_data/scenarios")
+        self.scenarios_folder = os.path.join(__file__, "../data/scenarios")
 
     def test_minimal(self):
         sim = Simulator(

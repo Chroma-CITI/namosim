@@ -44,7 +44,7 @@ from namosim.display.conversions import (
     polygon_to_line_strip,
     polygon_to_triangle_list,
     poses_to_poses_array,
-    real_path_to_linestrip,
+    real_path_to_triangle_list,
     string_to_text,
 )
 from namosim.models import PoseModel, SimulationModel
@@ -140,7 +140,7 @@ class RosObserver:
         return self._rate
 
     @rate.setter
-    def rate(self, r):
+    def rate(self, r: float):
         self._rate = r
         self._duration = 1.0 / self.rate
 
@@ -155,7 +155,11 @@ class RosObserver:
                 self._publisher.publish(self._convert(**kwargs))
                 self._last_time = time.time()
 
-    def _convert(self, **kwargs: t.Any):
+    def _convert(self, **kwargs: t.Any) -> t.Any:
+        """
+        Receives arguments related to the world and simulation and converts them in to RViz messages
+        for visualization.
+        """
         raise NotImplementedError
 
     def reset(self, reset_msg=None):
@@ -205,7 +209,12 @@ class WorldObserver(RosObserver):
         self.prev_sim_world_draw_data = current_world_draw_data
         return self.world_to_marker_array(world, robot_uid, entities_to_ignore)
 
-    def world_to_marker_array(self, world, robot_uid=None, entities_to_ignore=None):
+    def world_to_marker_array(
+        self,
+        world: World,
+        robot_uid: int | None = None,
+        entities_to_ignore: t.Set[int] | None = None,
+    ):
         if entities_to_ignore is None:
             entities_to_ignore = set()
         marker_array = MarkerArray()
@@ -931,7 +940,7 @@ class RosPublisher:  # noqa: F821
                         res,
                         grid_pose,
                     )
-                    came_from_marker = real_path_to_linestrip(
+                    came_from_marker = real_path_to_triangle_list(
                         [cur_pose, from_pose],
                         "/rch_came_from",
                         _id,

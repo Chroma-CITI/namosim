@@ -2,15 +2,20 @@ import copy
 import json
 import os
 import random
+import typing as t
 from xml.dom import minidom
 
+from shapely import Polygon
+
+from namosim.models import PoseModel
 from namosim.utils import collision, conversion, utils
 from namosim.worldreps.occupation_based.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
+    BinaryOccupancyGrid,
 )
 
 
-def get_map_bounds(polygons):
+def get_map_bounds(polygons: t.Dict[int, Polygon]):
     map_min_x, map_min_y, map_max_x, map_max_y = (
         float("inf"),
         float("inf"),
@@ -26,11 +31,11 @@ def get_map_bounds(polygons):
 
 def sample_poses_uniform(
     obstacles_polygons,
-    robot_polygon,
-    robot_pose,
-    nb_poses=1,
-    grid=None,
-    no_collisions_between_poses=False,
+    robot_polygon: Polygon,
+    robot_pose: PoseModel,
+    nb_poses: int = 1,
+    grid: BinaryOccupancyGrid | None = None,
+    no_collisions_between_poses: bool = False,
 ):
     # Make AABB Tree from polygons
     aabb_tree = collision.polygons_to_aabb_tree(obstacles_polygons)

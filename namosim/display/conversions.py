@@ -56,7 +56,7 @@ def plan_to_markerarray(plan: t.Any, robot: Robot, frame_id: str, stamp: Time = 
                 cfg.border_width,
             )
             markers.append(obstacle_end_polygon_marker)
-        path_marker = real_path_to_linestrip(
+        path_marker = real_path_to_triangle_list(
             component.robot_path.poses,
             "/plan",
             p_id,
@@ -73,6 +73,8 @@ def plan_to_markerarray(plan: t.Any, robot: Robot, frame_id: str, stamp: Time = 
 
 
 # Basic conversion functions
+
+
 def polygon_to_triangle_list(
     polygon: Polygon,
     namespace: str,
@@ -82,6 +84,25 @@ def polygon_to_triangle_list(
     z_index: float,
     stamp: Time = Time(),
 ):
+    """Takes a polygon and converts it to a TRIANGLE_LIST marker for RVIZ
+
+    :param polygon
+    :type polygon: Polygon
+    :param namespace: rviz namespace
+    :type namespace: str
+    :param p_id: marker id
+    :type p_id: int
+    :param frame_id: rviz frame
+    :type frame_id: str
+    :param color: color of the rendered marker
+    :type color: ColorRGBA
+    :param z_index: _description_
+    :type z_index: a z-axis offset
+    :param stamp: timestamp, defaults to Time()
+    :type stamp: Time, optional
+    :return: a TRIANGLE_LIST marker
+    :rtype: Marker
+    """
     marker = Marker(
         type=Marker.TRIANGLE_LIST,
         ns=namespace,
@@ -92,7 +113,8 @@ def polygon_to_triangle_list(
         points=[],
     )
     if isinstance(polygon, Polygon):
-        verts = np.array(list(polygon.exterior.coords)).reshape(-1, 2)
+        verts = list(zip(*polygon.exterior.coords.xy))[:-1]
+        verts = np.array(verts)
         rings = np.array([verts.shape[0]])
         triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
         triangles = [
@@ -235,38 +257,62 @@ def poses_to_poses_array(poses: t.List[PoseModel], stamp: Time = Time()):
     return pose_array
 
 
-def real_path_to_linestrip(
-    real_path: t.List[t.Tuple[float, float]],
+def real_path_to_triangle_list(
+    real_path: t.List[t.Tuple[float, float, float] | t.Tuple[float, float]],
     namespace: str,
     p_id: int,
     frame_id: str,
     color: ColorRGBA,
     line_width: float,
     z_index: float,
-    link_point: t.Optional[t.Tuple[float, float]] = None,
     stamp: Time = Time(),
 ):
-    marker = Marker(
-        type=Marker.LINE_STRIP,
-        ns=namespace,
-        id=p_id,
-        header=Header(frame_id=frame_id, stamp=stamp),
+    """Takes a robot path as a sequence of points and converts them to a TRIANGLE_LIST marker for RVIZ.
+
+    :param real_path: A nagivation path as a sequency of points
+    :type real_path: t.List[t.Tuple[float, float, float]  |  t.Tuple[float, float]]
+    :param namespace: the rviz namespace
+    :type namespace: str
+    :param p_id: _description_
+    :type p_id: int
+    :param frame_id: _description_
+    :type frame_id: str
+    :param color: _description_
+    :type color: ColorRGBA
+    :param line_width: _description_
+    :type line_width: float
+    :param z_index: _description_
+    :type z_index: float
+    :param stamp: _description_, defaults to Time()
+    :type stamp: Time, optional
+    :return: _description_
+    :rtype: _type_
+    """
+    points = []
+
+    # Remove duplicate points in the path. Why are there duplicates??
+    visited = set()
+    for point in real_path:
+        (x, y) = point[0], point[1]
+        if (x, y) in visited:
+            continue
+        else:
+            visited.add((x, y))
+        points.append(np.array((x, y, z_index)))
+
+    polygon = path_to_polygon(points=points, line_width=line_width)
+    return polygon_to_triangle_list(
+        polygon=polygon,
+        namespace=namespace,
+        p_id=p_id,
+        frame_id=frame_id,
         color=color,
-        scale=Vector3(x=line_width, y=0.0, z=0.0),
-        points=[],
+        z_index=z_index,
+        stamp=stamp,
     )
-    for i in range(len(real_path) - 1):
-        point = real_path[i]
-        next_point = real_path[i + 1]
-        marker.points.append(Point(x=point[0], y=point[1], z=z_index))  # type: ignore
-        marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))  # type: ignore
-    if link_point:
-        marker.points.append(Point(x=real_path[-1][0], y=real_path[-1][1], z=z_index))  # type: ignore
-        marker.points.append(Point(x=link_point[0], y=link_point[1], z=z_index))  # type: ignore
-    return marker
 
 
-def make_delete_marker(namespace, p_id, frame_id, stamp=Time()):
+def make_delete_marker(namespace: str, p_id: int, frame_id: str, stamp: Time = Time()):
     return Marker(
         ns=namespace,
         id=p_id,
@@ -275,7 +321,7 @@ def make_delete_marker(namespace, p_id, frame_id, stamp=Time()):
     )
 
 
-def make_delete_all_marker(frame_id, ns="", stamp=Time()):
+def make_delete_all_marker(frame_id: str, ns: str = "", stamp: Time = Time()):
     return MarkerArray(
         markers=[
             Marker(
@@ -285,3 +331,41 @@ def make_delete_all_marker(frame_id, ns="", stamp=Time()):
             )
         ]
     )
+
+
+def path_to_polygon(
+    points: t.List[npt.NDArray[np.float_]], line_width: float
+) -> Polygon:
+    """Converts a sequence of points representing a navigation path into a polygonal "line strip".
+
+    :param points: A sequence of points
+    :type points: t.List[npt.NDArray[np.float_]]
+    :param line_width: width to use for the polygonal line strip
+    :type line_width: float
+    :raises Exception: if less than two points are in the path
+    :return: a polygonal line strip
+    :rtype: Polygon
+    """
+    if len(points) < 2:
+        raise Exception("Less than two points")
+
+    forward_coords = []
+    backward_coords = []
+    for i in range(len(points) - 1):
+        a = points[i]
+        b = points[i + 1]
+        a_to_b = b - a
+        z = np.array((0.0, 0.0, 1.0))
+        ortho = np.cross(a_to_b, z)
+        ortho = (ortho / np.linalg.norm(ortho)) * line_width / 2
+        forward_coords.append(a[:2] + ortho[:2])
+        backward_coords.append(a[:2] - ortho[:2])
+
+        # Don't forget to add the last point!
+        if i == len(points) - 2:
+            forward_coords.append(b[:2] + ortho[:2])
+            backward_coords.append(b[:2] - ortho[:2])
+
+    backward_coords.reverse()
+    backward_coords.append(forward_coords[0])
+    return Polygon(forward_coords + backward_coords)
