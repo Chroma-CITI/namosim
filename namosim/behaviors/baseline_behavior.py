@@ -96,7 +96,8 @@ class BaselineBehavior(object):
     def _p_opt(self, p_opt: Plan | None):
         self.__p_opt = p_opt
         self._rp.cleanup_p_opt(ns=self._robot_name)
-        self._rp.publish_p_opt(self.__p_opt, self._robot, ns=self._robot_name)
+        if self.__p_opt:
+            self._rp.publish_p_opt(self.__p_opt, self._robot, ns=self._robot_name)
 
     @property
     def _last_action_result(self):

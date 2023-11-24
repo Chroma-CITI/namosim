@@ -1098,7 +1098,6 @@ class Stilman2005Behavior(BaselineBehavior):
                                 ):
                                     if obstacle.polygon.buffer(
                                         2.0 * inflated_grid_by_robot.inflation_radius,
-                                        join_style=2,
                                     ).intersects(conflicting_robot.polygon):
                                         radius = min_radius_for_release
                                         break
@@ -1599,15 +1598,12 @@ class Stilman2005Behavior(BaselineBehavior):
                 traversed_obstacles_ids.add(neighbor.first_obstacle_uid)
 
         self._rp.publish_rch_data(
-            current,
-            gscore,
-            close_set,
-            open_queue,
-            came_from,
-            neighbors,
-            traversed_obstacles_ids,
-            inflated_robot_grid.res,
-            inflated_robot_grid.grid_pose,
+            current=current,
+            came_from=came_from,
+            neighbors=neighbors,
+            traversed_obstacles_ids=traversed_obstacles_ids,
+            res=inflated_robot_grid.res,
+            grid_pose=inflated_robot_grid.grid_pose,
             ns=self._robot_name,
         )
 
@@ -1795,9 +1791,7 @@ class Stilman2005Behavior(BaselineBehavior):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
 
-        self._rp.publish_robot_sim_world(
-            w_t_plus_2, self._robot_uid, ns=self._robot_name
-        )
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid)
 
         c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
 
@@ -1841,8 +1835,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
         inf_robot, inf_obstacle = copy.deepcopy(robot), copy.deepcopy(obstacle)
         inf_robot.polygon, inf_obstacle.polygon = (
-            robot.polygon.buffer(res, join_style=2),
-            obstacle.polygon.buffer(res, join_style=2),
+            robot.polygon.buffer(res, join_style="mitre"),
+            obstacle.polygon.buffer(res, join_style="mitre"),
         )
 
         goal_pose, goal_cell = (
@@ -1981,9 +1975,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 tho_m.obstacle_path.polygons[-1],
             )
 
-        self._rp.publish_robot_sim_world(
-            w_t_plus_2, self._robot_uid, ns=self._robot_name
-        )
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid)
         self._rp.cleanup_robot_sim(ns=self._robot_name)
         self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
 
@@ -2008,9 +2000,7 @@ class Stilman2005Behavior(BaselineBehavior):
     ):
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
-        self._rp.publish_robot_sim_world(
-            w_t_plus_2, self._robot_uid, ns=self._robot_name
-        )
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid)
 
         c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
 
@@ -2151,7 +2141,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 best_transfer_end_configuration.robot.polygon,
                 best_transfer_end_configuration.obstacle.polygon,
                 "/target",
-                ns=self._robot_name,
+                robot_name=self._robot_name,
             )
 
             # 2. If a best obstacle transfer end configuration has been found, use A Star to find a path toward it
@@ -2312,9 +2302,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 tho_m.obstacle_path.polygons[-1],
             )
 
-        self._rp.publish_robot_sim_world(
-            w_t_plus_2, self._robot_uid, ns=self._robot_name
-        )
+        self._rp.publish_robot_sim_world(w_t_plus_2, self._robot_uid)
         self._rp.cleanup_robot_sim(ns=self._robot_name)
         self._rp.cleanup_q_manips_for_obs(ns=self._robot_name)
 
@@ -3234,7 +3222,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def get_neighbors(
         self,
-        current_configuration,
+        current_configuration: RobotObstacleConfiguration,
         gscore,
         close_set,
         open_queue,
@@ -3258,7 +3246,7 @@ class Stilman2005Behavior(BaselineBehavior):
         Creates list of neighbors that are not in close set, do not collide dynamically nor statically
         """
         # TODO Add debug display option for intersections, be it on grid(s) or in between polygons
-        neighbors = []
+        neighbors: t.List[RobotObstacleConfiguration] = []
         tentative_g_scores = []
 
         for action in self._new_actions:
@@ -3463,16 +3451,18 @@ class Stilman2005Behavior(BaselineBehavior):
             neighbors.append(neighbor_configuration)
             tentative_g_scores.append(gscore[current_configuration] + extra_g_cost)
 
+        manip_poses_ids = [c.manip_pose_id for c in start.keys()]
+
         self._rp.publish_manip_search_data(
-            current_configuration,
-            gscore,
-            close_set,
-            open_queue,
-            came_from,
-            neighbors,
-            start,
-            inflated_grid_by_robot_min.res,
-            inflated_grid_by_robot_min.grid_pose,
+            current_manip_pose_id=current_configuration.manip_pose_id,  # type: ignore
+            manip_poses_ids=manip_poses_ids,
+            robot_pose=current_configuration.robot.floating_point_pose,
+            robot_fixed_precision_pos=current_configuration.robot.fixed_precision_pose,
+            robot_polygon=current_configuration.robot.polygon,
+            obstacle_polygon=current_configuration.obstacle.polygon,
+            obstacle_pose=current_configuration.obstacle.floating_point_pose,
+            res=inflated_grid_by_robot_min.res,
+            neighbor_poses=[n.robot.floating_point_pose for n in neighbors],
             ns=self._robot_name,
         )
 

@@ -48,6 +48,9 @@ class NavigationOnlyBehavior(BaselineBehavior):
                 self._q_goal = None
                 return action
 
+            if self._p_opt is None:
+                raise Exception("No plan")
+
             if not self._p_opt.is_valid(self._world, self._robot_uid):
                 grid = self._world.get_binary_inflated_occupancy_grid(
                     (self._robot_uid,)
