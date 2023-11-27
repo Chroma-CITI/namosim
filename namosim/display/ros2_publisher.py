@@ -52,14 +52,14 @@ from namosim.display.conversions import (
 )
 from namosim.models import GridCellModel, PoseModel, SimulationModel
 from namosim.utils import utils
-from namosim.worldreps.entity_based.entity import Entity
-from namosim.worldreps.entity_based.obstacle import Obstacle
-from namosim.worldreps.entity_based.robot import Robot
-from namosim.worldreps.entity_based.world import World
-from namosim.worldreps.occupation_based.binary_occupancy_grid import (
+from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
+from namosim.world.entity import Entity
+from namosim.world.obstacle import Obstacle
+from namosim.world.robot import Robot
+from namosim.world.world import World
 
 
 class NamespaceCache:

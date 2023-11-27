@@ -38,7 +38,7 @@ Here are the contents of a minimal world config which configures the world based
   :language: json
 
 The full specification for the world config is defined by the `WorldModel` class which can be found in 
-`namosim/worldreps/entity_based/models.py <https://gitlab.inria.fr/chroma/namo/namosim/-/blob/dev/namosim/worldreps/entity_based/models.py?ref_type=heads>`_.
+`namosim/world/models.py <https://gitlab.inria.fr/chroma/namo/namosim/-/blob/dev/namosim/world/models.py?ref_type=heads>`_.
 
 The Simulation Config
 ~~~~~~~~~~~~~~~~~~~~~

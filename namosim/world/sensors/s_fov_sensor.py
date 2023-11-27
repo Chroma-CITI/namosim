@@ -1,5 +1,5 @@
-from namosim.worldreps.entity_based.obstacle import Obstacle
-from namosim.worldreps.entity_based.sensors.circular_sector_sensor import (
+from namosim.world.obstacle import Obstacle
+from namosim.world.sensors.circular_sector_sensor import (
     CircularSectorSensor,
 )
 

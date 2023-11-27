@@ -14,8 +14,8 @@ from namosim.navigation.conflict import (
     StolenMovableConflict,
 )
 from namosim.utils import collision, utils
-from namosim.worldreps.entity_based.robot import Robot
-from namosim.worldreps.entity_based.world import World
+from namosim.world.robot import Robot
+from namosim.world.world import World
 
 
 class Path:

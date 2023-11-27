@@ -3,13 +3,13 @@ import typing as t
 
 from shapely import Polygon
 
-import namosim.worldreps.entity_based.world as world
+import namosim.world.world as world
 from namosim.models import PoseModel
 from namosim.utils import utils
-from namosim.worldreps.entity_based.entity import Entity, Style
-from namosim.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
-from namosim.worldreps.entity_based.sensors.omniscient_sensor import OmniscientSensor
-from namosim.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
+from namosim.world.entity import Entity, Style
+from namosim.world.sensors.g_fov_sensor import GFOVSensor
+from namosim.world.sensors.omniscient_sensor import OmniscientSensor
+from namosim.world.sensors.s_fov_sensor import SFOVSensor
 
 
 class Robot(Entity):

@@ -3,7 +3,7 @@ import unittest
 from shapely.geometry import Polygon
 
 from namosim.utils import utils
-from namosim.worldreps.occupation_based import binary_occupancy_grid
+from namosim.world import binary_occupancy_grid
 
 
 class GraphSearchTest(unittest.TestCase):

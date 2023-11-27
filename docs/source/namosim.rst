@@ -7,11 +7,12 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   namosim.algorithms
    namosim.behaviors
    namosim.display
    namosim.navigation
    namosim.utils
-   namosim.worldreps
+   namosim.world
 
 Submodules
 ----------

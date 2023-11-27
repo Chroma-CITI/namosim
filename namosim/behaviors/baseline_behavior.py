@@ -14,8 +14,8 @@ from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
-from namosim.worldreps.entity_based.robot import Robot
-from namosim.worldreps.entity_based.world import World
+from namosim.world.robot import Robot
+from namosim.world.world import World
 
 
 class BaselineBehavior(object):
