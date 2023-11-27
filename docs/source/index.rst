@@ -11,6 +11,7 @@ Welcome to NAMOSIM's documentation!
    :caption: Contents:
 
    intro.rst
+   scenarios.rst
    namosim.rst
 
 Indices and tables

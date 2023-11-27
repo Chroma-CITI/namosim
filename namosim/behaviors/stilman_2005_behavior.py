@@ -648,9 +648,11 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
     def think(self) -> ba.BasicAction | None:
+        # Initialize the social costmap
         if self._social_costmap is None:
             self.init_social_costmap()
 
+        # Initialize the goal if one is not already set
         if self._q_goal is None:
             if self._navigation_goals:
                 self._q_goal = self._navigation_goals.pop(
@@ -680,6 +682,7 @@ class Stilman2005Behavior(BaselineBehavior):
             self.rot_mult,
             self.action_space_reduction,
         )
+
         self._p_opt.save_conflicts(self._step_count)
 
         if isinstance(next_step, (ba.GoalSuccess, ba.GoalFailed)):

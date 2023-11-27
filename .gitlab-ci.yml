@@ -37,5 +37,6 @@ pages:
       - public
   only:
     - main
+    - dev
   except:
     - tags
