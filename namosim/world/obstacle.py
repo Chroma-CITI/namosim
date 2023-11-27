@@ -3,7 +3,7 @@ import copy
 from shapely import Polygon
 
 from namosim.models import PoseModel
-from namosim.worldreps.entity_based.entity import Entity, Style
+from namosim.world.entity import Entity, Style
 
 
 class Obstacle(Entity):

@@ -1,6 +1,6 @@
 import copy
 
-import namosim.worldreps.entity_based.world as world
+import namosim.world.world as world
 
 
 class OmniscientSensor:

@@ -29,7 +29,7 @@ import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 from namosim.display import tf_replacement
 from namosim.models import PoseModel
-from namosim.worldreps.entity_based.robot import Robot
+from namosim.world.robot import Robot
 
 
 def init_header(stamp: Time = Time()):
@@ -339,7 +339,7 @@ def path_to_polygon(
     """Converts a sequence of points representing a navigation path into a polygonal "line strip".
 
     :param points: A sequence of points
-    :type points: t.List[npt.NDArray[np.float_]]
+    :type points: t.List[npt.NDArray[np.float_]
     :param line_width: width to use for the polygonal line strip
     :type line_width: float
     :raises Exception: if less than two points are in the path

@@ -3,11 +3,11 @@ from shapely.errors import TopologicalError
 from shapely.geometry import Polygon
 from shapely.ops import cascaded_union
 
-import namosim.worldreps.entity_based.world as world
+import namosim.world.world as world
 from namosim.models import PoseModel
-from namosim.worldreps.entity_based.entity import Style
-from namosim.worldreps.entity_based.obstacle import Obstacle
-from namosim.worldreps.entity_based.sensors.circular_sector_sensor import (
+from namosim.world.entity import Style
+from namosim.world.obstacle import Obstacle
+from namosim.world.sensors.circular_sector_sensor import (
     CircularSectorSensor,
 )
 

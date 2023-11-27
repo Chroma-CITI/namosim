@@ -2,8 +2,8 @@ import os
 
 import utils
 
-from namosim.worldreps.entity_based.obstacle import Obstacle
-from namosim.worldreps.entity_based.world import World
+from namosim.world.obstacle import Obstacle
+from namosim.world.world import World
 
 
 def concave_to_convex_obstacles(world_json_path):

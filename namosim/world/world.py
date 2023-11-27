@@ -13,16 +13,16 @@ from typing_extensions import Self
 
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
-import namosim.worldreps.entity_based.robot as robot
-from namosim.worldreps.discretization_data import DiscretizationData
-from namosim.worldreps.entity_based.entity import Entity, Style
-from namosim.worldreps.entity_based.goal import Goal
-from namosim.worldreps.entity_based.models import WorldModel
-from namosim.worldreps.entity_based.obstacle import Obstacle
-from namosim.worldreps.entity_based.sensors.g_fov_sensor import GFOVSensor
-from namosim.worldreps.entity_based.sensors.omniscient_sensor import OmniscientSensor
-from namosim.worldreps.entity_based.sensors.s_fov_sensor import SFOVSensor
-from namosim.worldreps.entity_based.taboo import Taboo
+import namosim.world.robot as robot
+from namosim.world.discretization_data import DiscretizationData
+from namosim.world.entity import Entity, Style
+from namosim.world.goal import Goal
+from namosim.world.models import WorldModel
+from namosim.world.obstacle import Obstacle
+from namosim.world.sensors.g_fov_sensor import GFOVSensor
+from namosim.world.sensors.omniscient_sensor import OmniscientSensor
+from namosim.world.sensors.s_fov_sensor import SFOVSensor
+from namosim.world.taboo import Taboo
 
 
 class World:

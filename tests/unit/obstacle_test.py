@@ -3,8 +3,8 @@ import unittest
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon
 
-from namosim.worldreps.entity_based.entity import Style
-from namosim.worldreps.entity_based.obstacle import Obstacle
+from namosim.world.entity import Style
+from namosim.world.obstacle import Obstacle
 
 
 class ObstacleTest(unittest.TestCase):

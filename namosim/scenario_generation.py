@@ -9,7 +9,7 @@ from shapely import Polygon
 
 from namosim.models import PoseModel
 from namosim.utils import collision, conversion, utils
-from namosim.worldreps.occupation_based.binary_occupancy_grid import (
+from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )

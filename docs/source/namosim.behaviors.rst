@@ -1,14 +1,6 @@
 namosim.behaviors package
 =========================
 
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   namosim.behaviors.algorithms
-
 Submodules
 ----------
 

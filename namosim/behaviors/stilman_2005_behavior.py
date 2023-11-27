@@ -14,9 +14,9 @@ import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 import namosim.utils.collision as collision
 import namosim.utils.connectivity as connectivity
-import namosim.worldreps.occupation_based.social_topological_occupation_cost_grid as stocg
-from namosim.behaviors.algorithms import graph_search
-from namosim.behaviors.algorithms.new_local_opening_check import check_new_local_opening
+import namosim.world.social_topological_occupation_cost_grid as stocg
+from namosim.algorithms import graph_search
+from namosim.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.behaviors.baseline_behavior import BaselineBehavior
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.models import (
@@ -41,13 +41,13 @@ from namosim.navigation.navigation_path import (
 )
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
-from namosim.worldreps.entity_based.obstacle import Obstacle
-from namosim.worldreps.entity_based.robot import Robot
-from namosim.worldreps.entity_based.world import World
-from namosim.worldreps.occupation_based.binary_occupancy_grid import (
+from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
+from namosim.world.obstacle import Obstacle
+from namosim.world.robot import Robot
+from namosim.world.world import World
 
 
 class RCHConfiguration(object):

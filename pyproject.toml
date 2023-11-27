@@ -63,14 +63,14 @@ pyright \
   namosim/models.py \
   namosim/simulator.py \
   namosim/utils/utils.py \
-  namosim/worldreps/entity_based/entity.py \
-  namosim/worldreps/entity_based/goal.py \
-  namosim/worldreps/entity_based/models.py \
-  namosim/worldreps/entity_based/obstacle.py \
-  namosim/worldreps/entity_based/robot.py \
-  namosim/worldreps/entity_based/world.py \
+  namosim/world/entity.py \
+  namosim/world/goal.py \
+  namosim/world/models.py \
+  namosim/world/obstacle.py \
+  namosim/world/robot.py \
+  namosim/world/world.py \
   namosim/navigation/conflict.py \
-  namosim/worldreps/occupation_based/binary_occupancy_grid.py
+  namosim/world/binary_occupancy_grid.py
 """
 all_checks = ["lint_check", "type_check", "test"]
 
