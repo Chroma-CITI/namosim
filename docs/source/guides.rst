@@ -19,6 +19,15 @@ as an entity in the world.
 .. literalinclude:: ../../tests/unit/data/scenarios/minimal.svg
   :language: xml
 
+Here is the same file rendered as an image:
+
+.. image:: ../../tests/unit/data/scenarios/minimal.svg
+  :width: 400
+  :alt: NAMO Simulator
+
+You can see the robot starting position in the top left. To the right of the robot is a movable box. The walls
+are in black. The robot goal pose is visible in the bottom right.
+
 We recommend using `Inkscape <https://inkscape.org/>`_ to edit your svg geometry file.
 
 The World Config
