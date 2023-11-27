@@ -534,16 +534,20 @@ class Stilman2005Behavior(BaselineBehavior):
             neighborhood=self.neighborhood,
             params=self.static_obs_inf_grid.params,
         )
+
         all_entities_polygons = {
             uid: e.polygon for uid, e in self._world.entities.items()
         }
+
         self.inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
             all_entities_polygons,
             self._world.discretization_data.res,
             self.robot_max_inflation_radius,
             neighborhood=self.neighborhood,
             params=self.static_obs_inf_grid.params,
-        )  # TODO Make sure static and generalist grid share same width and height (occurs naturally if map borders are static, but not otherwise)
+        )
+
+        # TODO Make sure static and generalist grid share same width and height (occurs naturally if map borders are static, but not otherwise)
         self.inflated_grid_by_robot.deactivate_entities({self._robot.uid})
 
         # Initialize social costmap as None for computation in first think
