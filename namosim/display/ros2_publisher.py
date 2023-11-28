@@ -9,15 +9,8 @@ import numpy as np
 import numpy.typing as npt
 import rclpy
 from builtin_interfaces.msg import Time
-from geometry_msgs.msg import (
-    Point,
-    Pose,
-    PoseArray,
-    Quaternion,
-    Transform,
-    TransformStamped,
-    Vector3,
-)
+from geometry_msgs.msg import (Point, Pose, PoseArray, Quaternion, Transform,
+                               TransformStamped, Vector3)
 from grid_map_msgs.msg import GridMap
 from nav_msgs.msg import MapMetaData, OccupancyGrid
 from rclpy.callback_groups import CallbackGroup
@@ -28,34 +21,26 @@ from rclpy.qos_event import PublisherEventCallbacks
 from rclpy.qos_overriding_options import QoSOverridingOptions
 from rclpy.utilities import ok  # noqa: F401 forwarding to this module
 from shapely import Polygon, affinity
-from std_msgs.msg import (
-    ColorRGBA,
-    Header,
-)
+from std_msgs.msg import ColorRGBA, Header
 from tf2_ros import StaticTransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
 
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as navigation_plan
-from namosim.display.conversions import (
-    costmap_to_grid_map,
-    geom_quat_from_yaw,
-    init_header,
-    make_delete_all_marker,
-    plan_to_markerarray,
-    polygon_to_line_strip,
-    polygon_to_triangle_list,
-    poses_to_poses_array,
-    real_path_to_triangle_list,
-    string_to_text,
-)
+from namosim.display.conversions import (costmap_to_grid_map,
+                                         geom_quat_from_yaw, init_header,
+                                         make_delete_all_marker,
+                                         plan_to_markerarray,
+                                         polygon_to_line_strip,
+                                         polygon_to_triangle_list,
+                                         poses_to_poses_array,
+                                         real_path_to_triangle_list,
+                                         string_to_text)
 from namosim.models import GridCellModel, PoseModel, SimulationModel
 from namosim.utils import utils
-from namosim.world.binary_occupancy_grid import (
-    BinaryInflatedOccupancyGrid,
-    BinaryOccupancyGrid,
-)
+from namosim.world.binary_occupancy_grid import (BinaryInflatedOccupancyGrid,
+                                                 BinaryOccupancyGrid)
 from namosim.world.entity import Entity
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
@@ -703,6 +688,8 @@ class RosPublisher:  # noqa: F821
         return node_name
 
     def publish(self, topic: str, msg: t.Any):
+        if cfg.deactivate_gui:
+            return
         publisher = self.my_publishers[topic]
         connections = publisher.get_subscription_count()
         if connections > 0:
@@ -718,19 +705,24 @@ class RosPublisher:  # noqa: F821
 
     # region SIM WORLD
     def publish_sim_world(self, world: World, robot_uid: int | None = None):
+        if cfg.deactivate_gui:
+            return
         self.observers[self.sim_knowledge_topic].update(
             world=world, robot_uid=robot_uid
         )
         self.observers[self.sim_costmap_topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_sim_world(self):
-        self.observers[self.sim_knowledge_topic].reset()
-        self.observers[self.sim_costmap_topic].reset()
+        if not cfg.deactivate_gui:
+            self.observers[self.sim_knowledge_topic].reset()
+            self.observers[self.sim_costmap_topic].reset()
 
     # endregion
 
     # region ROBOT WORLD
     def publish_robot_world(self, world: World, robot_uid: int):
+        if cfg.deactivate_gui:
+            return
         world_topic = (
             self.prefix
             + "/"
@@ -744,6 +736,9 @@ class RosPublisher:  # noqa: F821
         self.observers[costmap_topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_robot_world(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
+        
         world_topic = self.prefix + "/" + ns + cfg.robot_knowledge_topic
         if world_topic in self.observers:
             self.observers[world_topic].reset()
@@ -755,6 +750,8 @@ class RosPublisher:  # noqa: F821
 
     # region ROBOT SIM
     def publish_robot_sim_world(self, world: World, robot_uid: int):
+        if cfg.deactivate_gui:
+            return
         topic = (
             self.prefix
             + "/"
@@ -764,10 +761,14 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_robot_sim_world(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + "/" + ns + cfg.robot_sim_world_topic
         self.observers[topic].reset()
 
     def publish_robot_sim_costmap(self, world: World, robot_uid: int):
+        if cfg.deactivate_gui:
+            return
         topic = (
             self.prefix
             + "/"
@@ -777,6 +778,8 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_robot_sim_costmap(self, world: World, robot_uid: int):
+        if cfg.deactivate_gui:
+            return
         topic = (
             self.prefix
             + "/"
@@ -791,6 +794,8 @@ class RosPublisher:  # noqa: F821
     def publish_social_grid_map(
         self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
     ):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
             if not ns
@@ -799,6 +804,8 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_social_grid_map(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
             if not ns
@@ -812,6 +819,8 @@ class RosPublisher:  # noqa: F821
         inflated_grid_by_obstacle: BinaryInflatedOccupancyGrid,
         ns: str = "",
     ):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
             if not ns
@@ -823,6 +832,8 @@ class RosPublisher:  # noqa: F821
         )
 
     def cleanup_combined_costmap(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
             if not ns
@@ -836,6 +847,8 @@ class RosPublisher:  # noqa: F821
     def publish_connected_components_grid(
         self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
     ):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_connected_components_topic
             if not ns
@@ -844,6 +857,8 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_connected_components_grid(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_connected_components_topic
             if not ns
@@ -1148,6 +1163,8 @@ class RosPublisher:  # noqa: F821
 
     # region Q MANIPS FOR OBS
     def publish_q_manips_for_obs(self, poses: t.List[PoseModel], ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.obs_manip_poses_topic
             if not ns
@@ -1156,6 +1173,8 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(poses=poses)
 
     def cleanup_q_manips_for_obs(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.obs_manip_poses_topic
             if not ns
@@ -1168,11 +1187,15 @@ class RosPublisher:  # noqa: F821
     # region P_OPT
     def publish_p_opt(self, plan: "navigation_plan.Plan", robot: Robot, ns: str = ""):
         """Publishes the optimal path to observers"""
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (cfg.plan_topic if not ns else "/" + ns + cfg.plan_topic)
         self.observers[topic].update(plan=plan, robot=robot)
 
     def cleanup_p_opt(self, ns: str = ""):
         """Clears the optimal path from observers"""
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (cfg.plan_topic if not ns else "/" + ns + cfg.plan_topic)
         self.observers[topic].reset()
 
@@ -1344,6 +1367,8 @@ class RosPublisher:  # noqa: F821
             )
 
     def cleanup_robot_sim(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             self.namespaces_caches[ns] = NamespaceCache()
@@ -1355,6 +1380,9 @@ class RosPublisher:  # noqa: F821
     def publish_goal(
         self, q_init: PoseModel, q_goal: PoseModel, entity: Robot, ns: str = ""
     ):
+        if cfg.deactivate_gui:
+            return
+        
         topic = self.prefix + (
             cfg.robot_goal_topic if not ns else "/" + ns + cfg.robot_goal_topic
         )
@@ -1557,6 +1585,8 @@ class RosPublisher:  # noqa: F821
 
     # region EXTRA COMBINED CLEANUP METHODS
     def cleanup_all(self):
+        if cfg.deactivate_gui:
+            return
         self.cleanup_sim_world()
         self.cleanup_message()
         for ns in self.agents_names:
