@@ -52,10 +52,12 @@ sphinx-copybutton = "^0.5.2"
 pre-commit = "^3.5.0"
 
 [tool.poe.tasks]
-lint_check = "ruff check ." # lint check
-lint_fix = "ruff check --fix ." # lint fix
-format = "ruff format ." # format
-test = "python -m unittest discover -s tests.unit -p '*_test.py'" # test
+lint_check = "ruff check ."                                           # lint check
+lint_fix = "ruff check --fix ."                                       # lint fix
+format = "ruff format ."                                              # format
+test.cmd = "python -m unittest discover -s tests.unit -p '*_test.py'" # test
+test.env = { NAMO_DISPLAY_WINDOW = "FALSE" }                          # env vars for test
+
 type_check = """
 pyright \
   namosim/display/colors.py \
