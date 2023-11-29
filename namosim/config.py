@@ -1,3 +1,4 @@
 import os
 
-display_window = os.environ.get('NAMO_DISPLAY_WINDOW', 'TRUE') == 'TRUE'
+DISPLAY_WINDOW = os.environ.get("NAMO_NO_DISPLAY_WINDOW") is None
+THINK_IN_PARALLEL = os.environ.get("NAMO_NO_THINK_PARALLEL") is None

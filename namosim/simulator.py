@@ -4,10 +4,12 @@ import json
 import os
 import pickle
 import random
+import threading
 import time
 import tkinter as tk
 import traceback
 import typing as t
+from queue import Queue
 
 import cairosvg
 import jsonpickle
@@ -149,7 +151,7 @@ class Simulator:
         self.window: tk.Tk | None = None
         self.background: tk.Label | None = None
 
-        if config.display_window:
+        if config.DISPLAY_WINDOW:
             self.window = tk.Tk()
             self.window.title("NAMOSIM")
             self.window.resizable(True, True)
@@ -346,9 +348,20 @@ class Simulator:
             # Think loop: get each agent to think about their next step
             think_durations = {}
             with timeout(10 * 60):
-                actions = self.think(
-                    active_agents, trace_polygons, step_count, think_durations
-                )
+                if config.THINK_IN_PARALLEL:
+                    actions = self.think_parallel(
+                        active_agents=active_agents,
+                        trace_polygons=trace_polygons,
+                        step_count=step_count,
+                        think_durations=think_durations,
+                    )
+                else:
+                    actions = self.think(
+                        active_agents=active_agents,
+                        trace_polygons=trace_polygons,
+                        step_count=step_count,
+                        think_durations=think_durations,
+                    )
 
             # Act loops: Verify that each action is doable individually and together, if so, execute them
             act_start = time.time()
@@ -375,9 +388,9 @@ class Simulator:
     def end_simulation(self, step_count: int, err: Exception | None = None):
         self.run_active = False
         if self.window:
-            self.window.destroy()
+            self.window.quit()
         if self.background:
-            self.background.destroy()
+            self.background.quit()
 
         if err is not None:
             if self.catch_exceptions:
@@ -945,65 +958,133 @@ class Simulator:
                 behavior.sense(self.ref_world, last_action_result, step_count)
                 sense_durations[agent_uid] = time.time() - sense_start
 
-    def think(
+    def _agent_think(
+        self,
+        agent_uid: int,
+        behavior: BaselineBehavior,
+        results: Queue[t.Tuple[int, float, ba.BasicAction | None]],
+    ):
+        think_start = time.time()
+        next_action = behavior.think()
+        think_duration = time.time() - think_start
+        results.put((agent_uid, think_duration, next_action))
+
+    def think_parallel(
         self,
         active_agents: set[int],
         trace_polygons: t.List[Polygon],
         step_count: int,
         think_durations: t.Dict[int, float],
     ):
+        # All think results are added to this thread-safe queue
+        results: Queue[t.Tuple[int, float, ba.BasicAction | None]] = Queue()
+
+        # Spin off a thread for each agent
+        threads = []
+        for agent_uid, behavior in self.agent_uid_to_behavior.items():
+            if agent_uid not in active_agents:
+                continue
+
+            thread = threading.Thread(
+                target=self._agent_think, args=(agent_uid, behavior, results)
+            )
+            threads.append(thread)
+            thread.start()
+
+        # Wait for all threads to finish
+        for thread in threads:
+            thread.join()
+
+        return self.process_think_results(
+            results=list(results.queue),
+            think_durations=think_durations,
+            active_agents=active_agents,
+            step_count=step_count,
+            trace_polygons=trace_polygons,
+        )
+
+    def process_think_results(
+        self,
+        results: t.Iterable[t.Tuple[int, float, ba.BasicAction | None]],
+        think_durations: t.Dict[int, float],
+        active_agents: t.Set[int],
+        trace_polygons: t.List[Polygon],
+        step_count: int,
+    ) -> t.Dict[int, ba.BasicAction]:
+        """Process the results of each agent's think step. Updates the set of activate agents and the dictionary of think durations."""
         agent_uid_to_next_action: t.Dict[int, ba.BasicAction] = {}
+        for agent_uid, think_duration, agent_next_action in results:
+            think_durations[agent_uid] = think_duration
+
+            # TODO Change goal coordinates for easier reading to goal name in log.
+            if isinstance(agent_next_action, ba.GoalsFinished):
+                # If the agent has executed all of its goals, remove it from the active agents
+                active_agents.remove(agent_uid)
+                self.simulation_log.append(
+                    utils.BasicLog(
+                        "Agent {} finished executing all its goals.".format(
+                            self.ref_world.entities[agent_uid].name
+                        ),
+                        step_count,
+                    )
+                )
+            elif isinstance(agent_next_action, ba.GoalFailed):
+                if self.save_intermediate_world_states:
+                    self.save_world_snapshot(
+                        agent_uid, agent_next_action, trace_polygons, step_count
+                    )
+                self.simulation_log.append(
+                    utils.BasicLog(
+                        "{} failed executing goal {}.".format(
+                            self.ref_world.entities[agent_uid].name,
+                            str(agent_next_action.goal),
+                        ),
+                        step_count,
+                    )
+                )
+            elif isinstance(agent_next_action, ba.GoalSuccess):
+                # If the agent reached its current goal
+                if self.save_intermediate_world_states:
+                    self.save_world_snapshot(
+                        agent_uid, agent_next_action, trace_polygons, step_count
+                    )
+                self.simulation_log.append(
+                    utils.BasicLog(
+                        "Agent {} successfully executed goal {}.".format(
+                            self.ref_world.entities[agent_uid].name,
+                            str(agent_next_action.goal),
+                        ),
+                        step_count,
+                    )
+                )
+
+            if agent_next_action:
+                agent_uid_to_next_action[agent_uid] = agent_next_action
+
+        return agent_uid_to_next_action
+
+    def think(
+        self,
+        active_agents: set[int],
+        step_count: int,
+        think_durations: t.Dict[int, float],
+        trace_polygons: t.List[Polygon],
+    ):
+        results: t.List[t.Tuple[int, float, ba.BasicAction | None]] = []
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
                 think_start = time.time()
                 agent_next_action = behavior.think()
-                think_durations[agent_uid] = time.time() - think_start
+                think_duration = time.time() - think_start
+                results.append((agent_uid, think_duration, agent_next_action))
 
-                # TODO Change goal coordinates for easier reading to goal name in log.
-                if isinstance(agent_next_action, ba.GoalsFinished):
-                    # If the agent has executed all of its goals, remove it from the active agents
-                    active_agents.remove(agent_uid)
-                    self.simulation_log.append(
-                        utils.BasicLog(
-                            "Agent {} finished executing all its goals.".format(
-                                self.ref_world.entities[agent_uid].name
-                            ),
-                            step_count,
-                        )
-                    )
-                elif isinstance(agent_next_action, ba.GoalFailed):
-                    if self.save_intermediate_world_states:
-                        self.save_world_snapshot(
-                            agent_uid, agent_next_action, trace_polygons, step_count
-                        )
-                    self.simulation_log.append(
-                        utils.BasicLog(
-                            "{} failed executing goal {}.".format(
-                                self.ref_world.entities[agent_uid].name,
-                                str(agent_next_action.goal),
-                            ),
-                            step_count,
-                        )
-                    )
-                elif isinstance(agent_next_action, ba.GoalSuccess):
-                    # If the agent reached its current goal
-                    if self.save_intermediate_world_states:
-                        self.save_world_snapshot(
-                            agent_uid, agent_next_action, trace_polygons, step_count
-                        )
-                    self.simulation_log.append(
-                        utils.BasicLog(
-                            "Agent {} successfully executed goal {}.".format(
-                                self.ref_world.entities[agent_uid].name,
-                                str(agent_next_action.goal),
-                            ),
-                            step_count,
-                        )
-                    )
-
-                if agent_next_action:
-                    agent_uid_to_next_action[agent_uid] = agent_next_action
-        return agent_uid_to_next_action
+        return self.process_think_results(
+            results=results,
+            think_durations=think_durations,
+            step_count=step_count,
+            active_agents=active_agents,
+            trace_polygons=trace_polygons,
+        )
 
     def act(
         self,
