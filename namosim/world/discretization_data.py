@@ -2,6 +2,10 @@ from namosim.models import PoseModel
 
 
 class DiscretizationData:
+    """
+    This class contains information about how the world is discretized or "rasterized" into a rectangular grid of cells.
+    """
+
     def __init__(
         self,
         res: float,

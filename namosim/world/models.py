@@ -7,7 +7,15 @@ from namosim.models import PoseModel
 
 
 class DiscretizationDataModel(BaseModel):
+    """
+    The discretization data contains parameters that related to discretizing or "rasterizing" the world into a rectangular grid of cells.
+    """
+
     res: float
+    """
+    This "resolution" parameter is equal to the size of a grid cell in the occcupancy grid representations of the world. The units are equal to those
+    of the svg viewbox.
+    """
 
 
 class WorldFilesModel(BaseModel):

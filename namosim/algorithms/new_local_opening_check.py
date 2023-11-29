@@ -22,28 +22,7 @@ def check_new_local_opening(
 ):
     """Checks is a new local opening exists
 
-    :param init_entity_polygon: _description_
-    :type init_entity_polygon: Polygon
-    :param target_entity_polygon: _description_
-    :type target_entity_polygon: Polygon
-    :param other_entities_polygons: _description_
-    :type other_entities_polygons: t.Dict[int, Polygon]
-    :param other_entities_aabb_tree: _description_
-    :type other_entities_aabb_tree: AABBTree
-    :param inflation_radius: _description_
-    :type inflation_radius: float
-    :param goal_pose: _description_
-    :type goal_pose: PoseModel
-    :param ros_publisher: _description_
-    :type ros_publisher: RosPublisher
-    :param init_blocking_areas: _description_, defaults to None
-    :type init_blocking_areas: t.List[Polygon] | None, optional
-    :param init_entity_inflated_polygon: _description_, defaults to None
-    :type init_entity_inflated_polygon: t.Optional[Polygon], optional
-    :param ns: _description_, defaults to ""
-    :type ns: str, optional
-    :return: _description_
-    :rtype: _type_
+    TODO: Add more documentation for this complicated function.
     """
     # Build inflated polygons
     if not init_entity_inflated_polygon:
