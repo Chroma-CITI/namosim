@@ -19,16 +19,17 @@ import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior
-from namosim.behaviors.stilman_2005_behavior import (DynamicPlan,
-                                                     Stilman2005Behavior)
+from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
 from namosim.exceptions import timeout
 from namosim.models import PoseModel, SimulationModel
-from namosim.navigation.conflict import (ConcurrentGrabConflict,
-                                         RobotObstacleConflict,
-                                         RobotRobotConflict,
-                                         SimultaneousSpaceAccess,
-                                         StealingMovableConflict,
-                                         StolenMovableConflict)
+from namosim.navigation.conflict import (
+    ConcurrentGrabConflict,
+    RobotObstacleConflict,
+    RobotRobotConflict,
+    SimultaneousSpaceAccess,
+    StealingMovableConflict,
+    StolenMovableConflict,
+)
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
@@ -147,7 +148,7 @@ class Simulator:
     ):
         self.window: tk.Tk | None = None
         self.background: tk.Label | None = None
-        
+
         if config.display_window:
             self.window = tk.Tk()
             self.window.title("NAMOSIM")
@@ -370,7 +371,7 @@ class Simulator:
             self.end_simulation(step_count=step_count, err=e)
 
         return (active_agents, trace_polygons, step_count)
-        
+
     def end_simulation(self, step_count: int, err: Exception | None = None):
         self.run_active = False
         if self.window:
@@ -392,13 +393,12 @@ class Simulator:
                 self.exception = err
                 return
 
-
     def render_window(self):
         if not self.window:
-            raise Exception('No window')
+            raise Exception("No window")
         if not self.background:
-            raise Exception('No background')
-        
+            raise Exception("No background")
+
         svg = self.ref_world.to_svg().toprettyxml()
         image_data = cairosvg.svg2png(svg, dpi=200, output_width=600)
         if not image_data:
@@ -409,9 +409,9 @@ class Simulator:
         self.window.geometry(f"{tk_image.width()}x{tk_image.height()}")
 
         self.background.configure(image=tk_image)
-        
+
         # store tk_image on background.image to prevent garbage collection
-        self.background.image = tk_image # type: ignore
+        self.background.image = tk_image  # type: ignore
 
     def run(self) -> t.List[SimulationStepResult]:
         self.run_active = True
@@ -440,16 +440,24 @@ class Simulator:
             print("")
 
             if self.window is not None:
-                self._run_window_loop(active_agents=active_agents, trace_polygons=trace_polygons, step_count=step_count)
+                self._run_window_loop(
+                    active_agents=active_agents,
+                    trace_polygons=trace_polygons,
+                    step_count=step_count,
+                )
             else:
                 while len(active_agents) > 0:
-                    (active_agents,trace_polygons, step_count) = self.step(active_agents=active_agents, trace_polygons=trace_polygons, step_count=step_count)
+                    (active_agents, trace_polygons, step_count) = self.step(
+                        active_agents=active_agents,
+                        trace_polygons=trace_polygons,
+                        step_count=step_count,
+                    )
                 self.end_simulation(step_count=step_count)
-                    
+
         self._save_results(step_count=step_count)
 
         return self.history
-    
+
     def _save_results(self, step_count: int):
         # Save simulation results
         # - Save exception traces
@@ -525,10 +533,12 @@ class Simulator:
             for exception_trace in self.run_exceptions_traces:
                 print(exception_trace)
             raise self.exception
-    
-    def _run_window_loop(self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int):
+
+    def _run_window_loop(
+        self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
+    ):
         if self.window is None:
-            raise Exception('No window')
+            raise Exception("No window")
         self._window_step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
@@ -536,12 +546,20 @@ class Simulator:
         )
         self.window.mainloop()
 
-    def _window_step(self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int):
+    def _window_step(
+        self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
+    ):
         if not self.window:
-            raise Exception('No window')
-        (active_agents, trace_polygons, step_count) = self.step(active_agents=active_agents, trace_polygons=trace_polygons, step_count=step_count)
+            raise Exception("No window")
+        (active_agents, trace_polygons, step_count) = self.step(
+            active_agents=active_agents,
+            trace_polygons=trace_polygons,
+            step_count=step_count,
+        )
         self.render_window()
-        self.window.after(1, self._window_step, active_agents, trace_polygons, step_count)
+        self.window.after(
+            1, self._window_step, active_agents, trace_polygons, step_count
+        )
 
     def _create_robot_world_from_sim_world(self):
         entities = dict()

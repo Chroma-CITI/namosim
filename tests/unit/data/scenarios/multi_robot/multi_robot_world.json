@@ -1,11 +1,6 @@
 {
   "discretization_data": {
-    "cost_possibly_nonfree": 10,
-    "cost_circumscribed": 20,
-    "res": 0.1,
-    "inflation_radius": 0.0,
-    "cost_inscribed": 50,
-    "cost_lethal": 100
+    "res": 0.1
   },
   "files": {
     "geometry_file": "./multi_robot.svg"

@@ -7,11 +7,6 @@ from namosim.models import PoseModel
 
 
 class DiscretizationDataModel(BaseModel):
-    cost_circumscribed: int
-    cost_inscribed: int
-    cost_lethal: int
-    cost_possibly_nonfree: int
-    inflation_radius: float
     res: float
 
 

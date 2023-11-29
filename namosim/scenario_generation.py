@@ -279,11 +279,6 @@ def generate_scenarios_alternatives(
         # Create json file to describe world data
         world_json_data = {
             "discretization_data": {
-                "cost_circumscribed": 20,
-                "cost_inscribed": 50,
-                "cost_lethal": 100,
-                "cost_possibly_nonfree": 10,
-                "inflation_radius": 0.0,
                 "res": 0.1,
             },
             "files": {"geometry_file": "./" + scenario_world_svg_filename},

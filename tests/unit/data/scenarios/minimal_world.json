@@ -1,10 +1,5 @@
 {
   "discretization_data": {
-    "cost_circumscribed": 20,
-    "cost_inscribed": 50,
-    "cost_lethal": 100,
-    "cost_possibly_nonfree": 10,
-    "inflation_radius": 0.0,
     "res": 0.05
   },
   "files": {

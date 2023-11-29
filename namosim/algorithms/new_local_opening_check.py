@@ -1,25 +1,55 @@
+import typing as t
+
+from aabbtree import AABBTree
 from shapely.geometry import MultiPolygon, Point, Polygon
 
 import namosim.utils.collision as collision
 from namosim.display.ros2_publisher import RosPublisher
+from namosim.models import PoseModel
 
 
 def check_new_local_opening(
-    init_entity_polygon,
-    target_entity_polygon,
-    other_entities_polygons,
-    other_entities_aabb_tree,
-    inflation_radius,
-    goal_pose,
+    init_entity_polygon: Polygon,
+    target_entity_polygon: Polygon,
+    other_entities_polygons: t.Dict[int, Polygon],
+    other_entities_aabb_tree: AABBTree,
+    inflation_radius: float,
+    goal_pose: PoseModel,
     ros_publisher: RosPublisher,
-    init_blocking_areas=None,
-    init_entity_inflated_polygon=None,
-    ns="",
+    init_blocking_areas: t.List[Polygon] | None = None,
+    init_entity_inflated_polygon: t.Optional[Polygon] = None,
+    ns: str = "",
 ):
+    """Checks is a new local opening exists
+
+    :param init_entity_polygon: _description_
+    :type init_entity_polygon: Polygon
+    :param target_entity_polygon: _description_
+    :type target_entity_polygon: Polygon
+    :param other_entities_polygons: _description_
+    :type other_entities_polygons: t.Dict[int, Polygon]
+    :param other_entities_aabb_tree: _description_
+    :type other_entities_aabb_tree: AABBTree
+    :param inflation_radius: _description_
+    :type inflation_radius: float
+    :param goal_pose: _description_
+    :type goal_pose: PoseModel
+    :param ros_publisher: _description_
+    :type ros_publisher: RosPublisher
+    :param init_blocking_areas: _description_, defaults to None
+    :type init_blocking_areas: t.List[Polygon] | None, optional
+    :param init_entity_inflated_polygon: _description_, defaults to None
+    :type init_entity_inflated_polygon: t.Optional[Polygon], optional
+    :param ns: _description_, defaults to ""
+    :type ns: str, optional
+    :return: _description_
+    :rtype: _type_
+    """
     # Build inflated polygons
     if not init_entity_inflated_polygon:
-        init_entity_inflated_polygon = init_entity_polygon.buffer(
-            2.0 * inflation_radius, join_style="mitre"
+        init_entity_inflated_polygon = t.cast(
+            Polygon,
+            init_entity_polygon.buffer(2.0 * inflation_radius, join_style="mitre"),
         )
         if init_entity_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
             # Exit early if goal in init_entity_inflated_polygon
@@ -97,7 +127,9 @@ def check_new_local_opening(
     return False, init_blocking_areas, init_entity_inflated_polygon
 
 
-def check_still_blocked(init_blocking_area, target_blocking_areas):
+def check_still_blocked(
+    init_blocking_area: Polygon, target_blocking_areas: t.List[Polygon]
+):
     try:
         for target_blocking_area in target_blocking_areas:
             if init_blocking_area.intersects(target_blocking_area):

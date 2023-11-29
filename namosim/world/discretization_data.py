@@ -1,11 +1,3 @@
-# TODO: Extract self.inflation_radius = inflation_radius
-#         self.cost_lethal = cost_lethal
-#         self.cost_inscribed = cost_inscribed
-#         self.cost_circumscribed = cost_circumscribed
-#         self.cost_possibly_nonfree = cost_possibly_nonfree
-#  from the class into a separate inflation_radius field and ProbabilisticInflationData class
-
-
 from namosim.models import PoseModel
 
 
@@ -13,11 +5,6 @@ class DiscretizationData:
     def __init__(
         self,
         res: float,
-        inflation_radius: float,
-        cost_lethal: float = 1.0,
-        cost_inscribed: float = 0.5,
-        cost_circumscribed: float = 0.25,
-        cost_possibly_nonfree: float = 0.10,
         grid_pose: PoseModel = (0.0, 0.0, 0.0),
         width: float = 0.0,
         height: float = 0.0,
@@ -25,11 +12,6 @@ class DiscretizationData:
         d_height: int = 0,
     ):
         self.res = res
-        self.inflation_radius = inflation_radius
-        self.cost_lethal = cost_lethal
-        self.cost_inscribed = cost_inscribed
-        self.cost_circumscribed = cost_circumscribed
-        self.cost_possibly_nonfree = cost_possibly_nonfree
         self.grid_pose = grid_pose
         self.width = width
         self.height = height
@@ -41,11 +23,6 @@ class DiscretizationData:
     def __key(self):
         return (
             self.res,
-            self.inflation_radius,
-            self.cost_lethal,
-            self.cost_inscribed,
-            self.cost_circumscribed,
-            self.cost_possibly_nonfree,
             self.grid_pose,
             self.width,
             self.height,
