@@ -1,8 +1,11 @@
+import typing as t
+
 import numpy as np
 from navigation.basic_actions import GoalFailed, GoalsFinished, GoalSuccess
 
 from namosim.algorithms.graph_search import real_to_grid_search_a_star
 from namosim.behaviors.baseline_behavior import BaselineBehavior
+from namosim.models import NavigationOnlyBehaviorConfigModel, PoseModel
 from namosim.navigation.navigation_path import Path
 from namosim.navigation.navigation_plan import Plan
 from namosim.world.world import World
@@ -12,11 +15,10 @@ class NavigationOnlyBehavior(BaselineBehavior):
     def __init__(
         self,
         initial_world: World,
-        robot_uid,
-        navigation_goals,
-        behavior_config,
-        logs_dir,
-        ros_publisher,
+        robot_uid: int,
+        navigation_goals: t.List[PoseModel],
+        behavior_config: NavigationOnlyBehaviorConfigModel,
+        logs_dir: str,
     ):
         BaselineBehavior.__init__(
             self,
@@ -25,7 +27,6 @@ class NavigationOnlyBehavior(BaselineBehavior):
             navigation_goals,
             behavior_config,
             logs_dir,
-            ros_publisher=ros_publisher,
         )
 
     def think(self):

@@ -18,6 +18,15 @@ from namosim.world.robot import Robot
 from namosim.world.world import World
 
 
+class ThinkResult:
+    def __init__(
+        self, next_action: BasicAction | None, did_replan: bool, robot_name: str
+    ) -> None:
+        self.next_action = next_action
+        self.did_replan = did_replan
+        self.robot_name = robot_name
+
+
 class BaselineBehavior(object):
     __metaclass__ = abc.ABCMeta
 
@@ -30,7 +39,6 @@ class BaselineBehavior(object):
         | WuLevihnBehaviorConfigModel
         | NavigationOnlyBehaviorConfigModel,
         logs_dir: str,
-        ros_publisher: RosPublisher,
     ):
         self.simulation_log = utils.CustomLogger()
 
@@ -52,12 +60,17 @@ class BaselineBehavior(object):
         self.__world: World = copy.deepcopy(self._initial_world)
         self._robot: Robot = t.cast(Robot, self.world.entities[self._robot_uid])
         self.__last_action_result: ActionResult | None = None
+
+        self._prev_goal: PoseModel | None = (
+            None  # used to check if the goal has changed
+        )
         self.__q_goal: PoseModel | None = None
+
+        self._prev_plan: Plan | None = None  # used to check if a plan has changed
         self.__p_opt: Plan | None = None
 
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
 
-        self._rp = ros_publisher
         self.goal_to_plans: t.Dict[PoseModel, Plan]
 
     def sense(
@@ -72,7 +85,7 @@ class BaselineBehavior(object):
         self._step_count = step_count
 
     @abc.abstractmethod
-    def think(self) -> BasicAction | None:
+    def think(self, ros_publisher: RosPublisher) -> ThinkResult:
         raise NotImplementedError
 
     @property
@@ -81,11 +94,8 @@ class BaselineBehavior(object):
 
     @_q_goal.setter
     def _q_goal(self, _q_goal: PoseModel | None):
+        self._prev_goal = self.__q_goal
         self.__q_goal = _q_goal
-        if _q_goal is not None:
-            self._rp.publish_goal(
-                self._robot.pose, _q_goal, self._robot, ns=self._robot_name
-            )
 
     @property
     def _p_opt(self):
@@ -93,10 +103,8 @@ class BaselineBehavior(object):
 
     @_p_opt.setter
     def _p_opt(self, p_opt: Plan | None):
+        self._prev_plan = self.__p_opt
         self.__p_opt = p_opt
-        self._rp.cleanup_p_opt(ns=self._robot_name)
-        if self.__p_opt:
-            self._rp.publish_p_opt(self.__p_opt, self._robot, ns=self._robot_name)
 
     @property
     def _last_action_result(self):
@@ -119,5 +127,19 @@ class BaselineBehavior(object):
         return self._robot_uid
 
     @property
+    def robot(self):
+        return self._robot
+
+    @property
     def name(self):
         return self._behavior_config.name
+
+    @property
+    def goal_pose(self):
+        return self._q_goal
+
+    def get_plan(self):
+        return self.__p_opt
+
+    def has_goal_changed(self):
+        return self._prev_goal != self.__q_goal

@@ -500,7 +500,7 @@ class GoalObserver(RosObserver):
             return marker_array
 
     def reset(self):
-        RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
+        super().reset(make_delete_all_marker(cfg.main_frame_id))
 
 
 class PosesObserver(RosObserver):
