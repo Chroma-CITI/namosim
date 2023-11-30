@@ -126,11 +126,6 @@ class World:
         # Get map discretization parameters
         dd = DiscretizationData(
             res=config.discretization_data.res,
-            inflation_radius=config.discretization_data.inflation_radius,
-            cost_lethal=config.discretization_data.cost_lethal,
-            cost_inscribed=config.discretization_data.cost_inscribed,
-            cost_circumscribed=config.discretization_data.cost_circumscribed,
-            cost_possibly_nonfree=config.discretization_data.cost_possibly_nonfree,
         )
 
         world = cls(
@@ -220,9 +215,6 @@ class World:
                     first_robot = new_robot
 
                 # Prevent specified inflation radius to be smaller than actual polygon
-
-                if new_robot.min_inflation_radius > dd.inflation_radius:
-                    dd.inflation_radius = new_robot.min_inflation_radius
 
                 world.add_entity(new_robot)
             else:
@@ -339,11 +331,6 @@ class World:
             "geometry_scale": self.geometry_scale,
             "discretization_data": {
                 "res": self.discretization_data.res,
-                "inflation_radius": self.discretization_data.inflation_radius,
-                "cost_lethal": self.discretization_data.cost_lethal,
-                "cost_inscribed": self.discretization_data.cost_inscribed,
-                "cost_circumscribed": self.discretization_data.cost_circumscribed,
-                "cost_possibly_nonfree": self.discretization_data.cost_possibly_nonfree,
             },
             "things": {
                 "entities": [entity.to_json() for entity in self.entities.values()],
