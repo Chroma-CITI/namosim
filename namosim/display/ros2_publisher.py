@@ -9,8 +9,15 @@ import numpy as np
 import numpy.typing as npt
 import rclpy
 from builtin_interfaces.msg import Time
-from geometry_msgs.msg import (Point, Pose, PoseArray, Quaternion, Transform,
-                               TransformStamped, Vector3)
+from geometry_msgs.msg import (
+    Point,
+    Pose,
+    PoseArray,
+    Quaternion,
+    Transform,
+    TransformStamped,
+    Vector3,
+)
 from grid_map_msgs.msg import GridMap
 from nav_msgs.msg import MapMetaData, OccupancyGrid
 from rclpy.callback_groups import CallbackGroup
@@ -28,19 +35,24 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as navigation_plan
-from namosim.display.conversions import (costmap_to_grid_map,
-                                         geom_quat_from_yaw, init_header,
-                                         make_delete_all_marker,
-                                         plan_to_markerarray,
-                                         polygon_to_line_strip,
-                                         polygon_to_triangle_list,
-                                         poses_to_poses_array,
-                                         real_path_to_triangle_list,
-                                         string_to_text)
+from namosim.display.conversions import (
+    costmap_to_grid_map,
+    geom_quat_from_yaw,
+    init_header,
+    make_delete_all_marker,
+    plan_to_markerarray,
+    polygon_to_line_strip,
+    polygon_to_triangle_list,
+    poses_to_poses_array,
+    real_path_to_triangle_list,
+    string_to_text,
+)
 from namosim.models import GridCellModel, PoseModel, SimulationModel
 from namosim.utils import utils
-from namosim.world.binary_occupancy_grid import (BinaryInflatedOccupancyGrid,
-                                                 BinaryOccupancyGrid)
+from namosim.world.binary_occupancy_grid import (
+    BinaryInflatedOccupancyGrid,
+    BinaryOccupancyGrid,
+)
 from namosim.world.entity import Entity
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
@@ -738,7 +750,7 @@ class RosPublisher:  # noqa: F821
     def cleanup_robot_world(self, ns: str = ""):
         if cfg.deactivate_gui:
             return
-        
+
         world_topic = self.prefix + "/" + ns + cfg.robot_knowledge_topic
         if world_topic in self.observers:
             self.observers[world_topic].reset()
@@ -1382,7 +1394,7 @@ class RosPublisher:  # noqa: F821
     ):
         if cfg.deactivate_gui:
             return
-        
+
         topic = self.prefix + (
             cfg.robot_goal_topic if not ns else "/" + ns + cfg.robot_goal_topic
         )
