@@ -50,7 +50,7 @@ class BaselineBehavior(object):
         self.r_tol = 1.0 * (10**-precision_exponent)
 
         self.__world: World = copy.deepcopy(self._initial_world)
-        self._robot: Robot = t.cast(Robot, self._world.entities[self._robot_uid])
+        self._robot: Robot = t.cast(Robot, self.world.entities[self._robot_uid])
         self.__last_action_result: ActionResult | None = None
         self.__q_goal: PoseModel | None = None
         self.__p_opt: Plan | None = None
@@ -68,8 +68,7 @@ class BaselineBehavior(object):
             self._added_uids,
             self._updated_uids,
             self._removed_uids,
-        ) = self._robot.update_world_from_sensors(ref_world, self._world)
-        self._rp.publish_robot_world(self._world, self._robot_uid)
+        ) = self._robot.update_world_from_sensors(ref_world, self.world)
         self._step_count = step_count
 
     @abc.abstractmethod
@@ -108,13 +107,16 @@ class BaselineBehavior(object):
         self.__last_action_result = last_action_result
 
     @property
-    def _world(self):
+    def world(self):
         return self.__world
 
-    @_world.setter
-    def _world(self, world: World):
+    def set_world(self, world: World):
         self.__world = world
         self._robot = t.cast(Robot, self.__world.entities[self._robot_uid])
+
+    @property
+    def robot_uid(self):
+        return self._robot_uid
 
     @property
     def name(self):

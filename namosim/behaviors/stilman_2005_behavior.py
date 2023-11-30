@@ -419,7 +419,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
-        self.trans_mult = 1.0 / self._world.discretization_data.res * 10.0
+        self.trans_mult = 1.0 / self.world.discretization_data.res * 10.0
         self.rot_mult = 1.0
 
         # - S-NAMO parameters
@@ -492,13 +492,13 @@ class Stilman2005Behavior(BaselineBehavior):
         self.check_horizon = 10
 
         self.angular_tolerance = 0.1
-        self.position_tolerance = self._world.discretization_data.res / 2.0
+        self.position_tolerance = self.world.discretization_data.res / 2.0
 
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
 
         # Initialize movability status of obstacles
-        for entity in self._world.entities.values():
+        for entity in self.world.entities.values():
             if entity.movability != "static":
                 entity.movability = self._robot.deduce_movability(entity.type_)
 
@@ -512,7 +512,7 @@ class Stilman2005Behavior(BaselineBehavior):
         # Initialize static obstacles occupation grid, since it is not supposed to change
         static_obs_polygons = {
             uid: entity.polygon
-            for uid, entity in self._world.entities.items()
+            for uid, entity in self.world.entities.items()
             if (
                 isinstance(entity, Obstacle)
                 and entity.movability == "unmovable"
@@ -524,24 +524,24 @@ class Stilman2005Behavior(BaselineBehavior):
         )
         self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
             static_obs_polygons,
-            self._world.discretization_data.res,
+            self.world.discretization_data.res,
             self.robot_max_inflation_radius,
             neighborhood=self.neighborhood,
         )
         self.static_obs_grid = BinaryOccupancyGrid(
             static_obs_polygons,
-            self._world.discretization_data.res,
+            self.world.discretization_data.res,
             neighborhood=self.neighborhood,
             params=self.static_obs_inf_grid.params,
         )
 
         all_entities_polygons = {
-            uid: e.polygon for uid, e in self._world.entities.items()
+            uid: e.polygon for uid, e in self.world.entities.items()
         }
 
         self.inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
             all_entities_polygons,
-            self._world.discretization_data.res,
+            self.world.discretization_data.res,
             self.robot_max_inflation_radius,
             neighborhood=self.neighborhood,
             params=self.static_obs_inf_grid.params,
@@ -569,7 +569,7 @@ class Stilman2005Behavior(BaselineBehavior):
         if self.use_social_cost and self._social_costmap is None:
             self._social_costmap = stocg.compute_social_costmap(
                 self.static_obs_grid.grid,
-                self._world.discretization_data.res,
+                self.world.discretization_data.res,
                 ros_publisher=self._rp,
                 log_costmaps=self.activate_grids_logging,
                 logs_dir=self.logs_dir,
@@ -577,7 +577,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
             self._rp.publish_social_grid_map(
                 self._social_costmap,
-                self._world.discretization_data.res,
+                self.world.discretization_data.res,
                 ns=self._robot_name,
             )
             pass
@@ -640,7 +640,7 @@ class Stilman2005Behavior(BaselineBehavior):
         # Update grid(s)
         self.inflated_grid_by_robot.update(
             new_or_updated_polygons={
-                uid: self._world.entities[uid].polygon
+                uid: self.world.entities[uid].polygon
                 for uid in self._added_uids.union(self._updated_uids)
                 if uid != self._robot_uid
             },
@@ -664,7 +664,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 return ba.GoalsFinished()
 
         next_step = self.full_coordination_strategy(
-            self._world,
+            self.world,
             self.static_obs_inf_grid,
             self.inflated_grid_by_robot,
             self._robot_uid,
@@ -1630,7 +1630,7 @@ class Stilman2005Behavior(BaselineBehavior):
     ):
         if static_obs_grid.grid[start_cell[0]][start_cell[1]] > 0:
             obstacle_names = {
-                self._world.entities[uid].name
+                self.world.entities[uid].name
                 for uid in static_obs_grid.obstacles_uids_in_cell(start_cell)
             }
             self.simulation_log.append(
@@ -1645,7 +1645,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if static_obs_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
             obstacle_names = {
-                self._world.entities[uid].name
+                self.world.entities[uid].name
                 for uid in static_obs_grid.obstacles_uids_in_cell(goal_cell)
             }
             self.simulation_log.append(
@@ -1661,7 +1661,7 @@ class Stilman2005Behavior(BaselineBehavior):
         start_obstacle_uid = inflated_robot_grid.only_obstacle_uid_in_cell(start_cell)
         if start_obstacle_uid == -1 or start_obstacle_uid in forbidden_obstacles:
             obstacle_names = {
-                self._world.entities[uid].name
+                self.world.entities[uid].name
                 for uid in inflated_robot_grid.obstacles_uids_in_cell(start_cell)
             }
             self.simulation_log.append(
@@ -1676,7 +1676,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         if inflated_robot_grid.grid[goal_cell[0]][goal_cell[1]] > 1:
             obstacle_names = {
-                self._world.entities[uid].name
+                self.world.entities[uid].name
                 for uid in inflated_robot_grid.obstacles_uids_in_cell(goal_cell)
             }
             self.simulation_log.append(

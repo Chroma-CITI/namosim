@@ -946,7 +946,16 @@ class Simulator:
                     if (self.history and agent_uid in self.history[-1].action_results)
                     else ar.ActionSuccess()
                 )
+
+                # The robot's behavior senses the reference world
                 behavior.sense(self.ref_world, last_action_result, step_count)
+
+                # Publish the robot's perceived/sensed world to RVIZ
+                self.ros_publisher.publish_robot_world(
+                    behavior.world, behavior.robot_uid
+                )
+
+                # Record the time it took the robot to sense the world
                 sense_durations[agent_uid] = time.time() - sense_start
 
     def _agent_think(
