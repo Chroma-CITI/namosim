@@ -56,7 +56,7 @@ lint_check = "ruff check ."                                           # lint che
 lint_fix = "ruff check --fix ."                                       # lint fix
 format = "ruff format ."                                              # format
 test.cmd = "python -m unittest discover -s tests.unit -p '*_test.py'" # test
-test.env = { NAMO_DISPLAY_WINDOW = "FALSE" }                          # env vars for test
+test.env = { NAMO_NO_DISPLAY_WINDOW = "TRUE" }                        # env vars for test
 
 type_check = """
 pyright \
