@@ -348,20 +348,12 @@ class Simulator:
             # Think loop: get each agent to think about their next step
             think_durations = {}
             with timeout(10 * 60):
-                if config.THINK_IN_PARALLEL:
-                    actions = self.think_parallel(
-                        active_agents=active_agents,
-                        trace_polygons=trace_polygons,
-                        step_count=step_count,
-                        think_durations=think_durations,
-                    )
-                else:
-                    actions = self.think(
-                        active_agents=active_agents,
-                        trace_polygons=trace_polygons,
-                        step_count=step_count,
-                        think_durations=think_durations,
-                    )
+                actions = self.think(
+                    active_agents=active_agents,
+                    trace_polygons=trace_polygons,
+                    step_count=step_count,
+                    think_durations=think_durations,
+                )
 
             # Act loops: Verify that each action is doable individually and together, if so, execute them
             act_start = time.time()
@@ -968,40 +960,6 @@ class Simulator:
         next_action = behavior.think()
         think_duration = time.time() - think_start
         results.put((agent_uid, think_duration, next_action))
-
-    def think_parallel(
-        self,
-        active_agents: set[int],
-        trace_polygons: t.List[Polygon],
-        step_count: int,
-        think_durations: t.Dict[int, float],
-    ):
-        # All think results are added to this thread-safe queue
-        results: Queue[t.Tuple[int, float, ba.BasicAction | None]] = Queue()
-
-        # Spin off a thread for each agent
-        threads = []
-        for agent_uid, behavior in self.agent_uid_to_behavior.items():
-            if agent_uid not in active_agents:
-                continue
-
-            thread = threading.Thread(
-                target=self._agent_think, args=(agent_uid, behavior, results)
-            )
-            threads.append(thread)
-            thread.start()
-
-        # Wait for all threads to finish
-        for thread in threads:
-            thread.join()
-
-        return self.process_think_results(
-            results=list(results.queue),
-            think_durations=think_durations,
-            active_agents=active_agents,
-            step_count=step_count,
-            trace_polygons=trace_polygons,
-        )
 
     def process_think_results(
         self,

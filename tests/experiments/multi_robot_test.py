@@ -11,7 +11,6 @@ class MultiRobotTests(unittest.TestCase):
         self.scenarios_folder = os.path.join(__file__, "../scenarios")
 
     def test_3_robots_parallel(self):
-        config.THINK_IN_PARALLEL = True
         config.DISPLAY_WINDOW = True
         sim_parallel = Simulator(
             simulation_file_path=os.path.join(
@@ -29,7 +28,6 @@ class MultiRobotTests(unittest.TestCase):
         assert True
 
     def test_3_robots_sequential(self):
-        config.THINK_IN_PARALLEL = False
         config.DISPLAY_WINDOW = True
         sim_parallel = Simulator(
             simulation_file_path=os.path.join(
