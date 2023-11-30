@@ -15,6 +15,7 @@ UNKNOWN_ENTITY_STYLE = "fill:#674ea7;fill-rule:evenodd"
 MOVABLE_ENTITY_STYLE = "fill:#f1c232;fill-rule:evenodd"
 FIXED_ENTITY_STYLE = "fill:#000000;fill-rule:evenodd"
 ROBOT_ENTITY_STYLE = "fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-opacity:1"
+ORIENTATION_STYLE = "fill:#1155cc;stroke:none;"
 GOAL_STYLE = "fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
 POSE_STYLE = "fill:none;stroke:#1155cc;stroke-width:3.5999999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
 

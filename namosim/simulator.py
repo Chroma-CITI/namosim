@@ -149,7 +149,7 @@ class Simulator:
         self.window: tk.Tk | None = None
         self.background: tk.Label | None = None
 
-        if config.display_window:
+        if config.DISPLAY_WINDOW:
             self.window = tk.Tk()
             self.window.title("NAMOSIM")
             self.window.resizable(True, True)

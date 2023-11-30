@@ -7,13 +7,7 @@ import mapbox_earcut as earcut
 import numpy as np
 import numpy.typing as npt
 from builtin_interfaces.msg import Time
-from geometry_msgs.msg import (
-    Point,
-    Pose,
-    PoseArray,
-    Quaternion,
-    Vector3,
-)
+from geometry_msgs.msg import Point, Pose, PoseArray, Quaternion, Vector3
 from grid_map_msgs.msg import GridMap
 from shapely.geometry import Polygon
 from std_msgs.msg import (
@@ -27,16 +21,18 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
+import namosim.world.robot as namosim_robot
 from namosim.display import tf_replacement
 from namosim.models import PoseModel
-from namosim.world.robot import Robot
 
 
 def init_header(stamp: Time = Time()):
     return Header(stamp=stamp, frame_id=cfg.main_frame_id)
 
 
-def plan_to_markerarray(plan: t.Any, robot: Robot, frame_id: str, stamp: Time = Time()):
+def plan_to_markerarray(
+    plan: t.Any, robot: namosim_robot.Robot, frame_id: str, stamp: Time = Time()
+):
     markerarray = MarkerArray()
     markers = []
     p_id = 0
@@ -357,7 +353,7 @@ def path_to_polygon(
         a_to_b = b - a
         z = np.array((0.0, 0.0, 1.0))
         ortho = np.cross(a_to_b, z)
-        ortho = (ortho / np.linalg.norm(ortho)) * line_width / 2
+        ortho = (ortho / np.linalg.norm(ortho)) * line_width / 2.0
         forward_coords.append(a[:2] + ortho[:2])
         backward_coords.append(a[:2] - ortho[:2])
 

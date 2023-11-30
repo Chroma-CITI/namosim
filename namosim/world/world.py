@@ -14,6 +14,7 @@ from typing_extensions import Self
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
 import namosim.world.robot as robot
+from namosim.display import conversions
 from namosim.world.discretization_data import DiscretizationData
 from namosim.world.entity import Entity, Style
 from namosim.world.goal import Goal
@@ -414,15 +415,16 @@ class World:
                     # Add robot direction shape
                     radius = utils.get_inscribed_radius(entity.polygon)
                     point_a = np.array([entity.pose[0], entity.pose[1]])
-                    point_b = (
-                        point_a
-                        + np.array(utils.direction_from_yaw(entity.pose[2])) * radius
+                    direction = np.array(utils.direction_from_yaw(entity.pose[2]))
+                    point_b = point_a + direction * radius
+
+                    poly = conversions.path_to_polygon(
+                        points=[point_a, point_b], line_width=radius / 4
                     )
-                    direction_linestring = LineString([point_a, point_b])
                     conversion.add_shapely_geometry_to_svg(
-                        direction_linestring,
+                        poly,
                         entity.name + "_direction",
-                        conversion.GOAL_STYLE,
+                        conversion.ORIENTATION_STYLE,
                         svg_data,
                         robot_group,
                         scale=self.scaling_value,

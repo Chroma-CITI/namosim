@@ -1,3 +1,3 @@
 import os
 
-display_window = os.environ.get('NAMO_DISPLAY_WINDOW', 'TRUE') == 'TRUE'
+DISPLAY_WINDOW = os.environ.get("NAMO_NO_DISPLAY_WINDOW", "") == ""
