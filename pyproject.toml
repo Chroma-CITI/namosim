@@ -40,6 +40,7 @@ typing-extensions = "^4.8.0"
 pydantic = "^2.5.0"
 rospkg = "^1.5.0"
 six = "^1.16.0"
+cairosvg = "^2.7.1"
 
 [tool.poetry.group.dev.dependencies]
 sphinx = "^7.2.6"
@@ -51,10 +52,12 @@ sphinx-copybutton = "^0.5.2"
 pre-commit = "^3.5.0"
 
 [tool.poe.tasks]
-lint_check = "ruff check ." # lint check
-lint_fix = "ruff check --fix ." # lint fix
-format = "ruff format ." # format
-test = "python -m unittest discover -s tests.unit -p '*_test.py'" # test
+lint_check = "ruff check ."                                           # lint check
+lint_fix = "ruff check --fix ."                                       # lint fix
+format = "ruff format ."                                              # format
+test.cmd = "python -m unittest discover -s tests.unit -p '*_test.py'" # test
+test.env = { NAMO_DISPLAY_WINDOW = "FALSE" }                          # env vars for test
+
 type_check = """
 pyright \
   namosim/display/colors.py \

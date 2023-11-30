@@ -1,30 +1,34 @@
 import copy
+import io
 import json
 import os
 import pickle
 import random
 import time
+import tkinter as tk
 import traceback
 import typing as t
 
+import cairosvg
 import jsonpickle
+from PIL import Image, ImageTk
 from shapely.geometry import Polygon
 
+import namosim.config as config
 import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior
-from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
+from namosim.behaviors.stilman_2005_behavior import (DynamicPlan,
+                                                     Stilman2005Behavior)
 from namosim.exceptions import timeout
 from namosim.models import PoseModel, SimulationModel
-from namosim.navigation.conflict import (
-    ConcurrentGrabConflict,
-    RobotObstacleConflict,
-    RobotRobotConflict,
-    SimultaneousSpaceAccess,
-    StealingMovableConflict,
-    StolenMovableConflict,
-)
+from namosim.navigation.conflict import (ConcurrentGrabConflict,
+                                         RobotObstacleConflict,
+                                         RobotRobotConflict,
+                                         SimultaneousSpaceAccess,
+                                         StealingMovableConflict,
+                                         StolenMovableConflict)
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
@@ -141,6 +145,16 @@ class Simulator:
         goals: t.Optional[t.Dict[str, t.List[PoseModel]]] = None,
         timestring: t.Optional[str] = None,
     ):
+        self.window: tk.Tk | None = None
+        self.background: tk.Label | None = None
+        
+        if config.display_window:
+            self.window = tk.Tk()
+            self.window.title("NAMOSIM")
+            self.window.resizable(True, True)
+            self.background = tk.Label(self.window)
+            self.background.pack()
+
         # Load simulation file and initialize logs
         if timestring:
             self.sim_start_timestring = timestring
@@ -299,24 +313,117 @@ class Simulator:
         self.catch_exceptions = False
 
         self.simulation_log.append(utils.BasicLog("Simulation successfully loaded.", 0))
+        self.run_exceptions_traces: t.List[t.Any] = []
+        self.exception: t.Union[Exception, None] = None
+
+    def step(
+        self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
+    ) -> t.Tuple[set[int], t.List[Polygon], int]:
+        if len(active_agents) == 0:
+            self.end_simulation(step_count=step_count)
+            return (active_agents, trace_polygons, step_count)
+
+        try:
+            # Increment simulation step count
+            step_count += 1
+            self.ros_publisher.publish_message(
+                "Sim steps: {}".format(step_count),
+                pose=(
+                    0.0,
+                    self.ref_world.discretization_data.grid_pose[1]
+                    + self.ref_world.discretization_data.height
+                    + 0.25,
+                    0.0,
+                ),
+                font_size=0.5,
+            )
+
+            # Sense loop: update each agent's knowledge of the world
+            sense_durations = {}
+            self.sense(active_agents, step_count, sense_durations)
+
+            # Think loop: get each agent to think about their next step
+            think_durations = {}
+            with timeout(10 * 60):
+                actions = self.think(
+                    active_agents, trace_polygons, step_count, think_durations
+                )
+
+            # Act loops: Verify that each action is doable individually and together, if so, execute them
+            act_start = time.time()
+            action_results = self.act(actions, step_count)
+            act_duration = time.time() - act_start
+
+            self.history.append(
+                SimulationStepResult(
+                    sense_durations,
+                    think_durations,
+                    act_duration,
+                    action_results,
+                    step_count,
+                )
+            )
+
+            # Once the simulation reference world has been modified, display the modification
+            self.ros_publisher.publish_sim_world(self.ref_world)
+        except Exception as e:
+            self.end_simulation(step_count=step_count, err=e)
+
+        return (active_agents, trace_polygons, step_count)
+        
+    def end_simulation(self, step_count: int, err: Exception | None = None):
+        self.run_active = False
+        if self.window:
+            self.window.destroy()
+        if self.background:
+            self.background.destroy()
+
+        if err is not None:
+            if self.catch_exceptions:
+                tb = traceback.format_exc()
+                self.run_exceptions_traces.append(tb)
+                self.simulation_log.append(utils.BasicLog(tb, step_count))
+            else:
+                self.simulation_log.append(
+                    utils.BasicLog("MET A RUNTIME EXCEPTION, EXITING !", step_count)
+                )
+                tb = traceback.format_exc()
+                self.run_exceptions_traces.append(tb)
+                self.exception = err
+                return
+
+
+    def render_window(self):
+        if not self.window:
+            raise Exception('No window')
+        if not self.background:
+            raise Exception('No background')
+        
+        svg = self.ref_world.to_svg().toprettyxml()
+        image_data = cairosvg.svg2png(svg, dpi=200, output_width=600)
+        if not image_data:
+            raise Exception("Failed to convert world to image")
+
+        image = Image.open(io.BytesIO(image_data))
+        tk_image = ImageTk.PhotoImage(image)
+        self.window.geometry(f"{tk_image.width()}x{tk_image.height()}")
+
+        self.background.configure(image=tk_image)
+        
+        # store tk_image on background.image to prevent garbage collection
+        self.background.image = tk_image # type: ignore
 
     def run(self) -> t.List[SimulationStepResult]:
-        run_active = True
-
-        run_exceptions_traces = []
-        exception = None
-
+        self.run_active = True
+        self.run_exceptions_traces = []
+        self.exception = None
         step_count = 0
 
-        while run_active:
+        while self.run_active:
             active_agents: set[int] = set(self.agent_uid_to_behavior.keys())
-
             self.ros_publisher.publish_sim_world(self.ref_world)
-
             trace_polygons: t.List[Polygon] = []
-
             step_count = 0
-
             self.simulation_log.append(utils.BasicLog("Starting run.", step_count))
             self.ros_publisher.publish_message(
                 "Sim steps: {}".format(step_count),
@@ -332,73 +439,22 @@ class Simulator:
 
             print("")
 
-            while active_agents:
-                try:
-                    # Increment simulation step count
-                    step_count += 1
-                    self.ros_publisher.publish_message(
-                        "Sim steps: {}".format(step_count),
-                        pose=(
-                            0.0,
-                            self.ref_world.discretization_data.grid_pose[1]
-                            + self.ref_world.discretization_data.height
-                            + 0.25,
-                            0.0,
-                        ),
-                        font_size=0.5,
-                    )
+            if self.window is not None:
+                self._run_window_loop(active_agents=active_agents, trace_polygons=trace_polygons, step_count=step_count)
+            else:
+                while len(active_agents) > 0:
+                    (active_agents,trace_polygons, step_count) = self.step(active_agents=active_agents, trace_polygons=trace_polygons, step_count=step_count)
+                self.end_simulation(step_count=step_count)
+                    
+        self._save_results(step_count=step_count)
 
-                    # Sense loop: update each agent's knowledge of the world
-                    sense_durations = {}
-                    self.sense(active_agents, step_count, sense_durations)
-
-                    # Think loop: get each agent to think about their next step
-                    think_durations = {}
-                    with timeout(10 * 60):
-                        actions = self.think(
-                            active_agents, trace_polygons, step_count, think_durations
-                        )
-
-                    # Act loops: Verify that each action is doable individually and together, if so, execute them
-                    act_start = time.time()
-                    action_results = self.act(actions, step_count)
-                    act_duration = time.time() - act_start
-
-                    self.history.append(
-                        SimulationStepResult(
-                            sense_durations,
-                            think_durations,
-                            act_duration,
-                            action_results,
-                            step_count,
-                        )
-                    )
-
-                    # Once the simulation reference world has been modified, display the modification
-                    self.ros_publisher.publish_sim_world(self.ref_world)
-                except Exception as e:
-                    if self.catch_exceptions:
-                        tb = traceback.format_exc()
-                        run_exceptions_traces.append(tb)
-                        self.simulation_log.append(utils.BasicLog(tb, step_count))
-                    else:
-                        self.simulation_log.append(
-                            utils.BasicLog(
-                                "MET A RUNTIME EXCEPTION, EXITING !", step_count
-                            )
-                        )
-                        run_active = False
-                        tb = traceback.format_exc()
-                        run_exceptions_traces.append(tb)
-                        exception = e
-                        break
-
-            run_active = False
-
+        return self.history
+    
+    def _save_results(self, step_count: int):
         # Save simulation results
         # - Save exception traces
-        if run_exceptions_traces:
-            exceptions = {"exceptions": run_exceptions_traces}
+        if self.run_exceptions_traces:
+            exceptions = {"exceptions": self.run_exceptions_traces}
             exceptions_filepath = os.path.join(
                 os.path.dirname(self.logs_dir), "exceptions"
             )
@@ -465,12 +521,27 @@ class Simulator:
             logs_filepath = os.path.join(os.path.dirname(self.logs_dir), "logs")
             self.save(logs, logs_filepath)
 
-        if exception:
-            for exception_trace in run_exceptions_traces:
+        if self.exception is not None:
+            for exception_trace in self.run_exceptions_traces:
                 print(exception_trace)
-            raise exception
+            raise self.exception
+    
+    def _run_window_loop(self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int):
+        if self.window is None:
+            raise Exception('No window')
+        self._window_step(
+            active_agents=active_agents,
+            trace_polygons=trace_polygons,
+            step_count=step_count,
+        )
+        self.window.mainloop()
 
-        return self.history
+    def _window_step(self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int):
+        if not self.window:
+            raise Exception('No window')
+        (active_agents, trace_polygons, step_count) = self.step(active_agents=active_agents, trace_polygons=trace_polygons, step_count=step_count)
+        self.render_window()
+        self.window.after(1, self._window_step, active_agents, trace_polygons, step_count)
 
     def _create_robot_world_from_sim_world(self):
         entities = dict()
