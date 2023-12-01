@@ -3,6 +3,9 @@ import copy
 import typing as t
 from decimal import Decimal
 
+from shapely import Polygon
+
+from namosim.algorithms import graph_search
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.models import (
     NavigationOnlyBehaviorConfigModel,
@@ -12,8 +15,10 @@ from namosim.models import (
 )
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import BasicAction
+from namosim.navigation.navigation_path import TransitPath
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
+from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.robot import Robot
 from namosim.world.world import World
 
@@ -148,3 +153,44 @@ class BaselineBehavior(object):
 
     def has_goal_changed(self):
         return self._prev_goal != self.__q_goal
+
+    def is_goal_reached(
+        self,
+        q_t: PoseModel,
+        q_f: PoseModel,
+        pos_tol: float = 0.05,
+        ang_tol: float = 0.1,
+    ):
+        return all(
+            [
+                utils.is_close(q_t[0], q_f[0], rel_tol=pos_tol),
+                utils.is_close(q_t[1], q_f[1], rel_tol=pos_tol),
+                utils.angle_is_close(q_t[2], q_f[2], rel_tol=ang_tol),
+            ]
+        )
+
+    def find_path(
+        self,
+        robot_pose: PoseModel,
+        goal_pose: PoseModel,
+        robot_inflated_grid: BinaryInflatedOccupancyGrid,
+        robot_polygon: Polygon,
+    ):
+        real_path = graph_search.real_to_grid_search_a_star(
+            robot_pose, goal_pose, robot_inflated_grid
+        )
+        if real_path:
+
+            def g(a: PoseModel, b: PoseModel):
+                translation_cost = utils.euclidean_distance(a, b)
+                rotation_cost = abs(a[2] - b[2])
+                return translation_cost + rotation_cost
+
+            phys_cost = 0.0
+            for a, b in zip(real_path, real_path[1:]):
+                phys_cost += g(a, b)
+            return TransitPath.from_poses(
+                real_path, robot_polygon, robot_pose, phys_cost
+            )
+        else:
+            return None
