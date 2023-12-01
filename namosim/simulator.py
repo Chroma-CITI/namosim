@@ -19,7 +19,7 @@ import namosim.config as config
 import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
-from namosim.behaviors.baseline_behavior import BaselineBehavior
+from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
 from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
 from namosim.exceptions import timeout
 from namosim.models import PoseModel, SimulationModel
@@ -861,7 +861,6 @@ class Simulator:
                         agent_navigation_goals,
                         behavior_config,
                         self.logs_dir,
-                        ros_publisher=self.ros_publisher,
                     )
                 else:
                     raise NotImplementedError(
@@ -871,6 +870,7 @@ class Simulator:
                             agent_name=agent.agent_name, b_name=behavior_config.name
                         )
                     )
+
         return agent_uid_to_behavior
 
     def save_world_snapshot(
@@ -946,23 +946,32 @@ class Simulator:
                     if (self.history and agent_uid in self.history[-1].action_results)
                     else ar.ActionSuccess()
                 )
+
+                # The robot's behavior senses the reference world
                 behavior.sense(self.ref_world, last_action_result, step_count)
+
+                # Publish the robot's perceived/sensed world to RVIZ
+                self.ros_publisher.publish_robot_world(
+                    behavior.world, behavior.robot_uid
+                )
+
+                # Record the time it took the robot to sense the world
                 sense_durations[agent_uid] = time.time() - sense_start
 
     def _agent_think(
         self,
         agent_uid: int,
         behavior: BaselineBehavior,
-        results: Queue[t.Tuple[int, float, ba.BasicAction | None]],
+        results: Queue[t.Tuple[int, float, ThinkResult]],
     ):
         think_start = time.time()
-        next_action = behavior.think()
+        think_result = behavior.think(ros_publisher=self.ros_publisher)
         think_duration = time.time() - think_start
-        results.put((agent_uid, think_duration, next_action))
+        results.put((agent_uid, think_duration, think_result))
 
     def process_think_results(
         self,
-        results: t.Iterable[t.Tuple[int, float, ba.BasicAction | None]],
+        results: t.Iterable[t.Tuple[int, float, ThinkResult]],
         think_durations: t.Dict[int, float],
         active_agents: t.Set[int],
         trace_polygons: t.List[Polygon],
@@ -970,11 +979,14 @@ class Simulator:
     ) -> t.Dict[int, ba.BasicAction]:
         """Process the results of each agent's think step. Updates the set of activate agents and the dictionary of think durations."""
         agent_uid_to_next_action: t.Dict[int, ba.BasicAction] = {}
-        for agent_uid, think_duration, agent_next_action in results:
+        for agent_uid, think_duration, think_result in results:
             think_durations[agent_uid] = think_duration
 
+            if think_result.has_conflicts is False:
+                self.ros_publisher.cleanup_conflicts_checks(ns=think_result.robot_name)
+
             # TODO Change goal coordinates for easier reading to goal name in log.
-            if isinstance(agent_next_action, ba.GoalsFinished):
+            if isinstance(think_result.next_action, ba.GoalsFinished):
                 # If the agent has executed all of its goals, remove it from the active agents
                 active_agents.remove(agent_uid)
                 self.simulation_log.append(
@@ -985,38 +997,38 @@ class Simulator:
                         step_count,
                     )
                 )
-            elif isinstance(agent_next_action, ba.GoalFailed):
+            elif isinstance(think_result.next_action, ba.GoalFailed):
                 if self.save_intermediate_world_states:
                     self.save_world_snapshot(
-                        agent_uid, agent_next_action, trace_polygons, step_count
+                        agent_uid, think_result.next_action, trace_polygons, step_count
                     )
                 self.simulation_log.append(
                     utils.BasicLog(
                         "{} failed executing goal {}.".format(
                             self.ref_world.entities[agent_uid].name,
-                            str(agent_next_action.goal),
+                            str(think_result.next_action.goal),
                         ),
                         step_count,
                     )
                 )
-            elif isinstance(agent_next_action, ba.GoalSuccess):
+            elif isinstance(think_result.next_action, ba.GoalSuccess):
                 # If the agent reached its current goal
                 if self.save_intermediate_world_states:
                     self.save_world_snapshot(
-                        agent_uid, agent_next_action, trace_polygons, step_count
+                        agent_uid, think_result.next_action, trace_polygons, step_count
                     )
                 self.simulation_log.append(
                     utils.BasicLog(
                         "Agent {} successfully executed goal {}.".format(
                             self.ref_world.entities[agent_uid].name,
-                            str(agent_next_action.goal),
+                            str(think_result.next_action.goal),
                         ),
                         step_count,
                     )
                 )
 
-            if agent_next_action:
-                agent_uid_to_next_action[agent_uid] = agent_next_action
+            if think_result.next_action:
+                agent_uid_to_next_action[agent_uid] = think_result.next_action
 
         return agent_uid_to_next_action
 
@@ -1027,13 +1039,18 @@ class Simulator:
         think_durations: t.Dict[int, float],
         trace_polygons: t.List[Polygon],
     ):
-        results: t.List[t.Tuple[int, float, ba.BasicAction | None]] = []
+        results: t.List[t.Tuple[int, float, ThinkResult]] = []
         for agent_uid, behavior in self.agent_uid_to_behavior.items():
             if agent_uid in active_agents:
                 think_start = time.time()
-                agent_next_action = behavior.think()
+                think_result = behavior.think(ros_publisher=self.ros_publisher)
                 think_duration = time.time() - think_start
-                results.append((agent_uid, think_duration, agent_next_action))
+                results.append((agent_uid, think_duration, think_result))
+
+                self.publish_robot_goal(agent_uid=agent_uid)
+                self.publish_robot_plan(
+                    agent_uid=agent_uid, did_replan=think_result.did_replan
+                )
 
         return self.process_think_results(
             results=results,
@@ -1178,3 +1195,26 @@ class Simulator:
                 )
 
         return action_results
+
+    def publish_robot_goal(self, agent_uid: int):
+        behavior = self.agent_uid_to_behavior[agent_uid]
+        if behavior and behavior.goal_pose:
+            self.ros_publisher.publish_goal(
+                q_init=behavior.robot.pose,
+                q_goal=behavior.goal_pose,
+                entity=behavior.robot,
+                ns=behavior.robot.name,
+            )
+
+    def publish_robot_plan(self, agent_uid: int, did_replan: bool):
+        behavior = self.agent_uid_to_behavior[agent_uid]
+        if behavior and behavior.goal_pose:
+            if did_replan:
+                self.ros_publisher.cleanup_p_opt(ns=behavior.robot.name)
+            plan = behavior.get_plan()
+            if plan:
+                self.ros_publisher.publish_p_opt(
+                    plan=plan,
+                    robot=behavior.robot,
+                    ns=behavior.robot.name,
+                )
