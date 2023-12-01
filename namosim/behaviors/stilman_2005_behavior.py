@@ -1325,7 +1325,7 @@ class Stilman2005Behavior(BaselineBehavior):
             # If the goal is in the same free space component as the robot in simulated w_t
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
             # TODO FIX COST COMPUTATION TO FIT SAME MODEL AS MANIP SEARCH !
-            # ros_publisher.cleanup_robot_sim(ns=self._robot_name)
+            ros_publisher.cleanup_robot_sim(ns=self._robot_name)
             return Plan([simple_path_to_goal], r_f, self._robot_uid)
 
         if ccs_data is None:
@@ -1538,7 +1538,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 neighborhood=neighborhood,
             )
 
-        # ros_publisher.cleanup_robot_sim(ns=self._robot_name)
+        ros_publisher.cleanup_robot_sim(ns=self._robot_name)
         return Plan(plan_error="no_plan_found_error")
 
     def rch_get_neighbors(
