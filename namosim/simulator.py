@@ -982,6 +982,9 @@ class Simulator:
         for agent_uid, think_duration, think_result in results:
             think_durations[agent_uid] = think_duration
 
+            if think_result.has_conflicts is False:
+                self.ros_publisher.cleanup_conflicts_checks(ns=think_result.robot_name)
+
             # TODO Change goal coordinates for easier reading to goal name in log.
             if isinstance(think_result.next_action, ba.GoalsFinished):
                 # If the agent has executed all of its goals, remove it from the active agents
@@ -1008,7 +1011,6 @@ class Simulator:
                         step_count,
                     )
                 )
-                self.ros_publisher.cleanup_conflicts_checks(ns=think_result.robot_name)
             elif isinstance(think_result.next_action, ba.GoalSuccess):
                 # If the agent reached its current goal
                 if self.save_intermediate_world_states:
@@ -1024,7 +1026,6 @@ class Simulator:
                         step_count,
                     )
                 )
-                self.ros_publisher.cleanup_conflicts_checks(ns=think_result.robot_name)
 
             if think_result.next_action:
                 agent_uid_to_next_action[agent_uid] = think_result.next_action

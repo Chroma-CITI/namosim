@@ -1551,10 +1551,6 @@ class RosPublisher:  # noqa: F821
         )
         if self.is_activated(full_topic):
             subspace = "/transfer_horizon_csv_polygons"
-            self.publish(
-                full_topic, self.make_delete_all_marker(cfg.main_frame_id, ns=subspace)
-            )
-
             horizon_csv_polygons = []
             for counter, index in enumerate(range(start_index, end_index)):
                 if counter > check_horizon:

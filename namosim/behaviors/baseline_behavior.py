@@ -20,11 +20,16 @@ from namosim.world.world import World
 
 class ThinkResult:
     def __init__(
-        self, next_action: BasicAction | None, did_replan: bool, robot_name: str
+        self,
+        next_action: BasicAction | None,
+        did_replan: bool,
+        robot_name: str,
+        has_conflicts: bool,
     ) -> None:
         self.next_action = next_action
         self.did_replan = did_replan
         self.robot_name = robot_name
+        self.has_conflicts = has_conflicts
 
 
 class BaselineBehavior(object):

@@ -663,6 +663,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     next_action=ba.GoalsFinished(),
                     did_replan=False,
                     robot_name=self._robot_name,
+                    has_conflicts=False,
                 )
 
         next_step = self.full_coordination_strategy(
@@ -689,7 +690,6 @@ class Stilman2005Behavior(BaselineBehavior):
         self._p_opt.save_conflicts(self._step_count)
 
         if isinstance(next_step.next_action, (ba.GoalSuccess, ba.GoalFailed)):
-            ros_publisher.cleanup_conflicts_checks(ns=self._robot_name)
             self._q_goal = None
 
         return next_step
@@ -742,6 +742,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 next_action=ba.GoalSuccess(goal),
                 did_replan=False,
                 robot_name=self._robot_name,
+                has_conflicts=False,
             )
 
         if not plan.exists():
@@ -827,6 +828,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     next_action=plan.pop_next_action(),
                     did_replan=False,
                     robot_name=self._robot_name,
+                    has_conflicts=False,
                 )  # Normal case, don't log
             else:
                 if self.use_social_cost:
@@ -841,6 +843,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 next_action=ba.Wait(),
                                 did_replan=False,
                                 robot_name=self._robot_name,
+                                has_conflicts=True,
                             )
 
                         self.simulation_log.append(
@@ -865,6 +868,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 next_action=ba.GoalFailed(goal),
                                 did_replan=False,
                                 robot_name=self._robot_name,
+                                has_conflicts=True,
                             )
 
                         robot_cells = utils.accurate_rasterize_in_grid(
@@ -901,6 +905,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 next_action=plan.pop_next_action(),
                                 did_replan=True,
                                 robot_name=self._robot_name,
+                                has_conflicts=True,
                             )
                         else:
                             self.simulation_log.append(
@@ -922,6 +927,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 ),
                                 did_replan=False,
                                 robot_name=self._robot_name,
+                                has_conflicts=True,
                             )
                 if not self.must_replan_now(conflicts):
                     return ThinkResult(
@@ -935,6 +941,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         ),
                         did_replan=False,
                         robot_name=self._robot_name,
+                        has_conflicts=True,
                     )
                 else:
                     self.simulation_log.append(
@@ -1000,6 +1007,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 next_action=ba.GoalFailed(goal),
                 did_replan=True,
                 robot_name=self._robot_name,
+                has_conflicts=False,
             )
         else:
             plan.steps_with_replan_call.add(step_count)
@@ -1046,6 +1054,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     next_action=ba.GoalFailed(goal),
                     did_replan=True,
                     robot_name=self._robot_name,
+                    has_conflicts=False,
                 )
             else:
                 conflicts = plan.get_conflicts(
@@ -1067,6 +1076,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         next_action=plan.pop_next_action(),
                         did_replan=True,
                         robot_name=self._robot_name,
+                        has_conflicts=False,
                     )
                 else:
                     self.simulation_log.append(
@@ -1095,6 +1105,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             next_action=ba.GoalFailed(goal),
                             did_replan=True,
                             robot_name=self._robot_name,
+                            has_conflicts=True,
                         )
                     else:
                         # II - Compute plan (with conflicting dynamic obstacles as static)
@@ -1218,6 +1229,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 ),
                                 did_replan=True,
                                 robot_name=self._robot_name,
+                                has_conflicts=True,
                             )
                         else:
                             plan.update_plan(p, step_count)
@@ -1249,6 +1261,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                     ),
                                     did_replan=True,
                                     robot_name=self._robot_name,
+                                    has_conflicts=True,
                                 )
                             else:
                                 self.simulation_log.append(
@@ -1265,6 +1278,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                     next_action=plan.pop_next_action(),
                                     did_replan=True,
                                     robot_name=self._robot_name,
+                                    has_conflicts=False,
                                 )
 
     def select_connect(
