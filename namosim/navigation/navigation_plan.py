@@ -17,9 +17,7 @@ from namosim.navigation.navigation_path import (
     TransferPath,
     TransitPath,
 )
-from namosim.world.binary_occupancy_grid import (
-    BinaryInflatedOccupancyGrid,
-)
+from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
 from namosim.world.world import World
@@ -62,8 +60,8 @@ class Plan:
     def has_infinite_cost(self):
         return True if self.total_cost == float("inf") else False
 
-    def exists(self):
-        return bool(self.path_components)
+    def is_empty(self):
+        return len(self.path_components) == 0
 
     def get_conflicts(
         self,
@@ -258,7 +256,7 @@ class Plan:
         return current_component.pop_next_action()
 
     def is_evading(self):
-        return self.exists() and isinstance(
+        return self.is_empty() is False and isinstance(
             self.path_components[self.component_index], EvasionTransitPath
         )
 
