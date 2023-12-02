@@ -695,21 +695,6 @@ class Stilman2005Behavior(BaselineBehavior):
 
         return next_step
 
-    def is_goal_reached(
-        self,
-        q_t: PoseModel,
-        q_f: PoseModel,
-        pos_tol: float = 0.05,
-        ang_tol: float = 0.1,
-    ):
-        return all(
-            [
-                utils.is_close(q_t[0], q_f[0], rel_tol=pos_tol),
-                utils.is_close(q_t[1], q_f[1], rel_tol=pos_tol),
-                utils.angle_is_close(q_t[2], q_f[2], rel_tol=ang_tol),
-            ]
-        )
-
     def must_replan_now(self, conflicts: t.List[Conflict]):
         for conflict in conflicts:
             if isinstance(conflict, (StolenMovableConflict, RobotObstacleConflict)):
@@ -1316,7 +1301,10 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
         simple_path_to_goal = self.find_path(
-            r_t, r_f, w_t, inflated_grid_by_robot_max, robot.polygon
+            robot_pose=r_t,
+            goal_pose=r_f,
+            robot_inflated_grid=inflated_grid_by_robot_max,
+            robot_polygon=robot.polygon,
         )
         if simple_path_to_goal:
             # If the goal is in the same free space component as the robot in simulated w_t
@@ -1493,8 +1481,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     tho_n = self.find_path(
                         robot_pose=r_t,
                         goal_pose=tho_m.robot_path.poses[0],
-                        w_t=w_t,
-                        inflated_grid_by_robot=inflated_grid_by_robot_max,
+                        robot_inflated_grid=inflated_grid_by_robot_max,
                         robot_polygon=robot.polygon,
                     )
                     if not tho_n:
@@ -3575,24 +3562,6 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
         return neighbors, tentative_g_scores
-
-    def find_path(
-        self, robot_pose, goal_pose, w_t, inflated_grid_by_robot, robot_polygon
-    ):
-        real_path = graph_search.real_to_grid_search_a_star(
-            robot_pose, goal_pose, inflated_grid_by_robot
-        )
-        if real_path:
-            phys_cost = 0.0
-            raw_path_iterator = iter(real_path)
-            prev_step = next(raw_path_iterator)
-            for cur_step in raw_path_iterator:
-                phys_cost += self.g(prev_step, cur_step, is_transfer=False)
-            return TransitPath.from_poses(
-                real_path, robot_polygon, robot_pose, phys_cost
-            )
-        else:
-            return None
 
     @staticmethod
     def polygon_intrudes_components(

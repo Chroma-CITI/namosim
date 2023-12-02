@@ -20,6 +20,7 @@ import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
+from namosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
 from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
 from namosim.exceptions import timeout
 from namosim.models import PoseModel, SimulationModel
@@ -851,16 +852,24 @@ class Simulator:
                 )
             else:
                 behavior_config = agent.behavior
+                self.ros_publisher.cleanup_robot_world(ns=agent.agent_name)
+                agent_world = copy.deepcopy(self.ref_world)
 
                 if behavior_config.name == "stilman_2005_behavior":
-                    agent_world = copy.deepcopy(self.ref_world)
-                    self.ros_publisher.cleanup_robot_world(ns=agent.agent_name)
                     agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
-                        agent_world,
-                        agent_uid,
-                        agent_navigation_goals,
-                        behavior_config,
-                        self.logs_dir,
+                        initial_world=agent_world,
+                        robot_uid=agent_uid,
+                        navigation_goals=agent_navigation_goals,
+                        behavior_config=behavior_config,
+                        logs_dir=self.logs_dir,
+                    )
+                elif behavior_config.name == "navigation_only_behavior":
+                    agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
+                        initial_world=agent_world,
+                        robot_uid=agent_uid,
+                        navigation_goals=agent_navigation_goals,
+                        behavior_config=behavior_config,
+                        logs_dir=self.logs_dir,
                     )
                 else:
                     raise NotImplementedError(

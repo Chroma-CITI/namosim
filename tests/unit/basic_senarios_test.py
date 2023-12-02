@@ -18,6 +18,19 @@ class BasicTest(unittest.TestCase):
             == "Agent robot_0 finished executing all its goals."
         )
 
+    def test_minimal_nav_only(self):
+        """Tests a minimal scenario with navigation-only behavior"""
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "minimal_sim_nav_only.json"
+            )
+        )
+        sim.run()
+        assert (
+            sim.simulation_log[7].message
+            == "Agent robot_0 finished executing all its goals."
+        )
+
     def test_1_robot_2_goals(self):
         sim = Simulator(
             simulation_file_path=os.path.join(
