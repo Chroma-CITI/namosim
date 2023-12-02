@@ -1301,7 +1301,10 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
         simple_path_to_goal = self.find_path(
-            r_t, r_f, w_t, inflated_grid_by_robot_max, robot.polygon
+            robot_pose=r_t,
+            goal_pose=r_f,
+            robot_inflated_grid=inflated_grid_by_robot_max,
+            robot_polygon=robot.polygon,
         )
         if simple_path_to_goal:
             # If the goal is in the same free space component as the robot in simulated w_t
@@ -1478,7 +1481,6 @@ class Stilman2005Behavior(BaselineBehavior):
                     tho_n = self.find_path(
                         robot_pose=r_t,
                         goal_pose=tho_m.robot_path.poses[0],
-                        w_t=w_t,
                         robot_inflated_grid=inflated_grid_by_robot_max,
                         robot_polygon=robot.polygon,
                     )

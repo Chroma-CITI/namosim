@@ -2,6 +2,7 @@ import typing as t
 
 import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
+from namosim.display.ros2_publisher import RosPublisher
 from namosim.models import NavigationOnlyBehaviorConfigModel, PoseModel
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
@@ -58,7 +59,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
             params=self.static_obs_inf_grid.params,
         )
 
-    def think(self):
+    def think(self, ros_publisher: RosPublisher):
         if self._q_goal is None:
             if self._navigation_goals:
                 self._q_goal = self._navigation_goals.pop(0)
@@ -78,6 +79,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
         if self.is_goal_reached(
             self.world.entities[self._robot_uid].pose, self._q_goal
         ):
+            self._q_goal = None
             return ThinkResult(
                 next_action=ba.GoalSuccess(self._q_goal),
                 did_replan=False,
@@ -96,8 +98,8 @@ class NavigationOnlyBehavior(BaselineBehavior):
         path = self.find_path(
             robot_pose=self.world.entities[self._robot_uid].pose,
             goal_pose=self._q_goal,
-            robot_inflated_grid=self.inflated_grid_by_robot,
-            robot_polygon=self._robot.polygon,
+            robot_inflated_grid=self.static_obs_inf_grid,
+            robot_polygon=self.world.entities[self._robot_uid].polygon,
         )
 
         if path is None:
@@ -109,6 +111,8 @@ class NavigationOnlyBehavior(BaselineBehavior):
             )
 
         self._p_opt = Plan([path], goal=self._q_goal, robot_uid=self._robot_uid)
+        self.goal_to_plans[self._q_goal] = self._p_opt
+
         return ThinkResult(
             next_action=self._p_opt.pop_next_action(),
             did_replan=True,

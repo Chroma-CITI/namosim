@@ -1,6 +1,7 @@
 import abc
 import copy
 import typing as t
+from collections import OrderedDict
 from decimal import Decimal
 
 from shapely import Polygon
@@ -81,7 +82,7 @@ class BaselineBehavior(object):
 
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
 
-        self.goal_to_plans: t.Dict[PoseModel, Plan]
+        self.goal_to_plans: t.Dict[PoseModel, Plan] = OrderedDict()
 
     def sense(
         self, ref_world: World, last_action_result: ActionResult, step_count: int
