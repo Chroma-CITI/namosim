@@ -5,7 +5,7 @@ import typing as t
 from shapely import Polygon
 from typing_extensions import Self
 
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 
 
 class Style:

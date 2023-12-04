@@ -17,8 +17,12 @@ from namosim.behaviors.stilman_configurations import (
     RCHConfiguration,
     RobotObstacleConfiguration,
 )
+from namosim.data_models import (
+    GridCellModel,
+    PoseModel,
+    StilmanOnlyBehaviorParametersModel,
+)
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import GridCellModel, PoseModel, StilmanOnlyBehaviorConfigModel
 from namosim.navigation.navigation_path import TransferPath, TransitPath
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import collision, connectivity, utils
@@ -36,18 +40,18 @@ class StilmanOnlyBehavior(BaselineBehavior):
         initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
-        config: StilmanOnlyBehaviorConfigModel,
+        params: StilmanOnlyBehaviorParametersModel,
         logs_dir: str,
     ):
         BaselineBehavior.__init__(
             self,
-            initial_world,
-            robot_uid,
-            navigation_goals,
-            config,
-            logs_dir,
+            initial_world=initial_world,
+            robot_uid=robot_uid,
+            navigation_goals=navigation_goals,
+            name="stilman_only_behavior",
+            logs_dir=logs_dir,
         )
-        self.config = config
+        self.params = params
         self._social_costmap: npt.NDArray[t.Any] | None = None
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(
@@ -85,7 +89,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         self.angular_res = 5.0
         self.rotation_unit_angle = 60.0
-        self.translation_unit_length = config.robot_translation_unit_length
+        self.translation_unit_length = self.params.robot_translation_unit_length
         self.translation_factor = (
             self.translation_unit_cost / self.translation_unit_length
         )
@@ -162,7 +166,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
 
     def init_social_costmap(self, ros_publisher: RosPublisher):
         # Initialize social occupation costmap
-        if self.config.use_social_cost and self._social_costmap is None:
+        if self.params.use_social_cost and self._social_costmap is None:
             self._social_costmap = stocg.compute_social_costmap(
                 self.static_obstacle_grid.grid,
                 self.world.discretization_data.res,

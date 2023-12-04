@@ -30,6 +30,11 @@ class StilmanBehaviorParametersModel(BaseModel):
     use_social_cost: bool
 
 
+class StilmanOnlyBehaviorParametersModel(BaseModel):
+    robot_translation_unit_length: float
+    use_social_cost: bool
+
+
 class WuLevihnBehaviorParametersModel(BaseModel):
     check_new_opening_activated: bool
     manip_weight: float
@@ -55,10 +60,9 @@ class NavigationOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
 
 
 class StilmanOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
-    name: t.Literal["navigation_only_behavior"]
+    name: t.Literal["stilman_only_behavior"]
     navigation_goals: t.List[NavigationGoalModel]
-    use_social_cost: bool = False
-    robot_translation_unit_length: float
+    parameters: StilmanOnlyBehaviorParametersModel
 
 
 class StilmanBehaviorConfigModel(BaseBehaviorConfigModel):

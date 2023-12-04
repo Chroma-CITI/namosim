@@ -35,6 +35,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as navigation_plan
+from namosim.data_models import GridCellModel, PoseModel
 from namosim.display.conversions import (
     costmap_to_grid_map,
     geom_quat_from_yaw,
@@ -47,7 +48,6 @@ from namosim.display.conversions import (
     real_path_to_triangle_list,
     string_to_text,
 )
-from namosim.models import GridCellModel, PoseModel, SimulationModel
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
@@ -563,7 +563,7 @@ class RosPublisher:  # noqa: F821
     def __init__(
         self,
         node_name: str,
-        sim_config: SimulationModel,
+        agent_names: t.List[str],
         prefix_topics_with_node_name: bool = False,
     ):
         if cfg.deactivate_gui:
@@ -606,9 +606,7 @@ class RosPublisher:  # noqa: F821
             MarkerArray, "/simulation" + cfg.sim_latest_message_topic
         )
 
-        self.agents_names = [
-            a_to_b_config.agent_name for a_to_b_config in sim_config.agents_behaviors
-        ]
+        self.agents_names = agent_names
 
         # Add robot-specific publishers for each robot namespace
         for agent_name in self.agents_names:

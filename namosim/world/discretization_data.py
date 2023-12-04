@@ -1,4 +1,4 @@
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 
 
 class DiscretizationData:

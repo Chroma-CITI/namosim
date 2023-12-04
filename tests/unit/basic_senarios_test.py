@@ -2,6 +2,7 @@ import os
 import unittest
 
 from namosim.simulator import Simulator
+from namosim.simulator_v2 import SimulatorV2
 
 
 class BasicTest(unittest.TestCase):
@@ -24,6 +25,17 @@ class BasicTest(unittest.TestCase):
             simulation_file_path=os.path.join(
                 self.scenarios_folder, "minimal_sim_nav_only.json"
             )
+        )
+        sim.run()
+        assert (
+            sim.simulation_log[7].message
+            == "Agent robot_0 finished executing all its goals."
+        )
+
+    def test_nav_only_v2(self):
+        """Tests a minimal scenario with navigation-only behavior"""
+        sim = SimulatorV2(
+            simulation_file_path=os.path.join(self.scenarios_folder, "minimal_v2.svg")
         )
         sim.run()
         assert (

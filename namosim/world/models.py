@@ -3,7 +3,7 @@ import typing as t
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 
 
 class DiscretizationDataModel(BaseModel):

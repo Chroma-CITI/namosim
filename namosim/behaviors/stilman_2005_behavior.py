@@ -23,8 +23,12 @@ from namosim.behaviors.stilman_configurations import (
     RCHConfiguration,
     RobotObstacleConfiguration,
 )
+from namosim.data_models import (
+    GridCellModel,
+    PoseModel,
+    StilmanBehaviorParametersModel,
+)
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import GridCellModel, PoseModel, StilmanBehaviorConfigModel
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
     Conflict,
@@ -215,7 +219,7 @@ class Stilman2005Behavior(BaselineBehavior):
         initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
-        behavior_config: StilmanBehaviorConfigModel,
+        params: StilmanBehaviorParametersModel,
         logs_dir: str,
     ):
         BaselineBehavior.__init__(
@@ -223,13 +227,13 @@ class Stilman2005Behavior(BaselineBehavior):
             initial_world=initial_world,
             robot_uid=robot_uid,
             navigation_goals=navigation_goals,
-            behavior_config=behavior_config,
+            name="stilman_2005_behavior",
             logs_dir=logs_dir,
         )
         self._p_opt: DynamicPlan
 
         # Configuration parameters
-        parameters = behavior_config.parameters
+        parameters = params
 
         # For each, specify collision model, action space
         # self.transit_search_config =

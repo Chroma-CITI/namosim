@@ -4,8 +4,8 @@ from aabbtree import AABBTree
 from shapely.geometry import MultiPolygon, Point, Polygon
 
 import namosim.utils.collision as collision
+from namosim.data_models import PoseModel
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import PoseModel
 
 
 def check_new_local_opening(

@@ -5,7 +5,7 @@ from shapely import Polygon
 
 import namosim.navigation.basic_actions as ba
 from namosim.algorithms import graph_search
-from namosim.models import (
+from namosim.data_models import (
     FixedPrecisionPoseModel,
     GridCellModel,
     PoseModel,

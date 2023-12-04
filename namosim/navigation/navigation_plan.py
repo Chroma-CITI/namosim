@@ -5,7 +5,7 @@ from typing_extensions import Self
 
 import namosim.display.ros2_publisher as ros2
 import namosim.utils.collision as collision
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.conflict import (
     Conflict,

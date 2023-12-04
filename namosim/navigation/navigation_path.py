@@ -3,7 +3,7 @@ import typing as t
 from shapely import GeometryCollection, Polygon
 
 import namosim.display.ros2_publisher as ros2
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,

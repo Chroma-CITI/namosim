@@ -22,8 +22,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.world.robot as namosim_robot
+from namosim.data_models import PoseModel
 from namosim.display import tf_replacement
-from namosim.models import PoseModel
 
 
 def init_header(stamp: Time = Time()):

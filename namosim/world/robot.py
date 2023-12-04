@@ -4,7 +4,7 @@ import typing as t
 from shapely import Polygon
 
 import namosim.world.world as world
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 from namosim.utils import utils
 from namosim.world.entity import Entity, Style
 from namosim.world.sensors.g_fov_sensor import GFOVSensor
@@ -71,6 +71,8 @@ class Robot(Entity):
     def deduce_movability(self, obstacle_type: str):
         if obstacle_type == "unknown" or obstacle_type == "robot":
             return "unknown"
+        if obstacle_type == "movable":
+            return "movable"
         elif obstacle_type in self.movable_whitelist:
             return "movable"
         else:
