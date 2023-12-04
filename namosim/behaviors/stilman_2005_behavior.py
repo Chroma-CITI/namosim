@@ -1179,7 +1179,7 @@ class Stilman2005Behavior(BaselineBehavior):
             ).visited
         )
 
-        if inflated_grid_by_robot_max.only_obstacle_uid_in_cell(robot_cell) == -1:
+        if inflated_grid_by_robot_max.cell_to_obstacle_id(robot_cell) == -1:
             return Plan(plan_error="start_cell_in_several_movable_obstacles_error")
 
         if (
@@ -1406,10 +1406,8 @@ class Stilman2005Behavior(BaselineBehavior):
                 # Note: This validation was added according to the description in the article about not allowing
                 # transitions between two different obstacles or to a cell with several obstacles, though it was not
                 # explicit in the pseudocode formulation in Stilman's thesis.
-                cur_cell_obs_uid = inflated_robot_grid.only_obstacle_uid_in_cell(
-                    current.cell
-                )
-                neighbor_cell_obs_uid = inflated_robot_grid.only_obstacle_uid_in_cell(
+                cur_cell_obs_uid = inflated_robot_grid.cell_to_obstacle_id(current.cell)
+                neighbor_cell_obs_uid = inflated_robot_grid.cell_to_obstacle_id(
                     neighbor_cell
                 )
 
@@ -1465,8 +1463,8 @@ class Stilman2005Behavior(BaselineBehavior):
                             pass
 
                     else:
-                        neighbor_cell_obs_uid = (
-                            inflated_robot_grid.only_obstacle_uid_in_cell(neighbor_cell)
+                        neighbor_cell_obs_uid = inflated_robot_grid.cell_to_obstacle_id(
+                            neighbor_cell
                         )
                         if neighbor_cell_obs_uid == current.first_obstacle_uid:
                             neighbor = RCHConfiguration(
@@ -1481,7 +1479,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         neighbor = RCHConfiguration(neighbor_cell, 0, 0)
                     else:
                         neighbor_cell_obstacle_uid = (
-                            inflated_robot_grid.only_obstacle_uid_in_cell(neighbor_cell)
+                            inflated_robot_grid.cell_to_obstacle_id(neighbor_cell)
                         )
                         if neighbor_cell_obstacle_uid > 0:
                             neighbor = RCHConfiguration(
@@ -1562,7 +1560,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
             return 0, 0
 
-        start_obstacle_uid = inflated_robot_grid.only_obstacle_uid_in_cell(start_cell)
+        start_obstacle_uid = inflated_robot_grid.cell_to_obstacle_id(start_cell)
         if start_obstacle_uid == -1 or start_obstacle_uid in forbidden_obstacles:
             obstacle_names = {
                 self.world.entities[uid].name
@@ -2514,8 +2512,7 @@ class Stilman2005Behavior(BaselineBehavior):
             inflated_grid_by_robot_max.grid_pose,
         )
         cell_in_manip_obs = (
-            inflated_grid_by_robot_max.only_obstacle_uid_in_cell(robot_cell)
-            == obstacle_uid
+            inflated_grid_by_robot_max.cell_to_obstacle_id(robot_cell) == obstacle_uid
         )
 
         if cell_in_manip_obs:
