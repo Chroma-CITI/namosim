@@ -55,7 +55,7 @@ class NavigationOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
 
 
 class StilmanOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
-    name: t.Literal["navigation_only_behavior"]
+    name: t.Literal["stilman_only_behavior"]
     navigation_goals: t.List[NavigationGoalModel]
     use_social_cost: bool = False
     robot_translation_unit_length: float
@@ -71,6 +71,7 @@ class AgentBehaviorModel(BaseModel):
     agent_name: str
     behavior: t.Union[
         StilmanBehaviorConfigModel,
+        StilmanOnlyBehaviorConfigModel,
         WuLevihnBehaviorConfigModel,
         NavigationOnlyBehaviorConfigModel,
     ]

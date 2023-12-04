@@ -117,3 +117,4 @@ data/
 !tests/unit/data
 
 .ruff_cache
+*.png

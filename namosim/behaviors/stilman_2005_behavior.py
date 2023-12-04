@@ -19,8 +19,8 @@ from namosim.algorithms import graph_search
 from namosim.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
 from namosim.behaviors.stilman_configurations import (
-    Configuration,
     RCHConfiguration,
+    RobotConfiguration,
     RobotObstacleConfiguration,
 )
 from namosim.display.ros2_publisher import RosPublisher
@@ -2619,7 +2619,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
 
             if not collides_with:
-                prev_transit_end_configuration = Configuration(
+                prev_transit_end_configuration = RobotConfiguration(
                     floating_point_pose=transit_end_pose,
                     polygon=prev_transit_end_robot_polygon,
                     cell_in_grid=utils.real_to_grid(
@@ -2633,7 +2633,6 @@ class Stilman2005Behavior(BaselineBehavior):
                     ),
                     action=None,
                     csv_polygon=prev_transit_end_robot_polygon,
-                    bb_vertices=list(prev_transit_end_robot_polygon.exterior.coords),
                 )
                 temp_transfer_start_configuration = RobotObstacleConfiguration(
                     robot_floating_point_pose=transfer_start_pose,
@@ -2663,9 +2662,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     manip_pose_id=manip_pose_id,
                     action=grab_action,
                     robot_csv_polygon=csv_polygons[(0,)],
-                    robot_bb_vertices=bb_vertices[0],
                     obstacle_csv_polygon=obstacle_polygon,
-                    obstacle_bb_vertices=list(obstacle_polygon.exterior.coords),
                 )
                 transfer_start_configs_to_cost[
                     temp_transfer_start_configuration
@@ -3022,14 +3019,13 @@ class Stilman2005Behavior(BaselineBehavior):
             new_fixed_precision_pose = utils.real_pose_to_fixed_precision_pose(
                 new_robot_pose, trans_mult, rot_mult
             )
-            next_transit_start_configuration = Configuration(
+            next_transit_start_configuration = RobotConfiguration(
                 floating_point_pose=new_robot_pose,
                 polygon=new_robot_polygon,
                 cell_in_grid=cell,
                 fixed_precision_pose=new_fixed_precision_pose,
                 action=release_action,
                 csv_polygon=csv_polygons[(0,)],
-                bb_vertices=bb_vertices[0],
             )
             return next_transit_start_configuration
         else:
@@ -3378,9 +3374,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 action=action,
                 manip_pose_id=current_configuration.manip_pose_id,
                 robot_csv_polygon=robot_csv_polygons[(0,)],
-                robot_bb_vertices=robot_bb_vertices[0],
                 obstacle_csv_polygon=obstacle_csv_polygons[(0,)],
-                obstacle_bb_vertices=obstacle_bb_vertices[0],
             )
 
             neighbors.append(neighbor_configuration)
@@ -3998,8 +3992,8 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def get_transfer_path_from_config(
         self,
-        prev_transit_end_configuration: Configuration,
-        next_transit_start_configuration: Configuration,
+        prev_transit_end_configuration: RobotConfiguration,
+        next_transit_start_configuration: RobotConfiguration,
         transfer_configurations: t.List[RobotObstacleConfiguration],
         obstacle_uid: int,
         phys_cost: t.Optional[float] = None,
