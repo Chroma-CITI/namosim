@@ -12,6 +12,7 @@ from namosim.models import (
     NavigationOnlyBehaviorConfigModel,
     PoseModel,
     StilmanBehaviorConfigModel,
+    StilmanOnlyBehaviorConfigModel,
     WuLevihnBehaviorConfigModel,
 )
 from namosim.navigation.action_result import ActionResult
@@ -48,7 +49,8 @@ class BaselineBehavior(object):
         navigation_goals: t.List[PoseModel],
         behavior_config: StilmanBehaviorConfigModel
         | WuLevihnBehaviorConfigModel
-        | NavigationOnlyBehaviorConfigModel,
+        | NavigationOnlyBehaviorConfigModel
+        | StilmanOnlyBehaviorConfigModel,
         logs_dir: str,
     ):
         self.simulation_log = utils.CustomLogger()
