@@ -3636,21 +3636,22 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def log_grids(
         self,
-        inflated_grid_by_obstacle,
-        acc_cells_for_obs,
-        normalized_social_cost,
-        normalized_distance_cost,
-        sorted_cell_to_combined_cost,
-        normalized_distance_to_goal=None,
+        inflated_grid_by_obstacle: BinaryInflatedOccupancyGrid,
+        acc_cells_for_obs: t.List[GridCellModel],
+        normalized_social_cost: npt.NDArray[t.Any],
+        normalized_distance_cost: npt.NDArray[t.Any],
+        sorted_cell_to_combined_cost: t.Dict[GridCellModel, float],
+        normalized_distance_to_goal: npt.NDArray[t.Any] | None,
     ):
-        stocg.display_or_log(
-            grid=np.invert(inflated_grid_by_obstacle.grid.astype(bool)),
-            suffix="-obs_inf_grid",
-            start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
-            debug_display=False,
-            log_costmaps=True,
-            logs_dir=self.logs_dir,
-        )
+        if inflated_grid_by_obstacle:
+            stocg.display_or_log(
+                grid=np.invert(inflated_grid_by_obstacle.grid.astype(bool)),
+                suffix="-obs_inf_grid",
+                start_time_str=time.strftime("%Y-%m-%d-%Hh%Mm%Ss"),
+                debug_display=False,
+                log_costmaps=True,
+                logs_dir=self.logs_dir,
+            )
 
         normalized_social_cost_costmap = np.zeros(
             (inflated_grid_by_obstacle.d_width, inflated_grid_by_obstacle.d_height)

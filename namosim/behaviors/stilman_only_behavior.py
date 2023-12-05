@@ -5,7 +5,6 @@ import typing as t
 import numpy as np
 import numpy.typing as npt
 from aabbtree import AABBTree
-from PIL import Image
 from shapely import Polygon
 
 import namosim.navigation.basic_actions as ba
@@ -100,16 +99,6 @@ class StilmanOnlyBehavior(BaselineBehavior):
 
         # TODO Make sure static and generalist grid share same width and height (occurs naturally if map borders are static, but not otherwise)
         self.inflated_grid_by_robot.deactivate_entities({self._robot.uid})
-
-        # log grids as images for debugging
-        # sg = self.static_obstacle_grid.grid
-        # ig = self.inflated_grid_by_robot.grid
-        # sg = sg > 0
-        # ig = ig > 0
-        # im_static = Image.fromarray(sg)
-        # im_imflated = Image.fromarray(ig)
-        # im_static.save("im_static.png")
-        # im_imflated.save("im_imflated.png")
 
         # Robot action space parameters
         self.translation_unit_cost = 1.0
@@ -488,7 +477,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 neighborhood=neighborhood,
             )
 
-        ros_publisher.cleanup_robot_sim(ns=self._robot_name)
+        # ros_publisher.cleanup_robot_sim(ns=self._robot_name)
         return Plan(plan_error="no_plan_found_error")
 
     def rch(
@@ -922,17 +911,6 @@ class StilmanOnlyBehavior(BaselineBehavior):
         )
         # Only deactivate obstacle cells once transit end and transfer start are computed (grab action)
         inflated_grid_by_robot_max.deactivate_entities([obstacle_uid])
-
-        # log grids as images for debugging
-        og = inflated_grid_by_obstacle.grid > 0
-        rmin = inflated_grid_by_robot_min.grid > 0
-        rmax = inflated_grid_by_robot_max.grid > 0
-        im_og = Image.fromarray(og)
-        im_rmin = Image.fromarray(rmin)
-        im_rmax = Image.fromarray(rmax)
-        im_og.save("im_og.png")
-        im_rmin.save("im_rmin.png")
-        im_rmax.save("im_rmax.png")
 
         # Use Dijkstra algorithm to compute a transfer path that allows for an opening to be created
         (

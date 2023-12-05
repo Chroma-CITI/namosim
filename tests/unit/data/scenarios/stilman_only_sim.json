@@ -6,10 +6,10 @@
         "name": "stilman_only_behavior",
         "navigation_goals": [
           {
-            "name": "goal_01"
+            "name": "goal_0"
           }
         ],
-        "robot_translation_unit_length": 100.0,
+        "robot_translation_unit_length": 0.1,
         "use_social_cost": true
       }
     }
