@@ -3641,7 +3641,7 @@ class Stilman2005Behavior(BaselineBehavior):
         normalized_social_cost: npt.NDArray[t.Any],
         normalized_distance_cost: npt.NDArray[t.Any],
         sorted_cell_to_combined_cost: t.Dict[GridCellModel, float],
-        normalized_distance_to_goal: npt.NDArray[t.Any] | None,
+        normalized_distance_to_goal: npt.NDArray[t.Any] | None = None,
     ):
         if inflated_grid_by_obstacle:
             stocg.display_or_log(
