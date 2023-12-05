@@ -67,7 +67,8 @@ pyright \
   namosim/display/colors.py \
   namosim/display/ros2_publisher.py \
   namosim/exceptions.py \
-  namosim/models.py \
+  namosim/data_models.py \
+  namosim/data_models_v2.py \
   namosim/navigation/conflict.py \
   namosim/simulator.py \
   namosim/utils/utils.py \

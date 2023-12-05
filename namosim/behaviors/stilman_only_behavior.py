@@ -24,7 +24,7 @@ from namosim.data_models import (
     StilmanOnlyBehaviorParametersModel,
 )
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.navigation.navigation_path import TransferPath, TransitPath
+from namosim.navigation.navigation_path import Path, TransferPath, TransitPath
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import collision, connectivity, utils
 from namosim.world.binary_occupancy_grid import (

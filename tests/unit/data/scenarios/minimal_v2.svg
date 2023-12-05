@@ -18,7 +18,7 @@
    <namo_config cell_size="5.0">
       <agent agent_id="robot_0">
          <goal goal_id="goal_0" />
-         <behavior type="stilman_2005_behavior">
+         <behavior type="stilman_only_behavior">
             <parameters use_social_cost="true" robot_translation_unit_length="5.0" />
          </behavior>
       </agent>

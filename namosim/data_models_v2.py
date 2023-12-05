@@ -11,10 +11,14 @@ class BaseBehaviorConfigModel(BaseXmlModel, tag="behavior"):
     pass
 
 
-class StilmanOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
-    type: t.Literal["stilman_only_behavior"] = attr()
+class StilmanOnlyParametersModel(BaseXmlModel):
     use_social_cost: bool = attr(default=False)
     robot_translation_unit_length: float = attr()
+
+
+class StilmanOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
+    type: t.Literal["stilman_only_behavior"] = attr()
+    parameters: StilmanOnlyParametersModel = element()
 
 
 class NavigationOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
