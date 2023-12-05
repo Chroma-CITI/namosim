@@ -9,7 +9,7 @@
             "name": "goal_0"
           }
         ],
-        "robot_translation_unit_length": 0.1,
+        "robot_translation_unit_length": 3,
         "use_social_cost": true
       }
     }
