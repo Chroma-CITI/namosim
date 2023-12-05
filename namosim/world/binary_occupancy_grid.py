@@ -243,7 +243,7 @@ class BinaryOccupancyGrid:
                 for cell in self.cells_sets[uid]:
                     self.grid[cell[0]][cell[1]] += 1
 
-    def only_obstacle_uid_in_cell(self, cell: GridCellModel):
+    def cell_to_obstacle_id(self, cell: GridCellModel):
         """
         If cell is contained only by one obstacle o_i, returns o_i.
         If contained by no obstacle, returns 0. If contained by more than one, returns -1.

@@ -8,7 +8,12 @@ Panels:
         - /Status1
         - /namosim1
         - /namosim1/Simulation1
-        - /namosim1/robot_01/test1
+        - /namosim1/robot_01
+        - /namosim1/robot_01/robot_sim1
+        - /namosim1/robot_01/sim1
+        - /namosim1/robot_01/sim1/Namespaces1
+        - /namosim1/robot_01/stilman_rch1
+        - /namosim1/robot_01/test1/combined_gridmap1
         - /namosim1/robot_01/test1/combined_gridmap1/Topic1
         - /namosim1/robot_01/costmap1
         - /namosim1/robot_01/costmap1/Status1
@@ -84,8 +89,7 @@ Visualization Manager:
               Enabled: true
               Name: Reference world
               Namespaces:
-                /robot/polygon: true
-                obstacles/polygon: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -167,10 +171,7 @@ Visualization Manager:
               Enabled: true
               Name: conflicts_check
               Namespaces:
-                /transfer_horizon_csv_polygons: true
-                /transit_conflicting_cells: true
-                /transit_conflicting_entities_cells: true
-                /transit_horizon_cells: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -182,7 +183,7 @@ Visualization Manager:
               Enabled: true
               Name: goal
               Namespaces:
-                /polygon: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -194,8 +195,7 @@ Visualization Manager:
               Enabled: true
               Name: knowledge
               Namespaces:
-                /robot/polygon: true
-                obstacles/polygon: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -324,8 +324,7 @@ Visualization Manager:
               Enabled: true
               Name: plan
               Namespaces:
-                /end_obstacles: true
-                /plan: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -364,26 +363,13 @@ Visualization Manager:
               Enabled: true
               Name: sim
               Namespaces:
-                /blocking_areas/init: true
-                /blocking_areas/target: true
-                /diameter_inflated_polygon/init: true
-                /diameter_inflated_polygon/target: true
-                /manip_search/close_set: true
-                /manip_search/current/obstacle/polygon: true
-                /manip_search/current/obstacle/pose: true
-                /manip_search/current/robot/polygon: true
-                /manip_search/current/robot/pose: true
-                /manip_search_neighbors: true
-                /rch_came_from: true
-                /rch_close_set: true
-                /rch_current_cell: true
-                /rch_current_cell_neighbors: true
+                {}
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
                 History Policy: Keep Last
                 Reliability Policy: Reliable
-                Value: /robot_1/sim
+                Value: /robot_0/sim
               Value: true
             - Class: rviz_common/Group
               Displays:
@@ -527,7 +513,7 @@ Visualization Manager:
                     Value: /robot_0/test/connected_components
                   Use Rainbow: true
                   Value: false
-              Enabled: true
+              Enabled: false
               Name: test
             - Alpha: 0.699999988079071
               Binary representation: false
@@ -556,31 +542,6 @@ Visualization Manager:
           Name: robot_0
       Enabled: true
       Name: namosim
-    - Class: rviz_default_plugins/MarkerArray
-      Enabled: true
-      Name: MarkerArray
-      Namespaces:
-        /polygon: true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /robot_1/goal
-      Value: true
-    - Class: rviz_default_plugins/MarkerArray
-      Enabled: true
-      Name: MarkerArray
-      Namespaces:
-        /end_obstacles: true
-        /plan: true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /robot_1/plan
-      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -626,21 +587,26 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
-      Class: rviz_default_plugins/TopDownOrtho
+      Class: rviz_default_plugins/Orbit
+      Distance: 286.5196533203125
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 67.09307098388672
+      Pitch: 1.0097968578338623
       Target Frame: <Fixed Frame>
-      Value: TopDownOrtho (rviz_default_plugins)
-      X: 0
-      Y: 0
+      Value: Orbit (rviz_default_plugins)
+      Yaw: 5.552408218383789
     Saved: ~
 Window Geometry:
   Displays:

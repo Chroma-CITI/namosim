@@ -1,11 +1,11 @@
 {
   "discretization_data": {
-    "res": 0.05
+    "res": 3
   },
   "files": {
-    "geometry_file": "./minimal.svg"
+    "geometry_file": "./stilman_only.svg"
   },
-  "geometry_scale": 0.1,
+  "geometry_scale": 1,
   "things": {
     "entities": [
       {
@@ -62,5 +62,6 @@
         }
       ]
     }
-  }
+  },
+  "no_scaling_workaround": true
 }

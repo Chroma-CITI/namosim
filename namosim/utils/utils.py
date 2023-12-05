@@ -575,7 +575,7 @@ def is_in_matrix(cell, width, height):
     return 0 <= cell[0] < width and 0 <= cell[1] < height
 
 
-def real_to_grid(real_x, real_y, res, grid_pose):
+def real_to_grid(real_x: float, real_y: float, res: float, grid_pose: PoseModel):
     return int(math.floor((real_x - grid_pose[0]) / res)), int(
         math.floor((real_y - grid_pose[1]) / res)
     )

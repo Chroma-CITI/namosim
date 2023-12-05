@@ -78,13 +78,14 @@ class NavigationOnlyBehavior(BaselineBehavior):
         if self.is_goal_reached(
             self.world.entities[self._robot_uid].pose, self._q_goal
         ):
-            self._q_goal = None
-            return ThinkResult(
-                next_action=ba.GoalSuccess(self._q_goal),
+            result = ThinkResult(
+                next_action=ba.GoalSuccess(goal=self._q_goal),
                 did_replan=False,
                 robot_name=self._robot_name,
                 has_conflicts=False,
             )
+            self._q_goal = None
+            return result
 
         if not self._p_opt.is_empty():
             return ThinkResult(

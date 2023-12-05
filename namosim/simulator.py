@@ -22,6 +22,7 @@ import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
 from namosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
 from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
+from namosim.behaviors.stilman_only_behavior import StilmanOnlyBehavior
 from namosim.data_models import PoseModel, SimulationModel
 from namosim.exceptions import timeout
 from namosim.navigation.conflict import (
@@ -869,6 +870,14 @@ class Simulator:
                         initial_world=agent_world,
                         robot_uid=agent_uid,
                         navigation_goals=agent_navigation_goals,
+                        logs_dir=self.logs_dir,
+                    )
+                elif behavior_config.name == "stilman_only_behavior":
+                    agent_uid_to_behavior[agent_uid] = StilmanOnlyBehavior(
+                        initial_world=agent_world,
+                        robot_uid=agent_uid,
+                        navigation_goals=agent_navigation_goals,
+                        params=behavior_config.parameters,
                         logs_dir=self.logs_dir,
                     )
                 else:

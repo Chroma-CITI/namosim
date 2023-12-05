@@ -711,7 +711,7 @@ class RosPublisher:  # noqa: F821
             return False
         elif not cfg.deactivate_gui and not topic:
             return True
-        return self.my_publishers[topic].get_subscription_count() > 0
+        return topic in self.my_publishers
 
     # region SIM WORLD
     def publish_sim_world(self, world: World, robot_uid: int | None = None):

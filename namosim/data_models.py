@@ -75,6 +75,7 @@ class AgentBehaviorModel(BaseModel):
     agent_name: str
     behavior: t.Union[
         StilmanBehaviorConfigModel,
+        StilmanOnlyBehaviorConfigModel,
         WuLevihnBehaviorConfigModel,
         NavigationOnlyBehaviorConfigModel,
     ]
