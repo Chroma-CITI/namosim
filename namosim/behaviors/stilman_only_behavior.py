@@ -170,7 +170,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 has_conflicts=False,
             )
 
-        self._p_opt = self.select_connect(
+        self._p_opt = self.compute_stilman_plan(
             w_t=self.world,
             static_obs_inf_grid=self.static_obs_inf_grid,
             inflated_grid_by_robot_max=self.inflated_grid_by_robot,
@@ -220,7 +220,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 ns=self._robot_name,
             )
 
-    def select_connect(
+    def compute_stilman_plan(
         self,
         w_t: World,
         static_obs_inf_grid: BinaryInflatedOccupancyGrid,
@@ -235,15 +235,45 @@ class StilmanOnlyBehavior(BaselineBehavior):
         action_space_reduction: str = "only_r_acc_then_c_1_x",
     ):
         """
-        High Level Planner _select_connect (SC).
+        This is the entry-point to the Stilman-based high-level navigation planner planner. It computes the full-navigation plan
+        consisting of a sequence of transit and transfer paths ultimately ending at the goal pose.
+
+        It works by first computing a sub-plan for the first obstacle to move and component to fuse (if any),
+        and then it recursively computes a plan for the rest of the path. Recursive sub-plans are concatenated into the final
+        overall plan.
+
         It makes use of _rch and _manip_search in a greedy heuristic search with backtracking.
         It backtracks locally when the object selected by _rch cannot be moved to merge the selected c_1 in c_free.
         It backtracks globally when all the paths identified by _rch from c_1 are unsuccessful.
         SC calls _find_path to determine a transit path from r_t to a contact point, r_t_plus_1 . The existence of the
         path is guaranteed by the choice of contacts in Manip-Search.
-        # :param w_t: state of the world at time t
-        # :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
-        # :return: None to backtrack, current partial plan otherwise.
+
+        :param w_t: state of the world at time t
+        :type w_t: World
+        :param static_obs_inf_grid: _description_
+        :type static_obs_inf_grid: BinaryInflatedOccupancyGrid
+        :param inflated_grid_by_robot_max: _description_
+        :type inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid
+        :param r_f: goal robot configuration [x, y, theta] in {m, m, degrees}
+        :type r_f: PoseModel
+        :param trans_mult: _description_
+        :type trans_mult: float
+        :param rot_mult: _description_
+        :type rot_mult: float
+        :param ros_publisher: _description_
+        :type ros_publisher: RosPublisher
+        :param ccs_data: _description_, defaults to None
+        :type ccs_data: connectivity.CCSData | None, optional
+        :param prev_list: _description_, defaults to set()
+        :type prev_list: set[int], optional
+        :param neighborhood: _description_, defaults to utils.CHESSBOARD_NEIGHBORHOOD
+        :type neighborhood: t.Sequence[GridCellModel], optional
+        :param action_space_reduction: _description_, defaults to "only_r_acc_then_c_1_x"
+        :type action_space_reduction: str, optional
+        :raises ValueError: _description_
+        :raises ValueError: _description_
+        :return: _description_
+        :rtype: _type_
         """
         robot = w_t.entities[self._robot_uid]
         r_t = robot.pose
@@ -282,6 +312,8 @@ class StilmanOnlyBehavior(BaselineBehavior):
 
         c_0 = ccs_data.grid[robot_cell[0]][robot_cell[1]]
         prev_list = prev_list if c_0 == 0 else prev_list.union({c_0})
+
+        # Gather set of all cells currently accessible to the robot
         accessible_cells = (
             set()
             if inflated_grid_by_robot_max.grid[robot_cell[0]][robot_cell[1]] > 0
@@ -317,6 +349,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 )
             )
         }
+
         o_1, c_1 = self.rch(
             start_cell=robot_cell,
             goal_cell=goal_cell,
@@ -329,6 +362,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
             ros_publisher=ros_publisher,
             neighborhood=neighborhood,
         )
+
         while o_1 != 0:
             self.simulation_log.append(
                 utils.BasicLog(
@@ -415,10 +449,12 @@ class StilmanOnlyBehavior(BaselineBehavior):
                         self._step_count,
                     )
                 )
+
                 prev_cells_sets = inflated_grid_by_robot_max.update(
                     {o_1: w_t_plus_2.entities[o_1].polygon}
                 )
-                future_plan = self.select_connect(
+
+                future_plan = self.compute_stilman_plan(
                     w_t=w_t_plus_2,
                     static_obs_inf_grid=static_obs_inf_grid,
                     inflated_grid_by_robot_max=inflated_grid_by_robot_max,
@@ -431,7 +467,9 @@ class StilmanOnlyBehavior(BaselineBehavior):
                     neighborhood=neighborhood,
                     action_space_reduction=action_space_reduction,
                 )
+
                 inflated_grid_by_robot_max.cells_sets_update(prev_cells_sets)
+
                 if not future_plan.plan_error:
                     tho_n = self.find_path(
                         robot_pose=r_t,
@@ -493,6 +531,33 @@ class StilmanOnlyBehavior(BaselineBehavior):
         ros_publisher: RosPublisher,
         neighborhood: t.Sequence[GridCellModel] = utils.TAXI_NEIGHBORHOOD,
     ):
+        """This is the obstacle selection subroutine. It performs an A* search over (obstacle, component) pairs to find
+        a sequence of obstacles to move to make the goal reachable. It returns the ids of the first obstacle, component pair in the sequence.
+
+        :param start_cell: _description_
+        :type start_cell: GridCellModel
+        :param goal_cell: _description_
+        :type goal_cell: GridCellModel
+        :param static_obs_grid: _description_
+        :type static_obs_grid: BinaryInflatedOccupancyGrid
+        :param connected_components_grid: _description_
+        :type connected_components_grid: npt.NDArray[np.int_]
+        :param inflated_robot_grid: _description_
+        :type inflated_robot_grid: BinaryInflatedOccupancyGrid
+        :param avoid_list: _description_
+        :type avoid_list: t.Set[GridCellModel]
+        :param prev_list: _description_
+        :type prev_list: t.Set[int]
+        :param forbidden_obstacles: _description_
+        :type forbidden_obstacles: t.Set[int]
+        :param ros_publisher: _description_
+        :type ros_publisher: RosPublisher
+        :param neighborhood: _description_, defaults to utils.TAXI_NEIGHBORHOOD
+        :type neighborhood: t.Sequence[GridCellModel], optional
+        :raises ValueError: _description_
+        :return: _description_
+        :rtype: _type_
+        """
         if static_obs_grid.grid[start_cell[0]][start_cell[1]] > 0:
             obstacle_names = {
                 self.world.entities[uid].name
