@@ -34,7 +34,7 @@ class BasicTest(unittest.TestCase):
         """Tests a minimal scenario with navigation-only behavior"""
         sim = Simulator(
             simulation_file_path=os.path.join(
-                self.scenarios_folder, "minimal_sim_nav_only.json"
+                self.scenarios_folder, "nav_only_sim.json"
             )
         )
         sim.run()
