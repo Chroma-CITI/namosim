@@ -55,6 +55,18 @@ class BasicTest(unittest.TestCase):
             == "Agent robot_0 finished executing all its goals."
         )
 
+    def test_1_robot_2_obstacles(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "stilman_only_1_robot_2_obstacles_sim.json"
+            )
+        )
+        sim.run()
+        assert (
+            sim.simulation_log[8].message
+            == "Agent robot_0 finished executing all its goals."
+        )
+
     def test_custom(self):
         sim = Simulator(
             simulation_file_path=os.path.join(self.scenarios_folder, "custom_sim.json")
