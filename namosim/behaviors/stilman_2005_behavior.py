@@ -1326,7 +1326,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     )
                     if not tho_n:
                         raise ValueError(
-                            "Failed to find transit path to start of goal path"
+                            "Failed to find transit path to start of transfer path"
                         )
                     plan_components: t.List[TransitPath | TransferPath] = (
                         [tho_n, tho_m] if tho_n.actions else [tho_m]

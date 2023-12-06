@@ -235,8 +235,12 @@ class StilmanOnlyBehavior(BaselineBehavior):
         action_space_reduction: str = "only_r_acc_then_c_1_x",
     ):
         """
-        This is the entry-point to the Stilman-based high-level task planner. It's mission is to figure out a sequence
-        of obstacles to move to make the connected component of the goal accessible.
+        This is the entry-point to the Stilman-based high-level navigation planner planner. It computes the full-navigation plan
+        consisting of a sequence of transit and transfer paths ultimately ending at the goal pose.
+
+        It works by first computing a sub-plan for the first obstacle to move and component to fuse (if any),
+        and then it recursively computes a plan for the rest of the path. Recursive sub-plans are concatenated into the final
+        overall plan.
 
         It makes use of _rch and _manip_search in a greedy heuristic search with backtracking.
         It backtracks locally when the object selected by _rch cannot be moved to merge the selected c_1 in c_free.
