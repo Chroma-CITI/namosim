@@ -2157,6 +2157,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     transfer_start_configs_to_cost.keys(),
                     trans_mult,
                     rot_mult,
+                    ros_publisher=ros_publisher,
                     gscore=gscore,
                     close_set=close_set,
                     check_new_local_opening_before_global=check_new_local_opening_before_global,
