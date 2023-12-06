@@ -2,6 +2,7 @@ import math
 import typing as t
 
 import numpy as np
+from PIL import Image
 from shapely.geometry import Polygon
 
 from namosim.models import GridCellModel, GridCellSet, PoseModel
@@ -243,6 +244,14 @@ class BinaryOccupancyGrid:
                 for cell in self.cells_sets[uid]:
                     self.grid[cell[0]][cell[1]] += 1
 
+    def activate_cells(self, cells: t.Iterable[GridCellModel]):
+        for cell in cells:
+            self.grid[cell[0]][cell[1]] += 1
+
+    def deactivate_cells(self, cells: t.Iterable[GridCellModel]):
+        for cell in cells:
+            self.grid[cell[0]][cell[1]] -= 1
+
     def cell_to_obstacle_id(self, cell: GridCellModel):
         """
         If cell is contained only by one obstacle o_i, returns o_i.
@@ -304,3 +313,6 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
             return BinaryOccupancyGrid.update(
                 self, new_or_updated_polygons, removed_polygons
             )
+
+    def to_image(self) -> Image.Image:
+        return Image.fromarray(self.grid > 0)

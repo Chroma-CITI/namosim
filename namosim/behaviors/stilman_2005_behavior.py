@@ -450,25 +450,24 @@ class Stilman2005Behavior(BaselineBehavior):
         current_conflicts: t.List[Conflict],
         dynamic_plan: DynamicPlan,
         current_step: int,
-    ):
-        rr_conflicts = [
+    ) -> t.Set[Conflict]:
+        robot_robot_conflicts = [
             conflict
             for conflict in current_conflicts
             if isinstance(conflict, RobotRobotConflict)
         ]
-        return {
-            conflict
-            for past_step, past_conflicts_at_step in dynamic_plan.conflicts_history.items()
-            for conflict in rr_conflicts
-            if (
-                conflict in past_conflicts_at_step
-                and [
-                    replan_step
-                    for replan_step in dynamic_plan.steps_with_replan_call
-                    if replan_step >= past_step
-                ]
-            )
-        }
+
+        result: t.Set[Conflict] = set()
+
+        for past_step, past_conflicts_at_step in dynamic_plan.conflicts_history.items():
+            for conflict in robot_robot_conflicts:
+                if conflict in past_conflicts_at_step:
+                    # Check if a replan occurred after this conflict was first detected. If so, we have a potential deadlock.
+                    for replan_step in dynamic_plan.steps_with_replan_call:
+                        if replan_step >= past_step:
+                            result.add(conflict)
+                            break
+        return result
 
     def sense(
         self, ref_world: World, last_action_result: ar.ActionResult, step_count: int
@@ -571,6 +570,9 @@ class Stilman2005Behavior(BaselineBehavior):
                 robot_name=self._robot_name,
                 has_conflicts=False,
             )
+
+        static_obs_inf_grid.to_image().save("static.png")
+        inflated_grid_by_robot.to_image().save("orig.png")
 
         if plan.is_empty():
             self.simulation_log.append(
@@ -3720,15 +3722,22 @@ class Stilman2005Behavior(BaselineBehavior):
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
         w_t: World,
         main_robot_uid: int,
-        potential_deadlocks,
-        forbidden_evasion_cells,
+        potential_deadlocks: t.Set[Conflict],
+        forbidden_evasion_cells: t.Set[GridCellModel],
         ros_publisher: RosPublisher,
         use_combined_cost: bool = True,
-    ):
+    ) -> EvasionTransitPath | None:
         # Compute evasion for main robot
         main_robot = w_t.entities[main_robot_uid]
 
         inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
+
+        inflated_grid_by_robot_max.activate_cells(forbidden_evasion_cells)
+        inflated_grid_by_robot_max.to_image().save(
+            "grid_with_forbidden_evasion_cells.png"
+        )
+        inflated_grid_by_robot_max.deactivate_cells(forbidden_evasion_cells)
+
         (
             main_robot_evasion_cell_social_cost,
             main_robot_evasion_path,
@@ -3740,6 +3749,8 @@ class Stilman2005Behavior(BaselineBehavior):
             ros_publisher=ros_publisher,
             use_combined_cost=use_combined_cost,
         )
+
+        inflated_grid_by_robot_max.to_image().save("grid_after_deactivate.png")
         inflated_grid_by_robot_max.activate_entities({main_robot_uid})
 
         if not main_robot_evasion_path:
@@ -3807,7 +3818,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
                 inflated_grid_by_robot_max.activate_entities({robot_uid})
 
-            if main_robot_evasion_cell_social_cost < max_evasion_cell_social_cost:
+            if main_robot_evasion_cell_social_cost <= max_evasion_cell_social_cost:
                 main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
                 # main_robot_evasion_path.set_wait(100)
                 return main_robot_evasion_path
@@ -3816,14 +3827,17 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def compute_evasion_for_one(
         self,
-        w_t,
-        inflated_grid_by_robot_max,
-        robot,
-        forbidden_evasion_cells,
+        w_t: World,
+        inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
+        robot: Robot,
+        forbidden_evasion_cells: t.Set[GridCellModel],
         ros_publisher: RosPublisher,
-        use_combined_cost=False,
-        return_path=True,
+        use_combined_cost: bool = False,
+        return_path: bool = True,
     ):
+        if self._social_costmap is None:
+            raise Exception("No social costmap")
+
         robot_start_cell = utils.real_to_grid(
             robot.pose[0],
             robot.pose[1],
