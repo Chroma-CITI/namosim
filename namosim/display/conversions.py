@@ -370,9 +370,10 @@ def path_to_polygon(
 
             a_to_b = b - a
             b_to_c = c - b
-            o1 = get_z_ortho(a_to_b) * line_width / 2.0
-            o2 = get_z_ortho(b_to_c) * line_width / 2.0
+            o1 = get_z_ortho(a_to_b)
+            o2 = get_z_ortho(b_to_c)
             o = (o1 + o2) / 2
+            o *= line_width / 2.0
 
             # Don't forget to add the first point!
             if i == 0:
