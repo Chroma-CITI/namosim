@@ -1,13 +1,11 @@
 import copy
 import os
 import typing as t
-import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
 import numpy as np
 import shapely.affinity as affinity
 from bidict import bidict
-from lxml import etree
 from shapely import union_all
 from shapely.geometry import LineString, Polygon, box
 from typing_extensions import Self
@@ -61,24 +59,26 @@ class WorldV2:
     @classmethod
     def load_from_svg(cls, world_svg_path: str) -> Self:
         # Import entire world from svg file
-        tree = ET.parse(world_svg_path)
-        svg_doc = tree.getroot()
-        ns = {"svg": "http://www.w3.org/2000/svg"}
+        svg_doc = minidom.parse(world_svg_path)
+        # svg_doc = tree.getroot()
+        # ns = {"svg": "http://www.w3.org/2000/svg"}
 
-        namo_config_el = svg_doc.findall(".//svg:namo_config", ns)[0]
-        ET.register_namespace("", "http://www.w3.org/2000/svg")
-        namo_config_xml = (
-            ET.tostring(namo_config_el, xml_declaration=False)
-            .decode("utf-8")
-            .replace(ns["svg"], "")
-            .replace('xmlns=""', "")
+        # namo_config_el = svg_doc.findall(".//svg:namo_config", ns)[0]
+        # ET.register_namespace("", "http://www.w3.org/2000/svg")
+        # namo_config_xml = (
+        #     ET.tostring(namo_config_el, xml_declaration=False)
+        #     .decode("utf-8")
+        #     .replace(ns["svg"], "")
+        #     .replace('xmlns=""', "")
+        # )
+        config = NamosimConfigModel.from_xml(
+            svg_doc.getElementsByTagName("namo_config")[0].toxml()
         )
-        config = NamosimConfigModel.from_xml(namo_config_xml)
         svg_filename = os.path.basename(world_svg_path)
 
         svg_paths = {}
-        for el in svg_doc.findall(".//svg:path", ns):
-            svg_paths[el.attrib["id"]] = el.attrib["d"]
+        for el in svg_doc.getElementsByTagNameNS("*", "path"):
+            svg_paths[el.getAttribute("id")] = el.getAttribute("d")
 
         shapely_geoms: t.Dict[str, t.Union[Polygon, LineString]] = dict()
 
@@ -131,12 +131,14 @@ class WorldV2:
         )
 
         # Get all things
-        for el in svg_doc.findall():
-            id = el.attrib["id"]
+        for el in svg_doc.getElementsByTagName("*"):
+            id = el.getAttribute("id")
+            type_ = el.getAttribute("type")
+
             if not id:
                 continue
 
-            if el.tag in ["svg:path", "path"] and el.getAttribute("type") == "movable":
+            if el.tagName in ["svg:path", "path"] and type_ == "movable":
                 polygon = shapely_geoms[id]
                 style = Style.from_string(el.getAttribute("style"))
                 pose = (
@@ -154,7 +156,7 @@ class WorldV2:
                     full_geometry_acquired=True,
                 )
                 world.add_entity(movable_box)
-            if el.tagName in ["svg:path", "path"] and el.getAttribute("type") == "wall":
+            if el.tagName in ["svg:path", "path"] and type_ == "wall":
                 polygon = shapely_geoms[id]
                 style = Style.from_string(el.getAttribute("style"))
                 pose = (
@@ -172,44 +174,48 @@ class WorldV2:
                     full_geometry_acquired=True,
                 )
                 world.add_entity(wall)
-            elif el.tagName in ["svg:g", "g"] and el.getAttribute("type") == "robot":
-                robot_polygon: Polygon | None = None
-                direction_polygon: Polygon | None = None
-                robot_style: str = ""
-                robot_pose = [
-                    0.0,
-                    0.0,
-                    0.0,
-                ]
-                for sub_el in el.getElementsByTagName("svg:path"):
-                    sub_id = sub_el.getAttribute("id")
-                    if sub_el.getAttribute("type") == "robot_shape":
-                        robot_style = sub_el.getAttribute("style")
-                        robot_polygon = shapely_geoms[sub_id]
-                    elif sub_el.getAttribute("type") == "robot_direction":
-                        direction_polygon = shapely_geoms[sub_id]
-                        theta = get_orientation(direction_polygon)
-                        robot_pose[2] = theta
-
-                if not robot_polygon:
-                    raise Exception("No robot shape polygon was found")
-
-                robot_pose[0] = t.cast(float, list(robot_polygon.centroid.coords)[0][0])
-                robot_pose[1] = t.cast(float, list(robot_polygon.centroid.coords)[0][1])
-                new_robot = robot.Robot(
-                    name=id,
-                    full_geometry_acquired=True,
-                    polygon=robot_polygon,
-                    pose=tuple(robot_pose),  # type: ignore
-                    sensors=[OmniscientSensor()],
-                    push_only_list=[],
-                    force_pushes_only=True,
-                    movable_whitelist=["box"],
-                    style=Style.from_string(robot_style),
-                )
-                world.add_entity(new_robot)
 
         for agent in config.agents:
+            el = svg_doc.getElementById(agent.agent_id)
+            if not el:
+                raise Exception(f"Robot {agent.agent_id} not found in svg")
+
+            robot_polygon: Polygon | None = None
+            direction_polygon: Polygon | None = None
+            robot_style: str = ""
+            robot_pose = [
+                0.0,
+                0.0,
+                0.0,
+            ]
+            for sub_el in el.getElementsByTagNameNS("*", "path"):
+                sub_id = sub_el.getAttribute("id")
+                if sub_el.getAttribute("type") == "robot_shape":
+                    robot_style = sub_el.getAttribute("style")
+                    robot_polygon = shapely_geoms[sub_id]
+                elif sub_el.getAttribute("type") == "robot_direction":
+                    direction_polygon = shapely_geoms[sub_id]
+                    theta = get_orientation(direction_polygon)
+                    robot_pose[2] = theta
+
+            if not robot_polygon:
+                raise Exception("No robot shape polygon was found")
+
+            robot_pose[0] = t.cast(float, list(robot_polygon.centroid.coords)[0][0])
+            robot_pose[1] = t.cast(float, list(robot_polygon.centroid.coords)[0][1])
+            new_robot = robot.Robot(
+                name=agent.agent_id,
+                full_geometry_acquired=True,
+                polygon=robot_polygon,
+                pose=tuple(robot_pose),  # type: ignore
+                sensors=[OmniscientSensor()],
+                push_only_list=[],
+                force_pushes_only=True,
+                movable_whitelist=["box"],
+                style=Style.from_string(robot_style),
+            )
+            world.add_entity(new_robot)
+
             for goal in agent.goals:
                 goal_el = svg_doc.getElementById(goal.goal_id)
                 if not goal_el:
@@ -222,7 +228,7 @@ class WorldV2:
                     0.0,
                     0.0,
                 ]
-                for sub_el in goal_el.getElementsByTagName("*"):
+                for sub_el in goal_el.getElementsByTagNameNS("*", "path"):
                     sub_id = sub_el.getAttribute("id")
                     if sub_el.getAttribute("type") == "goal_shape":
                         goal_polygon = shapely_geoms[sub_id]
