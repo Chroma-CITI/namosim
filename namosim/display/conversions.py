@@ -58,7 +58,7 @@ def plan_to_markerarray(
             p_id,
             frame_id,
             current_color,
-            cfg.path_line_width,
+            robot.min_inflation_radius / 4,
             cfg.path_line_z_index,
             stamp=stamp,
         )
@@ -284,18 +284,7 @@ def real_path_to_triangle_list(
     :return: _description_
     :rtype: _type_
     """
-    points = []
-
-    # Remove duplicate points in the path. Why are there duplicates??
-    visited = set()
-    for point in real_path:
-        (x, y) = point[0], point[1]
-        if (x, y) in visited:
-            continue
-        else:
-            visited.add((x, y))
-        points.append(np.array((x, y, z_index)))
-
+    points = [np.array(x) for x in real_path]
     polygon = path_to_polygon(points=points, line_width=line_width)
     return polygon_to_triangle_list(
         polygon=polygon,
@@ -342,26 +331,64 @@ def path_to_polygon(
     :return: a polygonal line strip
     :rtype: Polygon
     """
+
+    # remove z-coord, if any
+    points = [x[:2] for x in points]
+
+    # remove duplicate points
+    seen = set()
+    dedup_points = []
+    for p in points:
+        hp = p[0], p[1]
+        if hp not in seen:
+            seen.add(hp)
+            dedup_points.append(p)
+    points = dedup_points
+
     if len(points) < 2:
         raise Exception("Less than two points")
 
+    def get_z_ortho(x: npt.NDArray[t.Any]) -> npt.NDArray[t.Any]:
+        """Return a unit-length vector orthogonal to both x and the z-axis"""
+        z = np.array((0.0, 0.0, 1.0))
+        ortho = np.cross((x[0], x[1], 0.0), z)
+        return (ortho / np.linalg.norm(ortho))[:2]
+
     forward_coords = []
     backward_coords = []
-    for i in range(len(points) - 1):
-        a = points[i]
-        b = points[i + 1]
-        a_to_b = b - a
-        z = np.array((0.0, 0.0, 1.0))
-        ortho = np.cross(a_to_b, z)
-        ortho = (ortho / np.linalg.norm(ortho)) * line_width / 2.0
-        forward_coords.append(a[:2] + ortho[:2])
-        backward_coords.append(a[:2] - ortho[:2])
 
-        # Don't forget to add the last point!
-        if i == len(points) - 2:
-            forward_coords.append(b[:2] + ortho[:2])
-            backward_coords.append(b[:2] - ortho[:2])
+    if len(points) == 2:
+        a, b = points
+        o = get_z_ortho(b - a) * line_width / 2.0
+        forward_coords.extend([a + o, b + o])
+        backward_coords.extend([a - o, b - o])
+    else:
+        for i in range(len(points) - 2):
+            a = points[i]
+            b = points[i + 1]
+            c = points[i + 2]
+
+            a_to_b = b - a
+            b_to_c = c - b
+            o1 = get_z_ortho(a_to_b)
+            o2 = get_z_ortho(b_to_c)
+            o = (o1 + o2) / 2
+            o *= line_width / 2.0
+
+            # Don't forget to add the first point!
+            if i == 0:
+                forward_coords.append(a + o)
+                backward_coords.append(a - o)
+
+            forward_coords.append(b + o)
+            backward_coords.append(b - o)
+
+            # Don't forget to add the last point!
+            if i == len(points) - 3:
+                forward_coords.append(c + o)
+                backward_coords.append(c - o)
 
     backward_coords.reverse()
     backward_coords.append(forward_coords[0])
+
     return Polygon(forward_coords + backward_coords)
