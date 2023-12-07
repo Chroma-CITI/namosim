@@ -450,25 +450,24 @@ class Stilman2005Behavior(BaselineBehavior):
         current_conflicts: t.List[Conflict],
         dynamic_plan: DynamicPlan,
         current_step: int,
-    ):
-        rr_conflicts = [
+    ) -> t.Set[Conflict]:
+        robot_robot_conflicts = [
             conflict
             for conflict in current_conflicts
             if isinstance(conflict, RobotRobotConflict)
         ]
-        return {
-            conflict
-            for past_step, past_conflicts_at_step in dynamic_plan.conflicts_history.items()
-            for conflict in rr_conflicts
-            if (
-                conflict in past_conflicts_at_step
-                and [
-                    replan_step
-                    for replan_step in dynamic_plan.steps_with_replan_call
-                    if replan_step >= past_step
-                ]
-            )
-        }
+
+        result: t.Set[Conflict] = set()
+
+        for past_step, past_conflicts_at_step in dynamic_plan.conflicts_history.items():
+            for conflict in robot_robot_conflicts:
+                if conflict in past_conflicts_at_step:
+                    # Check if a replan occurred after this conflict was first detected. If so, we have a potential deadlock.
+                    for replan_step in dynamic_plan.steps_with_replan_call:
+                        if replan_step >= past_step:
+                            result.add(conflict)
+                            break
+        return result
 
     def sense(
         self, ref_world: World, last_action_result: ar.ActionResult, step_count: int
@@ -3720,13 +3719,13 @@ class Stilman2005Behavior(BaselineBehavior):
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
         w_t: World,
         main_robot_uid: int,
-        potential_deadlocks,
-        forbidden_evasion_cells,
+        potential_deadlocks: t.Set[Conflict],
+        forbidden_evasion_cells: t.Set[GridCellModel],
         ros_publisher: RosPublisher,
         use_combined_cost: bool = True,
-    ):
+    ) -> EvasionTransitPath | None:
         # Compute evasion for main robot
-        main_robot = w_t.entities[main_robot_uid]
+        main_robot = t.cast(Robot, w_t.entities[main_robot_uid])
 
         inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
         (
@@ -3740,6 +3739,7 @@ class Stilman2005Behavior(BaselineBehavior):
             ros_publisher=ros_publisher,
             use_combined_cost=use_combined_cost,
         )
+
         inflated_grid_by_robot_max.activate_entities({main_robot_uid})
 
         if not main_robot_evasion_path:
@@ -3761,7 +3761,7 @@ class Stilman2005Behavior(BaselineBehavior):
             for robot_uid in other_robots_uids:
                 # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
                 #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
-                other_robot = w_t.entities[robot_uid]
+                other_robot = t.cast(Robot, w_t.entities[robot_uid])
 
                 inflated_grid_by_robot_max.deactivate_entities({robot_uid})
                 inflated_grid_by_robot_max.activate_entities({main_robot_uid})
@@ -3769,11 +3769,12 @@ class Stilman2005Behavior(BaselineBehavior):
                     other_robot_evasion_cell_social_cost,
                     other_robot_evasion_path,
                 ) = self.compute_evasion_for_one(
-                    w_t,
-                    inflated_grid_by_robot_max,
-                    other_robot,
-                    set(),
-                    use_combined_cost,
+                    w_t=w_t,
+                    inflated_grid_by_robot_max=inflated_grid_by_robot_max,
+                    robot=other_robot,
+                    forbidden_evasion_cells=set(),
+                    use_combined_cost=use_combined_cost,
+                    ros_publisher=ros_publisher,
                 )
                 inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
 
@@ -3816,14 +3817,19 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def compute_evasion_for_one(
         self,
-        w_t,
-        inflated_grid_by_robot_max,
-        robot,
-        forbidden_evasion_cells,
+        *,
+        w_t: World,
+        inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
+        robot: Robot,
+        forbidden_evasion_cells: t.Set[GridCellModel],
         ros_publisher: RosPublisher,
-        use_combined_cost=False,
-        return_path=True,
+        use_combined_cost: bool = False,
+        return_path: bool = True,
     ):
+        """Computes an evasion path for a given robot"""
+        if self._social_costmap is None:
+            raise Exception("No social costmap")
+
         robot_start_cell = utils.real_to_grid(
             robot.pose[0],
             robot.pose[1],
@@ -3894,88 +3900,85 @@ class Stilman2005Behavior(BaselineBehavior):
             # If the robot was in an obstacle, no evasion is possible
             if return_path:
                 return robot_start_social_cost, None
-            else:
-                return robot_start_social_cost
+            return robot_start_social_cost
+
+        accessible_cells = []
+        social_cost = []
+        distance_cost = []
+        for cell, value in gscore.items():
+            if cell not in forbidden_evasion_cells:
+                accessible_cells.append(cell)
+                social_cost.append(self._social_costmap[cell[0]][cell[1]])
+                distance_cost.append(value)
+        social_cost = np.array(social_cost)
+        distance_cost = np.array(distance_cost)
+
+        if not use_combined_cost:
+            min_social_cost_index = np.argmin(social_cost)
+            evasion_cell = accessible_cells[min_social_cost_index]
         else:
-            accessible_cells = []
-            social_cost = []
-            distance_cost = []
-            for cell, value in gscore.items():
-                if cell not in forbidden_evasion_cells:
-                    accessible_cells.append(cell)
-                    social_cost.append(self._social_costmap[cell[0]][cell[1]])
-                    distance_cost.append(value)
-            social_cost = np.array(social_cost)
-            distance_cost = np.array(distance_cost)
+            normalized_social_cost = (social_cost - np.min(social_cost)) / np.ptp(
+                social_cost
+            )
+            normalized_distance_cost = (distance_cost - np.min(distance_cost)) / np.ptp(
+                distance_cost
+            )
+            combined_cost = (
+                self.w_social * normalized_social_cost
+                + self.w_obs * normalized_distance_cost
+            ) / (self.w_social + self.w_obs)
+            min_combined_cost_index = np.argmin(combined_cost)
+            evasion_cell = accessible_cells[min_combined_cost_index]
 
-            if not use_combined_cost:
-                min_social_cost_index = np.argmin(social_cost)
-                evasion_cell = accessible_cells[min_social_cost_index]
-            else:
-                normalized_social_cost = (social_cost - np.min(social_cost)) / np.ptp(
-                    social_cost
-                )
-                normalized_distance_cost = (
-                    distance_cost - np.min(distance_cost)
-                ) / np.ptp(distance_cost)
-                combined_cost = (
-                    self.w_social * normalized_social_cost
-                    + self.w_obs * normalized_distance_cost
-                ) / (self.w_social + self.w_obs)
-                min_combined_cost_index = np.argmin(combined_cost)
-                evasion_cell = accessible_cells[min_combined_cost_index]
-
-                if self.activate_grids_logging:
-                    sorted_cell_to_combined_cost = OrderedDict(
-                        sorted(
-                            zip(accessible_cells, combined_cost),
-                            key=lambda t: t[1],
-                            reverse=True,
-                        )
-                    )
-                    self.log_grids(
-                        inflated_grid_by_robot_max,
-                        accessible_cells,
-                        normalized_social_cost,
-                        normalized_distance_cost,
-                        sorted_cell_to_combined_cost,
-                    )
-
-                # ros_publisher.publish_combined_costmap(
-                #     sorted_cell_to_combined_cost,
-                #     inflated_grid_by_robot_max,
-                #     ns=self._robot_name,
-                # )
-                # ros_publisher.cleanup_grid_map(ns=self._robot_name)
-
-            if not return_path:
-                return self._social_costmap[evasion_cell[0]][evasion_cell[1]]
-            else:
-                raw_cell_path = graph_search.reconstruct_path(came_from, evasion_cell)
-                real_path = utils.grid_path_to_real_path(
-                    raw_cell_path,
-                    robot_pose,
-                    None,
-                    inflated_grid_by_robot_max.res,
-                    inflated_grid_by_robot_max.grid_pose,
-                )
-
-                evasion_transit_path = (
-                    None
-                    if len(real_path) < 2
-                    else EvasionTransitPath.from_poses(
-                        real_path, robot_polygon, robot_pose
+            if self.activate_grids_logging:
+                sorted_cell_to_combined_cost = OrderedDict(
+                    sorted(
+                        zip(accessible_cells, combined_cost),
+                        key=lambda t: t[1],
+                        reverse=True,
                     )
                 )
+                self.log_grids(
+                    inflated_grid_by_robot_max,
+                    accessible_cells,
+                    normalized_social_cost,
+                    normalized_distance_cost,
+                    sorted_cell_to_combined_cost,
+                )
 
-                if transit_configuration_after_release:
-                    evasion_transit_path.set_transit_configuration_after_release(
-                        transit_configuration_after_release
-                    )
+            # ros_publisher.publish_combined_costmap(
+            #     sorted_cell_to_combined_cost,
+            #     inflated_grid_by_robot_max,
+            #     ns=self._robot_name,
+            # )
+            # ros_publisher.cleanup_grid_map(ns=self._robot_name)
 
-                return self._social_costmap[evasion_cell[0]][
-                    evasion_cell[1]
-                ], evasion_transit_path
+        if not return_path:
+            return self._social_costmap[evasion_cell[0]][evasion_cell[1]]
+
+        raw_cell_path = graph_search.reconstruct_path(came_from, evasion_cell)
+        real_path = utils.grid_path_to_real_path(
+            raw_cell_path,
+            robot_pose,
+            None,
+            inflated_grid_by_robot_max.res,
+            inflated_grid_by_robot_max.grid_pose,
+        )
+
+        evasion_transit_path = (
+            None
+            if len(real_path) < 2
+            else EvasionTransitPath.from_poses(real_path, robot_polygon, robot_pose)
+        )
+
+        if transit_configuration_after_release:
+            evasion_transit_path.set_transit_configuration_after_release(
+                transit_configuration_after_release
+            )
+
+        return self._social_costmap[evasion_cell[0]][
+            evasion_cell[1]
+        ], evasion_transit_path
 
     def h(self, r_i, r_j):
         translation_cost = self.translation_factor * utils.euclidean_distance(r_j, r_i)
