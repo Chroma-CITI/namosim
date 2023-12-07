@@ -571,9 +571,6 @@ class Stilman2005Behavior(BaselineBehavior):
                 has_conflicts=False,
             )
 
-        static_obs_inf_grid.to_image().save("static.png")
-        inflated_grid_by_robot.to_image().save("orig.png")
-
         if plan.is_empty():
             self.simulation_log.append(
                 utils.BasicLog(
@@ -3728,16 +3725,9 @@ class Stilman2005Behavior(BaselineBehavior):
         use_combined_cost: bool = True,
     ) -> EvasionTransitPath | None:
         # Compute evasion for main robot
-        main_robot = w_t.entities[main_robot_uid]
+        main_robot = t.cast(Robot, w_t.entities[main_robot_uid])
 
         inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
-
-        inflated_grid_by_robot_max.activate_cells(forbidden_evasion_cells)
-        inflated_grid_by_robot_max.to_image().save(
-            "grid_with_forbidden_evasion_cells.png"
-        )
-        inflated_grid_by_robot_max.deactivate_cells(forbidden_evasion_cells)
-
         (
             main_robot_evasion_cell_social_cost,
             main_robot_evasion_path,
@@ -3750,7 +3740,6 @@ class Stilman2005Behavior(BaselineBehavior):
             use_combined_cost=use_combined_cost,
         )
 
-        inflated_grid_by_robot_max.to_image().save("grid_after_deactivate.png")
         inflated_grid_by_robot_max.activate_entities({main_robot_uid})
 
         if not main_robot_evasion_path:
