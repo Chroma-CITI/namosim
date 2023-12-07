@@ -5,7 +5,7 @@ from typing_extensions import Self
 
 import namosim.display.ros2_publisher as ros2
 import namosim.utils.collision as collision
-from namosim.data_models import PoseModel
+from namosim.data_models_v2 import PoseModel
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.conflict import (
     Conflict,
@@ -20,7 +20,7 @@ from namosim.navigation.navigation_path import (
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
-from namosim.world.world import World
+from namosim.world.world_v2 import WorldV2
 
 
 class Plan:
@@ -65,7 +65,7 @@ class Plan:
 
     def get_conflicts(
         self,
-        world: World,
+        world: WorldV2,
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         rp: "ros2.RosPublisher",
         check_horizon: t.Optional[int] = None,

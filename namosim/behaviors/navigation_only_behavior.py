@@ -2,19 +2,19 @@ import typing as t
 
 import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
-from namosim.data_models import PoseModel
+from namosim.data_models_v2 import PoseModel
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.obstacle import Obstacle
-from namosim.world.world import World
+from namosim.world.world_v2 import WorldV2
 
 
 class NavigationOnlyBehavior(BaselineBehavior):
     def __init__(
         self,
-        initial_world: World,
+        initial_world: WorldV2,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
         logs_dir: str,

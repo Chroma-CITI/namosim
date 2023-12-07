@@ -7,7 +7,7 @@ from xml.dom import minidom
 
 from shapely import Polygon
 
-from namosim.data_models import PoseModel
+from namosim.data_models_v2 import PoseModel
 from namosim.utils import collision, conversion, utils
 from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
