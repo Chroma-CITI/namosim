@@ -3772,7 +3772,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     w_t=w_t,
                     inflated_grid_by_robot_max=inflated_grid_by_robot_max,
                     robot=other_robot,
-                    forbidden_evasion_cells=forbidden_evasion_cells,
+                    forbidden_evasion_cells=set(),
                     use_combined_cost=use_combined_cost,
                     ros_publisher=ros_publisher,
                 )
