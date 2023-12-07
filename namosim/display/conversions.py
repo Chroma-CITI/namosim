@@ -361,7 +361,7 @@ def path_to_polygon(
         a, b = points
         o = get_z_ortho(b - a) * line_width / 2.0
         forward_coords.extend([a + o, b + o])
-        backward_coords.extend([a + o, b + o])
+        backward_coords.extend([a - o, b - o])
     else:
         for i in range(len(points) - 2):
             a = points[i]
