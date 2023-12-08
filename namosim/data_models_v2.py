@@ -40,12 +40,12 @@ class StilmanBehaviorParametersModelV2(BaseXmlModel, tag="parameters"):
     deactivate_grids_logging: bool = attr(default=True)
     forbid_rotations: bool = attr(default=False)
     heuristic_cost_for_traversing_obstacle_in_choice_heur: float = attr(default=2.0)
-    manipulation_search_procedure: t.Literal["BFS", "DFS"] = attr(default="BFS")
+    manipulation_search_procedure: t.Literal["BFS", "DFS"] = attr(default="DFS")
     neighborhood_for_obstacle_choice_heur: t.Literal["TAXI"] = attr(default="TAXI")
     robot_rotation_unit_angle: float = attr(default=60)
     robot_translation_unit_length: float = attr()
     solution_interval_bound_percentage: float = attr(default=0.1)
-    use_social_cost: bool = attr(default=False)
+    use_social_cost: bool = attr(default=True)
 
 
 class StilmanBehaviorConfigModelV2(BaseBehaviorConfigModel):

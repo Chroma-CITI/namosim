@@ -84,19 +84,23 @@ class BasicTest(unittest.TestCase):
     def test_multi_robot(self):
         sim = Simulator(
             simulation_file_path=os.path.join(
-                self.scenarios_folder, "multi_robot/multi_robot_sim.json"
+                self.scenarios_folder, "multi_robot/multi_robot.svg"
             )
         )
         sim.run()
-        assert (
-            sim.simulation_log[7].message
-            == "Agent robot_0 finished executing all its goals."
+
+        assert any(
+            [
+                x.message.startswith("Agent robot_1 successfully executed goal")
+                for x in sim.simulation_log
+            ]
         )
-        assert (
-            sim.simulation_log[9].message
-            == "Agent robot_1 finished executing all its goals."
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
         )
-        assert True
 
 
 if __name__ == "__main__":

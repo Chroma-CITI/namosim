@@ -67,7 +67,7 @@ pyright \
   namosim/display/colors.py \
   namosim/display/ros2_publisher.py \
   namosim/exceptions.py \
-  namosim/data_models.py \
+  namosim/data_models_v2.py \
   namosim/data_models_v2.py \
   namosim/navigation/conflict.py \
   namosim/simulator.py \
@@ -78,7 +78,7 @@ pyright \
   namosim/world/models.py \
   namosim/world/obstacle.py \
   namosim/world/robot.py \
-  namosim/world/world.py \
+  namosim/world/world_v2.py \
 """
 all_checks = ["lint_check", "type_check", "test"]
 
