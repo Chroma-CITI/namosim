@@ -1,0 +1,90 @@
+{
+  "files": {
+    "world_file": "./3_robots_world.json"
+  },
+  "provide_walls": true,
+  "display_sim_knowledge_only_once": false,
+  "agents_behaviors": [
+    {
+      "agent_name": "robot_0",
+      "behavior": {
+        "navigation_goals": [
+          {
+            "name": "robot_0_goal_0"
+          }
+        ],
+        "name": "stilman_2005_behavior",
+        "parameters": {
+          "collision_check_angular_res": 5.0,
+          "robot_translation_unit_length": 0.1,
+          "manipulation_search_procedure": "DFS",
+          "solution_interval_bound_percentage": 0.01,
+          "deactivate_grids_logging": true,
+          "check_new_local_opening_before_global": true,
+          "basic_translation_force": 2.0,
+          "neighborhood_for_obstacle_choice_heur": "TAXI",
+          "heuristic_cost_for_traversing_obstacle_in_choice_heur": 2.0,
+          "use_social_cost": true,
+          "forbid_rotations": false,
+          "basic_rotation_moment": 2.0,
+          "alpha_for_obstacle_choice_heur": 0.5,
+          "robot_rotation_unit_angle": 30.0
+        }
+      }
+    },
+    {
+      "agent_name": "robot_1",
+      "behavior": {
+        "navigation_goals": [
+          {
+            "name": "robot_1_goal_0"
+          }
+        ],
+        "name": "stilman_2005_behavior",
+        "parameters": {
+          "collision_check_angular_res": 5.0,
+          "robot_translation_unit_length": 0.1,
+          "manipulation_search_procedure": "DFS",
+          "solution_interval_bound_percentage": 0.01,
+          "deactivate_grids_logging": true,
+          "check_new_local_opening_before_global": true,
+          "basic_translation_force": 2.0,
+          "neighborhood_for_obstacle_choice_heur": "TAXI",
+          "heuristic_cost_for_traversing_obstacle_in_choice_heur": 2.0,
+          "use_social_cost": true,
+          "forbid_rotations": false,
+          "basic_rotation_moment": 2.0,
+          "alpha_for_obstacle_choice_heur": 0.5,
+          "robot_rotation_unit_angle": 30.0
+        }
+      }
+    },
+    {
+      "agent_name": "robot_2",
+      "behavior": {
+        "navigation_goals": [
+          {
+            "name": "robot_2_goal_0"
+          }
+        ],
+        "name": "stilman_2005_behavior",
+        "parameters": {
+          "collision_check_angular_res": 5.0,
+          "robot_translation_unit_length": 0.1,
+          "manipulation_search_procedure": "DFS",
+          "solution_interval_bound_percentage": 0.01,
+          "deactivate_grids_logging": true,
+          "check_new_local_opening_before_global": true,
+          "basic_translation_force": 2.0,
+          "neighborhood_for_obstacle_choice_heur": "TAXI",
+          "heuristic_cost_for_traversing_obstacle_in_choice_heur": 2.0,
+          "use_social_cost": true,
+          "forbid_rotations": false,
+          "basic_rotation_moment": 2.0,
+          "alpha_for_obstacle_choice_heur": 0.5,
+          "robot_rotation_unit_angle": 30.0
+        }
+      }
+    }
+  ]
+}

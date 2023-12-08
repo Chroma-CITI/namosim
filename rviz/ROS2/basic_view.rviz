@@ -9,12 +9,19 @@ Panels:
         - /namosim1
         - /namosim1/Simulation1
         - /namosim1/robot_01
-        - /namosim1/robot_01/test1
+        - /namosim1/robot_01/goal1
+        - /namosim1/robot_01/goal1/Topic1
+        - /namosim1/robot_01/goal1/Namespaces1
+        - /namosim1/robot_01/robot_sim1
+        - /namosim1/robot_01/sim1
+        - /namosim1/robot_01/sim1/Namespaces1
+        - /namosim1/robot_01/stilman_rch1
+        - /namosim1/robot_01/test1/combined_gridmap1
         - /namosim1/robot_01/test1/combined_gridmap1/Topic1
         - /namosim1/robot_01/costmap1
         - /namosim1/robot_01/costmap1/Status1
       Splitter Ratio: 0.5
-    Tree Height: 687
+    Tree Height: 1070
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -85,7 +92,8 @@ Visualization Manager:
               Enabled: true
               Name: Reference world
               Namespaces:
-                {}
+                /robot/polygon: true
+                obstacles/polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -167,7 +175,10 @@ Visualization Manager:
               Enabled: true
               Name: conflicts_check
               Namespaces:
-                {}
+                /transfer_horizon_csv_polygons: true
+                /transit_conflicting_cells: true
+                /transit_conflicting_entities_cells: true
+                /transit_horizon_cells: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -179,7 +190,7 @@ Visualization Manager:
               Enabled: true
               Name: goal
               Namespaces:
-                {}
+                /polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -191,7 +202,8 @@ Visualization Manager:
               Enabled: true
               Name: knowledge
               Namespaces:
-                {}
+                /robot/polygon: true
+                obstacles/polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -320,7 +332,8 @@ Visualization Manager:
               Enabled: true
               Name: plan
               Namespaces:
-                {}
+                /end_obstacles: true
+                /plan: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -359,13 +372,26 @@ Visualization Manager:
               Enabled: true
               Name: sim
               Namespaces:
-                {}
+                /blocking_areas/init: true
+                /blocking_areas/target: true
+                /diameter_inflated_polygon/init: true
+                /diameter_inflated_polygon/target: true
+                /manip_search/close_set: true
+                /manip_search/current/obstacle/polygon: true
+                /manip_search/current/obstacle/pose: true
+                /manip_search/current/robot/polygon: true
+                /manip_search/current/robot/pose: true
+                /manip_search_neighbors: true
+                /rch_came_from: true
+                /rch_close_set: true
+                /rch_current_cell: true
+                /rch_current_cell_neighbors: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
                 History Policy: Keep Last
                 Reliability Policy: Reliable
-                Value: /robot_1/sim
+                Value: /robot_0/sim
               Value: true
             - Class: rviz_common/Group
               Displays:
@@ -489,7 +515,7 @@ Visualization Manager:
                   Color: 200; 200; 200
                   Color Layer: elevation
                   Color Transformer: GridMapLayer
-                  Enabled: true
+                  Enabled: false
                   Height Layer: elevation
                   Height Transformer: GridMapLayer
                   History Length: 1
@@ -508,8 +534,8 @@ Visualization Manager:
                     Reliability Policy: Reliable
                     Value: /robot_0/test/connected_components
                   Use Rainbow: true
-                  Value: true
-              Enabled: true
+                  Value: false
+              Enabled: false
               Name: test
             - Alpha: 0.699999988079071
               Binary representation: false
@@ -583,34 +609,29 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/Orbit
-      Distance: 9.118623733520508
+      Angle: 0
+      Class: rviz_default_plugins/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-      Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
-      Focal Shape Fixed Size: true
-      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4797963798046112
+      Scale: 259.7608642578125
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz_default_plugins)
-      Yaw: 5.987405300140381
+      Value: TopDownOrtho (rviz_default_plugins)
+      X: 0
+      Y: 0
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 987
+  Height: 1376
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000002cf0000033ffc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003b0000033f000000c700fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000033ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003b0000033f000000a000fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e100000197000000030000077400000040fc0100000002fb0000000800540069006d00650100000000000007740000025300fffffffb0000000800540069006d006501000000000000045000000000000000000000038a0000033f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000022e000004c0fc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d000004c0000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f000004c0fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d000004c0000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000009ba00000040fc0100000002fb0000000800540069006d00650100000000000009ba000002fb00fffffffb0000000800540069006d0065010000000000000450000000000000000000000671000004c000000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -619,6 +640,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1908
-  X: 0
-  Y: 0
+  Width: 2490
+  X: 70
+  Y: 27

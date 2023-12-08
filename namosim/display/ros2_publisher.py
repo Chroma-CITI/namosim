@@ -3,8 +3,10 @@ import math
 import subprocess
 import time
 import typing as t
+from collections import OrderedDict
 
 import numpy as np
+import numpy.typing as npt
 import rclpy
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import (
@@ -25,16 +27,14 @@ from rclpy.qos import QoSProfile
 from rclpy.qos_event import PublisherEventCallbacks
 from rclpy.qos_overriding_options import QoSOverridingOptions
 from rclpy.utilities import ok  # noqa: F401 forwarding to this module
-from shapely import affinity
-from std_msgs.msg import (
-    ColorRGBA,
-    Header,
-)
+from shapely import Polygon, affinity
+from std_msgs.msg import ColorRGBA, Header
 from tf2_ros import StaticTransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
 
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
+import namosim.navigation.navigation_plan as navigation_plan
 from namosim.display.conversions import (
     costmap_to_grid_map,
     geom_quat_from_yaw,
@@ -44,18 +44,19 @@ from namosim.display.conversions import (
     polygon_to_line_strip,
     polygon_to_triangle_list,
     poses_to_poses_array,
-    real_path_to_linestrip,
+    real_path_to_triangle_list,
     string_to_text,
 )
-from namosim.models import PoseModel, SimulationModel
+from namosim.models import GridCellModel, PoseModel, SimulationModel
 from namosim.utils import utils
-from namosim.worldreps.entity_based.obstacle import Obstacle
-from namosim.worldreps.entity_based.robot import Robot
-from namosim.worldreps.entity_based.world import World
-from namosim.worldreps.occupation_based.binary_occupancy_grid import (
+from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
+from namosim.world.entity import Entity
+from namosim.world.obstacle import Obstacle
+from namosim.world.robot import Robot
+from namosim.world.world import World
 
 
 class NamespaceCache:
@@ -140,7 +141,7 @@ class RosObserver:
         return self._rate
 
     @rate.setter
-    def rate(self, r):
+    def rate(self, r: float):
         self._rate = r
         self._duration = 1.0 / self.rate
 
@@ -155,10 +156,22 @@ class RosObserver:
                 self._publisher.publish(self._convert(**kwargs))
                 self._last_time = time.time()
 
-    def _convert(self, **kwargs: t.Any):
+    def _convert(self, **kwargs: t.Any) -> t.Any:
+        """
+        Receives arguments related to the world and simulation and converts them in to RViz messages
+        for visualization.
+        """
         raise NotImplementedError
 
-    def reset(self, reset_msg=None):
+    def reset(
+        self,
+        reset_msg: Marker
+        | MarkerArray
+        | PoseArray
+        | GridMap
+        | OccupancyGrid
+        | None = None,
+    ):
         if not cfg.deactivate_gui and reset_msg is not None:
             self._publisher.publish(reset_msg)
 
@@ -205,7 +218,12 @@ class WorldObserver(RosObserver):
         self.prev_sim_world_draw_data = current_world_draw_data
         return self.world_to_marker_array(world, robot_uid, entities_to_ignore)
 
-    def world_to_marker_array(self, world, robot_uid=None, entities_to_ignore=None):
+    def world_to_marker_array(
+        self,
+        world: World,
+        robot_uid: int | None = None,
+        entities_to_ignore: t.Set[int] | None = None,
+    ):
         if entities_to_ignore is None:
             entities_to_ignore = set()
         marker_array = MarkerArray()
@@ -244,23 +262,23 @@ class WorldObserver(RosObserver):
 
     def entity_to_markers(
         self,
-        entity,
-        namespace,
-        p_id,
-        frame_id,
-        color,
-        border_color,
-        text_color_filling,
-        text_color_empty,
-        z_index,
-        line_width,
-        text_height,
-        add_filling=True,
-        add_border=True,
-        add_text=True,
-        add_uid=True,
-        add_name=True,
-    ):
+        entity: Entity,
+        namespace: str,
+        p_id: int,
+        frame_id: str,
+        color: ColorRGBA,
+        border_color: ColorRGBA,
+        text_color_filling: ColorRGBA,
+        text_color_empty: ColorRGBA,
+        z_index: float,
+        line_width: float,
+        text_height: float,
+        add_filling: bool = True,
+        add_border: bool = True,
+        add_text: bool = True,
+        add_uid: bool = True,
+        add_name: bool = True,
+    ) -> t.List[Marker]:
         markers = []
         if add_filling:
             markers.append(
@@ -307,7 +325,7 @@ class WorldObserver(RosObserver):
             )
         return markers
 
-    def reset(self, reset_msg=None):
+    def reset(self, reset_msg: Marker | None = None):
         RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
 
 
@@ -328,7 +346,7 @@ class CostmapObserver(RosObserver):
         world, robot_uid = kwargs["world"], kwargs["robot_uid"]
         return self.world_to_costmap(world, robot_uid)
 
-    def world_to_costmap(self, world, robot_uid=None):
+    def world_to_costmap(self, world: World, robot_uid: int | None = None):
         polygons = {
             uid: entity.polygon
             for uid, entity in world.entities.items()
@@ -365,7 +383,7 @@ class CostmapObserver(RosObserver):
 
         return costmap
 
-    def reset(self, reset_msg=None):
+    def reset(self, reset_msg: OccupancyGrid | None = None):
         RosObserver.reset(
             self, OccupancyGrid(info=MapMetaData(width=1, height=1), data=[0])
         )
@@ -398,7 +416,7 @@ class GridMapObserver(RosObserver):
         )
         return grid_map
 
-    def reset(self, reset_msg=None):
+    def reset(self):
         RosObserver.reset(self, costmap_to_grid_map(np.full((1000, 1000), np.nan), 1.0))
 
 
@@ -481,8 +499,8 @@ class GoalObserver(RosObserver):
             )
             return marker_array
 
-    def reset(self, reset_msg=None):
-        RosObserver.reset(self, make_delete_all_marker(cfg.main_frame_id))
+    def reset(self):
+        super().reset(make_delete_all_marker(cfg.main_frame_id))
 
 
 class PosesObserver(RosObserver):
@@ -507,7 +525,7 @@ class PosesObserver(RosObserver):
         poses = kwargs["poses"]
         return poses_to_poses_array(poses, self.node.get_timestamp())
 
-    def reset(self, reset_msg=None):
+    def reset(self):
         RosObserver.reset(
             self, PoseArray(header=init_header(self.node.get_timestamp()), poses=[])
         )
@@ -558,7 +576,7 @@ class RosPublisher:  # noqa: F821
         )
 
         self.my_publishers: t.Dict[str, Publisher] = {}  # DEPRECATED
-        self.observers = {}
+        self.observers: t.Dict[str, RosObserver] = {}
 
         # Add simulation-specific publishers
         self.sim_knowledge_topic = self.prefix + "/simulation" + cfg.sim_knowledge_topic
@@ -668,7 +686,7 @@ class RosPublisher:  # noqa: F821
             self.namespaces_caches[ns] = NamespaceCache()
 
     @staticmethod
-    def create_valid_node_name(root_name):
+    def create_valid_node_name(root_name: str):
         nodes_names = MyNode.get_nodes_names()
         node_name = (
             root_name
@@ -681,35 +699,42 @@ class RosPublisher:  # noqa: F821
             i += 1
         return node_name
 
-    def publish(self, topic, msg):
+    def publish(self, topic: str, msg: t.Any):
+        if cfg.deactivate_gui:
+            return
         publisher = self.my_publishers[topic]
         connections = publisher.get_subscription_count()
         if connections > 0:
             time.sleep(1.0 / cfg.rate)
             publisher.publish(msg)
 
-    def is_activated(self, topic=""):
+    def is_activated(self, topic: str = ""):
         if cfg.deactivate_gui or (topic and topic not in self.my_publishers):
             return False
         elif not cfg.deactivate_gui and not topic:
             return True
-        return self.my_publishers[topic].get_subscription_count() > 0
+        return topic in self.my_publishers
 
     # region SIM WORLD
-    def publish_sim_world(self, world: World, robot_uid=None):
+    def publish_sim_world(self, world: World, robot_uid: int | None = None):
+        if cfg.deactivate_gui:
+            return
         self.observers[self.sim_knowledge_topic].update(
             world=world, robot_uid=robot_uid
         )
         self.observers[self.sim_costmap_topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_sim_world(self):
-        self.observers[self.sim_knowledge_topic].reset()
-        self.observers[self.sim_costmap_topic].reset()
+        if not cfg.deactivate_gui:
+            self.observers[self.sim_knowledge_topic].reset()
+            self.observers[self.sim_costmap_topic].reset()
 
     # endregion
 
     # region ROBOT WORLD
-    def publish_robot_world(self, world, robot_uid):
+    def publish_robot_world(self, world: World, robot_uid: int):
+        if cfg.deactivate_gui:
+            return
         world_topic = (
             self.prefix
             + "/"
@@ -723,6 +748,9 @@ class RosPublisher:  # noqa: F821
         self.observers[costmap_topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_robot_world(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
+
         world_topic = self.prefix + "/" + ns + cfg.robot_knowledge_topic
         if world_topic in self.observers:
             self.observers[world_topic].reset()
@@ -733,7 +761,9 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region ROBOT SIM
-    def publish_robot_sim_world(self, world, robot_uid, ns=""):
+    def publish_robot_sim_world(self, world: World, robot_uid: int):
+        if cfg.deactivate_gui:
+            return
         topic = (
             self.prefix
             + "/"
@@ -742,11 +772,15 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
-    def cleanup_robot_sim_world(self, ns=""):
+    def cleanup_robot_sim_world(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + "/" + ns + cfg.robot_sim_world_topic
         self.observers[topic].reset()
 
-    def publish_robot_sim_costmap(self, world, robot_uid):
+    def publish_robot_sim_costmap(self, world: World, robot_uid: int):
+        if cfg.deactivate_gui:
+            return
         topic = (
             self.prefix
             + "/"
@@ -755,7 +789,9 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
-    def cleanup_robot_sim_costmap(self, world, robot_uid):
+    def cleanup_robot_sim_costmap(self, world: World, robot_uid: int):
+        if cfg.deactivate_gui:
+            return
         topic = (
             self.prefix
             + "/"
@@ -767,7 +803,11 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region GRID MAP
-    def publish_social_grid_map(self, costmap, res, ns=""):
+    def publish_social_grid_map(
+        self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
+    ):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
             if not ns
@@ -775,7 +815,9 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(costmap=costmap, res=res)
 
-    def cleanup_social_grid_map(self, ns=""):
+    def cleanup_social_grid_map(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
             if not ns
@@ -784,8 +826,13 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].reset()
 
     def publish_combined_costmap(
-        self, sorted_cell_to_combined_cost, inflated_grid_by_obstacle, ns=""
+        self,
+        sorted_cell_to_combined_cost: OrderedDict[GridCellModel, float],
+        inflated_grid_by_obstacle: BinaryInflatedOccupancyGrid,
+        ns: str = "",
     ):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
             if not ns
@@ -796,7 +843,9 @@ class RosPublisher:  # noqa: F821
             inflated_grid_by_obstacle=inflated_grid_by_obstacle,
         )
 
-    def cleanup_combined_costmap(self, ns=""):
+    def cleanup_combined_costmap(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
             if not ns
@@ -807,7 +856,11 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region CONNECTED COMPONENTS GRID
-    def publish_connected_components_grid(self, costmap, res, ns=""):
+    def publish_connected_components_grid(
+        self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
+    ):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_connected_components_topic
             if not ns
@@ -815,7 +868,9 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(costmap=costmap, res=res)
 
-    def cleanup_connected_components_grid(self, ns=""):
+    def cleanup_connected_components_grid(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.test_connected_components_topic
             if not ns
@@ -828,16 +883,13 @@ class RosPublisher:  # noqa: F821
     # region STILMAN 2005 RCH DATA
     def publish_rch_data(
         self,
-        current,
-        gscore,
-        close_set,
-        open_queue,
-        came_from,
-        neighbors,
-        traversed_obstacles_ids,
-        res,
-        grid_pose,
-        ns="",
+        current: t.Any,
+        came_from: t.Any,
+        neighbors: t.Any,
+        traversed_obstacles_ids: t.Any,
+        res: float,
+        grid_pose: PoseModel,
+        ns: str = "",
     ):
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
@@ -931,7 +983,7 @@ class RosPublisher:  # noqa: F821
                         res,
                         grid_pose,
                     )
-                    came_from_marker = real_path_to_linestrip(
+                    came_from_marker = real_path_to_triangle_list(
                         [cur_pose, from_pose],
                         "/rch_came_from",
                         _id,
@@ -954,22 +1006,20 @@ class RosPublisher:  # noqa: F821
     # region MANIP SEARCH
     def publish_manip_search_data(
         self,
-        current,
-        gscore,
-        close_set,
-        open_queue,
-        came_from,
-        neighbors,
-        start_confs,
-        res,
-        grid_pose,
-        ns="",
+        current_manip_pose_id: int,
+        robot_pose: PoseModel,
+        obstacle_pose: PoseModel,
+        robot_fixed_precision_pos: PoseModel,
+        robot_polygon: Polygon,
+        obstacle_polygon: Polygon,
+        manip_poses_ids: t.List[int],
+        neighbor_poses: t.List[PoseModel],
+        res: float,
+        ns: str = "",
     ):
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             marker_array = MarkerArray(markers=[])
-
-            manip_poses_ids = [c.manip_pose_id for c in start_confs.keys()]
 
             arrow_length, shaft_diameter, head_diameter, head_length = (
                 res / 1.5,
@@ -986,7 +1036,7 @@ class RosPublisher:  # noqa: F821
 
             # Publish current configuration
             current_robot_pose_marker = self.pose_to_arrow(
-                pose=current.robot.floating_point_pose,
+                pose=robot_pose,
                 namespace="/manip_search/current/robot/pose",
                 p_id=0,
                 frame_id=cfg.main_frame_id,
@@ -998,7 +1048,7 @@ class RosPublisher:  # noqa: F821
                 head_length=head_length,
             )
             current_obstacle_pose_marker = self.pose_to_arrow(
-                pose=current.obstacle.floating_point_pose,
+                pose=obstacle_pose,
                 namespace="/manip_search/current/obstacle/pose",
                 p_id=0,
                 frame_id=cfg.main_frame_id,
@@ -1013,7 +1063,7 @@ class RosPublisher:  # noqa: F821
             marker_array.markers.append(current_obstacle_pose_marker)  # type: ignore
 
             current_robot_polygon_marker = self.polygon_to_line_strip(
-                current.robot.polygon,
+                robot_polygon,
                 "/manip_search/current/robot/polygon",
                 0,
                 cfg.main_frame_id,
@@ -1022,7 +1072,7 @@ class RosPublisher:  # noqa: F821
                 cfg.border_width,
             )
             current_obstacle_polygon_marker = self.polygon_to_line_strip(
-                current.obstacle.polygon,
+                obstacle_polygon,
                 "/manip_search/current/obstacle/polygon",
                 0,
                 cfg.main_frame_id,
@@ -1036,7 +1086,7 @@ class RosPublisher:  # noqa: F821
             # Publish neighbors
             neighbors_markers = [
                 self.pose_to_arrow(
-                    pose=neighbor.robot.floating_point_pose,
+                    pose=neighbor,
                     namespace="/manip_search_neighbors",
                     p_id=p_id,
                     frame_id=cfg.main_frame_id,
@@ -1047,7 +1097,7 @@ class RosPublisher:  # noqa: F821
                     head_diameter=head_diameter,
                     head_length=head_length,
                 )
-                for p_id, neighbor in enumerate(neighbors)
+                for p_id, neighbor in enumerate(neighbor_poses)
             ]
             marker_array.markers += neighbors_markers  # type: ignore
             neighbor_markers_ids = {n.id for n in neighbors_markers}
@@ -1065,14 +1115,14 @@ class RosPublisher:  # noqa: F821
             ].manip_search_neighbors_markers_p_ids = neighbor_markers_ids
 
             # Publish close_set
-            color = manip_pose_id_to_color[current.manip_pose_id]
+            color = manip_pose_id_to_color[current_manip_pose_id]
             if (
-                current.robot.fixed_precision_pose
+                robot_fixed_precision_pos
                 in self.namespaces_caches[ns].current_fixed_robot_pose_to_marker
             ):
                 original_marker = self.namespaces_caches[
                     ns
-                ].current_fixed_robot_pose_to_marker[current.robot.fixed_precision_pose]
+                ].current_fixed_robot_pose_to_marker[robot_fixed_precision_pos]
                 blended_color = colors.blend_colors(original_marker.color, color)
                 original_marker.color = blended_color
                 close_set_marker = original_marker
@@ -1085,7 +1135,7 @@ class RosPublisher:  # noqa: F821
                 close_set_marker.id = _id
                 close_set_marker.color = color
                 self.namespaces_caches[ns].current_fixed_robot_pose_to_marker[
-                    current.robot.fixed_precision_pose
+                    robot_fixed_precision_pos
                 ] = close_set_marker
                 self.namespaces_caches[
                     ns
@@ -1124,7 +1174,9 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region Q MANIPS FOR OBS
-    def publish_q_manips_for_obs(self, poses, ns=""):
+    def publish_q_manips_for_obs(self, poses: t.List[PoseModel], ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.obs_manip_poses_topic
             if not ns
@@ -1132,7 +1184,9 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(poses=poses)
 
-    def cleanup_q_manips_for_obs(self, ns=""):
+    def cleanup_q_manips_for_obs(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (
             cfg.obs_manip_poses_topic
             if not ns
@@ -1143,19 +1197,36 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region P_OPT
-    def publish_p_opt(self, plan, robot, ns=""):
+    def publish_p_opt(self, plan: "navigation_plan.Plan", robot: Robot, ns: str = ""):
+        """Publishes the optimal path to observers"""
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (cfg.plan_topic if not ns else "/" + ns + cfg.plan_topic)
         self.observers[topic].update(plan=plan, robot=robot)
 
-    def cleanup_p_opt(self, ns=""):
+    def cleanup_p_opt(self, ns: str = ""):
+        """Clears the optimal path from observers"""
+        if cfg.deactivate_gui:
+            return
         topic = self.prefix + (cfg.plan_topic if not ns else "/" + ns + cfg.plan_topic)
         self.observers[topic].reset()
 
     # endregion
 
     # region ROBOT SIM
-    def publish_sim(self, robot_polygon, obs_polygon, namespace="/init", ns=""):
-        full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
+    def publish_sim(
+        self,
+        robot_polygon: Polygon,
+        obs_polygon: Polygon,
+        namespace: str = "/init",
+        robot_name: str = "",
+    ):
+        full_topic = (
+            cfg.robot_sim_topic
+            if not robot_name
+            else "/" + robot_name + cfg.robot_sim_topic
+        )
+
         if self.is_activated(full_topic):
             robot_color = (
                 colors.robot_border_color
@@ -1191,7 +1262,12 @@ class RosPublisher:  # noqa: F821
             )
             self.publish(full_topic, marker_array)
 
-    def publish_blocking_areas(self, init_blocking_areas, target_blocking_areas, ns=""):
+    def publish_blocking_areas(
+        self,
+        init_blocking_areas: t.List[Polygon],
+        target_blocking_areas: t.List[Polygon],
+        ns: str = "",
+    ):
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             init_blocking_areas_markers = []
@@ -1225,7 +1301,7 @@ class RosPublisher:  # noqa: F821
             )
             self.publish(full_topic, marker_array)
 
-    def cleanup_blocking_areas(self, ns=""):
+    def cleanup_blocking_areas(self, ns: str = ""):
         # FIXME Not implemented correctly in ROS...
         #  https://answers.ros.org/question/263031/delete-all-rviz-markers-in-a-specific-namespace/
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
@@ -1236,7 +1312,10 @@ class RosPublisher:  # noqa: F821
             )
 
     def publish_diameter_inflated_polygons(
-        self, init_entity_inflated_polygon, target_entity_inflated_polygon, ns=""
+        self,
+        init_entity_inflated_polygon: Polygon,
+        target_entity_inflated_polygon: Polygon,
+        ns: str = "",
     ):
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
@@ -1264,7 +1343,7 @@ class RosPublisher:  # noqa: F821
             )
             self.publish(full_topic, marker_array)
 
-    def cleanup_diameter_inflated_polygons(self, ns=""):
+    def cleanup_diameter_inflated_polygons(self, ns: str = ""):
         # FIXME Not implemented correctly in ROS...
         #  https://answers.ros.org/question/263031/delete-all-rviz-markers-in-a-specific-namespace/
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
@@ -1276,7 +1355,7 @@ class RosPublisher:  # noqa: F821
                 ),
             )
 
-    def publish_debug_polygons(self, polygons, ns=""):
+    def publish_debug_polygons(self, polygons: t.List[Polygon], ns: str = ""):
         # FIXME Not implemented correctly in ROS...
         #  https://answers.ros.org/question/263031/delete-all-rviz-markers-in-a-specific-namespace/
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
@@ -1291,7 +1370,7 @@ class RosPublisher:  # noqa: F821
             )
             self.publish(full_topic, marker_array)
 
-    def cleanup_debug_polygons(self, ns=""):
+    def cleanup_debug_polygons(self, ns: str = ""):
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             self.publish(
@@ -1299,7 +1378,9 @@ class RosPublisher:  # noqa: F821
                 self.make_delete_all_marker(cfg.main_frame_id, "/debug/polygons"),
             )
 
-    def cleanup_robot_sim(self, ns=""):
+    def cleanup_robot_sim(self, ns: str = ""):
+        if cfg.deactivate_gui:
+            return
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
             self.namespaces_caches[ns] = NamespaceCache()
@@ -1311,6 +1392,9 @@ class RosPublisher:  # noqa: F821
     def publish_goal(
         self, q_init: PoseModel, q_goal: PoseModel, entity: Robot, ns: str = ""
     ):
+        if cfg.deactivate_gui:
+            return
+
         topic = self.prefix + (
             cfg.robot_goal_topic if not ns else "/" + ns + cfg.robot_goal_topic
         )
@@ -1325,7 +1409,9 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region MESSAGE TEXT
-    def publish_message(self, message, pose=(0.0, 0.0, 0.0), font_size=1.0):
+    def publish_message(
+        self, message: str, pose: PoseModel = (0.0, 0.0, 0.0), font_size: float = 1.0
+    ):
         if self.is_activated("/simulation" + cfg.sim_latest_message_topic):
             marker_array = MarkerArray(
                 markers=[
@@ -1365,7 +1451,13 @@ class RosPublisher:  # noqa: F821
 
     # region CONFLICTS CHECK
     def publish_transit_horizon_cells(
-        self, poses, start_index, end_index, check_horizon, inflated_grid_by_robot, ns
+        self,
+        poses: t.List[PoseModel],
+        start_index: int,
+        end_index: int,
+        check_horizon: int,
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        ns: str,
     ):
         full_topic = (
             cfg.conflicts_check_topic
@@ -1373,7 +1465,7 @@ class RosPublisher:  # noqa: F821
             else "/" + ns + cfg.conflicts_check_topic
         )
         if self.is_activated(full_topic):
-            horizon_cells = set()
+            horizon_cells: t.Set[GridCellModel] = set()
             for counter, index in enumerate(range(start_index, end_index)):
                 if counter > check_horizon:
                     break
@@ -1398,7 +1490,10 @@ class RosPublisher:  # noqa: F821
             self.publish(full_topic, marker_array)
 
     def publish_transit_conflicting_cells(
-        self, conflicting_cells, inflated_grid_by_robot, ns
+        self,
+        conflicting_cells: t.List[GridCellModel],
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        ns: str,
     ):
         full_topic = (
             cfg.conflicts_check_topic
@@ -1418,7 +1513,10 @@ class RosPublisher:  # noqa: F821
             self.publish(full_topic, marker_array)
 
     def publish_transit_conflicting_polygons_cells(
-        self, conflicting_entities_cells, inflated_grid_by_robot, ns
+        self,
+        conflicting_entities_cells: t.List[GridCellModel],
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        ns: str,
     ):
         full_topic = (
             cfg.conflicts_check_topic
@@ -1439,12 +1537,12 @@ class RosPublisher:  # noqa: F821
 
     def publish_transfer_horizon_convex_polygons(
         self,
-        robot_csv_polygons,
-        obstacle_csv_polygons,
-        start_index,
-        end_index,
-        check_horizon,
-        ns,
+        robot_csv_polygons: t.Dict[t.Tuple[int], Polygon],
+        obstacle_csv_polygons: t.Dict[t.Tuple[int], Polygon],
+        start_index: int,
+        end_index: int,
+        check_horizon: int,
+        ns: str,
     ):
         full_topic = (
             cfg.conflicts_check_topic
@@ -1453,10 +1551,6 @@ class RosPublisher:  # noqa: F821
         )
         if self.is_activated(full_topic):
             subspace = "/transfer_horizon_csv_polygons"
-            self.publish(
-                full_topic, self.make_delete_all_marker(cfg.main_frame_id, ns=subspace)
-            )
-
             horizon_csv_polygons = []
             for counter, index in enumerate(range(start_index, end_index)):
                 if counter > check_horizon:
@@ -1486,7 +1580,7 @@ class RosPublisher:  # noqa: F821
     def publish_transfer_conflicting_convex_polygons(self):
         pass
 
-    def cleanup_conflicts_checks(self, ns):
+    def cleanup_conflicts_checks(self, ns: str):
         full_topic = (
             cfg.conflicts_check_topic
             if not ns
@@ -1499,6 +1593,8 @@ class RosPublisher:  # noqa: F821
 
     # region EXTRA COMBINED CLEANUP METHODS
     def cleanup_all(self):
+        if cfg.deactivate_gui:
+            return
         self.cleanup_sim_world()
         self.cleanup_message()
         for ns in self.agents_names:
@@ -1515,7 +1611,14 @@ class RosPublisher:  # noqa: F821
         return Header(stamp=self.ros_node.get_timestamp(), frame_id="map")
 
     def grid_cells_to_cube_list_markers(
-        self, grid_cells, res, grid_pose, color, z_index=-0.5, cube_list=None, ns=""
+        self,
+        grid_cells: t.Iterable[GridCellModel],
+        res: float,
+        grid_pose: PoseModel,
+        color: ColorRGBA,
+        z_index: float = -0.5,
+        cube_list: Marker | None = None,
+        ns: str = "",
     ):
         if cube_list is None:
             cube_list = Marker(
@@ -1537,7 +1640,14 @@ class RosPublisher:  # noqa: F821
         return cube_list
 
     def grid_cell_to_cube_marker(
-        self, cell, res, grid_pose, color, _id, z_index, ns=""
+        self,
+        cell: GridCellModel,
+        res: float,
+        grid_pose: PoseModel,
+        color: ColorRGBA,
+        _id: int,
+        z_index: float,
+        ns: str = "",
     ):
         x, y = utils.grid_to_real(cell[0], cell[1], res, grid_pose)
         z = z_index
@@ -1556,7 +1666,14 @@ class RosPublisher:  # noqa: F821
         return cube
 
     def polygon_to_line_strip(
-        self, polygon, namespace, p_id, frame_id, color, z_index, line_width
+        self,
+        polygon: Polygon | None,
+        namespace: str,
+        p_id: int,
+        frame_id: str,
+        color: ColorRGBA,
+        z_index: float,
+        line_width: float,
     ):
         marker = Marker(
             type=Marker.LINE_STRIP,
@@ -1590,7 +1707,13 @@ class RosPublisher:  # noqa: F821
         return marker
 
     def polygons_to_line_strips_marker_array(
-        self, polygons, namespace, frame_id, color, z_index, line_width
+        self,
+        polygons: t.List[Polygon],
+        namespace: str,
+        frame_id: str,
+        color: ColorRGBA,
+        z_index: float,
+        line_width: float,
     ):
         marker_array = MarkerArray()
         markers = []
@@ -1607,16 +1730,16 @@ class RosPublisher:  # noqa: F821
 
     def pose_to_arrow(
         self,
-        pose,
-        namespace,
-        p_id,
-        frame_id,
-        color,
-        z_index,
-        arrow_length,
-        shaft_diameter,
-        head_diameter,
-        head_length,
+        pose: PoseModel,
+        namespace: str,
+        p_id: int,
+        frame_id: str,
+        color: ColorRGBA,
+        z_index: float,
+        arrow_length: float,
+        shaft_diameter: float,
+        head_diameter: float,
+        head_length: float,
     ):
         marker = Marker(
             type=Marker.ARROW,
@@ -1637,7 +1760,7 @@ class RosPublisher:  # noqa: F821
         )
         return marker
 
-    def make_delete_marker(self, namespace, p_id, frame_id):
+    def make_delete_marker(self, namespace: str, p_id: int, frame_id: str):
         return Marker(
             ns=namespace,
             id=p_id,
@@ -1645,7 +1768,7 @@ class RosPublisher:  # noqa: F821
             action=Marker.DELETE,
         )
 
-    def make_delete_all_marker(self, frame_id, ns=""):
+    def make_delete_all_marker(self, frame_id: str, ns: str = ""):
         return MarkerArray(
             markers=[
                 Marker(
@@ -1660,14 +1783,14 @@ class RosPublisher:  # noqa: F821
 
     def string_to_text_marker(
         self,
-        message="",
-        pose=(0.0, 0.0, 0.0),
-        ns="",
-        p_id=0,
-        z_index=0.0,
-        font_size=1.0,
-        frame_id="/map",
-        color=None,
+        message: str = "",
+        pose: PoseModel = (0.0, 0.0, 0.0),
+        ns: str = "",
+        p_id: int = 0,
+        z_index: float = 0.0,
+        font_size: float = 1.0,
+        frame_id: str = "/map",
+        color: ColorRGBA | None = None,
     ):
         if color is None:
             color = colors.black

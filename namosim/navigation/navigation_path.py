@@ -2,7 +2,7 @@ import typing as t
 
 from shapely import GeometryCollection, Polygon
 
-from namosim.display.ros2_publisher import RosPublisher
+import namosim.display.ros2_publisher as ros2
 from namosim.models import PoseModel
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
@@ -14,7 +14,8 @@ from namosim.navigation.conflict import (
     StolenMovableConflict,
 )
 from namosim.utils import collision, utils
-from namosim.worldreps.entity_based.robot import Robot
+from namosim.world.robot import Robot
+from namosim.world.world import World
 
 
 class Path:
@@ -99,8 +100,8 @@ class TransferPath:
 
     def get_conflicts(
         self,
-        robot_uid,
-        world,
+        robot_uid: int,
+        world: World,
         inflated_grid_by_robot,
         other_entities_polygons,
         other_entities_aabb_tree,
@@ -114,7 +115,7 @@ class TransferPath:
         exit_early_for_any_conflict=False,
         exit_early_only_for_long_term_conflicts=True,
         rp=None,
-        robot_name="",
+        robot_name: str = "",
     ):
         if shared_horizon is None:
             # If no horizon is given, check all unexecuted actions
@@ -185,7 +186,7 @@ class TransferPath:
                     # and is a grab action, we also check the possibility of SimultaneousGrab conflicts t+1
                     radius = 2.0 * inflated_grid_by_robot.res
                     grab_zone = world.entities[self.obstacle_uid].polygon.buffer(
-                        radius, join_style=2
+                        radius, join_style="mitre"
                     )
                     collides_with = collision.check_static_collision(
                         self.obstacle_uid,
@@ -728,7 +729,7 @@ class TransitPath:
         apply_strict_horizon=False,
         exit_early_for_any_conflict=False,
         exit_early_only_for_long_term_conflicts=True,
-        rp: RosPublisher = None,
+        rp: t.Optional["ros2.RosPublisher"] = None,
         robot_name="",
     ):
         if not self.actions:
