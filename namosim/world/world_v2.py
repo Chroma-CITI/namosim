@@ -190,10 +190,10 @@ class WorldV2:
             ]
             for sub_el in el.getElementsByTagNameNS("*", "path"):
                 sub_id = sub_el.getAttribute("id")
-                if sub_el.getAttribute("type") == "robot_shape":
+                if sub_el.getAttribute("type") == "shape":
                     robot_style = sub_el.getAttribute("style")
                     robot_polygon = shapely_geoms[sub_id]
-                elif sub_el.getAttribute("type") == "robot_direction":
+                elif sub_el.getAttribute("type") == "orientation":
                     direction_polygon = shapely_geoms[sub_id]
                     theta = get_orientation(direction_polygon)
                     robot_pose[2] = theta
@@ -230,9 +230,9 @@ class WorldV2:
                 ]
                 for sub_el in goal_el.getElementsByTagNameNS("*", "path"):
                     sub_id = sub_el.getAttribute("id")
-                    if sub_el.getAttribute("type") == "goal_shape":
+                    if sub_el.getAttribute("type") == "shape":
                         goal_polygon = shapely_geoms[sub_id]
-                    elif sub_el.getAttribute("type") == "goal_direction":
+                    elif sub_el.getAttribute("type") == "orientation":
                         theta = get_orientation(shapely_geoms[sub_id])
                         goal_pose[2] = theta
 

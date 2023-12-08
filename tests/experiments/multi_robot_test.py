@@ -14,7 +14,7 @@ class MultiRobotTests(unittest.TestCase):
         config.DISPLAY_WINDOW = True
         sim_parallel = Simulator(
             simulation_file_path=os.path.join(
-                self.scenarios_folder, "multi_robot/3_robots_sim.json"
+                self.scenarios_folder, "multi_robot/3_robots.svg"
             )
         )
 
