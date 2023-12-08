@@ -35,7 +35,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as navigation_plan
-from namosim.data_models import GridCellModel, PoseModel
+from namosim.data_models_v2 import GridCellModel, PoseModel
 from namosim.display.conversions import (
     costmap_to_grid_map,
     geom_quat_from_yaw,
@@ -56,7 +56,7 @@ from namosim.world.binary_occupancy_grid import (
 from namosim.world.entity import Entity
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
-from namosim.world.world import World
+from namosim.world.world_v2 import WorldV2
 
 
 class NamespaceCache:
@@ -176,7 +176,7 @@ class RosObserver:
             self._publisher.publish(reset_msg)
 
 
-class WorldObserver(RosObserver):
+class WorldV2Observer(RosObserver):
     def __init__(
         self, node: MyNode, topic: str, is_active: bool = True, rate: int = cfg.rate
     ):
@@ -220,7 +220,7 @@ class WorldObserver(RosObserver):
 
     def world_to_marker_array(
         self,
-        world: World,
+        world: WorldV2,
         robot_uid: int | None = None,
         entities_to_ignore: t.Set[int] | None = None,
     ):
@@ -346,7 +346,7 @@ class CostmapObserver(RosObserver):
         world, robot_uid = kwargs["world"], kwargs["robot_uid"]
         return self.world_to_costmap(world, robot_uid)
 
-    def world_to_costmap(self, world: World, robot_uid: int | None = None):
+    def world_to_costmap(self, world: WorldV2, robot_uid: int | None = None):
         polygons = {
             uid: entity.polygon
             for uid, entity in world.entities.items()
@@ -580,7 +580,7 @@ class RosPublisher:  # noqa: F821
 
         # Add simulation-specific publishers
         self.sim_knowledge_topic = self.prefix + "/simulation" + cfg.sim_knowledge_topic
-        self.observers[self.sim_knowledge_topic] = WorldObserver(
+        self.observers[self.sim_knowledge_topic] = WorldV2Observer(
             self.ros_node, self.sim_knowledge_topic
         )
         self.sim_costmap_topic = self.prefix + "/simulation" + cfg.sim_costmap_topic
@@ -611,13 +611,13 @@ class RosPublisher:  # noqa: F821
         # Add robot-specific publishers for each robot namespace
         for agent_name in self.agents_names:
             ns = self.prefix + "/" + agent_name
-            self.observers[ns + cfg.robot_knowledge_topic] = WorldObserver(
+            self.observers[ns + cfg.robot_knowledge_topic] = WorldV2Observer(
                 self.ros_node, ns + cfg.robot_knowledge_topic
             )
             self.observers[ns + cfg.robot_costmap_topic] = CostmapObserver(
                 self.ros_node, ns + cfg.robot_costmap_topic
             )
-            self.observers[ns + cfg.robot_sim_world_topic] = WorldObserver(
+            self.observers[ns + cfg.robot_sim_world_topic] = WorldV2Observer(
                 self.ros_node, ns + cfg.robot_sim_world_topic
             )
             self.observers[ns + cfg.robot_sim_costmap_topic] = CostmapObserver(
@@ -714,7 +714,7 @@ class RosPublisher:  # noqa: F821
         return topic in self.my_publishers
 
     # region SIM WORLD
-    def publish_sim_world(self, world: World, robot_uid: int | None = None):
+    def publish_sim_world(self, world: WorldV2, robot_uid: int | None = None):
         if cfg.deactivate_gui:
             return
         self.observers[self.sim_knowledge_topic].update(
@@ -730,7 +730,7 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region ROBOT WORLD
-    def publish_robot_world(self, world: World, robot_uid: int):
+    def publish_robot_world(self, world: WorldV2, robot_uid: int):
         if cfg.deactivate_gui:
             return
         world_topic = (
@@ -759,7 +759,7 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region ROBOT SIM
-    def publish_robot_sim_world(self, world: World, robot_uid: int):
+    def publish_robot_sim_world(self, world: WorldV2, robot_uid: int):
         if cfg.deactivate_gui:
             return
         topic = (
@@ -776,7 +776,7 @@ class RosPublisher:  # noqa: F821
         topic = self.prefix + "/" + ns + cfg.robot_sim_world_topic
         self.observers[topic].reset()
 
-    def publish_robot_sim_costmap(self, world: World, robot_uid: int):
+    def publish_robot_sim_costmap(self, world: WorldV2, robot_uid: int):
         if cfg.deactivate_gui:
             return
         topic = (
@@ -787,7 +787,7 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
-    def cleanup_robot_sim_costmap(self, world: World, robot_uid: int):
+    def cleanup_robot_sim_costmap(self, world: WorldV2, robot_uid: int):
         if cfg.deactivate_gui:
             return
         topic = (

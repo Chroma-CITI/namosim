@@ -23,7 +23,7 @@ from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
 from namosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
 from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
 from namosim.behaviors.stilman_only_behavior import StilmanOnlyBehavior
-from namosim.data_models import PoseModel, SimulationModel
+from namosim.data_models_v2 import PoseModel
 from namosim.exceptions import timeout
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -36,7 +36,7 @@ from namosim.navigation.conflict import (
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
-from namosim.world.world import World
+from namosim.world.world_v2 import WorldV2
 
 
 class SimulationStepResult:
@@ -109,7 +109,7 @@ class AgentStepStats:
         self.think_time = think_time
 
 
-class WorldStepStats:
+class WorldV2StepStats:
     def __init__(
         self,
         nb_components: int = 0,
@@ -128,11 +128,11 @@ class WorldStepStats:
 class StepStats:
     def __init__(
         self,
-        world_stats: t.Optional[WorldStepStats] = None,
+        world_stats: t.Optional[WorldV2StepStats] = None,
         agents_stats: t.Optional[t.Dict[str, AgentStepStats]] = None,
         act_time: float = 0.0,
     ):
-        self.world_stats = world_stats or WorldStepStats()
+        self.world_stats = world_stats or WorldV2StepStats()
         self.agents_stats = agents_stats or {}
         self.act_time = act_time
 
@@ -164,11 +164,11 @@ class Simulator:
             self.sim_start_timestring = timestring
         else:
             self.sim_start_timestring = utils.timestamp_string()
-        simulation_file_abs_path = os.path.abspath(simulation_file_path)
 
-        with open(simulation_file_abs_path) as f:
-            config_json = json.load(f)
-        self.config = SimulationModel.model_validate(config_json)
+        simulation_file_abs_path = os.path.abspath(simulation_file_path)
+        # Load world file
+        self.init_ref_world = WorldV2.load_from_svg(simulation_file_abs_path)
+        self.config = self.init_ref_world.config
 
         sim_file_parent_dirname = os.path.basename(
             os.path.normpath(
@@ -200,7 +200,6 @@ class Simulator:
         # Save general simulation parameters
         self.random_seed = self.config.random_seed or 10
         random.seed(self.random_seed)
-        self.provide_walls = self.config.provide_walls
         self.human_inflation_radius = 0.55 / 2.0  # [m]
 
         self.simulation_log.append(
@@ -243,30 +242,23 @@ class Simulator:
         # Reinitialize rviz display
         self.ros_publisher = ros2.RosPublisher(
             node_name=self.simulation_filename,
-            agent_names=[x.agent_name for x in self.config.agents_behaviors],
+            agent_names=[x.agent_id for x in self.config.agents],
         )
         self.ros_publisher.cleanup_all()
 
         self.simulation_log.append(utils.BasicLog("Display backend initialized.", 0))
 
-        # Create world from world description json file
-        world_file_path = self.config.files.world_file
-        world_abs_path = os.path.join(
-            os.path.dirname(simulation_file_abs_path), world_file_path
+        self.simulation_log.append(
+            utils.BasicLog("WorldV2 file successfully loaded.", 0)
         )
-        self.init_ref_world = World.load_from_json(world_abs_path)
-
-        self.simulation_log.append(utils.BasicLog("World file successfully loaded.", 0))
 
         if self.save_init_world_state:
             self.init_ref_world.save_to_files(
-                json_filepath=self.logs_dir
+                svg_filepath=self.logs_dir
                 + "simulation/"
-                + self.simulation_filename
-                + ".json",
-                svg_filepath=self.init_ref_world.init_geometry_filename,
+                + self.init_ref_world.init_geometry_filename,
             )
-        self.ref_world: World = copy.deepcopy(self.init_ref_world)
+        self.ref_world: WorldV2 = copy.deepcopy(self.init_ref_world)
 
         # Associate autonomous agents with goals and behaviors
         self.goal_poses = {
@@ -483,12 +475,9 @@ class Simulator:
         # - Save world end state as SVG+JSON
         if self.save_end_world_state:
             self.ref_world.save_to_files(
-                json_filepath=self.logs_dir
+                svg_filepath=self.logs_dir
                 + "simulation/"
-                + self.simulation_filename
-                + "_end"
-                + ".json",
-                svg_filepath=utils.append_suffix(
+                + utils.append_suffix(
                     self.init_ref_world.init_geometry_filename, "_end"
                 ),
             )
@@ -572,13 +561,12 @@ class Simulator:
         entities = dict()
         for entity_uid, entity in self.ref_world.entities.items():
             if isinstance(entity, Robot) or (
-                (isinstance(entity, Obstacle) and entity.type_ == "wall")
-                if self.provide_walls
-                else True
+                isinstance(entity, Obstacle) and entity.type_ == "wall"
             ):
                 entities[entity_uid] = copy.deepcopy(entity)
 
-        return World(
+        return WorldV2(
+            config=self.config,
             entities=entities,
             taboo_zones=copy.deepcopy(self.ref_world.taboo_zones),
             discretization_data=copy.deepcopy(self.ref_world.discretization_data),
@@ -620,7 +608,7 @@ class Simulator:
         replay_world = copy.deepcopy(self.init_ref_world)
         stats = [
             StepStats(
-                world_stats=WorldStepStats(
+                world_stats=WorldV2StepStats(
                     init_nb_cc,
                     init_biggest_cc_size,
                     init_all_cc_sum_size,
@@ -692,7 +680,7 @@ class Simulator:
                     ),
                     ros_publisher=self.ros_publisher,
                 )
-                world_stats = WorldStepStats(
+                world_stats = WorldV2StepStats(
                     end_nb_cc,
                     end_biggest_cc_size,
                     end_all_cc_sum_size,
@@ -810,29 +798,24 @@ class Simulator:
         agent may multiple navigation goals.
         """
         agent_uid_to_goals = {}
-        for agent_behavior in self.config.agents_behaviors:
-            agent_uid = self.ref_world.get_entity_uid_from_name(
-                agent_behavior.agent_name
-            )
+        for agent_behavior in self.config.agents:
+            agent_uid = self.ref_world.get_entity_uid_from_name(agent_behavior.agent_id)
             if agent_uid in agent_uid_to_goals:
                 raise RuntimeError(
                     "You can only associate a single behavior with entity: {entity_name}.".format(
-                        entity_name=agent_behavior.agent_name
+                        entity_name=agent_behavior.agent_id
                     )
                 )
             else:
                 agent_navigation_goals: t.List[PoseModel] = []
 
-                if agent_behavior.behavior.navigation_goals is not None:
-                    for count, config_goal in enumerate(
-                        agent_behavior.behavior.navigation_goals
-                    ):
-                        if count > max_nb_goals:
-                            break
-                        if config_goal.name in goals_geometries:
-                            agent_navigation_goals.append(
-                                goals_geometries[config_goal.name]
-                            )
+                for count, config_goal in enumerate(agent_behavior.goals):
+                    if count > max_nb_goals:
+                        break
+                    if config_goal.goal_id in goals_geometries:
+                        agent_navigation_goals.append(
+                            goals_geometries[config_goal.goal_id]
+                        )
 
                 agent_uid_to_goals[agent_uid] = agent_navigation_goals
 
@@ -843,21 +826,21 @@ class Simulator:
     ) -> t.Dict[int, BaselineBehavior]:
         agent_uid_to_behavior = dict()
 
-        for agent in self.config.agents_behaviors:
-            agent_uid = self.ref_world.get_entity_uid_from_name(agent.agent_name)
+        for agent in self.config.agents:
+            agent_uid = self.ref_world.get_entity_uid_from_name(agent.agent_id)
             agent_navigation_goals = agents_navigation_goals[agent_uid]
             if agent_uid in agent_uid_to_behavior:
                 raise RuntimeError(
                     "You can only associate a single behavior with entity: {entity_name}.".format(
-                        entity_name=agent.agent_name
+                        entity_name=agent.agent_id
                     )
                 )
             else:
                 behavior_config = agent.behavior
-                self.ros_publisher.cleanup_robot_world(ns=agent.agent_name)
+                self.ros_publisher.cleanup_robot_world(ns=agent.agent_id)
                 agent_world = copy.deepcopy(self.ref_world)
 
-                if behavior_config.name == "stilman_2005_behavior":
+                if behavior_config.type == "stilman_2005_behavior":
                     agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
                         initial_world=agent_world,
                         robot_uid=agent_uid,
@@ -865,14 +848,14 @@ class Simulator:
                         params=behavior_config.parameters,
                         logs_dir=self.logs_dir,
                     )
-                elif behavior_config.name == "navigation_only_behavior":
+                elif behavior_config.type == "navigation_only_behavior":
                     agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
                         initial_world=agent_world,
                         robot_uid=agent_uid,
                         navigation_goals=agent_navigation_goals,
                         logs_dir=self.logs_dir,
                     )
-                elif behavior_config.name == "stilman_only_behavior":
+                elif behavior_config.type == "stilman_only_behavior":
                     agent_uid_to_behavior[agent_uid] = StilmanOnlyBehavior(
                         initial_world=agent_world,
                         robot_uid=agent_uid,
@@ -885,7 +868,7 @@ class Simulator:
                         "You tried to associate entity '{agent_name}' with a behavior named"
                         "'{b_name}' that is not implemented yet."
                         "Maybe you mispelled something ?".format(
-                            agent_name=agent.agent_name, b_name=behavior_config.name
+                            agent_name=agent.agent_id, b_name=behavior_config.type
                         )
                     )
 
@@ -916,9 +899,7 @@ class Simulator:
             + "_of_"
             + self.ref_world.entities[agent_uid].name
         )
-        json_filepath = (
-            self.logs_dir + "simulation/" + self.simulation_filename + suffix + ".json"
-        )
+
         svg_filepath = utils.append_suffix(
             self.init_ref_world.init_geometry_filename, suffix
         )
@@ -942,12 +923,8 @@ class Simulator:
             )
         del trace_polygons[: len(trace_polygons)]
 
-        json_data = world_snapshot.to_json(svg_filepath)
         world_snapshot.save_to_files(
-            json_data=json_data,
-            svg_data=svg_data,
-            json_filepath=json_filepath,
-            svg_filepath=svg_filepath,
+            svg_filepath=self.logs_dir + "simulation/" + svg_filepath,
         )
 
     def sense(

@@ -30,7 +30,7 @@ class MultiRobotTests(unittest.TestCase):
     def test_two_rooms(self):
         sim = Simulator(
             simulation_file_path=os.path.join(
-                self.scenarios_folder, "multi_robot/two_rooms_sim.json"
+                self.scenarios_folder, "multi_robot/two_rooms.svg"
             )
         )
         sim.run()

@@ -1,6 +1,6 @@
 import typing as t
 
-from namosim.data_models import PoseModel
+from namosim.data_models_v2 import PoseModel
 from namosim.navigation.basic_actions import BasicAction
 
 

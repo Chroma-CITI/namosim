@@ -1,6 +1,6 @@
 import copy
 
-import namosim.world.world as world
+import namosim.world.world_v2 as world
 
 
 class OmniscientSensor:
@@ -8,7 +8,7 @@ class OmniscientSensor:
         self.parent_uid: int | None = None
 
     def update_from_fov(
-        self, reference_world: "world.World", target_world: "world.World"
+        self, reference_world: "world.WorldV2", target_world: "world.WorldV2"
     ):
         # Add
         uids_to_add = set(reference_world.entities.keys()).difference(

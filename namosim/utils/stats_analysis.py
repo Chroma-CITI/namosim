@@ -7,7 +7,7 @@ import numpy as np
 import plotly.graph_objects as go
 import plotly.subplots as sp
 
-from namosim.simulator import AgentStepStats, StepStats, WorldStepStats
+from namosim.simulator import AgentStepStats, StepStats, WorldV2StepStats
 
 
 def get_max_nb_steps(simulations_results_paths):
@@ -151,7 +151,7 @@ def aggregate_statistics_dict(zipped_statistics):
                 ),
             )
 
-        for criterion in WorldStepStats().__dict__.keys():
+        for criterion in WorldV2StepStats().__dict__.keys():
             setattr(
                 aggregated_step_stats["max"].world_stats,
                 criterion,
@@ -330,7 +330,7 @@ def aggregate_statistics(zipped_statistics, start_index=0, end_index=None):
                 ),
             )
 
-        for criterion in WorldStepStats().__dict__.keys():
+        for criterion in WorldV2StepStats().__dict__.keys():
             setattr(
                 aggregated_step_stats["min"].world_stats,
                 criterion,
@@ -692,7 +692,7 @@ def scatter_plots_from_aggregated_statistics(
             ],
         )
 
-    for criterion in WorldStepStats().__dict__.keys():
+    for criterion in WorldV2StepStats().__dict__.keys():
         avg_criterion = np.array(
             [getattr(stats["avg"].world_stats, criterion) for stats in aggregated_stats]
         )
@@ -1213,7 +1213,7 @@ if __name__ == "__main__":
             ]
 
         nb_criteria = (
-            1 + len(AgentStepStats().__dict__) + len(WorldStepStats().__dict__)
+            1 + len(AgentStepStats().__dict__) + len(WorldV2StepStats().__dict__)
         )
 
         fig = sp.make_subplots(
@@ -1221,7 +1221,7 @@ if __name__ == "__main__":
             cols=1,
             subplot_titles=["act_time"]
             + list(AgentStepStats().__dict__.keys())
-            + list(WorldStepStats().__dict__.keys()),
+            + list(WorldV2StepStats().__dict__.keys()),
         )
 
         for plot in namo_scatter_plots.act_time:
@@ -1237,7 +1237,7 @@ if __name__ == "__main__":
                 for plot in getattr(snamo_scatter_plots.agents_stats, criterion):
                     fig.append_trace(plot, row=1 + 1 + index, col=1)
 
-        for index, criterion in enumerate(WorldStepStats().__dict__.keys()):
+        for index, criterion in enumerate(WorldV2StepStats().__dict__.keys()):
             for plot in getattr(namo_scatter_plots.world_stats, criterion):
                 fig.append_trace(
                     plot,

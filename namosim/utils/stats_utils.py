@@ -7,10 +7,8 @@ from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
-from namosim.world.social_topological_occupation_cost_grid import (
-    compute_social_costmap,
-)
-from namosim.world.world import World
+from namosim.world.social_topological_occupation_cost_grid import compute_social_costmap
+from namosim.world.world_v2 import WorldV2
 
 
 def get_reallocated_obstacles(init_world, end_world):
@@ -129,7 +127,7 @@ def get_connectivity_stats(
 
 
 def get_social_costs_stats(
-    world: World, entities_to_compute_social_cost_for, ros_publisher: RosPublisher
+    world: WorldV2, entities_to_compute_social_cost_for, ros_publisher: RosPublisher
 ):
     polygons = {
         uid: e.polygon

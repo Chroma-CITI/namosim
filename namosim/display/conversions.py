@@ -22,7 +22,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.world.robot as namosim_robot
-from namosim.data_models import PoseModel
+from namosim.data_models_v2 import PoseModel
 from namosim.display import tf_replacement
 
 

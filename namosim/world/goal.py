@@ -1,6 +1,6 @@
 from shapely import Polygon
 
-from namosim.data_models import PoseModel
+from namosim.data_models_v2 import PoseModel
 
 
 class Goal:
