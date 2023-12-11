@@ -86,6 +86,5 @@ class WorldV2Things(BaseModel):
 class WorldV2Model(BaseModel):
     discretization_data: DiscretizationDataModel
     files: WorldV2FilesModel
-    geometry_scale: float
     things: WorldV2Things
     no_scaling_workaround: t.Optional[bool] = None

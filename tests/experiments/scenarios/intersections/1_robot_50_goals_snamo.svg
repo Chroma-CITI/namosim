@@ -16,7 +16,7 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <namo_config cell_size="15.0">
+  <namo_config cell_size="5.0">
     <agent agent_id="robot_0">
       <goal goal_id="robot_0_goal_0" />
       <goal goal_id="robot_0_goal_1" />
@@ -69,62 +69,8 @@
       <goal goal_id="robot_0_goal_48" />
       <goal goal_id="robot_0_goal_49" />
       <behavior type="stilman_2005_behavior">
-        <parameters robot_translation_unit_length="10.0" manipulation_search_procedure="BFS" />
-      </behavior>
-    </agent>
-    <agent agent_id="robot_1">
-      <goal goal_id="robot_1_goal_0" />
-      <goal goal_id="robot_1_goal_1" />
-      <goal goal_id="robot_1_goal_2" />
-      <goal goal_id="robot_1_goal_3" />
-      <goal goal_id="robot_1_goal_4" />
-      <goal goal_id="robot_1_goal_5" />
-      <goal goal_id="robot_1_goal_6" />
-      <goal goal_id="robot_1_goal_7" />
-      <goal goal_id="robot_1_goal_8" />
-      <goal goal_id="robot_1_goal_9" />
-      <goal goal_id="robot_1_goal_10" />
-      <goal goal_id="robot_1_goal_11" />
-      <goal goal_id="robot_1_goal_12" />
-      <goal goal_id="robot_1_goal_13" />
-      <goal goal_id="robot_1_goal_14" />
-      <goal goal_id="robot_1_goal_15" />
-      <goal goal_id="robot_1_goal_16" />
-      <goal goal_id="robot_1_goal_17" />
-      <goal goal_id="robot_1_goal_18" />
-      <goal goal_id="robot_1_goal_19" />
-      <goal goal_id="robot_1_goal_20" />
-      <goal goal_id="robot_1_goal_21" />
-      <goal goal_id="robot_1_goal_22" />
-      <goal goal_id="robot_1_goal_23" />
-      <goal goal_id="robot_1_goal_24" />
-      <goal goal_id="robot_1_goal_25" />
-      <goal goal_id="robot_1_goal_26" />
-      <goal goal_id="robot_1_goal_27" />
-      <goal goal_id="robot_1_goal_28" />
-      <goal goal_id="robot_1_goal_29" />
-      <goal goal_id="robot_1_goal_30" />
-      <goal goal_id="robot_1_goal_31" />
-      <goal goal_id="robot_1_goal_32" />
-      <goal goal_id="robot_1_goal_33" />
-      <goal goal_id="robot_1_goal_34" />
-      <goal goal_id="robot_1_goal_35" />
-      <goal goal_id="robot_1_goal_36" />
-      <goal goal_id="robot_1_goal_37" />
-      <goal goal_id="robot_1_goal_38" />
-      <goal goal_id="robot_1_goal_39" />
-      <goal goal_id="robot_1_goal_40" />
-      <goal goal_id="robot_1_goal_41" />
-      <goal goal_id="robot_1_goal_42" />
-      <goal goal_id="robot_1_goal_43" />
-      <goal goal_id="robot_1_goal_44" />
-      <goal goal_id="robot_1_goal_45" />
-      <goal goal_id="robot_1_goal_46" />
-      <goal goal_id="robot_1_goal_47" />
-      <goal goal_id="robot_1_goal_48" />
-      <goal goal_id="robot_1_goal_49" />
-      <behavior type="stilman_2005_behavior">
-        <parameters robot_translation_unit_length="10.0" manipulation_search_procedure="BFS" />
+        <parameters robot_translation_unit_length="30.0" manipulation_search_procedure="BFS"
+          robot_rotation_unit_angle="60.0" />
       </behavior>
     </agent>
   </namo_config>

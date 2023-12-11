@@ -9,6 +9,7 @@ import numpy.typing as npt
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Point, Pose, PoseArray, Quaternion, Vector3
 from grid_map_msgs.msg import GridMap
+from shapely import LineString
 from shapely.geometry import Polygon
 from std_msgs.msg import (
     ColorRGBA,
@@ -63,7 +64,7 @@ def plan_to_markerarray(
             p_id=p_id,
             frame_id=frame_id,
             color=current_color,
-            line_width=robot.min_inflation_radius / 4,
+            line_width=robot.min_inflation_radius / 5,
             z_index=cfg.path_line_z_index,
             stamp=stamp,
         )
@@ -369,7 +370,9 @@ def make_delete_all_marker(frame_id: str, ns: str = "", stamp: Time = Time()):
 
 
 def path_to_polygon(
-    points: t.List[npt.NDArray[np.float_]], line_width: float
+    points: t.List[npt.NDArray[np.float_]],
+    line_width: float,
+    cap_stype: t.Literal["round"] | t.Literal["square"] | t.Literal["flat"] = "round",
 ) -> Polygon:
     """Converts a sequence of points representing a navigation path into a polygonal "line strip".
 
@@ -382,66 +385,21 @@ def path_to_polygon(
     :rtype: Polygon
     """
 
-    # remove z-coord, if any
-    points = [x[:2] for x in points]
-
-    # remove duplicate points
-    seen = set()
-    dedup_points = []
-    for p in points:
-        hp = p[0], p[1]
-        if hp not in seen:
-            seen.add(hp)
-            dedup_points.append(p)
-    points = dedup_points
-
     if len(points) < 2:
         raise Exception("Less than two points")
 
-    def get_z_ortho(x: npt.NDArray[t.Any]) -> npt.NDArray[t.Any]:
-        """Return a unit-length vector orthogonal to both x and the z-axis"""
-        z = np.array((0.0, 0.0, 1.0))
-        ortho = np.cross((x[0], x[1], 0.0), z)
-        return (ortho / np.linalg.norm(ortho))[:2]
+    # remove z-coord, if any
+    points = [x[:2] for x in points]
 
-    forward_coords = []
-    backward_coords = []
+    # remove duplicates
+    dedup_points = []
+    seen = set()
+    for p in points:
+        p = (p[0], p[1])
+        if p not in seen:
+            seen.add(p)
+            dedup_points.append(p)
 
-    if len(points) == 2:
-        a, b = points
-        o = get_z_ortho(b - a) * line_width / 2.0
-        forward_coords.extend([a + o, b + o])
-        backward_coords.extend([a - o, b - o])
-    else:
-        for i in range(len(points) - 2):
-            a = points[i]
-            b = points[i + 1]
-            c = points[i + 2]
-
-            a_to_b = b - a
-            b_to_c = c - b
-            o1 = get_z_ortho(a_to_b)
-            o2 = get_z_ortho(b_to_c)
-            o = o1 + o2
-            norm = np.linalg.norm(o)
-            if norm > 0:
-                o /= norm  # type: ignore
-            o *= line_width / 2.0
-
-            # Don't forget to add the first point!
-            if i == 0:
-                forward_coords.append(a + o)
-                backward_coords.append(a - o)
-
-            forward_coords.append(b + o)
-            backward_coords.append(b - o)
-
-            # Don't forget to add the last point!
-            if i == len(points) - 3:
-                forward_coords.append(c + o)
-                backward_coords.append(c - o)
-
-    backward_coords.reverse()
-    backward_coords.append(forward_coords[0])
-
-    return Polygon(forward_coords + backward_coords)
+    linestr = LineString(coordinates=dedup_points)
+    buf = linestr.buffer(distance=line_width / 2.0, cap_style=cap_stype)
+    return buf

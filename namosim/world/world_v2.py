@@ -32,7 +32,6 @@ class WorldV2:
         entity_to_agent: t.Optional[bidict[int, int]] = None,
         taboo_zones: t.Optional[t.Dict[int, Taboo]] = None,
         goals: t.Optional[t.Dict[int, Goal]] = None,
-        geometry_scale: float = 1.0,
         init_geometry_filename: str = "world_name_placeholder.svg",
         init_geometry_file: t.Optional[minidom.Document] = None,
     ):
@@ -41,10 +40,6 @@ class WorldV2:
         self.entity_to_agent = entity_to_agent or bidict()
         self.discretization_data = discretization_data
         self.agent_configs = ({x.agent_id: x for x in config.agents},)
-
-        self.geometry_scale = geometry_scale
-        self.scaling_value = self.geometry_scale
-
         self.init_geometry_file = init_geometry_file
         if init_geometry_file:
             conversion.set_all_id_attributes_as_ids(init_geometry_file)
@@ -123,7 +118,6 @@ class WorldV2:
         )
 
         world = cls(
-            geometry_scale=1.0,
             init_geometry_filename=svg_filename,
             init_geometry_file=svg_doc,
             discretization_data=dd,
@@ -302,7 +296,6 @@ class WorldV2:
                         entity.name,
                         style,
                         svg_data,
-                        scale=self.scaling_value,
                         map_width=self.discretization_data.width,
                         map_height=self.discretization_data.height,
                     )
@@ -317,7 +310,6 @@ class WorldV2:
                         conversion.ROBOT_ENTITY_STYLE,
                         svg_data,
                         robot_group,
-                        scale=self.scaling_value,
                         map_width=self.discretization_data.width,
                         map_height=self.discretization_data.height,
                     )
@@ -331,12 +323,11 @@ class WorldV2:
                         points=[point_a, point_b], line_width=radius / 4
                     )
                     conversion.add_shapely_geometry_to_svg(
-                        poly,
-                        entity.name + "_direction",
-                        conversion.ORIENTATION_STYLE,
-                        svg_data,
-                        robot_group,
-                        scale=self.scaling_value,
+                        shapely_geometry=poly,
+                        uname=entity.name + "_direction",
+                        style=conversion.ORIENTATION_STYLE,
+                        svg_data=svg_data,
+                        svg_group=robot_group,
                         map_width=self.discretization_data.width,
                         map_height=self.discretization_data.height,
                     )
@@ -427,7 +418,6 @@ class WorldV2:
             discretization_data=copy.deepcopy(self.discretization_data),
             taboo_zones=copy.deepcopy(self.taboo_zones),
             goals=copy.deepcopy(self.goals),
-            geometry_scale=self.geometry_scale,
             init_geometry_filename=self.init_geometry_filename,
             init_geometry_file=self.init_geometry_file,
         )

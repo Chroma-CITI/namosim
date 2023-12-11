@@ -6,7 +6,7 @@ import namosim.config as config
 from namosim.simulator import Simulator
 
 
-class MultiRobotTests(unittest.TestCase):
+class ExperimentsTests(unittest.TestCase):
     def setUp(self):
         self.scenarios_folder = os.path.join(__file__, "../scenarios")
 
@@ -36,12 +36,30 @@ class MultiRobotTests(unittest.TestCase):
         sim.run()
         assert True
 
-    def test_after_the_feast_2_robots_50_goals(self):
+    def test_intersections_1_robots_50_goals_snamo(self):
         config.DISPLAY_WINDOW = True
         sim = Simulator(
             simulation_file_path=os.path.join(
                 self.scenarios_folder,
-                "multi_robot/after_the_feast/2_robots_50_goals.svg",
+                "intersections/1_robot_50_goals_snamo.svg",
+            )
+        )
+
+        start_time = time.perf_counter()
+        sim.run()
+        end_time = time.perf_counter()
+
+        elapsed_time = end_time - start_time
+
+        print(f"Execution time: {elapsed_time} seconds")
+        assert True
+
+    def test_intersections_2_robots_50_goals_snamo(self):
+        config.DISPLAY_WINDOW = True
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder,
+                "intersections/2_robots_50_goals_snamo.svg",
             )
         )
 

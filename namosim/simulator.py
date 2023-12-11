@@ -912,14 +912,13 @@ class Simulator:
         svg_data.childNodes[0].appendChild(new_group)
         for polygon in trace_polygons:
             conversion.add_shapely_geometry_to_svg(
-                polygon,
-                "goal_generated_" + str(goal_counter),
-                conversion.OBSTACE_TRACE_STYLE,
-                svg_data,
-                new_group,
-                self.ref_world.scaling_value,
-                self.ref_world.discretization_data.width,
-                self.ref_world.discretization_data.height,
+                shapely_geometry=polygon,
+                uname="goal_generated_" + str(goal_counter),
+                style=conversion.OBSTACE_TRACE_STYLE,
+                svg_data=svg_data,
+                svg_group=new_group,
+                map_width=self.ref_world.discretization_data.width,
+                map_height=self.ref_world.discretization_data.height,
             )
         del trace_polygons[: len(trace_polygons)]
 
