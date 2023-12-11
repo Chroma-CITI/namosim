@@ -263,7 +263,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
-        self.trans_mult = 1.0 / self.world.discretization_data.res * 10.0
+        self.trans_mult = 1.0
         self.rot_mult = 1.0
 
         # - S-NAMO parameters

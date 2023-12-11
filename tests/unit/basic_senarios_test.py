@@ -20,6 +20,12 @@ class BasicTest(unittest.TestCase):
             sim.simulation_log[7].message
             == "Agent robot_0 finished executing all its goals."
         )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
 
     def test_minimal_stilman_only(self):
         """Tests a minimal scenario with Stilman-only behavior"""
@@ -32,6 +38,12 @@ class BasicTest(unittest.TestCase):
         assert (
             sim.simulation_log[7].message
             == "Agent robot_0 finished executing all its goals."
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
         )
 
     def test_minimal_nav_only(self):
@@ -46,6 +58,12 @@ class BasicTest(unittest.TestCase):
             sim.simulation_log[7].message
             == "Agent robot_0 finished executing all its goals."
         )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
 
     def test_1_robot_2_goals(self):
         sim = Simulator(
@@ -57,6 +75,12 @@ class BasicTest(unittest.TestCase):
         assert (
             sim.simulation_log[8].message
             == "Agent robot_0 finished executing all its goals."
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
         )
 
     def test_1_robot_2_obstacles(self):
@@ -70,6 +94,12 @@ class BasicTest(unittest.TestCase):
             sim.simulation_log[7].message
             == "Agent robot_0 finished executing all its goals."
         )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
 
     def test_custom(self):
         sim = Simulator(
@@ -79,6 +109,12 @@ class BasicTest(unittest.TestCase):
         assert (
             sim.simulation_log[7].message
             == "Agent robot_0 finished executing all its goals."
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
         )
 
     def test_multi_robot(self):

@@ -104,9 +104,10 @@ class RobotRobotConflict(Conflict):
             )
         )
 
-        s = "{} conflict between robot uid {} () and other robot uid {} ().".format(
+        s = "{} conflict between robot uid {} () and other robot uid {} - {}.".format(
             self.CONFLICT_STRING,
             self.robot_uid,
+            self.other_robot_uid,
             robot_state,
         )
 

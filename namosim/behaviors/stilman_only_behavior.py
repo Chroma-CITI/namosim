@@ -111,7 +111,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
             self.translation_unit_cost / self.translation_unit_length
         )
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
-        self.trans_mult = 1.0 / self.world.discretization_data.res * 10.0
+        self.trans_mult = 1.0
         self.rot_mult = 1.0
 
         # holonomic
