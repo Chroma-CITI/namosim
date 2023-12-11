@@ -1193,27 +1193,31 @@ def polygon_to_subgrid_polygon_and_parameters(polygon, res, grid_pose):
     min_x, min_y, max_x, max_y = polygon.bounds
 
     # Clamp the values to their appropriate cell
-    min_d_x, min_d_y = (
-        int((min_x - grid_pose[0]) / res),
-        int((min_y - grid_pose[1]) / res),
-    )
-    max_d_x, max_d_y = (
-        int(math.ceil((max_x - grid_pose[0]) / res)),
-        int(math.ceil((max_y - grid_pose[1]) / res)),
-    )
+    try:
+        min_d_x, min_d_y = (
+            int((min_x - grid_pose[0]) / res),
+            int((min_y - grid_pose[1]) / res),
+        )
+        max_d_x, max_d_y = (
+            int(math.ceil((max_x - grid_pose[0]) / res)),
+            int(math.ceil((max_y - grid_pose[1]) / res)),
+        )
 
-    # Compute cell width and height of subgrid
-    d_width, d_height = max_d_x - min_d_x + 1, max_d_y - min_d_y + 1
+        # Compute cell width and height of subgrid
+        d_width, d_height = max_d_x - min_d_x + 1, max_d_y - min_d_y + 1
 
-    min_x_bi1s, min_y_bis = (
-        grid_pose[0] + res * float(min_d_x),
-        grid_pose[1] + res * float(min_d_y),
-    )
-    subgrid_projected_polygon = affinity.translate(
-        polygon, -grid_pose[0] - min_d_x * res, -grid_pose[1] - min_d_y * res
-    )
+        min_x_bi1s, min_y_bis = (
+            grid_pose[0] + res * float(min_d_x),
+            grid_pose[1] + res * float(min_d_y),
+        )
+        subgrid_projected_polygon = affinity.translate(
+            polygon, -grid_pose[0] - min_d_x * res, -grid_pose[1] - min_d_y * res
+        )
 
-    return subgrid_projected_polygon, d_width, d_height, min_d_x, min_d_y
+        return subgrid_projected_polygon, d_width, d_height, min_d_x, min_d_y
+
+    except ValueError as e:
+        raise e
 
 
 NORTH_EAST_CORNER_NEIGHBORS = ((0, 1), (1, 1), (1, 0))

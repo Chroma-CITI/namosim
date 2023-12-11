@@ -5,6 +5,7 @@ import typing as t
 from shapely import Polygon
 from typing_extensions import Self
 
+import namosim.utils.utils as utils
 from namosim.data_models_v2 import PoseModel
 
 
@@ -68,6 +69,7 @@ class Entity:
         self.movability = movability  # Either "unknown", "static", "fixed" or "movable"
         self.style = style
         self.type_ = type_
+        self.circumscribed_radius = utils.get_circumscribed_radius(polygon=polygon)
 
     def within(self, other_entity: Self) -> bool:
         return self.polygon.within(other_entity.polygon)

@@ -13,6 +13,7 @@ from namosim.navigation.conflict import (
     StealingMovableConflict,
     StolenMovableConflict,
 )
+from namosim.navigation.path_type import PathType
 from namosim.utils import collision, utils
 from namosim.world.robot import Robot
 from namosim.world.world_v2 import WorldV2
@@ -23,6 +24,8 @@ class Path:
     Represents a sequence of entity poses and their associated geometries such as covered grid cells,
     convex-swept volumes (CSVs) and bounding-box verticies.
     """
+
+    path_type = PathType.PATH
 
     def __init__(
         self,
@@ -37,6 +40,7 @@ class Path:
         self.cells = cells
         self.csv_polygons = csv_polygons
         self.bb_vertices = bb_vertices or []
+        self.is_transfer = False
 
     # TODO Have these trans and rot precision values be passed from calling functions !
     def is_start_pose(
@@ -57,6 +61,8 @@ class TransferPath:
     """
     Represents a sequence of configurations in which a robot moves (transfers) a particular obstacle.
     """
+
+    path_type: t.Literal[PathType.TRANSFER] = PathType.TRANSFER
 
     def __init__(
         self,
@@ -625,8 +631,15 @@ class TransferPath:
 
 
 class TransitPath:
+    path_type: t.Literal[PathType.TRANSIT] = PathType.TRANSIT
+
     def __init__(
-        self, robot_path, actions, phys_cost=None, social_cost=0.0, weight=1.0
+        self,
+        robot_path: Path,
+        actions: t.List[ba.BasicAction],
+        phys_cost: float | None = None,
+        social_cost: float = 0.0,
+        weight: float = 1.0,
     ):
         if len(robot_path.polygons) != len(robot_path.poses) != len(actions) + 1:
             raise ValueError(
@@ -657,9 +670,9 @@ class TransitPath:
     @classmethod
     def from_poses(
         cls,
-        poses,
-        robot_polygon,
-        robot_pose,
+        poses: t.List[PoseModel],
+        robot_polygon: Polygon,
+        robot_pose: PoseModel,
         phys_cost=None,
         social_cost=0.0,
         weight=1.0,

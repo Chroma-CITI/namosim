@@ -1896,6 +1896,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
             robot_polygon=current_configuration.robot.polygon,
             obstacle_polygon=current_configuration.obstacle.polygon,
             obstacle_pose=current_configuration.obstacle.floating_point_pose,
+            line_width=self.robot.min_inflation_radius / 4,
             res=inflated_grid_by_robot_min.res,
             neighbor_poses=[n.robot.floating_point_pose for n in neighbors],
             ns=self._robot_name,

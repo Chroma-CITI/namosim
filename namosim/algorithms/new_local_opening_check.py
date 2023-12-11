@@ -45,7 +45,10 @@ def check_new_local_opening(
         return False, init_blocking_areas, init_entity_inflated_polygon
 
     ros_publisher.publish_diameter_inflated_polygons(
-        init_entity_inflated_polygon, target_entity_inflated_polygon, ns=ns
+        init_entity_inflated_polygon,
+        target_entity_inflated_polygon,
+        line_width=inflation_radius / 10,
+        ns=ns,
     )
 
     # Build blocking areas

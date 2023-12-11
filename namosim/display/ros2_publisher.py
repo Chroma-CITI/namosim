@@ -243,17 +243,16 @@ class WorldV2Observer(RosObserver):
                     )
 
                 markers = markers + self.entity_to_markers(
-                    entity,
-                    namespace,
-                    entity.uid,
-                    cfg.main_frame_id,
-                    entity_color,
-                    entity_color,
-                    colors.text_color_on_filling,
-                    colors.text_color_on_empty,
-                    cfg.entities_z_index,
-                    cfg.border_width,
-                    cfg.text_height,
+                    entity=entity,
+                    namespace=namespace,
+                    p_id=entity.uid,
+                    frame_id=cfg.main_frame_id,
+                    color=entity_color,
+                    border_color=entity_color,
+                    text_color_filling=colors.text_color_on_filling,
+                    text_color_empty=colors.text_color_on_empty,
+                    z_index=cfg.entities_z_index,
+                    text_height=entity.circumscribed_radius / 5,
                     add_border=False,
                     add_text=False,
                 )
@@ -262,6 +261,7 @@ class WorldV2Observer(RosObserver):
 
     def entity_to_markers(
         self,
+        *,
         entity: Entity,
         namespace: str,
         p_id: int,
@@ -271,7 +271,6 @@ class WorldV2Observer(RosObserver):
         text_color_filling: ColorRGBA,
         text_color_empty: ColorRGBA,
         z_index: float,
-        line_width: float,
         text_height: float,
         add_filling: bool = True,
         add_border: bool = True,
@@ -301,7 +300,7 @@ class WorldV2Observer(RosObserver):
                     frame_id,
                     border_color,
                     z_index,
-                    line_width,
+                    entity.circumscribed_radius / 4,
                     self.node.get_timestamp(),
                 )
             )
@@ -476,14 +475,17 @@ class GoalObserver(RosObserver):
         )
 
     def _convert(self, **kwargs: t.Any):
-        q_init, q_goal, entity = kwargs["q_init"], kwargs["q_goal"], kwargs["entity"]
+        robot: Robot = kwargs["entity"]
+
+        q_init, q_goal = kwargs["q_init"], kwargs["q_goal"]
+
         if q_goal is None:
             return MarkerArray()
         else:
             polygon_at_goal_pose = affinity.translate(
-                entity.polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1]
+                robot.polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1]
             )
-            color = ColorRGBA(**colors.hex_to_rgba(colors.darken(entity.style.fill)))
+            color = ColorRGBA(**colors.hex_to_rgba(colors.darken(robot.style.fill)))
             marker_array = MarkerArray(
                 markers=[
                     polygon_to_line_strip(
@@ -493,7 +495,7 @@ class GoalObserver(RosObserver):
                         cfg.main_frame_id,
                         color,
                         cfg.fov_z_index,
-                        cfg.border_width,
+                        line_width=robot.min_inflation_radius / 4,
                     )
                 ]
             )
@@ -1012,6 +1014,7 @@ class RosPublisher:  # noqa: F821
         obstacle_polygon: Polygon,
         manip_poses_ids: t.List[int],
         neighbor_poses: t.List[PoseModel],
+        line_width: float,
         res: float,
         ns: str = "",
     ):
@@ -1067,7 +1070,7 @@ class RosPublisher:  # noqa: F821
                 cfg.main_frame_id,
                 colors.flashy_cyan,
                 cfg.entities_z_index,
-                cfg.border_width,
+                line_width=line_width,
             )
             current_obstacle_polygon_marker = self.polygon_to_line_strip(
                 obstacle_polygon,
@@ -1076,7 +1079,7 @@ class RosPublisher:  # noqa: F821
                 cfg.main_frame_id,
                 colors.flashy_dark_cyan,
                 cfg.entities_z_index,
-                cfg.border_width,
+                line_width=line_width,
             )
             marker_array.markers.append(current_robot_polygon_marker)  # type: ignore
             marker_array.markers.append(current_obstacle_polygon_marker)  # type: ignore
@@ -1214,8 +1217,10 @@ class RosPublisher:  # noqa: F821
     # region ROBOT SIM
     def publish_sim(
         self,
+        *,
         robot_polygon: Polygon,
         obs_polygon: Polygon,
+        line_width: float,
         namespace: str = "/init",
         robot_name: str = "",
     ):
@@ -1245,7 +1250,7 @@ class RosPublisher:  # noqa: F821
                         cfg.main_frame_id,
                         robot_color,
                         cfg.entities_z_index,
-                        cfg.border_width,
+                        line_width=line_width,
                     ),
                     self.polygon_to_line_strip(
                         obs_polygon,
@@ -1254,7 +1259,7 @@ class RosPublisher:  # noqa: F821
                         cfg.main_frame_id,
                         obs_color,
                         cfg.entities_z_index,
-                        cfg.border_width,
+                        line_width=line_width,
                     ),
                 ]
             )
@@ -1313,6 +1318,7 @@ class RosPublisher:  # noqa: F821
         self,
         init_entity_inflated_polygon: Polygon,
         target_entity_inflated_polygon: Polygon,
+        line_width: float,
         ns: str = "",
     ):
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
@@ -1326,7 +1332,7 @@ class RosPublisher:  # noqa: F821
                         cfg.main_frame_id,
                         colors.init_diameter_inflated_polygon_color,
                         cfg.entities_z_index,
-                        cfg.border_width / 2.0,
+                        line_width=line_width,
                     ),
                     self.polygon_to_line_strip(
                         target_entity_inflated_polygon,
@@ -1335,7 +1341,7 @@ class RosPublisher:  # noqa: F821
                         cfg.main_frame_id,
                         colors.target_diameter_inflated_polygon_color,
                         cfg.entities_z_index,
-                        cfg.border_width / 2.0,
+                        line_width=line_width,
                     ),
                 ]
             )
@@ -1353,7 +1359,9 @@ class RosPublisher:  # noqa: F821
                 ),
             )
 
-    def publish_debug_polygons(self, polygons: t.List[Polygon], ns: str = ""):
+    def publish_debug_polygons(
+        self, polygons: t.List[Polygon], line_width: float, ns: str = ""
+    ):
         # FIXME Not implemented correctly in ROS...
         #  https://answers.ros.org/question/263031/delete-all-rviz-markers-in-a-specific-namespace/
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
@@ -1364,7 +1372,7 @@ class RosPublisher:  # noqa: F821
                 cfg.main_frame_id,
                 colors.robot_color,
                 cfg.entities_z_index,
-                cfg.border_width / 5.0,
+                line_width=line_width,
             )
             self.publish(full_topic, marker_array)
 

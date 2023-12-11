@@ -1997,7 +1997,7 @@ class Stilman2005Behavior(BaselineBehavior):
         inflated_grid_by_obstacle = BinaryInflatedOccupancyGrid(
             other_entities_polygons,
             res,
-            obstacle_min_inflation_radius - utils.SQRT_OF_2 * res,
+            max(obstacle_min_inflation_radius - utils.SQRT_OF_2 * res, 0.0),
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
             params=inflated_grid_by_robot_max.params,
         )
@@ -2058,9 +2058,10 @@ class Stilman2005Behavior(BaselineBehavior):
         )
         if best_transfer_end_configuration is not None:
             ros_publisher.publish_sim(
-                best_transfer_end_configuration.robot.polygon,
-                best_transfer_end_configuration.obstacle.polygon,
-                "/target",
+                robot_polygon=best_transfer_end_configuration.robot.polygon,
+                obs_polygon=best_transfer_end_configuration.obstacle.polygon,
+                line_width=robot.circumscribed_radius / 4,
+                namespace="/target",
                 robot_name=self._robot_name,
             )
 
@@ -3391,6 +3392,7 @@ class Stilman2005Behavior(BaselineBehavior):
             robot_polygon=current_configuration.robot.polygon,
             obstacle_polygon=current_configuration.obstacle.polygon,
             obstacle_pose=current_configuration.obstacle.floating_point_pose,
+            line_width=self.robot.min_inflation_radius / 4,
             res=inflated_grid_by_robot_min.res,
             neighbor_poses=[n.robot.floating_point_pose for n in neighbors],
             ns=self._robot_name,

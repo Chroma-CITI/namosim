@@ -50,7 +50,7 @@ class Robot(Entity):
         self.min_inflation_radius = self.compute_inflation_radius()
 
     def update_world_from_sensors(
-        self, reference_world: world.WorldV2, target_world: world.WorldV2
+        self, reference_world: "world.WorldV2", target_world: "world.WorldV2"
     ):
         added_uids: set[int] = set()
         updated_uids: set[int] = set()

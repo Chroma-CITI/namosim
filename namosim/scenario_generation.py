@@ -30,7 +30,7 @@ def get_map_bounds(polygons: t.Dict[int, Polygon]):
 
 
 def sample_poses_uniform(
-    obstacles_polygons,
+    obstacles_polygons: t.Dict[int, Polygon],
     robot_polygon: Polygon,
     robot_pose: PoseModel,
     nb_poses: int = 1,
