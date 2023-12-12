@@ -73,8 +73,8 @@ class Timer:
 class DynamicPlan(Plan):
     DEBUGGING_WAIT_TIME_GENERATOR = []
 
-    def __init__(self):
-        Plan.__init__(self)
+    def __init__(self, robot_uid: int):
+        Plan.__init__(self, robot_uid=robot_uid)
         self.update_count = 0
         """
         The number of times the plan was updated
@@ -163,7 +163,9 @@ class DynamicPlan(Plan):
                         step_count,
                     )
                 )
-                self.update_plan(Plan([]), step_count)
+                self.update_plan(
+                    Plan(robot_uid=self.robot_uid, path_components=[]), step_count
+                )
             else:
                 return ba.Wait()
         else:
@@ -398,7 +400,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._q_goal = self._navigation_goals.pop(
                     0
                 )  # TODO Stop popping goals, use an index
-                self._p_opt = DynamicPlan()
+                self._p_opt = DynamicPlan(robot_uid=self.robot.uid)
                 self.goal_to_plans[self._q_goal] = self._p_opt
             else:
                 return ba.GoalsFinished()
@@ -495,7 +497,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._q_goal = self._navigation_goals.pop(
                     0
                 )  # TODO Stop popping goals, use an index
-                self._p_opt = DynamicPlan()  # pyright: ignore[reportIncompatibleMethodOverride]
+                self._p_opt = DynamicPlan(robot_uid=self.robot.uid)  # pyright: ignore[reportIncompatibleMethodOverride]
                 self.goal_to_plans[self._q_goal] = self._p_opt
             else:
                 return ThinkResult(
@@ -724,7 +726,12 @@ class Stilman2005Behavior(BaselineBehavior):
                             )
                         )
                         plan.update_plan(
-                            Plan([evasion_path], goal, self._robot_uid), step_count
+                            Plan(
+                                robot_uid=self.robot.uid,
+                                path_components=[evasion_path],
+                                goal=goal,
+                            ),
+                            step_count,
                         )
                         return ThinkResult(
                             next_action=plan.pop_next_action(),
@@ -1149,7 +1156,11 @@ class Stilman2005Behavior(BaselineBehavior):
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
             # TODO FIX COST COMPUTATION TO FIT SAME MODEL AS MANIP SEARCH !
             ros_publisher.cleanup_robot_sim(ns=self._robot_name)
-            return Plan([simple_path_to_goal], r_f, self._robot_uid)
+            return Plan(
+                path_components=[simple_path_to_goal],
+                goal=r_f,
+                robot_uid=self._robot_uid,
+            )
 
         if ccs_data is None:
             ccs_data = connectivity.init_ccs_for_grid(
@@ -1178,13 +1189,19 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
         if inflated_grid_by_robot_max.cell_to_obstacle_id(robot_cell) == -1:
-            return Plan(plan_error="start_cell_in_several_movable_obstacles_error")
+            return Plan(
+                plan_error="start_cell_in_several_movable_obstacles_error",
+                robot_uid=self.robot.uid,
+            )
 
         if (
             static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0
             or static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0
         ):
-            return Plan(plan_error="start_or_goal_cell_in_static_obstacle_error")
+            return Plan(
+                plan_error="start_or_goal_cell_in_static_obstacle_error",
+                robot_uid=self.robot.uid,
+            )
 
         # if inflated_grid_by_robot_max.grid[goal_cell[0]][goal_cell[1]] > 1: Should not be necessary thanks to first check
         #     return Plan(plan_error="goal_cell_in_more_than_one_movable_obstacle_error")
@@ -1329,9 +1346,11 @@ class Stilman2005Behavior(BaselineBehavior):
                     plan_components: t.List[TransitPath | TransferPath] = (
                         [tho_n, tho_m] if tho_n.actions else [tho_m]
                     )
-                    return Plan(plan_components, r_f, self._robot_uid).append(
-                        future_plan
-                    )
+                    return Plan(
+                        path_components=plan_components,
+                        goal=r_f,
+                        robot_uid=self._robot_uid,
+                    ).append(future_plan)
 
             # Extra check for when the goal is in a movable obstacle that we could not find how to move
             if c_1 == 0:
@@ -1361,7 +1380,10 @@ class Stilman2005Behavior(BaselineBehavior):
             )
 
         ros_publisher.cleanup_robot_sim(ns=self._robot_name)
-        return Plan(plan_error="no_plan_found_error")
+        return Plan(
+            plan_error="no_plan_found_error",
+            robot_uid=self.robot.uid,
+        )
 
     def rch_get_neighbors(
         self,

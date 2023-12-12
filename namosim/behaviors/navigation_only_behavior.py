@@ -62,7 +62,9 @@ class NavigationOnlyBehavior(BaselineBehavior):
         if self._q_goal is None:
             if self._navigation_goals:
                 self._q_goal = self._navigation_goals.pop(0)
-                self._p_opt = Plan([], self._q_goal)
+                self._p_opt = Plan(
+                    robot_uid=self.robot.uid, path_components=[], goal=self._q_goal
+                )
             else:
                 return ThinkResult(
                     next_action=ba.GoalsFinished(),
@@ -110,7 +112,9 @@ class NavigationOnlyBehavior(BaselineBehavior):
                 has_conflicts=False,
             )
 
-        self._p_opt = Plan([path], goal=self._q_goal, robot_uid=self._robot_uid)
+        self._p_opt = Plan(
+            path_components=[path], goal=self._q_goal, robot_uid=self._robot_uid
+        )
         self.goal_to_plans[self._q_goal] = self._p_opt
 
         return ThinkResult(

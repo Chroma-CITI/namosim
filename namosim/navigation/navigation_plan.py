@@ -26,9 +26,10 @@ from namosim.world.world import World
 class Plan:
     def __init__(
         self,
+        *,
+        robot_uid: int,
         path_components: t.List[t.Union[TransitPath, TransferPath]] = [],
         goal: t.Optional[PoseModel] = None,
-        robot_uid: t.Optional[int] = None,
         plan_error: t.Optional[str] = None,
     ):
         self.path_components = path_components
@@ -190,20 +191,20 @@ class Plan:
                     # - or if another path component needs to move them (check_start_pose)
                     previously_moved_entities_uids.add(path.obstacle_uid)
                     conflicts += path.get_conflicts(
-                        self.robot_uid,
-                        world,
-                        inflated_grid_by_robot,
-                        other_entities_polygons,
-                        other_entities_aabb_tree,
-                        other_entities_polygons_with_encompassing_circles,
-                        other_entities_with_encompassing_circles_aabb_tree,
-                        encompassing_circle_uid_to_robot_uid,
-                        previously_moved_entities_uids,
-                        has_first_action,
-                        shared_horizon,
-                        apply_strict_horizon,
-                        exit_early_for_any_conflict,
-                        exit_early_only_for_long_term_conflicts,
+                        robot_uid=self.robot_uid,
+                        world=world,
+                        inflated_grid_by_robot=inflated_grid_by_robot,
+                        other_entities_polygons=other_entities_polygons,
+                        other_entities_aabb_tree=other_entities_aabb_tree,
+                        other_entities_polygons_with_encompassing_circles=other_entities_polygons_with_encompassing_circles,
+                        other_entities_with_encompassing_circles_aabb_tree=other_entities_with_encompassing_circles_aabb_tree,
+                        encompassing_circle_uid_to_robot_uid=encompassing_circle_uid_to_robot_uid,
+                        previously_moved_entities_uids=previously_moved_entities_uids,
+                        has_first_action=has_first_action,
+                        shared_horizon=shared_horizon,
+                        apply_strict_horizon=apply_strict_horizon,
+                        exit_early_for_any_conflict=exit_early_for_any_conflict,
+                        exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
                         rp=rp,
                         robot_name=robot_name,
                     )
