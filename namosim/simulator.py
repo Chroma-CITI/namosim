@@ -1056,7 +1056,7 @@ class Simulator:
         self,
         agent_uid_to_next_action: t.Dict[int, ba.BasicAction],
         step_count: int,
-        ignore_collisions: bool = False,
+        ignore_collisions: bool = True,
     ) -> t.Dict[int, ar.ActionResult]:
         """
         Processes agent actions and produce the actions results
