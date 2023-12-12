@@ -20,6 +20,7 @@ class BaseBehaviorConfigModel(BaseXmlModel, tag="behavior"):
 class StilmanOnlyParametersModel(BaseXmlModel):
     use_social_cost: bool = attr(default=False)
     robot_translation_unit_length: float = attr()
+    robot_rotation_unit_angle: float = attr(default=30)
 
 
 class StilmanOnlyBehaviorConfigModel(BaseBehaviorConfigModel):

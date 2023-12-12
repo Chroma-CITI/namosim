@@ -105,7 +105,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
         self.rotation_unit_cost = 1.0
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         self.angular_res = 5.0
-        self.rotation_unit_angle = 60.0
+        self.rotation_unit_angle = self.params.robot_rotation_unit_angle
         self.translation_unit_length = self.params.robot_translation_unit_length
         self.translation_factor = (
             self.translation_unit_cost / self.translation_unit_length

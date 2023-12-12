@@ -70,7 +70,7 @@
       <goal goal_id="robot_0_goal_49" />
       <behavior type="stilman_2005_behavior">
         <parameters robot_translation_unit_length="30.0" manipulation_search_procedure="BFS"
-          robot_rotation_unit_angle="60.0" />
+          robot_rotation_unit_angle="30.0" />
       </behavior>
     </agent>
   </namo_config>
