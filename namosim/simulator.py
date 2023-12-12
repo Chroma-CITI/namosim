@@ -443,7 +443,7 @@ class Simulator:
                     step_count=step_count,
                 )
             else:
-                while len(active_agents) > 0:
+                while len(active_agents) > 0 and self.run_active:
                     (active_agents, trace_polygons, step_count) = self.step(
                         active_agents=active_agents,
                         trace_polygons=trace_polygons,
