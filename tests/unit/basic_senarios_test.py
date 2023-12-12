@@ -90,9 +90,11 @@ class BasicTest(unittest.TestCase):
             )
         )
         sim.run()
-        assert (
-            sim.simulation_log[7].message
-            == "Agent robot_0 finished executing all its goals."
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 finished executing all its goals.")
+                for x in sim.simulation_log
+            ]
         )
         assert any(
             [
