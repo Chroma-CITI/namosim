@@ -250,7 +250,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
         self.angular_res = parameters.collision_check_angular_res
-        self.rotation_unit_angle = 60.0  # parameters["robot_rotation_unit_angle"]
+        self.rotation_unit_angle = parameters.robot_rotation_unit_angle
         self.translation_unit_length = parameters.robot_translation_unit_length
         self.forbid_rotations = parameters.forbid_rotations
         self.translation_factor = (
@@ -1993,7 +1993,7 @@ class Stilman2005Behavior(BaselineBehavior):
         inflated_grid_by_obstacle = BinaryInflatedOccupancyGrid(
             other_entities_polygons,
             res,
-            max(obstacle_min_inflation_radius - utils.SQRT_OF_2 * res, 0.0),
+            obstacle_min_inflation_radius - utils.SQRT_OF_2 * res,
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
             params=inflated_grid_by_robot_max.params,
         )
