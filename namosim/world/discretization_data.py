@@ -21,7 +21,6 @@ class DiscretizationData:
         self.height = height
         self.d_width = d_width
         self.d_height = d_height
-
         self.saved_hash = self.__hash__()
 
     def __key(self):

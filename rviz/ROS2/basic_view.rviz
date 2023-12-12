@@ -31,6 +31,7 @@ Panels:
         - /namosim1/robot_11/sim1
         - /namosim1/robot_11/stilman_rch1
         - /namosim1/robot_11/stilman_rch1/close_set1
+        - /namosim1/Grid1/Offset1
       Splitter Ratio: 0.5
     Tree Height: 1070
   - Class: rviz_common/Selection
@@ -54,24 +55,6 @@ Panels:
 Visualization Manager:
   Class: ""
   Displays:
-    - Alpha: 0.5
-      Cell Size: 1
-      Class: rviz_default_plugins/Grid
-      Color: 160; 160; 164
-      Enabled: true
-      Line Style:
-        Line Width: 0.029999999329447746
-        Value: Lines
-      Name: Grid
-      Normal Cell Count: 0
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Plane: XY
-      Plane Cell Count: 10
-      Reference Frame: <Fixed Frame>
-      Value: true
     - Class: rviz_common/Group
       Displays:
         - Class: rviz_common/Group
@@ -394,8 +377,6 @@ Visualization Manager:
                 /rch_close_set: true
                 /rch_current_cell: true
                 /rch_current_cell_neighbors: true
-                /target/obstacle/polygon: true
-                /target/robot/polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -1013,6 +994,24 @@ Visualization Manager:
               Value: true
           Enabled: false
           Name: robot_1
+        - Alpha: 0.5
+          Cell Size: 5
+          Class: rviz_default_plugins/Grid
+          Color: 160; 160; 164
+          Enabled: false
+          Line Style:
+            Line Width: 0.029999999329447746
+            Value: Lines
+          Name: Grid
+          Normal Cell Count: 0
+          Offset:
+            X: 0
+            Y: 0
+            Z: 0
+          Plane: XY
+          Plane Cell Count: 10
+          Reference Frame: <Fixed Frame>
+          Value: false
       Enabled: true
       Name: namosim
   Enabled: true
@@ -1060,7 +1059,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0.009999999776482582
+      Angle: 0
       Class: rviz_default_plugins/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
@@ -1070,7 +1069,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 1.5629545450210571
+      Scale: 7.2022600173950195
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
       X: 0

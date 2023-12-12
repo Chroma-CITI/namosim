@@ -723,6 +723,7 @@ class RosPublisher:  # noqa: F821
             world=world, robot_uid=robot_uid
         )
         self.observers[self.sim_costmap_topic].update(world=world, robot_uid=robot_uid)
+        world.discretization_data.d_height
 
     def cleanup_sim_world(self):
         if not cfg.deactivate_gui:

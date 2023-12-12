@@ -18,7 +18,8 @@
       <agent agent_id="robot_0">
          <goal goal_id="goal_0" />
          <behavior type="stilman_2005_behavior">
-            <parameters use_social_cost="true" robot_translation_unit_length="2.0" />
+            <parameters use_social_cost="true" robot_translation_unit_length="2.0"
+               manipulation_search_procedure="DFS" />
          </behavior>
       </agent>
    </namo_config>

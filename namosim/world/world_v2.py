@@ -6,7 +6,6 @@ from xml.dom import minidom
 import numpy as np
 import shapely.affinity as affinity
 from bidict import bidict
-from shapely import union_all
 from shapely.geometry import LineString, Polygon, box
 from typing_extensions import Self
 
@@ -55,21 +54,26 @@ class WorldV2:
     def load_from_svg(cls, world_svg_path: str) -> Self:
         # Import entire world from svg file
         svg_doc = minidom.parse(world_svg_path)
-        # svg_doc = tree.getroot()
-        # ns = {"svg": "http://www.w3.org/2000/svg"}
-
-        # namo_config_el = svg_doc.findall(".//svg:namo_config", ns)[0]
-        # ET.register_namespace("", "http://www.w3.org/2000/svg")
-        # namo_config_xml = (
-        #     ET.tostring(namo_config_el, xml_declaration=False)
-        #     .decode("utf-8")
-        #     .replace(ns["svg"], "")
-        #     .replace('xmlns=""', "")
-        # )
         config = NamosimConfigModel.from_xml(
             svg_doc.getElementsByTagName("namo_config")[0].toxml()
         )
         svg_filename = os.path.basename(world_svg_path)
+
+        if not svg_doc.documentElement.hasAttribute("viewBox"):
+            raise Exception("svg has no viewBox attribute")
+
+        # Split the viewBox attribute into its components
+        viewbox_values = [
+            float(x) for x in svg_doc.documentElement.getAttribute("viewBox").split()
+        ]
+
+        discretization_data = WorldV2.get_discretization_data(
+            min_x=viewbox_values[0],
+            min_y=viewbox_values[1],
+            max_x=viewbox_values[2],
+            max_y=viewbox_values[3],
+            config=config,
+        )
 
         svg_paths = {}
         for el in svg_doc.getElementsByTagNameNS("*", "path"):
@@ -89,17 +93,14 @@ class WorldV2:
                         svg_id
                     )
                 )
-        # TODO Fix this so that it only accounts for obstacles in polygon layer otherwise, things might get messy with
-        #  direction vectors that get outside of the obstacle polygons
+
         # Center the imported geometries
-        unioned_polygons = t.cast(Polygon, union_all(list(shapely_geoms.values())))
         bounding_box = box(
-            unioned_polygons.bounds[0],
-            unioned_polygons.bounds[1],
-            unioned_polygons.bounds[2],
-            unioned_polygons.bounds[3],
+            viewbox_values[0],
+            viewbox_values[1],
+            viewbox_values[2],
+            viewbox_values[3],
         )
-        # print(str((bounding_box.bounds[2] - bounding_box.bounds[0], bounding_box.bounds[3] - bounding_box.bounds[1])))
         translation_to_center: t.List[float] = [
             bounding_box.centroid.coords[0][0],
             bounding_box.centroid.coords[0][1],
@@ -108,19 +109,14 @@ class WorldV2:
             shapely_geoms[svg_id] = t.cast(
                 Polygon | LineString,
                 affinity.translate(
-                    polygon, -translation_to_center[0], -translation_to_center[1]
+                    polygon, -translation_to_center[0], translation_to_center[1]
                 ),
             )
-
-        # Get map discretization parameters
-        dd = DiscretizationData(
-            res=config.cell_size,
-        )
 
         world = cls(
             init_geometry_filename=svg_filename,
             init_geometry_file=svg_doc,
-            discretization_data=dd,
+            discretization_data=discretization_data,
             config=config,
         )
 
@@ -244,8 +240,6 @@ class WorldV2:
                 )
                 world.goals[goal.uid] = goal
 
-        world.update_dd()
-
         goals_node = svg_doc.getElementById("goals")
         if goals_node:
             goals_node.parentNode.removeChild(goals_node)
@@ -357,38 +351,27 @@ class WorldV2:
                 "Warning, you tried to remove an entity that is not registered in this world !"
             )
 
-    def get_map_bounds(self) -> t.Tuple[float, float, float, float]:
-        if len(self.entities) == 0:
-            raise ValueError(
-                "There are no entities to populate the grid, it can't be created !"
-            )
-        polygons = [entity.polygon for entity in self.entities.values()]
-        map_min_x, map_min_y, map_max_x, map_max_y = (
-            float("inf"),
-            float("inf"),
-            -float("inf"),
-            -float("inf"),
-        )
-        for polygon in polygons:
-            min_x, min_y, max_x, max_y = polygon.bounds
-            map_min_x, map_min_y = min(map_min_x, min_x), min(map_min_y, min_y)
-            map_max_x, map_max_y = max(map_max_x, max_x), max(map_max_y, max_y)
-        return map_min_x, map_min_y, map_max_x, map_max_y
-
-    # TO DEPRECATE
-    def update_dd(self):
-        min_x, min_y, max_x, max_y = self.get_map_bounds()
+    @staticmethod
+    def get_discretization_data(
+        min_x: float,
+        min_y: float,
+        max_x: float,
+        max_y: float,
+        config: NamosimConfigModel,
+    ) -> DiscretizationData:
         width, height = max_x - min_x, max_y - min_y
+        grid_pose = (min_x, min_y, 0.0)
+        d_width = int(round(width / config.cell_size))
+        d_height = int(round(height / config.cell_size))
 
-        self.discretization_data.grid_pose = (min_x, min_y, 0.0)
-        self.discretization_data.width, self.discretization_data.height = width, height
-        self.discretization_data.d_width, self.discretization_data.d_height = (
-            int(round(self.discretization_data.width / self.discretization_data.res)),
-            int(round(self.discretization_data.height / self.discretization_data.res)),
+        return DiscretizationData(
+            res=config.cell_size,
+            grid_pose=grid_pose,
+            width=width,
+            height=height,
+            d_width=d_width,
+            d_height=d_height,
         )
-        new_hash = hash(self.discretization_data)
-        if new_hash != self.discretization_data.saved_hash:
-            self.discretization_data.saved_hash = new_hash
 
     # TO DEPRECATE
     def get_entity_uid_from_name(self, name: str) -> int:
