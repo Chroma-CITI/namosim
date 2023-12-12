@@ -626,7 +626,7 @@ class Simulator:
         }
         for sim_step_result in self.history:
             # Only repeat successful actions when replaying the simulation
-            successful_actions = {
+            successful_actions: t.Dict[int, ba.BasicAction] = {
                 uid: action_result.action
                 for uid, action_result in sim_step_result.action_results.items()
                 if (
@@ -639,7 +639,10 @@ class Simulator:
             }
 
             collision.csv_simulate_simple_kinematics(
-                replay_world, successful_actions, apply=True, ignore_collisions=True
+                world=replay_world,
+                agent_uid_to_next_action=successful_actions,
+                apply=True,
+                ignore_collisions=True,
             )
             for agent_uid, action in successful_actions.items():
                 if isinstance(action, ba.Grab):
@@ -1056,13 +1059,13 @@ class Simulator:
         self,
         agent_uid_to_next_action: t.Dict[int, ba.BasicAction],
         step_count: int,
-        ignore_collisions: bool = False,
+        ignore_collisions: bool = True,
     ) -> t.Dict[int, ar.ActionResult]:
         """
         Processes agent actions and produce the actions results
         """
         # Only Grab and Release actions require further checks, and Wait actions are necessarily valid
-        to_check = {
+        to_check: t.Dict[int, ba.BasicAction] = {
             uid: a
             for uid, a in agent_uid_to_next_action.items()
             if isinstance(a, (ba.Translation, ba.Rotation))
@@ -1126,8 +1129,8 @@ class Simulator:
 
         # Check actions regarding dynamic collisions and apply the valid ones
         collides_with = collision.csv_simulate_simple_kinematics(
-            self.ref_world,
-            to_check,
+            world=self.ref_world,
+            agent_uid_to_next_action=to_check,
             apply=True,
             ignore_collisions=ignore_collisions,
             extra_transit_check=False,

@@ -249,7 +249,6 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_unit_cost = 1.0
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
-        self.angular_res = parameters.collision_check_angular_res
         self.rotation_unit_angle = parameters.robot_rotation_unit_angle
         self.translation_unit_length = parameters.robot_translation_unit_length
         self.forbid_rotations = parameters.forbid_rotations
@@ -259,8 +258,8 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
-        self.trans_mult = 1000
-        self.rot_mult = 1.0
+        self.trans_mult = 100.0
+        self.rot_mult = 100.0
 
         # - S-NAMO parameters
         self.use_social_cost = parameters.use_social_cost

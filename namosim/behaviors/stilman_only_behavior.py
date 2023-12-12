@@ -111,8 +111,8 @@ class StilmanOnlyBehavior(BaselineBehavior):
             self.translation_unit_cost / self.translation_unit_length
         )
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
-        self.trans_mult = 1.0
-        self.rot_mult = 1.0
+        self.trans_mult = 100.0
+        self.rot_mult = 100.0
 
         # holonomic
         self._trans_vectors = np.array(
@@ -1288,7 +1288,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
         obstacle_can_intrude_c_1_x: bool = True,
     ):
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
-            return self.get_neighbors(
+            return self.get_manip_search_neighbors(
                 _current,
                 _gscore,
                 _close_set,
@@ -1656,7 +1656,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
             weight=weight,
         )
 
-    def get_neighbors(
+    def get_manip_search_neighbors(
         self,
         current_configuration: RobotObstacleConfiguration,
         gscore: t.Dict[RobotObstacleConfiguration, float],
