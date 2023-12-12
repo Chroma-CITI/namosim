@@ -31,7 +31,7 @@ class NavigationOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["navigation_only_behavior"] = attr()
 
 
-class StilmanBehaviorParametersModelV2(BaseXmlModel, tag="parameters"):
+class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     alpha_for_obstacle_choice_heur: float = attr(default=0.5)
     basic_rotation_moment: float = attr(default=2.0)
     basic_translation_force: float = attr(default=2.0)
@@ -42,15 +42,15 @@ class StilmanBehaviorParametersModelV2(BaseXmlModel, tag="parameters"):
     heuristic_cost_for_traversing_obstacle_in_choice_heur: float = attr(default=2.0)
     manipulation_search_procedure: t.Literal["BFS", "DFS"] = attr(default="BFS")
     neighborhood_for_obstacle_choice_heur: t.Literal["TAXI"] = attr(default="TAXI")
-    robot_rotation_unit_angle: float = attr(default=30)
+    robot_rotation_unit_angle: float = attr(default=60)
     robot_translation_unit_length: float = attr()
-    solution_interval_bound_percentage: float = attr(default=0.1)
+    solution_interval_bound_percentage: float = attr(default=0.01)
     use_social_cost: bool = attr(default=True)
 
 
-class StilmanBehaviorConfigModelV2(BaseBehaviorConfigModel):
+class StilmanBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["stilman_2005_behavior"] = attr()
-    parameters: StilmanBehaviorParametersModelV2 = element()
+    parameters: StilmanBehaviorParametersModel = element()
 
 
 class WuLevihnBehaviorConfigModel(BaseBehaviorConfigModel):
@@ -70,7 +70,7 @@ class AgentConfigModel(BaseXmlModel, tag="agent_config"):
         StilmanOnlyBehaviorConfigModel,
         WuLevihnBehaviorConfigModel,
         NavigationOnlyBehaviorConfigModel,
-        StilmanBehaviorConfigModelV2,
+        StilmanBehaviorConfigModel,
     ] = element(tag="behavior")
 
 

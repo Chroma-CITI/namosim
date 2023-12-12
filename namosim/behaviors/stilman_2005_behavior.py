@@ -23,11 +23,7 @@ from namosim.behaviors.stilman_configurations import (
     RobotConfiguration,
     RobotObstacleConfiguration,
 )
-from namosim.data_models_v2 import (
-    GridCellModel,
-    PoseModel,
-    StilmanBehaviorParametersModelV2,
-)
+from namosim.data_models import GridCellModel, PoseModel, StilmanBehaviorParametersModel
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -50,7 +46,7 @@ from namosim.world.binary_occupancy_grid import (
 )
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
-from namosim.world.world_v2 import WorldV2
+from namosim.world.world import World
 
 
 class Timer:
@@ -97,13 +93,13 @@ class DynamicPlan(Plan):
         self.forbidden_evasion_cells = set()
         self.timer = Timer()
 
-    def was_last_step_success(self, w_t: WorldV2, last_action_result: ar.ActionResult):
+    def was_last_step_success(self, w_t: World, last_action_result: ar.ActionResult):
         # TODO Check if robot state (position and grab) are coherent with next step's preconditions
         return isinstance(last_action_result, ar.ActionSuccess)
 
     def get_conflicts(
         self,
-        world: WorldV2,
+        world: World,
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         rp: RosPublisher,
         check_horizon: int | None = None,
@@ -216,10 +212,10 @@ class DynamicPlan(Plan):
 class Stilman2005Behavior(BaselineBehavior):
     def __init__(
         self,
-        initial_world: WorldV2,
+        initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
-        params: StilmanBehaviorParametersModelV2,
+        params: StilmanBehaviorParametersModel,
         logs_dir: str,
     ):
         BaselineBehavior.__init__(
@@ -263,7 +259,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
-        self.trans_mult = 1.0
+        self.trans_mult = 1000
         self.rot_mult = 1.0
 
         # - S-NAMO parameters
@@ -474,7 +470,7 @@ class Stilman2005Behavior(BaselineBehavior):
         return result
 
     def sense(
-        self, ref_world: WorldV2, last_action_result: ar.ActionResult, step_count: int
+        self, ref_world: World, last_action_result: ar.ActionResult, step_count: int
     ):
         # Update baseline world representation (polygons)
         BaselineBehavior.sense(self, ref_world, last_action_result, step_count)
@@ -547,7 +543,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def full_coordination_strategy(
         self,
         *,
-        w_t: WorldV2,
+        w_t: World,
         static_obs_inf_grid: BinaryInflatedOccupancyGrid,
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         robot_uid: int,
@@ -805,7 +801,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def replan(
         self,
-        w_t: WorldV2,
+        w_t: World,
         static_obs_inf_grid: BinaryInflatedOccupancyGrid,
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         robot_uid: int,
@@ -1108,7 +1104,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def select_connect(
         self,
-        w_t: WorldV2,
+        w_t: World,
         static_obs_inf_grid: BinaryInflatedOccupancyGrid,
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
         r_f: PoseModel,
@@ -1688,7 +1684,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def manip_search(
         self,
-        w_t: WorldV2,
+        w_t: World,
         o_1: int,
         c_1: int,
         ccs_data: connectivity.CCSData,
@@ -1901,7 +1897,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
     def focused_manip_search(
         self,
-        w_t: WorldV2,
+        w_t: World,
         o_1: int,
         c_1: int,
         ccs_data: connectivity.CCSData,
@@ -3723,7 +3719,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def compute_evasion(
         self,
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
-        w_t: WorldV2,
+        w_t: World,
         main_robot_uid: int,
         potential_deadlocks: t.Set[Conflict],
         forbidden_evasion_cells: t.Set[GridCellModel],
@@ -3824,7 +3820,7 @@ class Stilman2005Behavior(BaselineBehavior):
     def compute_evasion_for_one(
         self,
         *,
-        w_t: WorldV2,
+        w_t: World,
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
         robot: Robot,
         forbidden_evasion_cells: t.Set[GridCellModel],

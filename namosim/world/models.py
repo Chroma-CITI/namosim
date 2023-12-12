@@ -3,7 +3,7 @@ import typing as t
 from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
-from namosim.data_models_v2 import PoseModel
+from namosim.data_models import PoseModel
 
 
 class DiscretizationDataModel(BaseModel):
@@ -18,7 +18,7 @@ class DiscretizationDataModel(BaseModel):
     """
 
 
-class WorldV2FilesModel(BaseModel):
+class WorldFilesModel(BaseModel):
     geometry_file: str
 
 
@@ -78,13 +78,13 @@ class ZonesModel(BaseModel):
     taboos: t.Optional[t.List[TabooModel]] = None
 
 
-class WorldV2Things(BaseModel):
+class WorldThings(BaseModel):
     entities: t.List[t.Union[RobotEntityModel, ObstacleEntityModel]]
     zones: t.Optional[ZonesModel] = None
 
 
-class WorldV2Model(BaseModel):
+class WorldModel(BaseModel):
     discretization_data: DiscretizationDataModel
-    files: WorldV2FilesModel
-    things: WorldV2Things
+    files: WorldFilesModel
+    things: WorldThings
     no_scaling_workaround: t.Optional[bool] = None

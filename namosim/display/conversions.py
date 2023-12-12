@@ -24,7 +24,7 @@ import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.robot as namosim_robot
-from namosim.data_models_v2 import PoseModel
+from namosim.data_models import PoseModel
 from namosim.display import tf_replacement
 from namosim.navigation.path_type import PathType
 

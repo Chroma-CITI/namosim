@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from namosim.world.world_v2 import WorldV2
+from namosim.world.world import World
 
 
 class WorldV2Test(unittest.TestCase):
@@ -9,7 +9,5 @@ class WorldV2Test(unittest.TestCase):
         self.scenarios_folder = os.path.join(__file__, "../data/scenarios")
 
     def test_load_from_svg(self):
-        w = WorldV2.load_from_svg(
-            "./tests/unit/data/scenarios/minimal_stilman_2005.svg"
-        )
+        w = World.load_from_svg("./tests/unit/data/scenarios/minimal_stilman_2005.svg")
         assert w is not None

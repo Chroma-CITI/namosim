@@ -3,8 +3,8 @@ from shapely.errors import TopologicalError
 from shapely.geometry import Polygon
 from shapely.ops import cascaded_union
 
-import namosim.world.world_v2 as world
-from namosim.data_models_v2 import PoseModel
+import namosim.world.world as world
+from namosim.data_models import PoseModel
 from namosim.world.entity import Style
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.circular_sector_sensor import CircularSectorSensor
@@ -22,7 +22,7 @@ class GFOVSensor(CircularSectorSensor):
             self, fov_max_radius, fov_min_radius, fov_opening_angle, parent_entity_pose
         )
 
-    def _get_entities_in_fov_seethrough(self, world: "world.WorldV2"):
+    def _get_entities_in_fov_seethrough(self, world: "world.World"):
         entities_in_fov = dict()
 
         for entity_uid, entity in world.entities.items():
@@ -58,7 +58,7 @@ class GFOVSensor(CircularSectorSensor):
         return entities_in_fov
 
     def update_from_fov(
-        self, reference_world: "world.WorldV2", target_world: "world.WorldV2"
+        self, reference_world: "world.World", target_world: "world.World"
     ):
         reference_entities = self._get_entities_in_fov_seethrough(reference_world)
 

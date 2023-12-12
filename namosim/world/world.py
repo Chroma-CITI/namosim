@@ -12,7 +12,7 @@ from typing_extensions import Self
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
 import namosim.world.robot as robot
-from namosim.data_models_v2 import NamosimConfigModel
+from namosim.data_models import NamosimConfigModel
 from namosim.display import conversions
 from namosim.world.discretization_data import DiscretizationData
 from namosim.world.entity import Entity, Style
@@ -22,7 +22,7 @@ from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.world.taboo import Taboo
 
 
-class WorldV2:
+class World:
     def __init__(
         self,
         discretization_data: DiscretizationData,
@@ -67,7 +67,7 @@ class WorldV2:
             float(x) for x in svg_doc.documentElement.getAttribute("viewBox").split()
         ]
 
-        discretization_data = WorldV2.get_discretization_data(
+        discretization_data = World.get_discretization_data(
             min_x=viewbox_values[0],
             min_y=viewbox_values[1],
             max_x=viewbox_values[2],
@@ -390,7 +390,7 @@ class WorldV2:
             if a not in ignored_entities and e not in ignored_entities:
                 entity_to_agent[e] = a
 
-        return WorldV2(
+        return World(
             config=self.config,
             entities={
                 uid: entity.light_copy()

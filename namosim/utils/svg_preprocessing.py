@@ -3,11 +3,11 @@ import os
 import utils
 
 from namosim.world.obstacle import Obstacle
-from namosim.world.world_v2 import WorldV2
+from namosim.world.world import World
 
 
 def concave_to_convex_obstacles(world_json_path):
-    world = WorldV2.load_from_json(world_json_path)
+    world = World.load_from_json(world_json_path)
     entities_uids = list(world.entities.keys())
     for uid in entities_uids:
         entity = world.entities[uid]

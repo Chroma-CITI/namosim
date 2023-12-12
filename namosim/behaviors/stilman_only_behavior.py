@@ -18,7 +18,7 @@ from namosim.behaviors.stilman_configurations import (
     RobotConfiguration,
     RobotObstacleConfiguration,
 )
-from namosim.data_models_v2 import GridCellModel, PoseModel, StilmanOnlyParametersModel
+from namosim.data_models import GridCellModel, PoseModel, StilmanOnlyParametersModel
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.navigation.navigation_path import Path, TransferPath, TransitPath
 from namosim.navigation.navigation_plan import Plan
@@ -29,7 +29,7 @@ from namosim.world.binary_occupancy_grid import (
 )
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
-from namosim.world.world_v2 import WorldV2
+from namosim.world.world import World
 
 
 class StilmanOnlyBehavior(BaselineBehavior):
@@ -37,7 +37,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
 
     def __init__(
         self,
-        initial_world: WorldV2,
+        initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
         params: StilmanOnlyParametersModel,
@@ -222,7 +222,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
 
     def compute_stilman_plan(
         self,
-        w_t: WorldV2,
+        w_t: World,
         static_obs_inf_grid: BinaryInflatedOccupancyGrid,
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
         r_f: PoseModel,
@@ -249,7 +249,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
         path is guaranteed by the choice of contacts in Manip-Search.
 
         :param w_t: state of the world at time t
-        :type w_t: WorldV2
+        :type w_t: World
         :param static_obs_inf_grid: _description_
         :type static_obs_inf_grid: BinaryInflatedOccupancyGrid
         :param inflated_grid_by_robot_max: _description_
@@ -865,7 +865,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
 
     def manip_search(
         self,
-        w_t: WorldV2,
+        w_t: World,
         o_1: int,
         c_1: int,
         ccs_data: connectivity.CCSData,
@@ -878,7 +878,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
         check_new_local_opening_before_global: bool = True,
         obstacle_can_intrude_r_acc: bool = True,
         obstacle_can_intrude_c_1_x: bool = True,
-    ) -> t.Tuple[WorldV2, TransferPath | None]:
+    ) -> t.Tuple[World, TransferPath | None]:
         # Initialize manip search simulation world and some shortcut variables
         w_t_plus_2 = copy.deepcopy(w_t)
 

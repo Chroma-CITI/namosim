@@ -13,7 +13,7 @@ import typing_extensions as tx
 from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
 
-from namosim.data_models_v2 import PoseModel, VertexModel
+from namosim.data_models import PoseModel, VertexModel
 
 # Constants
 SQRT_OF_2 = math.sqrt(2.0)

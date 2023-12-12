@@ -23,7 +23,7 @@ from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
 from namosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
 from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
 from namosim.behaviors.stilman_only_behavior import StilmanOnlyBehavior
-from namosim.data_models_v2 import PoseModel
+from namosim.data_models import PoseModel
 from namosim.exceptions import timeout
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -36,7 +36,7 @@ from namosim.navigation.conflict import (
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.robot import Robot
-from namosim.world.world_v2 import WorldV2
+from namosim.world.world import World
 
 
 class SimulationStepResult:
@@ -109,7 +109,7 @@ class AgentStepStats:
         self.think_time = think_time
 
 
-class WorldV2StepStats:
+class WorldStepStats:
     def __init__(
         self,
         nb_components: int = 0,
@@ -128,11 +128,11 @@ class WorldV2StepStats:
 class StepStats:
     def __init__(
         self,
-        world_stats: t.Optional[WorldV2StepStats] = None,
+        world_stats: t.Optional[WorldStepStats] = None,
         agents_stats: t.Optional[t.Dict[str, AgentStepStats]] = None,
         act_time: float = 0.0,
     ):
-        self.world_stats = world_stats or WorldV2StepStats()
+        self.world_stats = world_stats or WorldStepStats()
         self.agents_stats = agents_stats or {}
         self.act_time = act_time
 
@@ -167,7 +167,7 @@ class Simulator:
 
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
         # Load world file
-        self.init_ref_world = WorldV2.load_from_svg(simulation_file_abs_path)
+        self.init_ref_world = World.load_from_svg(simulation_file_abs_path)
         self.config = self.init_ref_world.config
 
         sim_file_parent_dirname = os.path.basename(
@@ -248,9 +248,7 @@ class Simulator:
 
         self.simulation_log.append(utils.BasicLog("Display backend initialized.", 0))
 
-        self.simulation_log.append(
-            utils.BasicLog("WorldV2 file successfully loaded.", 0)
-        )
+        self.simulation_log.append(utils.BasicLog("World file successfully loaded.", 0))
 
         if self.save_init_world_state:
             self.init_ref_world.save_to_files(
@@ -258,7 +256,7 @@ class Simulator:
                 + "simulation/"
                 + self.init_ref_world.init_geometry_filename,
             )
-        self.ref_world: WorldV2 = copy.deepcopy(self.init_ref_world)
+        self.ref_world: World = copy.deepcopy(self.init_ref_world)
 
         # Associate autonomous agents with goals and behaviors
         self.goal_poses = {
@@ -565,7 +563,7 @@ class Simulator:
             ):
                 entities[entity_uid] = copy.deepcopy(entity)
 
-        return WorldV2(
+        return World(
             config=self.config,
             entities=entities,
             taboo_zones=copy.deepcopy(self.ref_world.taboo_zones),
@@ -608,7 +606,7 @@ class Simulator:
         replay_world = copy.deepcopy(self.init_ref_world)
         stats = [
             StepStats(
-                world_stats=WorldV2StepStats(
+                world_stats=WorldStepStats(
                     init_nb_cc,
                     init_biggest_cc_size,
                     init_all_cc_sum_size,
@@ -680,7 +678,7 @@ class Simulator:
                     ),
                     ros_publisher=self.ros_publisher,
                 )
-                world_stats = WorldV2StepStats(
+                world_stats = WorldStepStats(
                     end_nb_cc,
                     end_biggest_cc_size,
                     end_all_cc_sum_size,

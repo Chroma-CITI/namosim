@@ -6,7 +6,7 @@ from shapely import Polygon
 from typing_extensions import Self
 
 import namosim.utils.utils as utils
-from namosim.data_models_v2 import PoseModel
+from namosim.data_models import PoseModel
 
 
 class Style:

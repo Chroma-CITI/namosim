@@ -3,7 +3,7 @@ import typing as t
 from shapely import GeometryCollection, Polygon
 
 import namosim.display.ros2_publisher as ros2
-from namosim.data_models_v2 import PoseModel
+from namosim.data_models import PoseModel
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -16,7 +16,7 @@ from namosim.navigation.conflict import (
 from namosim.navigation.path_type import PathType
 from namosim.utils import collision, utils
 from namosim.world.robot import Robot
-from namosim.world.world_v2 import WorldV2
+from namosim.world.world import World
 
 
 class Path:
@@ -107,7 +107,7 @@ class TransferPath:
     def get_conflicts(
         self,
         robot_uid: int,
-        world: WorldV2,
+        world: World,
         inflated_grid_by_robot,
         other_entities_polygons,
         other_entities_aabb_tree,

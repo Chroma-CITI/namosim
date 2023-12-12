@@ -3,8 +3,8 @@ import typing as t
 
 from shapely import Polygon
 
-import namosim.world.world_v2 as world
-from namosim.data_models_v2 import PoseModel
+import namosim.world.world as world
+from namosim.data_models import PoseModel
 from namosim.utils import utils
 from namosim.world.entity import Entity, Style
 from namosim.world.sensors.g_fov_sensor import GFOVSensor
@@ -50,7 +50,7 @@ class Robot(Entity):
         self.min_inflation_radius = self.compute_inflation_radius()
 
     def update_world_from_sensors(
-        self, reference_world: "world.WorldV2", target_world: "world.WorldV2"
+        self, reference_world: "world.World", target_world: "world.World"
     ):
         added_uids: set[int] = set()
         updated_uids: set[int] = set()

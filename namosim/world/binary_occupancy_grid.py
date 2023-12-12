@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 from shapely.geometry import Polygon
 
-from namosim.data_models_v2 import GridCellModel, GridCellSet, PoseModel
+from namosim.data_models import GridCellModel, GridCellSet, PoseModel
 from namosim.utils import utils
 
 

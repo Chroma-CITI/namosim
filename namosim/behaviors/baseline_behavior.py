@@ -7,7 +7,7 @@ from decimal import Decimal
 from shapely import Polygon
 
 from namosim.algorithms import graph_search
-from namosim.data_models_v2 import PoseModel
+from namosim.data_models import PoseModel
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import BasicAction
@@ -16,7 +16,7 @@ from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.robot import Robot
-from namosim.world.world_v2 import WorldV2
+from namosim.world.world import World
 
 
 class ThinkResult:
@@ -39,7 +39,7 @@ class BaselineBehavior(object):
     def __init__(
         self,
         name: str,
-        initial_world: WorldV2,
+        initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
         logs_dir: str,
@@ -61,7 +61,7 @@ class BaselineBehavior(object):
         self.rounder = 1.0 * (10**precision_exponent)
         self.r_tol = 1.0 * (10**-precision_exponent)
 
-        self.__world: WorldV2 = copy.deepcopy(self._initial_world)
+        self.__world: World = copy.deepcopy(self._initial_world)
         self._robot: Robot = t.cast(Robot, self.world.entities[self._robot_uid])
         self.__last_action_result: ActionResult | None = None
 
@@ -78,7 +78,7 @@ class BaselineBehavior(object):
         self.goal_to_plans: t.Dict[PoseModel, Plan] = OrderedDict()
 
     def sense(
-        self, ref_world: WorldV2, last_action_result: ActionResult, step_count: int
+        self, ref_world: World, last_action_result: ActionResult, step_count: int
     ):
         self._last_action_result = last_action_result
         (
@@ -122,7 +122,7 @@ class BaselineBehavior(object):
     def world(self):
         return self.__world
 
-    def set_world(self, world: WorldV2):
+    def set_world(self, world: World):
         self.__world = world
         self._robot = t.cast(Robot, self.__world.entities[self._robot_uid])
 
