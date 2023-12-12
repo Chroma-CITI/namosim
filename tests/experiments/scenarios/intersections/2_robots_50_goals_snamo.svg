@@ -16,7 +16,7 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <namo_config cell_size="5.0">
+  <namo_config cell_size="20.0">
     <agent agent_id="robot_0">
       <goal goal_id="robot_0_goal_0" />
       <goal goal_id="robot_0_goal_1" />
@@ -69,7 +69,7 @@
       <goal goal_id="robot_0_goal_48" />
       <goal goal_id="robot_0_goal_49" />
       <behavior type="stilman_2005_behavior">
-        <parameters robot_translation_unit_length="5.0" manipulation_search_procedure="DFS"
+        <parameters robot_translation_unit_length="20.0" manipulation_search_procedure="DFS"
           robot_rotation_unit_angle="30.0" />
       </behavior>
     </agent>
@@ -125,7 +125,8 @@
       <goal goal_id="robot_1_goal_48" />
       <goal goal_id="robot_1_goal_49" />
       <behavior type="stilman_2005_behavior">
-        <parameters robot_translation_unit_length="15.0" manipulation_search_procedure="DFS" />
+        <parameters robot_translation_unit_length="20.0" manipulation_search_procedure="DFS"
+          robot_rotation_unit_angle="30.0" />
       </behavior>
     </agent>
   </namo_config>
