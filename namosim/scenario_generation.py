@@ -7,7 +7,7 @@ from xml.dom import minidom
 
 from shapely import Polygon
 
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 from namosim.utils import collision, conversion, utils
 from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
@@ -30,7 +30,7 @@ def get_map_bounds(polygons: t.Dict[int, Polygon]):
 
 
 def sample_poses_uniform(
-    obstacles_polygons,
+    obstacles_polygons: t.Dict[int, Polygon],
     robot_polygon: Polygon,
     robot_pose: PoseModel,
     nb_poses: int = 1,

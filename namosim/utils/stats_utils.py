@@ -7,9 +7,7 @@ from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
-from namosim.world.social_topological_occupation_cost_grid import (
-    compute_social_costmap,
-)
+from namosim.world.social_topological_occupation_cost_grid import compute_social_costmap
 from namosim.world.world import World
 
 

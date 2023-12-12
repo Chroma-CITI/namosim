@@ -18,8 +18,8 @@ from namosim.behaviors.stilman_configurations import (
     RobotConfiguration,
     RobotObstacleConfiguration,
 )
+from namosim.data_models import GridCellModel, PoseModel, StilmanOnlyParametersModel
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import GridCellModel, PoseModel, StilmanOnlyBehaviorConfigModel
 from namosim.navigation.navigation_path import Path, TransferPath, TransitPath
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import collision, connectivity, utils
@@ -40,18 +40,18 @@ class StilmanOnlyBehavior(BaselineBehavior):
         initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
-        config: StilmanOnlyBehaviorConfigModel,
+        params: StilmanOnlyParametersModel,
         logs_dir: str,
     ):
         BaselineBehavior.__init__(
             self,
-            initial_world,
-            robot_uid,
-            navigation_goals,
-            config,
-            logs_dir,
+            initial_world=initial_world,
+            robot_uid=robot_uid,
+            navigation_goals=navigation_goals,
+            name="stilman_only_behavior",
+            logs_dir=logs_dir,
         )
-        self.config = config
+        self.params = params
         self._social_costmap: npt.NDArray[t.Any] | None = None
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(
@@ -105,13 +105,13 @@ class StilmanOnlyBehavior(BaselineBehavior):
         self.rotation_unit_cost = 1.0
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         self.angular_res = 5.0
-        self.rotation_unit_angle = 60.0
-        self.translation_unit_length = config.robot_translation_unit_length
+        self.rotation_unit_angle = self.params.robot_rotation_unit_angle
+        self.translation_unit_length = self.params.robot_translation_unit_length
         self.translation_factor = (
             self.translation_unit_cost / self.translation_unit_length
         )
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
-        self.trans_mult = 1.0 / self.world.discretization_data.res * 10.0
+        self.trans_mult = 1.0
         self.rot_mult = 1.0
 
         # holonomic
@@ -205,7 +205,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
 
     def init_social_costmap(self, ros_publisher: RosPublisher):
         # Initialize social occupation costmap
-        if self.config.use_social_cost and self._social_costmap is None:
+        if self.params.use_social_cost and self._social_costmap is None:
             self._social_costmap = stocg.compute_social_costmap(
                 self.static_obs_grid.grid,
                 self.world.discretization_data.res,
@@ -1896,6 +1896,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
             robot_polygon=current_configuration.robot.polygon,
             obstacle_polygon=current_configuration.obstacle.polygon,
             obstacle_pose=current_configuration.obstacle.floating_point_pose,
+            line_width=self.robot.min_inflation_radius / 4,
             res=inflated_grid_by_robot_min.res,
             neighbor_poses=[n.robot.floating_point_pose for n in neighbors],
             ns=self._robot_name,

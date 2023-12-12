@@ -23,8 +23,8 @@ from namosim.behaviors.stilman_configurations import (
     RobotConfiguration,
     RobotObstacleConfiguration,
 )
+from namosim.data_models import GridCellModel, PoseModel, StilmanBehaviorParametersModel
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import GridCellModel, PoseModel, StilmanBehaviorConfigModel
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
     Conflict,
@@ -215,7 +215,7 @@ class Stilman2005Behavior(BaselineBehavior):
         initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
-        behavior_config: StilmanBehaviorConfigModel,
+        params: StilmanBehaviorParametersModel,
         logs_dir: str,
     ):
         BaselineBehavior.__init__(
@@ -223,13 +223,13 @@ class Stilman2005Behavior(BaselineBehavior):
             initial_world=initial_world,
             robot_uid=robot_uid,
             navigation_goals=navigation_goals,
-            behavior_config=behavior_config,
+            name="stilman_2005_behavior",
             logs_dir=logs_dir,
         )
         self._p_opt: DynamicPlan
 
         # Configuration parameters
-        parameters = behavior_config.parameters
+        parameters = params
 
         # For each, specify collision model, action space
         # self.transit_search_config =
@@ -250,7 +250,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
         self.angular_res = parameters.collision_check_angular_res
-        self.rotation_unit_angle = 60.0  # parameters["robot_rotation_unit_angle"]
+        self.rotation_unit_angle = parameters.robot_rotation_unit_angle
         self.translation_unit_length = parameters.robot_translation_unit_length
         self.forbid_rotations = parameters.forbid_rotations
         self.translation_factor = (
@@ -259,7 +259,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
-        self.trans_mult = 1.0 / self.world.discretization_data.res * 10.0
+        self.trans_mult = 1000
         self.rot_mult = 1.0
 
         # - S-NAMO parameters
@@ -2054,9 +2054,10 @@ class Stilman2005Behavior(BaselineBehavior):
         )
         if best_transfer_end_configuration is not None:
             ros_publisher.publish_sim(
-                best_transfer_end_configuration.robot.polygon,
-                best_transfer_end_configuration.obstacle.polygon,
-                "/target",
+                robot_polygon=best_transfer_end_configuration.robot.polygon,
+                obs_polygon=best_transfer_end_configuration.obstacle.polygon,
+                line_width=robot.circumscribed_radius / 4,
+                namespace="/target",
                 robot_name=self._robot_name,
             )
 
@@ -3387,6 +3388,7 @@ class Stilman2005Behavior(BaselineBehavior):
             robot_polygon=current_configuration.robot.polygon,
             obstacle_polygon=current_configuration.obstacle.polygon,
             obstacle_pose=current_configuration.obstacle.floating_point_pose,
+            line_width=self.robot.min_inflation_radius / 4,
             res=inflated_grid_by_robot_min.res,
             neighbor_poses=[n.robot.floating_point_pose for n in neighbors],
             ns=self._robot_name,

@@ -4,7 +4,7 @@ from abc import ABC
 from shapely import Polygon, affinity
 from shapely.geometry import LineString, Point
 
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 from namosim.utils import utils
 
 

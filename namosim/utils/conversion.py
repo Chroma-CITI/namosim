@@ -8,7 +8,7 @@ from shapely import affinity
 from shapely.geometry import LineString, Point, Polygon
 from svgpath2mpl import parse_path
 
-SVG_PATH_ATTRIBUTES_WHITELIST = ["id", "d", "style"]
+SVG_PATH_ATTRIBUTES_WHITELIST = ["id", "d", "style", "type"]
 
 OBSTACE_TRACE_STYLE = "fill:#000000;fill-opacity:0.05231688;fill-rule:evenodd;stroke:#f1c232;stroke-width:1;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
 UNKNOWN_ENTITY_STYLE = "fill:#674ea7;fill-rule:evenodd"
