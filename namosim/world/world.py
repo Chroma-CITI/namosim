@@ -11,7 +11,10 @@ from typing_extensions import Self
 
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
-import namosim.world.robot as robot
+from namosim.behaviors.baseline_behavior import BaselineBehavior
+from namosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
+from namosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
+from namosim.behaviors.stilman_only_behavior import StilmanOnlyBehavior
 from namosim.data_models import NamosimConfigModel
 from namosim.display import conversions
 from namosim.world.discretization_data import DiscretizationData
@@ -193,19 +196,8 @@ class World:
 
             robot_pose[0] = t.cast(float, list(robot_polygon.centroid.coords)[0][0])
             robot_pose[1] = t.cast(float, list(robot_polygon.centroid.coords)[0][1])
-            new_robot = robot.Robot(
-                name=agent.agent_id,
-                full_geometry_acquired=True,
-                polygon=robot_polygon,
-                pose=tuple(robot_pose),  # type: ignore
-                sensors=[OmniscientSensor()],
-                push_only_list=[],
-                force_pushes_only=True,
-                movable_whitelist=["box"],
-                style=Style.from_string(robot_style),
-            )
-            world.add_entity(new_robot)
 
+            goal_poses = []
             for goal in agent.goals:
                 goal_el = svg_doc.getElementById(goal.goal_id)
                 if not goal_el:
@@ -239,6 +231,67 @@ class World:
                     pose=tuple(goal_pose),  # type: ignore
                 )
                 world.goals[goal.uid] = goal
+                goal_poses.append(goal_pose)
+
+            agent_world = copy.deepcopy(self)
+
+            if agent.behavior.type == "stilman_2005_behavior":
+                new_robot = Stilman2005Behavior(
+                    initial_world=agent_world,
+                    navigation_goals=goal_poses,
+                    params=agent.behavior.parameters,
+                    logs_dir=self.logs_dir,
+                    full_geometry_acquired=True,
+                    name=agent.agent_id,
+                    polygon=robot_polygon,
+                    style=Style.from_string(robot_style),
+                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    sensors=[OmniscientSensor()],
+                    push_only_list=[],
+                    force_pushes_only=False,
+                    movable_whitelist=[],
+                )
+            elif agent.behavior.type == "navigation_only_behavior":
+                new_robot = NavigationOnlyBehavior(
+                    initial_world=agent_world,
+                    navigation_goals=goal_poses,
+                    logs_dir=self.logs_dir,
+                    full_geometry_acquired=True,
+                    name=agent.agent_id,
+                    polygon=robot_polygon,
+                    style=Style.from_string(robot_style),
+                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    sensors=[OmniscientSensor()],
+                    push_only_list=[],
+                    force_pushes_only=False,
+                    movable_whitelist=[],
+                )
+            elif agent.behavior.type == "stilman_only_behavior":
+                new_robot = StilmanOnlyBehavior(
+                    initial_world=agent_world,
+                    navigation_goals=goal_poses,
+                    params=agent.behavior.parameters,
+                    logs_dir=self.logs_dir,
+                    full_geometry_acquired=True,
+                    name=agent.agent_id,
+                    polygon=robot_polygon,
+                    style=Style.from_string(robot_style),
+                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    sensors=[OmniscientSensor()],
+                    push_only_list=[],
+                    force_pushes_only=False,
+                    movable_whitelist=[],
+                )
+            else:
+                raise NotImplementedError(
+                    "You tried to associate entity '{agent_name}' with a behavior named"
+                    "'{b_name}' that is not implemented yet."
+                    "Maybe you mispelled something ?".format(
+                        agent_name=agent.agent_id, b_name=agent.behavior.type
+                    )
+                )
+
+            world.add_entity(new_robot)
 
         goals_node = svg_doc.getElementById("goals")
         if goals_node:
@@ -293,7 +346,7 @@ class World:
                         map_width=self.discretization_data.width,
                         map_height=self.discretization_data.height,
                     )
-                elif isinstance(entity, robot.Robot):
+                elif isinstance(entity, BaselineBehavior):
                     robot_group = conversion.add_group(
                         svg_data, entity.name, is_layer=False
                     )

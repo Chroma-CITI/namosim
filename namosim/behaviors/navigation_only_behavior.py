@@ -1,37 +1,55 @@
 import typing as t
 
+from shapely import Polygon
+
+import namosim.display.ros2_publisher as rp
 import namosim.navigation.basic_actions as ba
+import namosim.world.world as w
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
 from namosim.data_models import PoseModel
-from namosim.display.ros2_publisher import RosPublisher
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
+from namosim.world.entity import Style
 from namosim.world.obstacle import Obstacle
-from namosim.world.world import World
+from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 
 
 class NavigationOnlyBehavior(BaselineBehavior):
     def __init__(
         self,
-        initial_world: World,
-        robot_uid: int,
+        initial_world: "w.World",
         navigation_goals: t.List[PoseModel],
         logs_dir: str,
+        name: str,
+        full_geometry_acquired: bool,
+        polygon: Polygon,
+        pose: PoseModel,
+        sensors: t.List[OmniscientSensor],
+        push_only_list: t.List[str],
+        force_pushes_only: bool,
+        movable_whitelist: t.List[str],
+        style: Style,
     ):
         BaselineBehavior.__init__(
             self,
+            name=name,
             initial_world=initial_world,
-            robot_uid=robot_uid,
             navigation_goals=navigation_goals,
-            name="navigation_only_behavior",
+            behavior_type="navigation_only_behavior",
             logs_dir=logs_dir,
+            full_geometry_acquired=full_geometry_acquired,
+            polygon=polygon,
+            pose=pose,
+            sensors=sensors,  # type: ignore
+            push_only_list=push_only_list,
+            force_pushes_only=force_pushes_only,
+            movable_whitelist=movable_whitelist,
+            style=style,
         )
 
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
-        self.robot_max_inflation_radius = utils.get_circumscribed_radius(
-            self._robot.polygon
-        )
+        self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
         all_entities_polygons = {
             uid: e.polygon for uid, e in self.world.entities.items()
         }
@@ -58,12 +76,12 @@ class NavigationOnlyBehavior(BaselineBehavior):
             params=self.static_obs_inf_grid.params,
         )
 
-    def think(self, ros_publisher: RosPublisher):
+    def think(self, ros_publisher: "rp.RosPublisher"):
         if self._q_goal is None:
             if self._navigation_goals:
                 self._q_goal = self._navigation_goals.pop(0)
                 self._p_opt = Plan(
-                    robot_uid=self.robot.uid, path_components=[], goal=self._q_goal
+                    robot_uid=self.uid, path_components=[], goal=self._q_goal
                 )
             else:
                 return ThinkResult(
@@ -77,9 +95,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
             raise Exception("No plan")
 
         # If current robot pose is close enough to goal, return Success
-        if self.is_goal_reached(
-            self.world.entities[self._robot_uid].pose, self._q_goal
-        ):
+        if self.is_goal_reached(self.world.entities[self.uid].pose, self._q_goal):
             result = ThinkResult(
                 next_action=ba.GoalSuccess(goal=self._q_goal),
                 did_replan=False,
@@ -98,10 +114,10 @@ class NavigationOnlyBehavior(BaselineBehavior):
             )
 
         path = self.find_path(
-            robot_pose=self.world.entities[self._robot_uid].pose,
+            robot_pose=self.world.entities[self.uid].pose,
             goal_pose=self._q_goal,
             robot_inflated_grid=self.static_obs_inf_grid,
-            robot_polygon=self.world.entities[self._robot_uid].polygon,
+            robot_polygon=self.world.entities[self.uid].polygon,
         )
 
         if path is None:
@@ -113,7 +129,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
             )
 
         self._p_opt = Plan(
-            path_components=[path], goal=self._q_goal, robot_uid=self._robot_uid
+            path_components=[path], goal=self._q_goal, robot_uid=self.uid
         )
         self.goal_to_plans[self._q_goal] = self._p_opt
 

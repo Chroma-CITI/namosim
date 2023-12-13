@@ -5,6 +5,8 @@ from typing_extensions import Self
 
 import namosim.display.ros2_publisher as ros2
 import namosim.utils.collision as collision
+import namosim.world.world as world
+from namosim.behaviors import baseline_behavior
 from namosim.data_models import PoseModel
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.conflict import (
@@ -19,8 +21,6 @@ from namosim.navigation.navigation_path import (
 )
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.obstacle import Obstacle
-from namosim.world.robot import Robot
-from namosim.world.world import World
 
 
 class Plan:
@@ -66,7 +66,7 @@ class Plan:
 
     def get_conflicts(
         self,
-        world: World,
+        world: "world.World",
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         rp: "ros2.RosPublisher",
         check_horizon: t.Optional[int] = None,
@@ -102,7 +102,10 @@ class Plan:
         for other_robot in world.entities.values():
             # Inflate all other robots and their associated obstacles by the maximum translation at t+1 to prevent
             # SimultaneousSpaceAccess-type Conflicts
-            if isinstance(other_robot, Robot) and other_robot.uid != self.robot_uid:
+            if (
+                isinstance(other_robot, baseline_behavior.BaselineBehavior)
+                and other_robot.uid != self.robot_uid
+            ):
                 center = other_robot.polygon.centroid
                 # robot_radius = (
                 #     center.hausdorff_distance(other_robot.polygon)

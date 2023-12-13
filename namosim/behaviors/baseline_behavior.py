@@ -2,21 +2,23 @@ import abc
 import copy
 import typing as t
 from collections import OrderedDict
-from decimal import Decimal
 
 from shapely import Polygon
 
+import namosim.display.ros2_publisher as rp
+import namosim.navigation.navigation_plan as navp
+import namosim.world.world as w
 from namosim.algorithms import graph_search
 from namosim.data_models import PoseModel
-from namosim.display.ros2_publisher import RosPublisher
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.navigation_path import TransitPath
-from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
-from namosim.world.robot import Robot
-from namosim.world.world import World
+from namosim.world.entity import Entity, Style
+from namosim.world.sensors.g_fov_sensor import GFOVSensor
+from namosim.world.sensors.omniscient_sensor import OmniscientSensor
+from namosim.world.sensors.s_fov_sensor import SFOVSensor
 
 
 class ThinkResult:
@@ -33,40 +35,63 @@ class ThinkResult:
         self.has_conflicts = has_conflicts
 
 
-class BaselineBehavior(object):
+class BaselineBehavior(Entity):
     __metaclass__ = abc.ABCMeta
 
     def __init__(
         self,
-        name: str,
-        initial_world: World,
-        robot_uid: int,
+        behavior_type: str,
+        initial_world: "w.World",
         navigation_goals: t.List[PoseModel],
         logs_dir: str,
+        name: str,
+        full_geometry_acquired: bool,
+        polygon: Polygon,
+        pose: PoseModel,
+        sensors: t.List[OmniscientSensor | GFOVSensor | SFOVSensor],
+        push_only_list: t.List[str],
+        force_pushes_only: bool,
+        movable_whitelist: t.List[str],
+        style: Style,
+        movability: str = "unknown",
+        uid: int = 0,
         logger: t.Optional[utils.CustomLogger] = None,
     ):
+        super().__init__(
+            name=name,
+            polygon=polygon,
+            pose=pose,
+            full_geometry_acquired=full_geometry_acquired,
+            movability=movability,
+            uid=uid,
+            style=style,
+            type_="robot",
+        )
+
+        self.behavior_type = behavior_type
+
+        self.sensors = sensors
+        for sensor in sensors:
+            sensor.parent_uid = self.uid
+
+        self.push_only_list = push_only_list
+        self.force_pushes_only = force_pushes_only
+        self.movable_whitelist = movable_whitelist
+        self.min_inflation_radius = self.compute_inflation_radius()
+
         if logger:
             self.simulation_log = logger
         else:
             self.simulation_log = utils.CustomLogger()
 
         self._initial_world = initial_world
-        self._robot_uid = robot_uid
-        self._robot_name = initial_world.entities[robot_uid].name
+        self.uid = uid
+        self._robot_name = initial_world.entities[uid].name
         self._navigation_goals = navigation_goals
         self._name = name
         self.logs_dir = logs_dir
 
-        decimal_res = Decimal(initial_world.discretization_data.res).as_tuple()
-        precision_exponent = (
-            -len(decimal_res.digits) - t.cast(int, decimal_res.exponent) + 2
-        )
-
-        self.rounder = 1.0 * (10**precision_exponent)
-        self.r_tol = 1.0 * (10**-precision_exponent)
-
-        self.__world: World = copy.deepcopy(self._initial_world)
-        self._robot: Robot = t.cast(Robot, self.world.entities[self._robot_uid])
+        self.__world: "w.World" = copy.deepcopy(self._initial_world)
         self.__last_action_result: ActionResult | None = None
 
         self._prev_goal: PoseModel | None = (
@@ -74,26 +99,28 @@ class BaselineBehavior(object):
         )
         self.__q_goal: PoseModel | None = None
 
-        self._prev_plan: Plan | None = None  # used to check if a plan has changed
-        self.__p_opt: Plan | None = None
+        self._prev_plan: "navp.Plan" | None = (
+            None  # used to check if a plan has changed
+        )
+        self.__p_opt: "navp.Plan" | None = None
 
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
 
-        self.goal_to_plans: t.Dict[PoseModel, Plan] = OrderedDict()
+        self.goal_to_plans: t.Dict[PoseModel, "navp.Plan"] = OrderedDict()
 
     def sense(
-        self, ref_world: World, last_action_result: ActionResult, step_count: int
+        self, ref_world: "w.World", last_action_result: ActionResult, step_count: int
     ):
         self._last_action_result = last_action_result
         (
             self._added_uids,
             self._updated_uids,
             self._removed_uids,
-        ) = self._robot.update_world_from_sensors(ref_world, self.world)
+        ) = self.update_world_from_sensors(ref_world, self.world)
         self._step_count = step_count
 
     @abc.abstractmethod
-    def think(self, ros_publisher: RosPublisher) -> ThinkResult:
+    def think(self, ros_publisher: "rp.RosPublisher") -> ThinkResult:
         raise NotImplementedError
 
     @property
@@ -110,7 +137,7 @@ class BaselineBehavior(object):
         return self.__p_opt
 
     @_p_opt.setter
-    def _p_opt(self, p_opt: Plan | None):
+    def _p_opt(self, p_opt: t.Optional["navp.Plan"]):
         self._prev_plan = self.__p_opt
         self.__p_opt = p_opt
 
@@ -126,17 +153,8 @@ class BaselineBehavior(object):
     def world(self):
         return self.__world
 
-    def set_world(self, world: World):
+    def set_world(self, world: "w.World"):
         self.__world = world
-        self._robot = t.cast(Robot, self.__world.entities[self._robot_uid])
-
-    @property
-    def robot_uid(self):
-        return self._robot_uid
-
-    @property
-    def robot(self):
-        return self._robot
 
     @property
     def name(self):
@@ -192,3 +210,52 @@ class BaselineBehavior(object):
             )
         else:
             return None
+
+    def update_world_from_sensors(
+        self, reference_world: "w.World", target_world: "w.World"
+    ):
+        added_uids: set[int] = set()
+        updated_uids: set[int] = set()
+        removed_uids: set[int] = set()
+
+        for sensor in self.sensors:
+            s_uids_to_add, s_uids_to_update, s_uids_to_remove = sensor.update_from_fov(
+                reference_world, target_world
+            )  # type: ignore
+
+            # Might need a better update policy if sensors disagree about what happened, but irrelevant for now
+            added_uids.update(s_uids_to_add)
+            updated_uids.update(s_uids_to_update)
+            removed_uids.update(s_uids_to_remove)
+
+        return added_uids, updated_uids, removed_uids
+
+    def deduce_movability(self, obstacle_type: str):
+        if obstacle_type == "unknown" or obstacle_type == "robot":
+            return "unknown"
+        if obstacle_type == "movable":
+            return "movable"
+        elif obstacle_type in self.movable_whitelist:
+            return "movable"
+        else:
+            return "unmovable"
+
+    def deduce_push_only(self, obstacle_type: str):
+        if self.force_pushes_only or obstacle_type in self.push_only_list:
+            return True
+        else:
+            return False
+
+    def compute_inflation_radius(self) -> float:
+        return utils.get_circumscribed_radius(self.polygon)
+
+    def to_json(self) -> t.Dict[str, t.Any]:
+        json_data = Entity.to_json(self)
+        json_data["geometry"]["orientation_id"] = self.name + "_dir"
+        json_data["movable_whitelist"] = self.movable_whitelist
+        json_data["push_only_list"] = self.push_only_list
+        json_data["force_pushes_only"] = self.force_pushes_only
+        json_data["sensors"] = []
+        for sensor in self.sensors:
+            json_data["sensors"].append(sensor.to_json())
+        return json_data

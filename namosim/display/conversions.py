@@ -23,7 +23,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as nav_plan
-import namosim.world.robot as namosim_robot
+from namosim.behaviors import baseline_behavior
 from namosim.data_models import PoseModel
 from namosim.display import tf_replacement
 from namosim.navigation.path_type import PathType
@@ -35,7 +35,7 @@ def init_header(stamp: Time = Time()):
 
 def plan_to_markerarray(
     plan: "nav_plan.Plan",
-    robot: namosim_robot.Robot,
+    robot: baseline_behavior.BaselineBehavior,
     frame_id: str,
     stamp: Time = Time(),
 ):

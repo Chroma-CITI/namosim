@@ -35,6 +35,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as navigation_plan
+import namosim.world.world as world
+from namosim.behaviors import baseline_behavior
 from namosim.data_models import GridCellModel, PoseModel
 from namosim.display.conversions import (
     costmap_to_grid_map,
@@ -55,8 +57,6 @@ from namosim.world.binary_occupancy_grid import (
 )
 from namosim.world.entity import Entity
 from namosim.world.obstacle import Obstacle
-from namosim.world.robot import Robot
-from namosim.world.world import World
 
 
 class NamespaceCache:
@@ -196,7 +196,9 @@ class WorldObserver(RosObserver):
         current_world_draw_data = {
             entity.uid: {
                 "polygon": entity.polygon,
-                "type": "robot" if isinstance(entity, Robot) else entity.type_,
+                "type": "robot"
+                if isinstance(entity, baseline_behavior.BaselineBehavior)
+                else entity.type_,
                 "pose": entity.pose,
             }
             for entity in world.entities.values()
@@ -220,7 +222,7 @@ class WorldObserver(RosObserver):
 
     def world_to_marker_array(
         self,
-        world: World,
+        world: "world.World",
         robot_uid: int | None = None,
         entities_to_ignore: t.Set[int] | None = None,
     ):
@@ -231,7 +233,7 @@ class WorldObserver(RosObserver):
         for entity in world.entities.values():
             if entity.uid not in entities_to_ignore:
                 entity_color = ColorRGBA(**colors.hex_to_rgba(entity.style.fill))
-                if isinstance(entity, Robot):
+                if isinstance(entity, baseline_behavior.BaselineBehavior):
                     namespace = "/robot"
                 elif isinstance(entity, Obstacle):
                     namespace = "obstacles"
@@ -345,11 +347,11 @@ class CostmapObserver(RosObserver):
         world, robot_uid = kwargs["world"], kwargs["robot_uid"]
         return self.world_to_costmap(world, robot_uid)
 
-    def world_to_costmap(self, world: World, robot_uid: int | None = None):
+    def world_to_costmap(self, world: "world.World", robot_uid: int | None = None):
         polygons = {
             uid: entity.polygon
             for uid, entity in world.entities.items()
-            if not isinstance(entity, Robot)
+            if not isinstance(entity, baseline_behavior.BaselineBehavior)
         }
         if robot_uid:
             robot_max_inflation_radius = utils.get_circumscribed_radius(
@@ -480,7 +482,7 @@ class GoalObserver(RosObserver):
         )
 
     def _convert(self, **kwargs: t.Any):
-        robot: Robot = kwargs["entity"]
+        robot: "baseline_behavior.BaselineBehavior" = kwargs["entity"]
 
         q_init, q_goal = kwargs["q_init"], kwargs["q_goal"]
 
@@ -721,7 +723,7 @@ class RosPublisher:  # noqa: F821
         return topic in self.my_publishers
 
     # region SIM WORLD
-    def publish_sim_world(self, world: World, robot_uid: int | None = None):
+    def publish_sim_world(self, world: "world.World", robot_uid: int | None = None):
         if cfg.deactivate_gui:
             return
         self.observers[self.sim_knowledge_topic].update(
@@ -738,7 +740,7 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region ROBOT WORLD
-    def publish_robot_world(self, world: World, robot_uid: int):
+    def publish_robot_world(self, world: "world.World", robot_uid: int):
         if cfg.deactivate_gui:
             return
         world_topic = (
@@ -767,7 +769,7 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region ROBOT SIM
-    def publish_robot_sim_world(self, world: World, robot_uid: int):
+    def publish_robot_sim_world(self, world: "world.World", robot_uid: int):
         if cfg.deactivate_gui:
             return
         topic = (
@@ -784,7 +786,7 @@ class RosPublisher:  # noqa: F821
         topic = self.prefix + "/" + ns + cfg.robot_sim_world_topic
         self.observers[topic].reset()
 
-    def publish_robot_sim_costmap(self, world: World, robot_uid: int):
+    def publish_robot_sim_costmap(self, world: "world.World", robot_uid: int):
         if cfg.deactivate_gui:
             return
         topic = (
@@ -795,7 +797,7 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
-    def cleanup_robot_sim_costmap(self, world: World, robot_uid: int):
+    def cleanup_robot_sim_costmap(self, world: "world.World", robot_uid: int):
         if cfg.deactivate_gui:
             return
         topic = (
@@ -1225,7 +1227,12 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region P_OPT
-    def publish_p_opt(self, plan: "navigation_plan.Plan", robot: Robot, ns: str = ""):
+    def publish_p_opt(
+        self,
+        plan: "navigation_plan.Plan",
+        robot: "baseline_behavior.BaselineBehavior",
+        ns: str = "",
+    ):
         """Publishes the optimal path to observers"""
         if cfg.deactivate_gui:
             return
@@ -1423,7 +1430,11 @@ class RosPublisher:  # noqa: F821
 
     # region GOAL
     def publish_goal(
-        self, q_init: PoseModel, q_goal: PoseModel, entity: Robot, ns: str = ""
+        self,
+        q_init: PoseModel,
+        q_goal: PoseModel,
+        entity: "baseline_behavior.BaselineBehavior",
+        ns: str = "",
     ):
         if cfg.deactivate_gui:
             return

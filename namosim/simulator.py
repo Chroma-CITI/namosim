@@ -20,9 +20,7 @@ import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
-from namosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
-from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
-from namosim.behaviors.stilman_only_behavior import StilmanOnlyBehavior
+from namosim.behaviors.stilman_2005_behavior import DynamicPlan
 from namosim.data_models import PoseModel
 from namosim.exceptions import timeout
 from namosim.navigation.conflict import (
@@ -35,7 +33,6 @@ from namosim.navigation.conflict import (
 )
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
-from namosim.world.robot import Robot
 from namosim.world.world import World
 
 
@@ -290,10 +287,6 @@ class Simulator:
                 self.ref_world.entities[id].name: copy.deepcopy(goals)
                 for id, goals in self.agent_uid_to_goals.items()
             }
-
-        self.agent_uid_to_behavior = self.initialize_agents_behaviors(
-            self.agent_uid_to_goals
-        )
 
         self.history: t.List[SimulationStepResult] = []
         """
@@ -558,7 +551,7 @@ class Simulator:
     def _create_robot_world_from_sim_world(self):
         entities = dict()
         for entity_uid, entity in self.ref_world.entities.items():
-            if isinstance(entity, Robot) or (
+            if isinstance(entity, BaselineBehavior) or (
                 isinstance(entity, Obstacle) and entity.type_ == "wall"
             ):
                 entities[entity_uid] = copy.deepcopy(entity)
@@ -573,7 +566,7 @@ class Simulator:
     def create_simulation_report(self):
         all_movable_types = set()
         for entity in self.init_ref_world.entities.values():
-            if isinstance(entity, Robot):
+            if isinstance(entity, BaselineBehavior):
                 all_movable_types.update(set(entity.movable_whitelist))
 
         all_movables_uids = {
@@ -593,7 +586,7 @@ class Simulator:
             [
                 uid
                 for uid, entity in self.init_ref_world.entities.items()
-                if isinstance(entity, Robot)
+                if isinstance(entity, BaselineBehavior)
             ],
             ros_publisher=self.ros_publisher,
         )
@@ -669,7 +662,7 @@ class Simulator:
                     [
                         uid
                         for uid, entity in replay_world.entities.items()
-                        if isinstance(entity, Robot)
+                        if isinstance(entity, BaselineBehavior)
                         or uid in replay_world.entity_to_agent.keys()
                     ],
                     ros_publisher=self.ros_publisher,
@@ -822,60 +815,6 @@ class Simulator:
 
         return agent_uid_to_goals
 
-    def initialize_agents_behaviors(
-        self, agents_navigation_goals: t.Dict[int, t.List[PoseModel]]
-    ) -> t.Dict[int, BaselineBehavior]:
-        agent_uid_to_behavior = dict()
-
-        for agent in self.config.agents:
-            agent_uid = self.ref_world.get_entity_uid_from_name(agent.agent_id)
-            agent_navigation_goals = agents_navigation_goals[agent_uid]
-            if agent_uid in agent_uid_to_behavior:
-                raise RuntimeError(
-                    "You can only associate a single behavior with entity: {entity_name}.".format(
-                        entity_name=agent.agent_id
-                    )
-                )
-            else:
-                behavior_config = agent.behavior
-                self.ros_publisher.cleanup_robot_world(ns=agent.agent_id)
-                agent_world = copy.deepcopy(self.ref_world)
-
-                if behavior_config.type == "stilman_2005_behavior":
-                    agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
-                        initial_world=agent_world,
-                        robot_uid=agent_uid,
-                        navigation_goals=agent_navigation_goals,
-                        params=behavior_config.parameters,
-                        logger=self.simulation_log,
-                        logs_dir=self.logs_dir,
-                    )
-                elif behavior_config.type == "navigation_only_behavior":
-                    agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
-                        initial_world=agent_world,
-                        robot_uid=agent_uid,
-                        navigation_goals=agent_navigation_goals,
-                        logs_dir=self.logs_dir,
-                    )
-                elif behavior_config.type == "stilman_only_behavior":
-                    agent_uid_to_behavior[agent_uid] = StilmanOnlyBehavior(
-                        initial_world=agent_world,
-                        robot_uid=agent_uid,
-                        navigation_goals=agent_navigation_goals,
-                        params=behavior_config.parameters,
-                        logs_dir=self.logs_dir,
-                    )
-                else:
-                    raise NotImplementedError(
-                        "You tried to associate entity '{agent_name}' with a behavior named"
-                        "'{b_name}' that is not implemented yet."
-                        "Maybe you mispelled something ?".format(
-                            agent_name=agent.agent_id, b_name=behavior_config.type
-                        )
-                    )
-
-        return agent_uid_to_behavior
-
     def save_world_snapshot(
         self,
         agent_uid: int,
@@ -947,9 +886,7 @@ class Simulator:
                 behavior.sense(self.ref_world, last_action_result, step_count)
 
                 # Publish the robot's perceived/sensed world to RVIZ
-                self.ros_publisher.publish_robot_world(
-                    behavior.world, behavior.robot_uid
-                )
+                self.ros_publisher.publish_robot_world(behavior.world, behavior.uid)
 
                 # Record the time it took the robot to sense the world
                 sense_durations[agent_uid] = time.time() - sense_start
@@ -1196,21 +1133,21 @@ class Simulator:
         behavior = self.agent_uid_to_behavior[agent_uid]
         if behavior and behavior.goal_pose:
             self.ros_publisher.publish_goal(
-                q_init=behavior.robot.pose,
+                q_init=behavior.pose,
                 q_goal=behavior.goal_pose,
-                entity=behavior.robot,
-                ns=behavior.robot.name,
+                entity=behavior,
+                ns=behavior.name,
             )
 
     def publish_robot_plan(self, agent_uid: int, did_replan: bool):
         behavior = self.agent_uid_to_behavior[agent_uid]
         if behavior and behavior.goal_pose:
             if did_replan:
-                self.ros_publisher.cleanup_p_opt(ns=behavior.robot.name)
+                self.ros_publisher.cleanup_p_opt(ns=behavior.name)
             plan = behavior.get_plan()
             if plan:
                 self.ros_publisher.publish_p_opt(
                     plan=plan,
-                    robot=behavior.robot,
-                    ns=behavior.robot.name,
+                    robot=behavior,
+                    ns=behavior.name,
                 )
