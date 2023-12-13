@@ -218,6 +218,7 @@ class Stilman2005Behavior(BaselineBehavior):
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
         params: StilmanBehaviorParametersModel,
+        logger: utils.CustomLogger,
         logs_dir: str,
     ):
         BaselineBehavior.__init__(
@@ -227,22 +228,13 @@ class Stilman2005Behavior(BaselineBehavior):
             navigation_goals=navigation_goals,
             name="stilman_2005_behavior",
             logs_dir=logs_dir,
+            logger=logger,
         )
+
         self._p_opt: DynamicPlan
 
-        # Configuration parameters
-        parameters = params
-
-        # For each, specify collision model, action space
-        # self.transit_search_config =
-        # self.transfer_search_config =  # Include new opening detection parameters and social cost parameters
-        # self.grab_search_config =
-        # self.release_search_config =
-        # self.obstacle_selection_config =
-        # self.plan_execution_config =
-
         # - Original Stilman method configuration parameters
-        self.alpha = parameters.alpha_for_obstacle_choice_heur
+        self.alpha = params.alpha_for_obstacle_choice_heur
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD  # default if bad parameter
         # self.heur_w = parameters["heuristic_cost_for_traversing_obstacle_in_choice_heur"]
         # self.basic_trans_force = parameters["basic_translation_force"]
@@ -251,29 +243,34 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_unit_cost = 1.0
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
-        self.rotation_unit_angle = parameters.robot_rotation_unit_angle
-        self.translation_unit_length = parameters.robot_translation_unit_length
-        self.forbid_rotations = parameters.forbid_rotations
+        self.rotation_unit_angle = params.robot_rotation_unit_angle
+        self.translation_unit_length = params.robot_translation_unit_length
+        self.forbid_rotations = params.forbid_rotations
         self.translation_factor = (
             self.translation_unit_cost / self.translation_unit_length
         )
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
-        self.trans_mult = 100.0
-        self.rot_mult = 100.0
+        self.trans_mult = 1.0
+        self.rot_mult = 1.0
+        self.release_distance = (
+            self.robot.circumscribed_radius + 1.5 * initial_world.config.cell_size
+        )
+        """The robot will move backwards by this amount when it releases an object
+        """
 
         # - S-NAMO parameters
-        self.use_social_cost = parameters.use_social_cost
-        self.bound_percentage = parameters.solution_interval_bound_percentage
-        if parameters.manipulation_search_procedure == "DFS":
+        self.use_social_cost = params.use_social_cost
+        self.bound_percentage = params.solution_interval_bound_percentage
+        if params.manipulation_search_procedure == "DFS":
             if self.use_social_cost:
                 self.manip_search_procedure = self.focused_manip_search
             else:
                 raise ValueError(
                     "Focused manipulation search requires the use_social_cost variable to be True !"
                 )
-        elif parameters.manipulation_search_procedure == "BFS":
+        elif params.manipulation_search_procedure == "BFS":
             self.manip_search_procedure = self.manip_search
         self.w_social, self.w_obs, self.w_goal = 15.0, 10.0, 2.0
         self.w_sum = self.w_social + self.w_obs + self.w_goal
@@ -281,7 +278,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # - Extra performance parameters
         self.check_new_local_opening_before_global = (
-            parameters.check_new_local_opening_before_global
+            params.check_new_local_opening_before_global
         )
         self.activate_grids_logging = True  # not parameters["deactivate_grids_logging"]
 
@@ -778,8 +775,8 @@ class Stilman2005Behavior(BaselineBehavior):
             else:
                 self.simulation_log.append(
                     utils.BasicLog(
-                        "Agent {}: Detected conflicts require immediate replanning".format(
-                            self._robot_name
+                        "Agent {}: Detected conflicts require immediate replanning. Conflicts: {}".format(
+                            self._robot_name, conflicts
                         ),
                         step_count,
                     )
@@ -2491,9 +2488,7 @@ class Stilman2005Behavior(BaselineBehavior):
             obstacle_polygon, inflated_grid_by_robot_max.inflation_radius
         )
         candidate_transit_end_poses = utils.sample_poses_at_middle_of_inflated_sides(
-            obstacle_polygon,
-            inflated_grid_by_robot_max.inflation_radius
-            + 1.5 * inflated_grid_by_robot_max.res,
+            obstacle_polygon, self.release_distance
         )
 
         valid_transit_end_poses, valid_transfer_start_poses = [], []
@@ -2978,8 +2973,8 @@ class Stilman2005Behavior(BaselineBehavior):
                 ordered_cells_by_cost.pop()
         return None  # If no valid configuration could be found...
 
-    @staticmethod
     def get_next_transit_start_configuration(
+        self,
         grid,
         robot_pose,
         robot_polygon,
@@ -2992,7 +2987,7 @@ class Stilman2005Behavior(BaselineBehavior):
         rot_mult,
     ):
         release_action = ba.Release(
-            translation_vector=(-1.0 * (grid.inflation_radius + 1.5 * grid.res), 0.0),
+            translation_vector=(-1.0 * self.release_distance, 0.0),
             entity_uid=obstacle_uid,
         )
         new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])

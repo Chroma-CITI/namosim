@@ -104,15 +104,16 @@ class Plan:
             # SimultaneousSpaceAccess-type Conflicts
             if isinstance(other_robot, Robot) and other_robot.uid != self.robot_uid:
                 center = other_robot.polygon.centroid
-                robot_radius = (
-                    center.hausdorff_distance(other_robot.polygon)
-                    + 1.1 * inflated_grid_by_robot.res
-                )
+                # robot_radius = (
+                #     center.hausdorff_distance(other_robot.polygon)
+                #     + 1.1 * inflated_grid_by_robot.res
+                # )
+                robot_radius = other_robot.circumscribed_radius
                 radius = robot_radius
                 min_radius_for_release = (
                     robot_radius
                     + inflated_grid_by_robot.inflation_radius
-                    + 2.0 * inflated_grid_by_robot.res
+                    + 1.5 * inflated_grid_by_robot.res
                 )
                 # Enlarge radius to account for possible grabs
                 for uid, obstacle in world.entities.items():
@@ -185,11 +186,6 @@ class Plan:
                         robot_name=robot_name,
                     )
                 else:
-                    # If the previously checked path components are valid, we assume it leaves any manipulated
-                    # obstacles in the right place so we don't check again:
-                    # - We simply deactivate collisions with them from the world representation
-                    # - or if another path component needs to move them (check_start_pose)
-                    previously_moved_entities_uids.add(path.obstacle_uid)
                     conflicts += path.get_conflicts(
                         robot_uid=self.robot_uid,
                         world=world,
@@ -208,6 +204,12 @@ class Plan:
                         rp=rp,
                         robot_name=robot_name,
                     )
+
+                    # If the previously checked path components are valid, we assume it leaves any manipulated
+                    # obstacles in the right place so we don't check again:
+                    # - We simply deactivate collisions with them from the world representation
+                    # - or if another path component needs to move them (check_start_pose)
+                    previously_moved_entities_uids.add(path.obstacle_uid)
 
                     # inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
                     inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
@@ -228,7 +230,9 @@ class Plan:
                         break
 
                 if shared_horizon:
-                    shared_horizon -= path.get_length()
+                    shared_horizon = max(
+                        0, shared_horizon - path.get_remaining_legnth()
+                    )
             else:
                 break
 

@@ -1,5 +1,6 @@
 import typing as t
 
+from aabbtree import AABBTree
 from shapely import GeometryCollection, Polygon
 
 import namosim.display.ros2_publisher as ros2
@@ -15,6 +16,7 @@ from namosim.navigation.conflict import (
 )
 from namosim.navigation.path_type import PathType
 from namosim.utils import collision, utils
+from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.robot import Robot
 from namosim.world.world import World
 
@@ -108,19 +110,19 @@ class TransferPath:
         self,
         robot_uid: int,
         world: World,
-        inflated_grid_by_robot,
-        other_entities_polygons,
-        other_entities_aabb_tree,
-        other_entities_polygons_with_encompassing_circles,
-        other_entities_with_encompassing_circles_aabb_tree,
-        encompassing_circle_uid_to_robot_uid,
-        previously_moved_entities_uids,
-        has_first_action,
-        shared_horizon=None,
-        apply_strict_horizon=False,
-        exit_early_for_any_conflict=False,
-        exit_early_only_for_long_term_conflicts=True,
-        rp=None,
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        other_entities_polygons: t.Dict[int, Polygon],
+        other_entities_aabb_tree: AABBTree,
+        other_entities_polygons_with_encompassing_circles: t.Dict[int, Polygon],
+        other_entities_with_encompassing_circles_aabb_tree: AABBTree,
+        encompassing_circle_uid_to_robot_uid: t.Dict[int, int],
+        previously_moved_entities_uids: t.Set[int],
+        has_first_action: bool,
+        shared_horizon: int | None = None,
+        apply_strict_horizon: bool = False,
+        exit_early_for_any_conflict: bool = False,
+        exit_early_only_for_long_term_conflicts: bool = True,
+        rp: t.Optional["ros2.RosPublisher"] = None,
         robot_name: str = "",
     ):
         if shared_horizon is None:
@@ -135,17 +137,23 @@ class TransferPath:
         collision_aabb_tree = other_entities_aabb_tree
 
         # Compute and display horizon convex polygons
-        rp.publish_transfer_horizon_convex_polygons(
-            self.robot_path.csv_polygons,
-            self.obstacle_path.csv_polygons,
-            self.action_index,
-            len(self.actions),
-            shared_horizon,
-            robot_name,
-        )
+        if rp and self.robot_path.csv_polygons and self.obstacle_path.csv_polygons:
+            rp.publish_transfer_horizon_convex_polygons(
+                robot_csv_polygons=self.robot_path.csv_polygons,
+                obstacle_csv_polygons=self.obstacle_path.csv_polygons,
+                start_index=self.action_index,
+                end_index=len(self.actions),
+                check_horizon=shared_horizon,
+                ns=robot_name,
+            )
 
         # Check conflicts for all actions within horizon (Robot-Robot) and beyond (other conflicts)
-        for counter, index in enumerate(range(self.action_index, len(self.actions))):
+        for counter, index in enumerate(
+            range(
+                self.action_index,
+                len(self.actions),
+            )
+        ):
             if apply_strict_horizon and counter > shared_horizon:
                 break
 
@@ -161,31 +169,31 @@ class TransferPath:
             action = self.actions[index]
 
             if action is self.grab_action:
-                robot_before_grab_pose = self.robot_path.poses[0]
+                ## Grab actions should only occur at start of transfer path
+                assert counter == 0
 
                 # Check that obstacle is at the expected pose (except if it supposed to be moved before that)
-                if self.obstacle_uid not in previously_moved_entities_uids:
-                    current_obstacle_pose = world.entities[self.obstacle_uid].pose
-                    obstacle_at_start_pose = self.obstacle_path.is_start_pose(
-                        current_obstacle_pose
-                    )
-                    if (
-                        not obstacle_at_start_pose
-                        or self.obstacle_uid in world.entity_to_agent
-                    ):
-                        if self.obstacle_uid in world.entity_to_agent:
-                            conflicts.append(
-                                StealingMovableConflict(
-                                    self.obstacle_uid,
-                                    world.entity_to_agent[self.obstacle_uid],
-                                )
+                current_obstacle_pose = world.entities[self.obstacle_uid].pose
+                obstacle_at_start_pose = self.obstacle_path.is_start_pose(
+                    current_obstacle_pose
+                )
+                if (
+                    not obstacle_at_start_pose
+                    or self.obstacle_uid in world.entity_to_agent
+                ):
+                    if self.obstacle_uid in world.entity_to_agent:
+                        conflicts.append(
+                            StealingMovableConflict(
+                                self.obstacle_uid,
+                                world.entity_to_agent[self.obstacle_uid],
                             )
-                        else:
-                            conflicts.append(StolenMovableConflict(self.obstacle_uid))
-                            if exit_early_only_for_long_term_conflicts:
-                                return conflicts
-                        if exit_early_for_any_conflict:
+                        )
+                    else:
+                        conflicts.append(StolenMovableConflict(self.obstacle_uid))
+                        if exit_early_only_for_long_term_conflicts:
                             return conflicts
+                    if exit_early_for_any_conflict:
+                        return conflicts
 
                 if counter == 0 and has_first_action:
                     # If the first action in the path is the first action in the check horizon,
@@ -236,8 +244,11 @@ class TransferPath:
                     ],
                     bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
-                    ignored_entities=previously_moved_entities_uids,
+                    ignored_entities=previously_moved_entities_uids.union(
+                        {self.obstacle_uid}
+                    ),
                 )
+
                 if robot_uid in collides_with:
                     for uid in collides_with[robot_uid]:
                         if uid in encompassing_circle_uid_to_robot_uid:
@@ -342,7 +353,9 @@ class TransferPath:
                     ],
                     bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
-                    ignored_entities=previously_moved_entities_uids,
+                    ignored_entities=previously_moved_entities_uids.union(
+                        {self.obstacle_uid}
+                    ),
                 )
                 if robot_uid in collides_with:
                     for uid in collides_with[robot_uid]:
@@ -438,7 +451,9 @@ class TransferPath:
                     ],
                     bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
-                    ignored_entities=previously_moved_entities_uids,
+                    ignored_entities=previously_moved_entities_uids.union(
+                        {self.obstacle_uid}
+                    ),
                 )
                 if robot_uid in collides_with:
                     for uid in collides_with[robot_uid]:
@@ -536,7 +551,9 @@ class TransferPath:
                     ],
                     bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
-                    ignored_entities=previously_moved_entities_uids,
+                    ignored_entities=previously_moved_entities_uids.union(
+                        {self.obstacle_uid}
+                    ),
                 )
                 if self.obstacle_uid in collides_with:
                     for uid in collides_with[self.obstacle_uid]:
@@ -628,6 +645,9 @@ class TransferPath:
 
     def get_length(self):
         return len(self.actions)
+
+    def get_remaining_legnth(self):
+        return max(0, len(self.actions) - self.action_index)
 
 
 class TransitPath:
@@ -928,6 +948,9 @@ class TransitPath:
     def get_length(self):
         return len(self.actions)
 
+    def get_remaining_legnth(self):
+        return max(0, len(self.actions) - self.action_index)
+
 
 class EvasionTransitPath(TransitPath):
     def __init__(
@@ -957,4 +980,5 @@ class EvasionTransitPath(TransitPath):
             self.release_executed = True
             return self.transit_configuration_after_release.action
         else:
+            return TransitPath.pop_next_action(self)
             return TransitPath.pop_next_action(self)

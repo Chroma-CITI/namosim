@@ -43,8 +43,12 @@ class BaselineBehavior(object):
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
         logs_dir: str,
+        logger: t.Optional[utils.CustomLogger] = None,
     ):
-        self.simulation_log = utils.CustomLogger()
+        if logger:
+            self.simulation_log = logger
+        else:
+            self.simulation_log = utils.CustomLogger()
 
         self._initial_world = initial_world
         self._robot_uid = robot_uid

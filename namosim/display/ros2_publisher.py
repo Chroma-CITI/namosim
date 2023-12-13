@@ -27,7 +27,7 @@ from rclpy.qos import QoSProfile
 from rclpy.qos_event import PublisherEventCallbacks
 from rclpy.qos_overriding_options import QoSOverridingOptions
 from rclpy.utilities import ok  # noqa: F401 forwarding to this module
-from shapely import Polygon, affinity
+from shapely import GeometryCollection, Polygon, affinity
 from std_msgs.msg import ColorRGBA, Header
 from tf2_ros import StaticTransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
@@ -1544,8 +1544,8 @@ class RosPublisher:  # noqa: F821
 
     def publish_transfer_horizon_convex_polygons(
         self,
-        robot_csv_polygons: t.Dict[t.Tuple[int], Polygon],
-        obstacle_csv_polygons: t.Dict[t.Tuple[int], Polygon],
+        robot_csv_polygons: t.Dict[t.Tuple[int], GeometryCollection],
+        obstacle_csv_polygons: t.Dict[t.Tuple[int], GeometryCollection],
         start_index: int,
         end_index: int,
         check_horizon: int,
