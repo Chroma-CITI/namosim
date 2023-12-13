@@ -103,6 +103,26 @@ class BasicTest(unittest.TestCase):
             ]
         )
 
+    def test_1_robot_2_obstacles_social(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "stilman_2005_1_robot_2_obstacles.svg"
+            )
+        )
+        sim.run()
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 finished executing all its goals.")
+                for x in sim.simulation_log
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+
     def test_custom(self):
         sim = Simulator(
             simulation_file_path=os.path.join(self.scenarios_folder, "custom.svg")
