@@ -413,6 +413,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 logs_dir=self.logs_dir,
                 ns=self._robot_name,
             )
+
             ros_publisher.publish_social_grid_map(
                 self._social_costmap,
                 self.world.discretization_data.res,
