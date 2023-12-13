@@ -408,11 +408,8 @@ class GridMapObserver(RosObserver):
 
     def _convert(self, **kwargs: t.Any):
         costmap, res = kwargs["costmap"], kwargs["res"]
-        fixed_costmap = np.copy(costmap)
-        fixed_costmap[fixed_costmap == -1.0] = 0.0
-        grid_map = costmap_to_grid_map(
-            fixed_costmap, res, stamp=self.node.get_timestamp()
-        )
+
+        grid_map = costmap_to_grid_map(costmap, res, stamp=self.node.get_timestamp())
         return grid_map
 
     def reset(self):
@@ -447,8 +444,16 @@ class CombinedCostGridMapObserver(GridMapObserver):
         )
         for cell, combined_cost in sorted_cell_to_combined_cost.items():
             combined_costmap[cell[0]][cell[1]] = combined_cost
+
+        # re-scale and shift the costmap so it displays nicely below the 2D environment in RVIZ
+        H = combined_costmap.shape[0]
+        M = np.ptp(combined_costmap)
+        m = np.min(combined_costmap)
+        cc = (combined_costmap - m) / M
+        cc = cc * H - (4 * H)
+
         grid_map = costmap_to_grid_map(
-            combined_costmap,
+            cc,
             inflated_grid_by_obstacle.res,
             frame_id=cfg.combined_gridmap_frame_id,
             stamp=self.node.get_timestamp(),
@@ -814,6 +819,16 @@ class RosPublisher:  # noqa: F821
             if not ns
             else "/" + ns + cfg.test_social_gridmap_topic
         )
+
+        # re-scale and shift the costmap so it displays nicely below the 2D environment in RVIZ
+        costmap = np.copy(costmap)
+        costmap[costmap == -1.0] = 0.0
+        H = costmap.shape[0]
+        M = np.ptp(costmap)
+        m = np.min(costmap)
+        costmap = (costmap - m) / M
+        costmap = costmap * H - (2 * H)
+
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_social_grid_map(self, ns: str = ""):
@@ -839,6 +854,7 @@ class RosPublisher:  # noqa: F821
             if not ns
             else "/" + ns + cfg.test_combined_gridmap_topic
         )
+
         self.observers[topic].update(
             sorted_cell_to_combined_cost=sorted_cell_to_combined_cost,
             inflated_grid_by_obstacle=inflated_grid_by_obstacle,
@@ -867,6 +883,16 @@ class RosPublisher:  # noqa: F821
             if not ns
             else "/" + ns + cfg.test_connected_components_topic
         )
+
+        # re-scale and shift the costmap so it displays nicely below the 2D environment in RVIZ
+        costmap = np.copy(costmap)
+        costmap[costmap == -1.0] = 0.0
+        H = costmap.shape[0]
+        M = np.ptp(costmap)
+        m = np.min(costmap)
+        costmap = (costmap - m) / M
+        costmap = costmap * H - (6 * H)
+
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_connected_components_grid(self, ns: str = ""):

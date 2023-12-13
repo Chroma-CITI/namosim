@@ -13,7 +13,6 @@ from namosim.algorithms import graph_search
 from namosim.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
 from namosim.behaviors.stilman_configurations import (
-    BaseConfiguration,
     RCHConfiguration,
     RobotConfiguration,
     RobotObstacleConfiguration,
@@ -961,7 +960,6 @@ class StilmanOnlyBehavior(BaselineBehavior):
             other_entities_polygons,
             other_entities_aabb_tree,
             inflated_grid_by_robot_max,
-            ccs_data,
             r_acc_cells,
             obstacle_pose,
             obstacle_polygon,
@@ -1037,7 +1035,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 RobotObstacleConfiguration
             ] = graph_search.reconstruct_path(came_from, transfer_end_configuration)  # type: ignore
 
-            prev_transit_end_configuration: RCHConfiguration = (
+            prev_transit_end_configuration: RobotConfiguration | None = (
                 transfer_start_to_prev_transit_end[raw_path[0]]
             )
             next_transit_start_configuration = (
@@ -1099,7 +1097,6 @@ class StilmanOnlyBehavior(BaselineBehavior):
         other_entities_polygons: t.Dict[int, Polygon],
         other_entities_aabb_tree: AABBTree,
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
-        ccs_data: connectivity.CCSData,
         r_acc_cells: t.Set[GridCellModel],
         obstacle_pose: PoseModel,
         obstacle_polygon: Polygon,
@@ -1108,11 +1105,11 @@ class StilmanOnlyBehavior(BaselineBehavior):
         ros_publisher: RosPublisher,
     ) -> t.Tuple[
         t.Dict[RobotObstacleConfiguration, float],
-        t.Dict[RobotObstacleConfiguration, BaseConfiguration | None],
+        t.Dict[RobotObstacleConfiguration, RobotConfiguration | None],
     ]:
         transfer_start_configs_to_cost: t.Dict[RobotObstacleConfiguration, float]
         transfer_start_to_prev_transit_end: t.Dict[
-            RobotObstacleConfiguration, BaseConfiguration | None
+            RobotObstacleConfiguration, RobotConfiguration | None
         ]
 
         robot_cell = utils.real_to_grid(
@@ -1210,7 +1207,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 _,
                 csv_polygons,
                 _,
-                bb_vertices,
+                _,
             ) = collision.csv_check_collisions(
                 main_uid=robot_uid,
                 other_polygons=other_entities_polygons,
@@ -1379,14 +1376,14 @@ class StilmanOnlyBehavior(BaselineBehavior):
         obstacle_uid: int,
         old_obstacle_polygon: Polygon,
         new_obstacle_polygon: Polygon,
-        other_entities_polygons,
-        other_entities_aabb_tree,
-        inflated_grid_by_robot_max,
-        c_1_cells_set,
+        other_entities_polygons: t.Dict[int, Polygon],
+        other_entities_aabb_tree: AABBTree,
+        inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
+        c_1_cells_set: t.Set[GridCellModel],
         goal_pose: PoseModel,
         goal_cell: GridCellModel,
         ros_publisher: RosPublisher,
-        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+        neighborhood: t.Sequence[t.Sequence[float]] = utils.CHESSBOARD_NEIGHBORHOOD,
         init_blocking_areas: t.List[Polygon] | None = None,
         init_entity_inflated_polygon: Polygon | None = None,
     ):
@@ -1549,8 +1546,8 @@ class StilmanOnlyBehavior(BaselineBehavior):
             collides_with,
             _,
             csv_polygons,
-            intersections,
-            bb_vertices,
+            _,
+            _,
         ) = collision.csv_check_collisions(
             main_uid=robot_uid,
             other_polygons=other_entities_polygons,
@@ -1588,6 +1585,9 @@ class StilmanOnlyBehavior(BaselineBehavior):
     ) -> TransferPath | None:
         if len(transfer_configurations) == 0:
             return None
+
+        if not isinstance(next_transit_start_configuration.action, ba.Release):
+            raise Exception("Transit start configurations must have a Release action")
 
         manip_pose_id: int = transfer_configurations[0].manip_pose_id  # type: ignore
 
@@ -1677,7 +1677,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
         self,
         current_configuration: RobotObstacleConfiguration,
         gscore: t.Dict[RobotObstacleConfiguration, float],
-        close_set: t.Set[RobotObstacleConfiguration],
+        visited: t.Set[t.Tuple[t.Tuple[int, int, int], t.Tuple[int, int, int]]],
         open_queue: graph_search.PriorityQueue,
         came_from: t.Dict[RobotObstacleConfiguration, RobotObstacleConfiguration],
         start: t.Dict[RobotObstacleConfiguration, float],
@@ -1756,7 +1756,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 new_obstacle_pose, trans_mult, rot_mult
             )
 
-            if (robot_fixed_precision_pose, obstacle_fixed_precision_pose) in close_set:
+            if (robot_fixed_precision_pose, obstacle_fixed_precision_pose) in visited:
                 continue
 
             # Then check for collisions, starting at a grid level
@@ -1828,7 +1828,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 _,
                 robot_csv_polygons,
                 _,
-                robot_bb_vertices,
+                _,
             ) = collision.csv_check_collisions(
                 main_uid=robot_uid,
                 other_polygons=other_entities_polygons,
@@ -1853,7 +1853,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 _,
                 obstacle_csv_polygons,
                 _,
-                obstacle_bb_vertices,
+                _,
             ) = collision.csv_check_collisions(
                 main_uid=obstacle_uid,
                 other_polygons=other_entities_polygons,

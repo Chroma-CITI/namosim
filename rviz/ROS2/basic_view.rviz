@@ -8,26 +8,27 @@ Panels:
         - /Status1
         - /namosim1
         - /namosim1/Simulation1
+        - /namosim1/robot_01
+        - /namosim1/robot_01/a_star1
         - /namosim1/robot_01/goal1/Topic1
         - /namosim1/robot_01/goal1/Namespaces1
+        - /namosim1/robot_01/multi_a_star1
         - /namosim1/robot_01/sim1/Namespaces1
         - /namosim1/robot_01/stilman_rch1
-        - /namosim1/robot_01/test1/combined_gridmap1
+        - /namosim1/robot_01/stilman_rch1/close_set1
+        - /namosim1/robot_01/test1
         - /namosim1/robot_01/test1/combined_gridmap1/Topic1
         - /namosim1/robot_01/costmap1
         - /namosim1/robot_01/costmap1/Status1
+        - /namosim1/robot_11
         - /namosim1/robot_11/a_star1/close_set_cells1
         - /namosim1/robot_11/a_star1/open_heap_cells1
         - /namosim1/robot_11/a_star1/open_heap_cells_array1
         - /namosim1/robot_11/a_star1/path_grid_cells1
         - /namosim1/robot_11/a_star1/path_grid_cells_array1
-        - /namosim1/robot_11/multi_a_star1
+        - /namosim1/robot_11/goal1
         - /namosim1/robot_11/multi_a_star1/close_set1
         - /namosim1/robot_11/multi_a_star1/open_heap1
-        - /namosim1/robot_11/p_opt1/c_31
-        - /namosim1/robot_11/plan1
-        - /namosim1/robot_11/robot_sim1
-        - /namosim1/robot_11/robot_sim1/costmap1
         - /namosim1/robot_11/sim1
         - /namosim1/robot_11/stilman_rch1
         - /namosim1/robot_11/stilman_rch1/close_set1
@@ -166,17 +167,20 @@ Visualization Manager:
               Enabled: true
               Name: a_star
             - Class: rviz_default_plugins/MarkerArray
-              Enabled: false
+              Enabled: true
               Name: conflicts_check
               Namespaces:
-                {}
+                /transfer_horizon_csv_polygons: true
+                /transit_conflicting_cells: true
+                /transit_conflicting_entities_cells: true
+                /transit_horizon_cells: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
                 History Policy: Keep Last
                 Reliability Policy: Reliable
                 Value: /robot_0/conflicts_check
-              Value: false
+              Value: true
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
               Name: goal
@@ -231,94 +235,6 @@ Visualization Manager:
                   Value: true
               Enabled: true
               Name: multi_a_star
-            - Class: rviz_common/Group
-              Displays:
-                - Alpha: 1
-                  Buffer Length: 1
-                  Class: rviz_default_plugins/Path
-                  Color: 25; 255; 0
-                  Enabled: true
-                  Head Diameter: 0.30000001192092896
-                  Head Length: 0.20000000298023224
-                  Length: 0.30000001192092896
-                  Line Style: Lines
-                  Line Width: 0.029999999329447746
-                  Name: c_1
-                  Offset:
-                    X: 0
-                    Y: 0
-                    Z: 0
-                  Pose Color: 255; 85; 255
-                  Pose Style: None
-                  Radius: 0.029999999329447746
-                  Shaft Diameter: 0.10000000149011612
-                  Shaft Length: 0.10000000149011612
-                  Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    Filter size: 10
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_0/p_opt/c_1
-                  Value: true
-                - Alpha: 1
-                  Buffer Length: 1
-                  Class: rviz_default_plugins/Path
-                  Color: 25; 255; 0
-                  Enabled: true
-                  Head Diameter: 0.30000001192092896
-                  Head Length: 0.20000000298023224
-                  Length: 0.30000001192092896
-                  Line Style: Lines
-                  Line Width: 0.029999999329447746
-                  Name: c_2
-                  Offset:
-                    X: 0
-                    Y: 0
-                    Z: 0
-                  Pose Color: 255; 85; 255
-                  Pose Style: None
-                  Radius: 0.029999999329447746
-                  Shaft Diameter: 0.10000000149011612
-                  Shaft Length: 0.10000000149011612
-                  Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    Filter size: 10
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_0/p_opt/c_2
-                  Value: true
-                - Alpha: 1
-                  Buffer Length: 1
-                  Class: rviz_default_plugins/Path
-                  Color: 25; 255; 0
-                  Enabled: true
-                  Head Diameter: 0.30000001192092896
-                  Head Length: 0.20000000298023224
-                  Length: 0.30000001192092896
-                  Line Style: Lines
-                  Line Width: 0.029999999329447746
-                  Name: c_3
-                  Offset:
-                    X: 0
-                    Y: 0
-                    Z: 0
-                  Pose Color: 255; 85; 255
-                  Pose Style: None
-                  Radius: 0.029999999329447746
-                  Shaft Diameter: 0.10000000149011612
-                  Shaft Length: 0.10000000149011612
-                  Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    Filter size: 10
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_0/p_opt/c_3
-                  Value: true
-              Enabled: true
-              Name: p_opt
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
               Name: plan
@@ -332,33 +248,6 @@ Visualization Manager:
                 Reliability Policy: Reliable
                 Value: /robot_0/plan
               Value: true
-            - Class: rviz_common/Group
-              Displays:
-                - Alpha: 0.699999988079071
-                  Binary representation: false
-                  Binary threshold: 100
-                  Class: rviz_default_plugins/Map
-                  Color Scheme: map
-                  Draw Behind: false
-                  Enabled: true
-                  Name: costmap
-                  Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    Filter size: 10
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_0/robot_sim/costmap
-                  Update Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_0/robot_sim/costmap_updates
-                  Use Timestamp: false
-                  Value: true
-              Enabled: true
-              Name: robot_sim
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
               Name: sim
@@ -377,6 +266,8 @@ Visualization Manager:
                 /rch_close_set: true
                 /rch_current_cell: true
                 /rch_current_cell_neighbors: true
+                /target/obstacle/polygon: true
+                /target/robot/polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -506,7 +397,7 @@ Visualization Manager:
                   Color: 200; 200; 200
                   Color Layer: elevation
                   Color Transformer: GridMapLayer
-                  Enabled: false
+                  Enabled: true
                   Height Layer: elevation
                   Height Transformer: GridMapLayer
                   History Length: 1
@@ -525,8 +416,8 @@ Visualization Manager:
                     Reliability Policy: Reliable
                     Value: /robot_0/test/connected_components
                   Use Rainbow: true
-                  Value: false
-              Enabled: false
+                  Value: true
+              Enabled: true
               Name: test
             - Alpha: 0.699999988079071
               Binary representation: false
@@ -619,7 +510,7 @@ Visualization Manager:
                     Reliability Policy: Reliable
                     Value: /robot_1/a_star/path_grid_cells_array
                   Value: true
-              Enabled: true
+              Enabled: false
               Name: a_star
             - Class: rviz_default_plugins/MarkerArray
               Enabled: false
@@ -637,7 +528,7 @@ Visualization Manager:
               Enabled: true
               Name: goal
               Namespaces:
-                {}
+                /polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -649,7 +540,8 @@ Visualization Manager:
               Enabled: true
               Name: knowledge
               Namespaces:
-                {}
+                /robot/polygon: true
+                obstacles/polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -686,99 +578,12 @@ Visualization Manager:
                   Value: true
               Enabled: true
               Name: multi_a_star
-            - Class: rviz_common/Group
-              Displays:
-                - Alpha: 1
-                  Buffer Length: 1
-                  Class: rviz_default_plugins/Path
-                  Color: 25; 255; 0
-                  Enabled: true
-                  Head Diameter: 0.30000001192092896
-                  Head Length: 0.20000000298023224
-                  Length: 0.30000001192092896
-                  Line Style: Lines
-                  Line Width: 0.029999999329447746
-                  Name: c_1
-                  Offset:
-                    X: 0
-                    Y: 0
-                    Z: 0
-                  Pose Color: 255; 85; 255
-                  Pose Style: None
-                  Radius: 0.029999999329447746
-                  Shaft Diameter: 0.10000000149011612
-                  Shaft Length: 0.10000000149011612
-                  Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    Filter size: 10
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_1/p_opt/c_1
-                  Value: true
-                - Alpha: 1
-                  Buffer Length: 1
-                  Class: rviz_default_plugins/Path
-                  Color: 25; 255; 0
-                  Enabled: true
-                  Head Diameter: 0.30000001192092896
-                  Head Length: 0.20000000298023224
-                  Length: 0.30000001192092896
-                  Line Style: Lines
-                  Line Width: 0.029999999329447746
-                  Name: c_2
-                  Offset:
-                    X: 0
-                    Y: 0
-                    Z: 0
-                  Pose Color: 255; 85; 255
-                  Pose Style: None
-                  Radius: 0.029999999329447746
-                  Shaft Diameter: 0.10000000149011612
-                  Shaft Length: 0.10000000149011612
-                  Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    Filter size: 10
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_1/p_opt/c_2
-                  Value: true
-                - Alpha: 1
-                  Buffer Length: 1
-                  Class: rviz_default_plugins/Path
-                  Color: 25; 255; 0
-                  Enabled: true
-                  Head Diameter: 0.30000001192092896
-                  Head Length: 0.20000000298023224
-                  Length: 0.30000001192092896
-                  Line Style: Lines
-                  Line Width: 0.029999999329447746
-                  Name: c_3
-                  Offset:
-                    X: 0
-                    Y: 0
-                    Z: 0
-                  Pose Color: 255; 85; 255
-                  Pose Style: None
-                  Radius: 0.029999999329447746
-                  Shaft Diameter: 0.10000000149011612
-                  Shaft Length: 0.10000000149011612
-                  Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    Filter size: 10
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_1/p_opt/c_3
-                  Value: true
-              Enabled: true
-              Name: p_opt
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
               Name: plan
               Namespaces:
-                {}
+                /end_obstacles: true
+                /plan: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -786,38 +591,26 @@ Visualization Manager:
                 Reliability Policy: Reliable
                 Value: /robot_1/plan
               Value: true
-            - Class: rviz_common/Group
-              Displays:
-                - Alpha: 0.699999988079071
-                  Binary representation: false
-                  Binary threshold: 100
-                  Class: rviz_default_plugins/Map
-                  Color Scheme: map
-                  Draw Behind: false
-                  Enabled: true
-                  Name: costmap
-                  Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    Filter size: 10
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_1/robot_sim/costmap
-                  Update Topic:
-                    Depth: 5
-                    Durability Policy: Volatile
-                    History Policy: Keep Last
-                    Reliability Policy: Reliable
-                    Value: /robot_1/robot_sim/costmap_updates
-                  Use Timestamp: false
-                  Value: true
-              Enabled: true
-              Name: robot_sim
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
               Name: sim
               Namespaces:
-                {}
+                /blocking_areas/init: true
+                /blocking_areas/target: true
+                /diameter_inflated_polygon/init: true
+                /diameter_inflated_polygon/target: true
+                /manip_search/close_set: true
+                /manip_search/current/obstacle/polygon: true
+                /manip_search/current/obstacle/pose: true
+                /manip_search/current/robot/polygon: true
+                /manip_search/current/robot/pose: true
+                /manip_search_neighbors: true
+                /rch_came_from: true
+                /rch_close_set: true
+                /rch_current_cell: true
+                /rch_current_cell_neighbors: true
+                /target/obstacle/polygon: true
+                /target/robot/polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -975,7 +768,7 @@ Visualization Manager:
               Class: rviz_default_plugins/Map
               Color Scheme: costmap
               Draw Behind: true
-              Enabled: true
+              Enabled: false
               Name: costmap
               Topic:
                 Depth: 5
@@ -991,8 +784,8 @@ Visualization Manager:
                 Reliability Policy: Reliable
                 Value: /robot_0/robot_sim/costmap_updates
               Use Timestamp: false
-              Value: true
-          Enabled: false
+              Value: false
+          Enabled: true
           Name: robot_1
         - Alpha: 0.5
           Cell Size: 5
@@ -1018,7 +811,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Fixed Frame: map
-    Frame Rate: 30
+    Frame Rate: 60
   Name: root
   Tools:
     - Class: rviz_default_plugins/Interact
@@ -1069,7 +862,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 7.2022600173950195
+      Scale: 1.716734766960144
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
       X: 0
