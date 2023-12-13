@@ -104,10 +104,11 @@ class Plan:
             # SimultaneousSpaceAccess-type Conflicts
             if isinstance(other_robot, Robot) and other_robot.uid != self.robot_uid:
                 center = other_robot.polygon.centroid
-                robot_radius = (
-                    center.hausdorff_distance(other_robot.polygon)
-                    + 1.1 * inflated_grid_by_robot.res
-                )
+                # robot_radius = (
+                #     center.hausdorff_distance(other_robot.polygon)
+                #     + 1.1 * inflated_grid_by_robot.res
+                # )
+                robot_radius = other_robot.circumscribed_radius
                 radius = robot_radius
                 min_radius_for_release = (
                     robot_radius
