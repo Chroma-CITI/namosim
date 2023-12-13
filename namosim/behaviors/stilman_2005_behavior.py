@@ -218,6 +218,7 @@ class Stilman2005Behavior(BaselineBehavior):
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
         params: StilmanBehaviorParametersModel,
+        logger: utils.CustomLogger,
         logs_dir: str,
     ):
         BaselineBehavior.__init__(
@@ -227,7 +228,9 @@ class Stilman2005Behavior(BaselineBehavior):
             navigation_goals=navigation_goals,
             name="stilman_2005_behavior",
             logs_dir=logs_dir,
+            logger=logger,
         )
+
         self._p_opt: DynamicPlan
 
         # - Original Stilman method configuration parameters
@@ -249,8 +252,8 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
-        self.trans_mult = 100.0
-        self.rot_mult = 100.0
+        self.trans_mult = 1.0
+        self.rot_mult = 1.0
         self.release_distance = (
             self.robot.circumscribed_radius + 1.5 * initial_world.config.cell_size
         )
@@ -772,8 +775,8 @@ class Stilman2005Behavior(BaselineBehavior):
             else:
                 self.simulation_log.append(
                     utils.BasicLog(
-                        "Agent {}: Detected conflicts require immediate replanning".format(
-                            self._robot_name
+                        "Agent {}: Detected conflicts require immediate replanning. Conflicts: {}".format(
+                            self._robot_name, conflicts
                         ),
                         step_count,
                     )

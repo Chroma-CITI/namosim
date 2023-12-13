@@ -11,8 +11,8 @@ from namosim.utils import utils
 class BasicAction(ABC):
     pass
 
-    # def apply(self, polygon: Polygon, pose: PoseModel) -> Polygon:
-    #     raise NotImplementedError()
+    def apply(self, polygon: Polygon, pose: PoseModel) -> Polygon:
+        raise NotImplementedError()
 
 
 class GoalResult(BasicAction):

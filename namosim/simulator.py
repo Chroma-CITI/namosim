@@ -847,6 +847,7 @@ class Simulator:
                         robot_uid=agent_uid,
                         navigation_goals=agent_navigation_goals,
                         params=behavior_config.parameters,
+                        logger=self.simulation_log,
                         logs_dir=self.logs_dir,
                     )
                 elif behavior_config.type == "navigation_only_behavior":

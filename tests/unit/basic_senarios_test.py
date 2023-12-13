@@ -6,7 +6,7 @@ from namosim.simulator import Simulator
 
 class BasicTest(unittest.TestCase):
     def setUp(self):
-        self.scenarios_folder = os.path.join(__file__, "../data/scenarios")
+        self.scenarios_folder = os.path.join(__file__, "../scenarios")
 
     def test_minimal_stilman_2005(self):
         """Tests a minimal scenario with Stilman-20005 behavior"""
@@ -16,9 +16,11 @@ class BasicTest(unittest.TestCase):
             )
         )
         sim.run()
-        assert (
-            sim.simulation_log[7].message
-            == "Agent robot_0 finished executing all its goals."
+        assert any(
+            [
+                x.message == "Agent robot_0 finished executing all its goals."
+                for x in sim.simulation_log
+            ]
         )
         assert any(
             [
@@ -35,9 +37,11 @@ class BasicTest(unittest.TestCase):
             )
         )
         sim.run()
-        assert (
-            sim.simulation_log[7].message
-            == "Agent robot_0 finished executing all its goals."
+        assert any(
+            [
+                x.message == "Agent robot_0 finished executing all its goals."
+                for x in sim.simulation_log
+            ]
         )
         assert any(
             [
@@ -54,9 +58,11 @@ class BasicTest(unittest.TestCase):
             )
         )
         sim.run()
-        assert (
-            sim.simulation_log[7].message
-            == "Agent robot_0 finished executing all its goals."
+        assert any(
+            [
+                x.message == "Agent robot_0 finished executing all its goals."
+                for x in sim.simulation_log
+            ]
         )
         assert any(
             [
@@ -72,9 +78,11 @@ class BasicTest(unittest.TestCase):
             )
         )
         sim.run()
-        assert (
-            sim.simulation_log[8].message
-            == "Agent robot_0 finished executing all its goals."
+        assert any(
+            [
+                x.message == "Agent robot_0 finished executing all its goals."
+                for x in sim.simulation_log
+            ]
         )
         assert any(
             [
@@ -128,9 +136,11 @@ class BasicTest(unittest.TestCase):
             simulation_file_path=os.path.join(self.scenarios_folder, "custom.svg")
         )
         sim.run()
-        assert (
-            sim.simulation_log[7].message
-            == "Agent robot_0 finished executing all its goals."
+        assert any(
+            [
+                x.message == "Agent robot_0 finished executing all its goals."
+                for x in sim.simulation_log
+            ]
         )
         assert any(
             [
@@ -158,6 +168,30 @@ class BasicTest(unittest.TestCase):
                 x.message.startswith("Agent robot_0 successfully executed goal")
                 for x in sim.simulation_log
             ]
+        )
+
+    def test_stealing_movable_conflict(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder,
+                "stealing_movable.svg",
+            )
+        )
+        sim.run()
+        assert any(
+            [
+                x.message.startswith("Agent robot_1 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+        assert any(
+            ["Stealing Movable conflict" in x.message for x in sim.simulation_log]
         )
 
 

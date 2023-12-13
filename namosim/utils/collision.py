@@ -17,6 +17,9 @@ class Action:
     def __init__(self):
         pass
 
+    def apply(self, polygon: Polygon) -> Polygon:
+        raise NotImplementedError()
+
 
 class Rotation(Action):
     def __init__(self, angle: float, center: t.Tuple[float, float]):
@@ -28,8 +31,8 @@ class Rotation(Action):
         return affinity.rotate(
             geom=polygon,
             angle=self.angle,
-            origin=self.center,
-            use_radians=False,  # type: ignore
+            origin=self.center,  # type: ignore
+            use_radians=False,
         )
 
 
@@ -47,13 +50,14 @@ class Translation(Action):
         )
 
 
-def convert_action(action: ba.BasicAction, robot_pose: PoseModel):
+def convert_action(action: ba.BasicAction, robot_pose: PoseModel) -> Action:
     # TODO Deprecate this and the specific actions by changing the API of the following functions
     if isinstance(action, ba.Translation):
         translation_vector = action.compute_translation_vector(robot_pose[2])
         return Translation(translation_vector)
     elif isinstance(action, ba.Rotation):
         return Rotation(action.angle, (robot_pose[0], robot_pose[1]))
+    raise Exception("Unable to convert action")
 
 
 def bounds(points: t.Iterable[t.Tuple[float, float]]):
@@ -273,7 +277,7 @@ def arc_bounding_box(
 
 
 def bounding_boxes_vertices(
-    action_sequence: t.List[ba.BasicAction],
+    action_sequence: t.List[Action],
     polygon_sequence: t.List[Polygon],
     bb_type: str = "minimum_rotated_rectangle",
 ) -> t.List[t.List[t.Tuple[float, float]]]:
@@ -421,7 +425,7 @@ def csv_check_collisions(
     main_uid: int,
     other_polygons: t.Dict[int, Polygon],
     polygon_sequence: t.List[Polygon],
-    action_sequence: t.List[ba.BasicAction],
+    action_sequence: t.List[Action],
     id_sequence: t.List[int] | None = None,
     bb_type: str = "minimum_rotated_rectangle",
     aabb_tree: AABBTree | None = None,
@@ -432,7 +436,14 @@ def csv_check_collisions(
     display_debug: bool = False,
     break_at_first: bool = True,
     save_intersections: bool = False,
-):
+) -> t.Tuple[
+    bool,
+    t.Dict[int, t.Set[int]],
+    AABBTree,
+    t.Dict[t.Sequence[int], Polygon],
+    t.Dict[t.Tuple[int, int], Polygon],
+    t.List[t.List[t.Tuple[float, float]]],
+]:
     # Initialize at first recursive iteration
     if not aabb_tree:
         aabb_tree = polygons_to_aabb_tree(other_polygons)
