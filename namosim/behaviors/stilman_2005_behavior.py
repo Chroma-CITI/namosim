@@ -53,7 +53,6 @@ class Stilman2005Behavior(BaselineBehavior):
     def __init__(
         self,
         *,
-        initial_world: "w.World",
         navigation_goals: t.List[PoseModel],
         params: StilmanBehaviorParametersModel,
         logs_dir: str,
@@ -105,11 +104,6 @@ class Stilman2005Behavior(BaselineBehavior):
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
         self.trans_mult = 1.0
         self.rot_mult = 1.0
-        self.release_distance = (
-            self.circumscribed_radius + 1.5 * initial_world.config.cell_size
-        )
-        """The robot will move backwards by this amount when it releases an object
-        """
 
         # - S-NAMO parameters
         self.use_social_cost = params.use_social_cost
@@ -186,6 +180,11 @@ class Stilman2005Behavior(BaselineBehavior):
         super().init(world)
 
         self.position_tolerance = self.world.discretization_data.res / 2.0
+        self.release_distance = (
+            self.circumscribed_radius + 1.5 * self.world.config.cell_size
+        )
+        """The robot will move backwards by this amount when it releases an object
+        """
 
         # Initialize movability status of obstacles
         for entity in self.world.entities.values():

@@ -232,11 +232,8 @@ class World:
                 world.goals[goal.uid] = goal
                 goal_poses.append((goal_pose[0], goal_pose[1], goal_pose[2]))
 
-            agent_world = copy.deepcopy(world)
-
             if agent.behavior.type == "stilman_2005_behavior":
                 new_robot = behaviors.Stilman2005Behavior(
-                    initial_world=agent_world,
                     navigation_goals=goal_poses,
                     params=agent.behavior.parameters,
                     logs_dir=logs_dir,
