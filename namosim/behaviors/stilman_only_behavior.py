@@ -39,7 +39,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
 
     def __init__(
         self,
-        initial_world: "w.World",
+        *,
         navigation_goals: t.List[PoseModel],
         params: StilmanOnlyParametersModel,
         logs_dir: str,
@@ -56,7 +56,6 @@ class StilmanOnlyBehavior(BaselineBehavior):
         BaselineBehavior.__init__(
             self,
             name=name,
-            initial_world=initial_world,
             navigation_goals=navigation_goals,
             behavior_type="stilman_only_behavior",
             logs_dir=logs_dir,
@@ -73,46 +72,8 @@ class StilmanOnlyBehavior(BaselineBehavior):
         self._social_costmap: npt.NDArray[t.Any] | None = None
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
-        all_entities_polygons = {
-            uid: e.polygon for uid, e in self.world.entities.items()
-        }
-        static_obs_polygons = {
-            uid: entity.polygon
-            for uid, entity in self.world.entities.items()
-            if (
-                isinstance(entity, Obstacle)
-                and entity.movability == "unmovable"
-                or entity.movability == "static"
-            )
-        }
+
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
-        self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
-            static_obs_polygons,
-            self.world.discretization_data.res,
-            self.robot_max_inflation_radius,
-            neighborhood=self.neighborhood,
-        )
-        self.static_obs_grid = BinaryOccupancyGrid(
-            static_obs_polygons,
-            self.world.discretization_data.res,
-            neighborhood=self.neighborhood,
-            params=self.static_obs_inf_grid.params,
-        )
-
-        all_entities_polygons = {
-            uid: e.polygon for uid, e in self.world.entities.items()
-        }
-
-        self.inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
-            all_entities_polygons,
-            self.world.discretization_data.res,
-            self.robot_max_inflation_radius,
-            neighborhood=self.neighborhood,
-            params=self.static_obs_inf_grid.params,
-        )
-
-        # TODO Make sure static and generalist grid share same width and height (occurs naturally if map borders are static, but not otherwise)
-        self.inflated_grid_by_robot.deactivate_entities({self.uid})
 
         # Robot action space parameters
         self.translation_unit_cost = 1.0
@@ -147,7 +108,53 @@ class StilmanOnlyBehavior(BaselineBehavior):
         for rot_angle in self._rot_angles:
             self._new_actions.append(ba.Rotation(rot_angle))
 
+    def init(self, world: "w.World"):
+        super().init(world)
+
+        all_entities_polygons = {
+            uid: e.polygon for uid, e in self.world.entities.items()
+        }
+        static_obs_polygons = {
+            uid: entity.polygon
+            for uid, entity in self.world.entities.items()
+            if (
+                isinstance(entity, Obstacle)
+                and entity.movability == "unmovable"
+                or entity.movability == "static"
+            )
+        }
+        self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
+            static_obs_polygons,
+            self.world.discretization_data.res,
+            self.robot_max_inflation_radius,
+            neighborhood=self.neighborhood,
+        )
+        self.static_obs_grid = BinaryOccupancyGrid(
+            static_obs_polygons,
+            self.world.discretization_data.res,
+            neighborhood=self.neighborhood,
+            params=self.static_obs_inf_grid.params,
+        )
+
+        all_entities_polygons = {
+            uid: e.polygon for uid, e in self.world.entities.items()
+        }
+
+        self.inflated_grid_by_robot = BinaryInflatedOccupancyGrid(
+            all_entities_polygons,
+            self.world.discretization_data.res,
+            self.robot_max_inflation_radius,
+            neighborhood=self.neighborhood,
+            params=self.static_obs_inf_grid.params,
+        )
+
+        # TODO Make sure static and generalist grid share same width and height (occurs naturally if map borders are static, but not otherwise)
+        self.inflated_grid_by_robot.deactivate_entities({self.uid})
+
     def think(self, ros_publisher: "rp.RosPublisher"):
+        if not self.is_initialized:
+            raise Exception("Not initialized")
+
         if self._q_goal is None:
             if self._navigation_goals:
                 self._q_goal = self._navigation_goals.pop(0)

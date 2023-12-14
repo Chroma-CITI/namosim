@@ -52,6 +52,7 @@ from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 class Stilman2005Behavior(BaselineBehavior):
     def __init__(
         self,
+        *,
         initial_world: "w.World",
         navigation_goals: t.List[PoseModel],
         params: StilmanBehaviorParametersModel,
@@ -68,7 +69,6 @@ class Stilman2005Behavior(BaselineBehavior):
     ):
         super().__init__(
             name=name,
-            initial_world=initial_world,
             navigation_goals=navigation_goals,
             behavior_type="stilman_2005_behavior",
             logs_dir=logs_dir,
@@ -131,7 +131,15 @@ class Stilman2005Behavior(BaselineBehavior):
         self.check_new_local_opening_before_global = (
             params.check_new_local_opening_before_global
         )
-        self.activate_grids_logging = True  # not parameters["deactivate_grids_logging"]
+        self.activate_grids_logging = params.deactivate_grids_logging
+        self._social_costmap = None
+        self.is_first_transfer_step = False
+        self.check_horizon = 10
+        self.angular_tolerance = 0.1
+        self.min_nb_steps_to_wait = 5
+        self.max_nb_steps_to_wait = 20
+        self.replan_count = 20
+        self.goal_to_plans = OrderedDict()
 
         if self.robot_base_drive_type == "differential":  # pyright: ignore[reportUnnecessaryComparison]
             self._trans_vectors = np.array(
@@ -174,25 +182,15 @@ class Stilman2005Behavior(BaselineBehavior):
             for rot_angle in self._rot_angles:
                 self._new_actions.append(ba.Rotation(rot_angle))
 
-        self._social_costmap = None
+    def init(self, world: "w.World"):
+        super().init(world)
 
-        self.is_first_transfer_step = False
-
-        self.check_horizon = 10
-
-        self.angular_tolerance = 0.1
         self.position_tolerance = self.world.discretization_data.res / 2.0
-
-        self.min_nb_steps_to_wait = 5
-        self.max_nb_steps_to_wait = 20
 
         # Initialize movability status of obstacles
         for entity in self.world.entities.values():
             if entity.movability != "static":
                 entity.movability = self.deduce_movability(entity.type_)
-
-        self.replan_count = 20
-        self.goal_to_plans = OrderedDict()
 
         self.action_space_reduction = (
             "only_r_acc_then_c_1_x"  # ['none', 'only_r_acc', 'only_r_acc_then_c_1_x']
@@ -334,6 +332,9 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
     def think(self, ros_publisher: "rp.RosPublisher") -> ThinkResult:
+        if not self.is_initialized:
+            raise Exception("Not initialized")
+
         # Initialize the social costmap
         if self._social_costmap is None:
             self.init_social_costmap(ros_publisher=ros_publisher)

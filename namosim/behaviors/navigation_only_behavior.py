@@ -18,7 +18,7 @@ from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 class NavigationOnlyBehavior(BaselineBehavior):
     def __init__(
         self,
-        initial_world: "w.World",
+        *,
         navigation_goals: t.List[PoseModel],
         logs_dir: str,
         name: str,
@@ -34,7 +34,6 @@ class NavigationOnlyBehavior(BaselineBehavior):
         BaselineBehavior.__init__(
             self,
             name=name,
-            initial_world=initial_world,
             navigation_goals=navigation_goals,
             behavior_type="navigation_only_behavior",
             logs_dir=logs_dir,
@@ -47,9 +46,12 @@ class NavigationOnlyBehavior(BaselineBehavior):
             movable_whitelist=movable_whitelist,
             style=style,
         )
-
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
+
+    def init(self, world: "w.World"):
+        super().init(world)
+
         all_entities_polygons = {
             uid: e.polygon for uid, e in self.world.entities.items()
         }

@@ -25,6 +25,7 @@ from namosim.world.taboo import Taboo
 class World:
     def __init__(
         self,
+        *,
         discretization_data: DiscretizationData,
         config: NamosimConfigModel,
         entities: t.Optional[t.Dict[int, Entity]] = None,
@@ -251,7 +252,6 @@ class World:
                 )
             elif agent.behavior.type == "navigation_only_behavior":
                 new_robot = behaviors.NavigationOnlyBehavior(
-                    initial_world=agent_world,
                     navigation_goals=goal_poses,
                     logs_dir=logs_dir,
                     full_geometry_acquired=True,
@@ -266,7 +266,6 @@ class World:
                 )
             elif agent.behavior.type == "stilman_only_behavior":
                 new_robot = behaviors.StilmanOnlyBehavior(
-                    initial_world=agent_world,
                     navigation_goals=goal_poses,
                     params=agent.behavior.parameters,
                     logs_dir=logs_dir,
@@ -297,7 +296,7 @@ class World:
             goals_node.parentNode.removeChild(goals_node)
 
         for agent in world.agents.values():
-            agent.set_world(world)
+            agent.init(world)
 
         return world
 

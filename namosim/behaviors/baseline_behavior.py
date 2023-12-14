@@ -38,8 +38,8 @@ class ThinkResult:
 class BaselineBehavior(Entity):
     def __init__(
         self,
+        *,
         behavior_type: str,
-        initial_world: "w.World",
         navigation_goals: t.List[PoseModel],
         logs_dir: str,
         name: str,
@@ -82,11 +82,10 @@ class BaselineBehavior(Entity):
         else:
             self.simulation_log = utils.CustomLogger()
 
-        self._initial_world = initial_world
+        self.__world: t.Optional["w.World"] = None
         self._navigation_goals = navigation_goals
         self.logs_dir = logs_dir
 
-        self.__world: "w.World" = copy.deepcopy(self._initial_world)
         self.__last_action_result: ActionResult | None = None
 
         self._prev_goal: PoseModel | None = (
@@ -102,6 +101,11 @@ class BaselineBehavior(Entity):
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
 
         self.goal_to_plans: t.Dict[PoseModel, "navp.Plan"] = OrderedDict()
+        self.is_initialized = False
+
+    def init(self, world: "w.World") -> None:
+        self.__world = copy.deepcopy(world)
+        self.is_initialized = True
 
     def sense(
         self, ref_world: "w.World", last_action_result: ActionResult, step_count: int
@@ -146,10 +150,10 @@ class BaselineBehavior(Entity):
 
     @property
     def world(self):
-        return self.__world
+        if not self.__world:
+            raise Exception("Not initialized")
 
-    def set_world(self, world: "w.World"):
-        self.__world = copy.deepcopy(world)
+        return self.__world
 
     @property
     def goal_pose(self):
