@@ -3,7 +3,7 @@ import typing as t
 from aabbtree import AABBTree
 from shapely import GeometryCollection, Polygon
 
-import namosim.behaviors.baseline_behavior as baseline_behavior
+import namosim.agents.agent as agent
 import namosim.display.ros2_publisher as ros2
 import namosim.world.world as world
 from namosim.data_models import PoseModel
@@ -216,7 +216,7 @@ class TransferPath:
                             if (
                                 isinstance(
                                     world.entities[uid],
-                                    baseline_behavior.BaselineBehavior,
+                                    agent.Agent,
                                 )
                                 and uid not in world.entity_to_agent.inverse
                             ):
@@ -290,9 +290,7 @@ class TransferPath:
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         elif (
-                            isinstance(
-                                world.entities[uid], baseline_behavior.BaselineBehavior
-                            )
+                            isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
                             if counter <= shared_horizon:
@@ -303,13 +301,13 @@ class TransferPath:
                                         other_robot_uid=uid
                                         if isinstance(
                                             world.entities[uid],
-                                            baseline_behavior.BaselineBehavior,
+                                            agent.Agent,
                                         )
                                         else world.entity_to_agent[uid],
                                         other_robot_pose=world.entities[uid].pose
                                         if isinstance(
                                             world.entities[uid],
-                                            baseline_behavior.BaselineBehavior,
+                                            agent.Agent,
                                         )
                                         else world.entities[
                                             world.entity_to_agent[uid]
@@ -404,9 +402,7 @@ class TransferPath:
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         elif (
-                            isinstance(
-                                world.entities[uid], baseline_behavior.BaselineBehavior
-                            )
+                            isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
                             if counter <= shared_horizon:
@@ -417,13 +413,13 @@ class TransferPath:
                                         other_robot_uid=uid
                                         if isinstance(
                                             world.entities[uid],
-                                            baseline_behavior.BaselineBehavior,
+                                            agent.Agent,
                                         )
                                         else world.entity_to_agent[uid],
                                         other_robot_pose=world.entities[uid].pose
                                         if isinstance(
                                             world.entities[uid],
-                                            baseline_behavior.BaselineBehavior,
+                                            agent.Agent,
                                         )
                                         else world.entities[
                                             world.entity_to_agent[uid]
@@ -512,9 +508,7 @@ class TransferPath:
                                     return conflicts
 
                         elif (
-                            isinstance(
-                                world.entities[uid], baseline_behavior.BaselineBehavior
-                            )
+                            isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
                             if counter <= shared_horizon:
@@ -525,13 +519,13 @@ class TransferPath:
                                         other_robot_uid=uid
                                         if isinstance(
                                             world.entities[uid],
-                                            baseline_behavior.BaselineBehavior,
+                                            agent.Agent,
                                         )
                                         else world.entity_to_agent[uid],
                                         other_robot_pose=world.entities[uid].pose
                                         if isinstance(
                                             world.entities[uid],
-                                            baseline_behavior.BaselineBehavior,
+                                            agent.Agent,
                                         )
                                         else world.entities[
                                             world.entity_to_agent[uid]
@@ -622,9 +616,7 @@ class TransferPath:
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         elif (
-                            isinstance(
-                                world.entities[uid], baseline_behavior.BaselineBehavior
-                            )
+                            isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
                             if counter <= shared_horizon:
@@ -635,13 +627,13 @@ class TransferPath:
                                         other_robot_uid=uid
                                         if isinstance(
                                             world.entities[uid],
-                                            baseline_behavior.BaselineBehavior,
+                                            agent.Agent,
                                         )
                                         else world.entity_to_agent[uid],
                                         other_robot_pose=world.entities[uid].pose
                                         if isinstance(
                                             world.entities[uid],
-                                            baseline_behavior.BaselineBehavior,
+                                            agent.Agent,
                                         )
                                         else world.entities[
                                             world.entity_to_agent[uid]
@@ -902,9 +894,7 @@ class TransitPath:
                                 )
                                 return conflicts
                     elif (
-                        isinstance(
-                            world.entities[uid], baseline_behavior.BaselineBehavior
-                        )
+                        isinstance(world.entities[uid], agent.Agent)
                         or uid in world.entity_to_agent
                     ):
                         if counter <= shared_horizon:
@@ -915,13 +905,13 @@ class TransitPath:
                                     other_robot_uid=uid
                                     if isinstance(
                                         world.entities[uid],
-                                        baseline_behavior.BaselineBehavior,
+                                        agent.Agent,
                                     )
                                     else world.entity_to_agent[uid],
                                     other_robot_pose=world.entities[uid].pose
                                     if isinstance(
                                         world.entities[uid],
-                                        baseline_behavior.BaselineBehavior,
+                                        agent.Agent,
                                     )
                                     else world.entities[
                                         world.entity_to_agent[uid]

@@ -62,8 +62,8 @@ test.env = { NAMO_NO_DISPLAY_WINDOW = "TRUE" }                        # env vars
 type_check = """
 pyright \
   namosim/algorithms/new_local_opening_check.py \
-  namosim/behaviors/baseline_behavior.py \
-  namosim/behaviors/navigation_only_behavior.py \
+  namosim/agents/agent.py \
+  namosim/agents/navigation_only_agent.py \
   namosim/display/colors.py \
   namosim/display/ros2_publisher.py \
   namosim/exceptions.py \

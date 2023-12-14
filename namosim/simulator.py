@@ -19,7 +19,7 @@ import namosim.config as config
 import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
-from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
+from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import PoseModel
 from namosim.exceptions import timeout
 from namosim.navigation.conflict import (
@@ -549,7 +549,7 @@ class Simulator:
     def _create_robot_world_from_sim_world(self):
         entities = dict()
         for entity_uid, entity in self.ref_world.entities.items():
-            if isinstance(entity, BaselineBehavior) or (
+            if isinstance(entity, Agent) or (
                 isinstance(entity, Obstacle) and entity.type_ == "wall"
             ):
                 entities[entity_uid] = copy.deepcopy(entity)
@@ -559,12 +559,13 @@ class Simulator:
             entities=entities,
             taboo_zones=copy.deepcopy(self.ref_world.taboo_zones),
             discretization_data=copy.deepcopy(self.ref_world.discretization_data),
+            logger=self.simulation_log,
         )
 
     def create_simulation_report(self):
         all_movable_types = set()
         for entity in self.init_ref_world.entities.values():
-            if isinstance(entity, BaselineBehavior):
+            if isinstance(entity, Agent):
                 all_movable_types.update(set(entity.movable_whitelist))
 
         all_movables_uids = {
@@ -584,7 +585,7 @@ class Simulator:
             [
                 uid
                 for uid, entity in self.init_ref_world.entities.items()
-                if isinstance(entity, BaselineBehavior)
+                if isinstance(entity, Agent)
             ],
             ros_publisher=self.ros_publisher,
         )
@@ -659,7 +660,7 @@ class Simulator:
                     [
                         uid
                         for uid, entity in replay_world.entities.items()
-                        if isinstance(entity, BaselineBehavior)
+                        if isinstance(entity, Agent)
                         or uid in replay_world.entity_to_agent.keys()
                     ],
                     ros_publisher=self.ros_publisher,
@@ -891,7 +892,7 @@ class Simulator:
     def _agent_think(
         self,
         agent_uid: int,
-        behavior: BaselineBehavior,
+        behavior: Agent,
         results: Queue[t.Tuple[int, float, ThinkResult]],
     ):
         think_start = time.time()

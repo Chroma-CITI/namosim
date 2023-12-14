@@ -36,7 +36,7 @@ class ThinkResult:
         self.has_conflicts = has_conflicts
 
 
-class BaselineBehavior(Entity):
+class Agent(Entity):
     def __init__(
         self,
         *,

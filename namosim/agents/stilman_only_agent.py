@@ -13,14 +13,14 @@ import namosim.navigation.basic_actions as ba
 import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.social_topological_occupation_cost_grid as stocg
 import namosim.world.world as w
-from namosim.algorithms import graph_search
-from namosim.algorithms.new_local_opening_check import check_new_local_opening
-from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
-from namosim.behaviors.stilman_configurations import (
+from namosim.agents.agent import Agent, ThinkResult
+from namosim.agents.stilman_configurations import (
     RCHConfiguration,
     RobotConfiguration,
     RobotObstacleConfiguration,
 )
+from namosim.algorithms import graph_search
+from namosim.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.data_models import GridCellModel, PoseModel, StilmanOnlyParametersModel
 from namosim.navigation.navigation_path import Path, TransferPath, TransitPath
 from namosim.utils import collision, connectivity, utils
@@ -35,7 +35,7 @@ from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.world.sensors.s_fov_sensor import SFOVSensor
 
 
-class StilmanOnlyBehavior(BaselineBehavior):
+class StilmanOnlyAgent(Agent):
     """Implements basic Stilman behavior for dealing with movable obstacles but does not handle conflicts with dynamic obstacles or other agents."""
 
     def __init__(
@@ -56,7 +56,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
         logger: utils.CustomLogger,
         uid: int = 0,
     ):
-        BaselineBehavior.__init__(
+        Agent.__init__(
             self,
             name=name,
             navigation_goals=navigation_goals,
@@ -378,7 +378,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
             uid
             for uid, entity in w_t.entities.items()
             if (
-                (isinstance(entity, BaselineBehavior) and uid != self.uid)
+                (isinstance(entity, Agent) and uid != self.uid)
                 or (uid in w_t.entity_to_agent and w_t.entity_to_agent[uid] != self.uid)
             )
         }
@@ -2110,7 +2110,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
         )
 
     def light_copy(self) -> Self:
-        return StilmanOnlyBehavior(
+        return StilmanOnlyAgent(
             uid=self.uid,
             navigation_goals=copy.deepcopy(self._navigation_goals),
             params=copy.deepcopy(self.params),

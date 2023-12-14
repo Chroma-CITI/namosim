@@ -36,7 +36,7 @@ import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as navigation_plan
 import namosim.world.world as world
-from namosim.behaviors import baseline_behavior
+from namosim.agents import agent
 from namosim.data_models import GridCellModel, PoseModel
 from namosim.display.conversions import (
     costmap_to_grid_map,
@@ -196,9 +196,7 @@ class WorldObserver(RosObserver):
         current_world_draw_data = {
             entity.uid: {
                 "polygon": entity.polygon,
-                "type": "robot"
-                if isinstance(entity, baseline_behavior.BaselineBehavior)
-                else entity.type_,
+                "type": "robot" if isinstance(entity, agent.Agent) else entity.type_,
                 "pose": entity.pose,
             }
             for entity in world.entities.values()
@@ -233,7 +231,7 @@ class WorldObserver(RosObserver):
         for entity in world.entities.values():
             if entity.uid not in entities_to_ignore:
                 entity_color = ColorRGBA(**colors.hex_to_rgba(entity.style.fill))
-                if isinstance(entity, baseline_behavior.BaselineBehavior):
+                if isinstance(entity, agent.Agent):
                     namespace = "/robot"
                 elif isinstance(entity, Obstacle):
                     namespace = "obstacles"
@@ -351,7 +349,7 @@ class CostmapObserver(RosObserver):
         polygons = {
             uid: entity.polygon
             for uid, entity in world.entities.items()
-            if not isinstance(entity, baseline_behavior.BaselineBehavior)
+            if not isinstance(entity, agent.Agent)
         }
         if robot_uid:
             robot_max_inflation_radius = utils.get_circumscribed_radius(
@@ -482,7 +480,7 @@ class GoalObserver(RosObserver):
         )
 
     def _convert(self, **kwargs: t.Any):
-        robot: "baseline_behavior.BaselineBehavior" = kwargs["entity"]
+        robot: "agent.Agent" = kwargs["entity"]
 
         q_init, q_goal = kwargs["q_init"], kwargs["q_goal"]
 
@@ -1230,7 +1228,7 @@ class RosPublisher:  # noqa: F821
     def publish_p_opt(
         self,
         plan: "navigation_plan.Plan",
-        robot: "baseline_behavior.BaselineBehavior",
+        robot: "agent.Agent",
         ns: str = "",
     ):
         """Publishes the optimal path to observers"""
@@ -1433,7 +1431,7 @@ class RosPublisher:  # noqa: F821
         self,
         q_init: PoseModel,
         q_goal: PoseModel,
-        entity: "baseline_behavior.BaselineBehavior",
+        entity: "agent.Agent",
         ns: str = "",
     ):
         if cfg.deactivate_gui:

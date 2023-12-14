@@ -9,7 +9,7 @@ from bidict import bidict
 from shapely.geometry import LineString, Polygon, box
 from typing_extensions import Self
 
-import namosim.behaviors as behaviors
+import namosim.agents as agts
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
 from namosim.data_models import NamosimConfigModel, PoseModel
@@ -29,7 +29,7 @@ class World:
         discretization_data: DiscretizationData,
         config: NamosimConfigModel,
         entities: t.Optional[t.Dict[int, Entity]] = None,
-        agents: t.Optional[t.Dict[int, "behaviors.BaselineBehavior"]] = None,
+        agents: t.Optional[t.Dict[int, "agts.Agent"]] = None,
         entity_to_agent: t.Optional[bidict[int, int]] = None,
         taboo_zones: t.Optional[t.Dict[int, Taboo]] = None,
         goals: t.Optional[t.Dict[int, Goal]] = None,
@@ -39,9 +39,7 @@ class World:
     ):
         self.config = config
         self.entities = entities or dict()
-        self.agents: t.Dict[int, "behaviors.BaselineBehavior"] = (
-            agents if agents else {}
-        )
+        self.agents: t.Dict[int, "agts.Agent"] = agents if agents else {}
         self.entity_to_agent = entity_to_agent or bidict()
         self.discretization_data = discretization_data
         self.agent_configs = ({x.agent_id: x for x in config.agents},)
@@ -240,7 +238,7 @@ class World:
                 goal_poses.append((goal_pose[0], goal_pose[1], goal_pose[2]))
 
             if agent.behavior.type == "stilman_2005_behavior":
-                new_robot = behaviors.Stilman2005Behavior(
+                new_robot = agts.Stilman2005Agent(
                     navigation_goals=goal_poses,
                     params=agent.behavior.parameters,
                     logs_dir=logs_dir,
@@ -256,7 +254,7 @@ class World:
                     logger=logger,
                 )
             elif agent.behavior.type == "navigation_only_behavior":
-                new_robot = behaviors.NavigationOnlyBehavior(
+                new_robot = agts.NavigationOnlyAgent(
                     navigation_goals=goal_poses,
                     logs_dir=logs_dir,
                     full_geometry_acquired=True,
@@ -271,7 +269,7 @@ class World:
                     logger=logger,
                 )
             elif agent.behavior.type == "stilman_only_behavior":
-                new_robot = behaviors.StilmanOnlyBehavior(
+                new_robot = agts.StilmanOnlyAgent(
                     navigation_goals=goal_poses,
                     params=agent.behavior.parameters,
                     logs_dir=logs_dir,
@@ -354,7 +352,7 @@ class World:
                         map_width=self.discretization_data.width,
                         map_height=self.discretization_data.height,
                     )
-                elif isinstance(entity, behaviors.BaselineBehavior):
+                elif isinstance(entity, agts.Agent):
                     robot_group = conversion.add_group(
                         svg_data, entity.name, is_layer=False
                     )
@@ -458,7 +456,7 @@ class World:
 
             e = e.light_copy()
             entities[uid] = e
-            if isinstance(e, behaviors.BaselineBehavior):
+            if isinstance(e, agts.Agent):
                 agents[uid] = e
 
         return World(

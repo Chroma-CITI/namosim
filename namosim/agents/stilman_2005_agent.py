@@ -18,14 +18,14 @@ import namosim.utils.collision as collision
 import namosim.utils.connectivity as connectivity
 import namosim.world.social_topological_occupation_cost_grid as stocg
 import namosim.world.world as w
-from namosim.algorithms import graph_search
-from namosim.algorithms.new_local_opening_check import check_new_local_opening
-from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
-from namosim.behaviors.stilman_configurations import (
+from namosim.agents.agent import Agent, ThinkResult
+from namosim.agents.stilman_configurations import (
     RCHConfiguration,
     RobotConfiguration,
     RobotObstacleConfiguration,
 )
+from namosim.algorithms import graph_search
+from namosim.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.data_models import GridCellModel, PoseModel, StilmanBehaviorParametersModel
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -50,7 +50,7 @@ from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 
 
-class Stilman2005Behavior(BaselineBehavior):
+class Stilman2005Agent(Agent):
     def __init__(
         self,
         *,
@@ -324,7 +324,7 @@ class Stilman2005Behavior(BaselineBehavior):
         self, ref_world: "w.World", last_action_result: ar.ActionResult, step_count: int
     ):
         # Update baseline world representation (polygons)
-        BaselineBehavior.sense(self, ref_world, last_action_result, step_count)
+        Agent.sense(self, ref_world, last_action_result, step_count)
 
         # Update grid(s)
         self.inflated_grid_by_robot.update(
@@ -700,7 +700,7 @@ class Stilman2005Behavior(BaselineBehavior):
             uid
             for uid, entity in w_t.entities.items()
             if (
-                (isinstance(entity, BaselineBehavior) and uid != robot_uid)
+                (isinstance(entity, Agent) and uid != robot_uid)
                 or (
                     uid in w_t.entity_to_agent and w_t.entity_to_agent[uid] != robot_uid
                 )
@@ -1061,7 +1061,7 @@ class Stilman2005Behavior(BaselineBehavior):
             uid
             for uid, entity in w_t.entities.items()
             if (
-                (isinstance(entity, BaselineBehavior) and uid != self.uid)
+                (isinstance(entity, Agent) and uid != self.uid)
                 or (uid in w_t.entity_to_agent and w_t.entity_to_agent[uid] != self.uid)
             )
         }
@@ -3592,7 +3592,7 @@ class Stilman2005Behavior(BaselineBehavior):
         use_combined_cost: bool = True,
     ) -> EvasionTransitPath | None:
         # Compute evasion for main robot
-        main_robot = t.cast(BaselineBehavior, w_t.entities[main_robot_uid])
+        main_robot = t.cast(Agent, w_t.entities[main_robot_uid])
 
         inflated_grid_by_robot_max.deactivate_entities({main_robot_uid})
         (
@@ -3628,7 +3628,7 @@ class Stilman2005Behavior(BaselineBehavior):
             for robot_uid in other_robots_uids:
                 # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
                 #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
-                other_robot = t.cast(BaselineBehavior, w_t.entities[robot_uid])
+                other_robot = t.cast(Agent, w_t.entities[robot_uid])
 
                 inflated_grid_by_robot_max.deactivate_entities({robot_uid})
                 inflated_grid_by_robot_max.activate_entities({main_robot_uid})
@@ -3687,7 +3687,7 @@ class Stilman2005Behavior(BaselineBehavior):
         *,
         w_t: "w.World",
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
-        robot: BaselineBehavior,
+        robot: Agent,
         forbidden_evasion_cells: t.Set[GridCellModel],
         ros_publisher: "rp.RosPublisher",
         use_combined_cost: bool = False,
@@ -3957,7 +3957,7 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
     def light_copy(self) -> Self:
-        return Stilman2005Behavior(
+        return Stilman2005Agent(
             uid=self.uid,
             navigation_goals=copy.deepcopy(self._navigation_goals),
             params=copy.deepcopy(self.params),

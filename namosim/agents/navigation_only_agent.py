@@ -8,7 +8,7 @@ import namosim.display.ros2_publisher as rp
 import namosim.navigation.basic_actions as ba
 import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.world as w
-from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
+from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import PoseModel
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
@@ -17,7 +17,7 @@ from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 
 
-class NavigationOnlyBehavior(BaselineBehavior):
+class NavigationOnlyAgent(Agent):
     def __init__(
         self,
         *,
@@ -35,7 +35,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
         logger: utils.CustomLogger,
         uid: int = 0,
     ):
-        BaselineBehavior.__init__(
+        Agent.__init__(
             self,
             name=name,
             navigation_goals=navigation_goals,
@@ -149,7 +149,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
         )
 
     def light_copy(self) -> Self:
-        return NavigationOnlyBehavior(
+        return NavigationOnlyAgent(
             uid=self.uid,
             navigation_goals=copy.deepcopy(self._navigation_goals),
             logs_dir=self.logs_dir,
