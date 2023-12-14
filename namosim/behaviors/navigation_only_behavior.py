@@ -4,10 +4,10 @@ from shapely import Polygon
 
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.basic_actions as ba
+import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.world as w
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
 from namosim.data_models import PoseModel
-from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.entity import Style
@@ -80,14 +80,14 @@ class NavigationOnlyBehavior(BaselineBehavior):
         if self._q_goal is None:
             if self._navigation_goals:
                 self._q_goal = self._navigation_goals.pop(0)
-                self._p_opt = Plan(
+                self._p_opt = nav_plan.Plan(
                     robot_uid=self.uid, path_components=[], goal=self._q_goal
                 )
             else:
                 return ThinkResult(
                     next_action=ba.GoalsFinished(),
                     did_replan=False,
-                    robot_name=self._robot_name,
+                    robot_name=self.name,
                     has_conflicts=False,
                 )
 
@@ -99,7 +99,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
             result = ThinkResult(
                 next_action=ba.GoalSuccess(goal=self._q_goal),
                 did_replan=False,
-                robot_name=self._robot_name,
+                robot_name=self.name,
                 has_conflicts=False,
             )
             self._q_goal = None
@@ -109,7 +109,7 @@ class NavigationOnlyBehavior(BaselineBehavior):
             return ThinkResult(
                 next_action=self._p_opt.pop_next_action(),
                 did_replan=False,
-                robot_name=self._robot_name,
+                robot_name=self.name,
                 has_conflicts=False,
             )
 
@@ -124,11 +124,11 @@ class NavigationOnlyBehavior(BaselineBehavior):
             return ThinkResult(
                 next_action=ba.GoalFailed(self._q_goal),
                 did_replan=False,
-                robot_name=self._robot_name,
+                robot_name=self.name,
                 has_conflicts=False,
             )
 
-        self._p_opt = Plan(
+        self._p_opt = nav_plan.Plan(
             path_components=[path], goal=self._q_goal, robot_uid=self.uid
         )
         self.goal_to_plans[self._q_goal] = self._p_opt
@@ -136,6 +136,6 @@ class NavigationOnlyBehavior(BaselineBehavior):
         return ThinkResult(
             next_action=self._p_opt.pop_next_action(),
             did_replan=True,
-            robot_name=self._robot_name,
+            robot_name=self.name,
             has_conflicts=False,
         )

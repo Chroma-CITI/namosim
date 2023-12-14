@@ -9,13 +9,10 @@ from bidict import bidict
 from shapely.geometry import LineString, Polygon, box
 from typing_extensions import Self
 
+import namosim.behaviors as behaviors
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
-from namosim.behaviors.baseline_behavior import BaselineBehavior
-from namosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
-from namosim.behaviors.stilman_2005_behavior import Stilman2005Behavior
-from namosim.behaviors.stilman_only_behavior import StilmanOnlyBehavior
-from namosim.data_models import NamosimConfigModel
+from namosim.data_models import NamosimConfigModel, PoseModel
 from namosim.display import conversions
 from namosim.world.discretization_data import DiscretizationData
 from namosim.world.entity import Entity, Style
@@ -39,6 +36,7 @@ class World:
     ):
         self.config = config
         self.entities = entities or dict()
+        self.agents: t.Dict[int, "behaviors.BaselineBehavior"] = {}
         self.entity_to_agent = entity_to_agent or bidict()
         self.discretization_data = discretization_data
         self.agent_configs = ({x.agent_id: x for x in config.agents},)
@@ -54,7 +52,7 @@ class World:
 
     # Constructor
     @classmethod
-    def load_from_svg(cls, world_svg_path: str) -> Self:
+    def load_from_svg(cls, world_svg_path: str, logs_dir: str) -> Self:
         # Import entire world from svg file
         svg_doc = minidom.parse(world_svg_path)
         config = NamosimConfigModel.from_xml(
@@ -197,7 +195,7 @@ class World:
             robot_pose[0] = t.cast(float, list(robot_polygon.centroid.coords)[0][0])
             robot_pose[1] = t.cast(float, list(robot_polygon.centroid.coords)[0][1])
 
-            goal_poses = []
+            goal_poses: t.List[PoseModel] = []
             for goal in agent.goals:
                 goal_el = svg_doc.getElementById(goal.goal_id)
                 if not goal_el:
@@ -231,16 +229,16 @@ class World:
                     pose=tuple(goal_pose),  # type: ignore
                 )
                 world.goals[goal.uid] = goal
-                goal_poses.append(goal_pose)
+                goal_poses.append((goal_pose[0], goal_pose[1], goal_pose[2]))
 
-            agent_world = copy.deepcopy(self)
+            agent_world = copy.deepcopy(world)
 
             if agent.behavior.type == "stilman_2005_behavior":
-                new_robot = Stilman2005Behavior(
+                new_robot = behaviors.Stilman2005Behavior(
                     initial_world=agent_world,
                     navigation_goals=goal_poses,
                     params=agent.behavior.parameters,
-                    logs_dir=self.logs_dir,
+                    logs_dir=logs_dir,
                     full_geometry_acquired=True,
                     name=agent.agent_id,
                     polygon=robot_polygon,
@@ -252,10 +250,10 @@ class World:
                     movable_whitelist=[],
                 )
             elif agent.behavior.type == "navigation_only_behavior":
-                new_robot = NavigationOnlyBehavior(
+                new_robot = behaviors.NavigationOnlyBehavior(
                     initial_world=agent_world,
                     navigation_goals=goal_poses,
-                    logs_dir=self.logs_dir,
+                    logs_dir=logs_dir,
                     full_geometry_acquired=True,
                     name=agent.agent_id,
                     polygon=robot_polygon,
@@ -267,11 +265,11 @@ class World:
                     movable_whitelist=[],
                 )
             elif agent.behavior.type == "stilman_only_behavior":
-                new_robot = StilmanOnlyBehavior(
+                new_robot = behaviors.StilmanOnlyBehavior(
                     initial_world=agent_world,
                     navigation_goals=goal_poses,
                     params=agent.behavior.parameters,
-                    logs_dir=self.logs_dir,
+                    logs_dir=logs_dir,
                     full_geometry_acquired=True,
                     name=agent.agent_id,
                     polygon=robot_polygon,
@@ -292,6 +290,7 @@ class World:
                 )
 
             world.add_entity(new_robot)
+            world.agents[new_robot.uid] = new_robot
 
         goals_node = svg_doc.getElementById("goals")
         if goals_node:
@@ -346,7 +345,7 @@ class World:
                         map_width=self.discretization_data.width,
                         map_height=self.discretization_data.height,
                     )
-                elif isinstance(entity, BaselineBehavior):
+                elif isinstance(entity, behaviors.BaselineBehavior):
                     robot_group = conversion.add_group(
                         svg_data, entity.name, is_layer=False
                     )

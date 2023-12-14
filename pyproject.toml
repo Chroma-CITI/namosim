@@ -76,7 +76,6 @@ pyright \
   namosim/world/goal.py \
   namosim/world/models.py \
   namosim/world/obstacle.py \
-  namosim/world/robot.py \
   namosim/world/world.py \
 """
 all_checks = ["lint_check", "type_check", "test"]

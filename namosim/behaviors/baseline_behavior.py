@@ -36,8 +36,6 @@ class ThinkResult:
 
 
 class BaselineBehavior(Entity):
-    __metaclass__ = abc.ABCMeta
-
     def __init__(
         self,
         behavior_type: str,
@@ -85,10 +83,7 @@ class BaselineBehavior(Entity):
             self.simulation_log = utils.CustomLogger()
 
         self._initial_world = initial_world
-        self.uid = uid
-        self._robot_name = initial_world.entities[uid].name
         self._navigation_goals = navigation_goals
-        self._name = name
         self.logs_dir = logs_dir
 
         self.__world: "w.World" = copy.deepcopy(self._initial_world)
@@ -99,10 +94,10 @@ class BaselineBehavior(Entity):
         )
         self.__q_goal: PoseModel | None = None
 
-        self._prev_plan: "navp.Plan" | None = (
-            None  # used to check if a plan has changed
-        )
-        self.__p_opt: "navp.Plan" | None = None
+        self._prev_plan: t.Optional[
+            "navp.Plan"
+        ] = None  # used to check if a plan has changed
+        self.__p_opt: t.Optional["navp.Plan"] = None
 
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
 
@@ -155,10 +150,6 @@ class BaselineBehavior(Entity):
 
     def set_world(self, world: "w.World"):
         self.__world = world
-
-    @property
-    def name(self):
-        return self._name
 
     @property
     def goal_pose(self):
