@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 from aabbtree import AABBTree
 from shapely import Polygon
+from typing_extensions import Self
 
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.basic_actions as ba
@@ -52,6 +53,8 @@ class StilmanOnlyBehavior(BaselineBehavior):
         force_pushes_only: bool,
         movable_whitelist: t.List[str],
         style: Style,
+        logger: utils.CustomLogger,
+        uid: int = 0,
     ):
         BaselineBehavior.__init__(
             self,
@@ -67,6 +70,8 @@ class StilmanOnlyBehavior(BaselineBehavior):
             force_pushes_only=force_pushes_only,
             movable_whitelist=movable_whitelist,
             style=style,
+            logger=logger,
+            uid=uid,
         )
         self.params = params
         self._social_costmap: npt.NDArray[t.Any] | None = None
@@ -392,7 +397,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
         )
 
         while o_1 != 0:
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: select_connect: selected entity {} for manipulation search to reach component {}.".format(
                         robot.name, w_t.entities[o_1].name, c_1
@@ -469,7 +474,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 )
 
             if tho_m is not None:
-                self.simulation_log.append(
+                self.logger.append(
                     utils.BasicLog(
                         "Agent {}: select_connect: found partial plan manipulating entity {} to reach component {}.".format(
                             robot.name, w_t.entities[o_1].name, c_1
@@ -520,7 +525,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
 
             # Extra check for when the goal is in a movable obstacle that we could not find how to move
             if c_1 == 0:
-                self.simulation_log.append(
+                self.logger.append(
                     utils.BasicLog(
                         "Agent {}: select_connect: did not find a reachable component if manipulating {}.".format(
                             robot.name, w_t.entities[o_1].name
@@ -596,7 +601,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 self.world.entities[uid].name
                 for uid in static_obs_grid.obstacles_uids_in_cell(start_cell)
             }
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: rch: The robot start cell {} in a rch call must always be outside of static obstacles, here: {}.".format(
                         self.name, start_cell, obstacle_names
@@ -611,7 +616,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 self.world.entities[uid].name
                 for uid in static_obs_grid.obstacles_uids_in_cell(goal_cell)
             }
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: rch: The robot goal cell {} in a rch call must always be outside of static obstacles, here: {}.".format(
                         self.name, goal_cell, obstacle_names
@@ -627,7 +632,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 self.world.entities[uid].name
                 for uid in inflated_robot_grid.obstacles_uids_in_cell(start_cell)
             }
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: rch: The robot start cell {} in a rch call must always be at most in one obstacle and not a forbidden one, here: {}.".format(
                         self.name, start_cell, obstacle_names
@@ -642,7 +647,7 @@ class StilmanOnlyBehavior(BaselineBehavior):
                 self.world.entities[uid].name
                 for uid in inflated_robot_grid.obstacles_uids_in_cell(goal_cell)
             }
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: rch: The robot goal cell {} in a rch call must be at most within one movable obstacle, here: {}.".format(
                         self.name, goal_cell, obstacle_names
@@ -2102,4 +2107,22 @@ class StilmanOnlyBehavior(BaselineBehavior):
             debug_display=False,
             log_costmaps=True,
             logs_dir=self.logs_dir,
+        )
+
+    def light_copy(self) -> Self:
+        return StilmanOnlyBehavior(
+            uid=self.uid,
+            navigation_goals=copy.deepcopy(self._navigation_goals),
+            params=copy.deepcopy(self.params),
+            logs_dir=self.logs_dir,
+            full_geometry_acquired=self.full_geometry_acquired,
+            name=self.name,
+            polygon=copy.deepcopy(self.polygon),
+            style=copy.deepcopy(self.style),
+            pose=copy.deepcopy(self.pose),
+            sensors=copy.deepcopy(self.sensors),  # type: ignore
+            push_only_list=[],
+            force_pushes_only=False,
+            movable_whitelist=["box"],
+            logger=self.logger,
         )

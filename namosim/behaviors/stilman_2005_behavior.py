@@ -8,6 +8,7 @@ import numpy as np
 import numpy.typing as npt
 from shapely import Polygon
 from shapely.geometry import Point
+from typing_extensions import Self
 
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.action_result as ar
@@ -65,6 +66,8 @@ class Stilman2005Behavior(BaselineBehavior):
         force_pushes_only: bool,
         movable_whitelist: t.List[str],
         style: Style,
+        logger: utils.CustomLogger,
+        uid: int = 0,
     ):
         super().__init__(
             name=name,
@@ -79,8 +82,11 @@ class Stilman2005Behavior(BaselineBehavior):
             force_pushes_only=force_pushes_only,
             movable_whitelist=movable_whitelist,
             style=style,
+            logger=logger,
+            uid=uid,
         )
 
+        self.params = params
         self._p_opt: "nav_plan.DynamicPlan"
 
         # - Original Stilman method configuration parameters
@@ -420,7 +426,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
 
         if plan.is_empty():
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: Absence of plan requires immediate replanning.".format(
                         self.name
@@ -450,7 +456,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
         else:
             if plan.is_evasion_over():
-                self.simulation_log.append(
+                self.logger.append(
                     utils.BasicLog(
                         "Agent {}: Finished evasion sequence, replanning.".format(
                             self.name
@@ -488,7 +494,7 @@ class Stilman2005Behavior(BaselineBehavior):
             )
             if not conflicts:
                 if plan.timer.is_running and plan.timer.is_timer_over(step_count):
-                    self.simulation_log.append(
+                    self.logger.append(
                         utils.BasicLog(
                             "Agent {}: No more conflicts, unpostponing current plan.".format(
                                 self.name
@@ -520,7 +526,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             has_conflicts=True,
                         )
 
-                    self.simulation_log.append(
+                    self.logger.append(
                         utils.BasicLog(
                             "Agent {}: Potential deadlocks detected: {}.".format(
                                 self.name, potential_deadlocks
@@ -530,7 +536,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     )
 
                     if not plan.has_tries_remaining(try_max):
-                        self.simulation_log.append(
+                        self.logger.append(
                             utils.BasicLog(
                                 "Agent {}: Failing goal, no tries remaining to plan an evasion.".format(
                                     self.name
@@ -564,7 +570,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         ros_publisher=ros_publisher,
                     )
                     if evasion_path:
-                        self.simulation_log.append(
+                        self.logger.append(
                             utils.BasicLog(
                                 "Agent {}: Executing evasion path.".format(self.name),
                                 step_count,
@@ -585,7 +591,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             has_conflicts=True,
                         )
                     else:
-                        self.simulation_log.append(
+                        self.logger.append(
                             utils.BasicLog(
                                 "Agent {}: I can not or should not evade, postponing...".format(
                                     self.name,
@@ -599,7 +605,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 t_max,
                                 step_count,
                                 conflicts,
-                                self.simulation_log,
+                                self.logger,
                                 self.name,
                             ),
                             did_replan=False,
@@ -613,7 +619,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         t_max,
                         step_count,
                         conflicts,
-                        self.simulation_log,
+                        self.logger,
                         self.name,
                     ),
                     did_replan=False,
@@ -621,7 +627,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     has_conflicts=True,
                 )
             else:
-                self.simulation_log.append(
+                self.logger.append(
                     utils.BasicLog(
                         "Agent {}: Detected conflicts require immediate replanning. Conflicts: {}".format(
                             self.name, conflicts
@@ -672,7 +678,7 @@ class Stilman2005Behavior(BaselineBehavior):
         ros_publisher: "rp.RosPublisher",
     ) -> ThinkResult:
         if not plan.has_tries_remaining(max_tries):
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: Failing goal, no tries remaining to plan even while ignoring dynamic obstacles.".format(
                         self.name
@@ -718,7 +724,7 @@ class Stilman2005Behavior(BaselineBehavior):
         plan.update_plan(p, step_count)
 
         if plan.is_empty():
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: Failing goal, no plan could be found when ignoring dynamic obstacles.".format(
                         self.name
@@ -741,7 +747,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 robot_name=self.name,
             )
             if not conflicts:
-                self.simulation_log.append(
+                self.logger.append(
                     utils.BasicLog(
                         "Agent {}: Found a pure NAMO plan without conflicts with dynamic obstacles, "
                         "executing its first step...".format(self.name),
@@ -755,7 +761,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     has_conflicts=False,
                 )
             else:
-                self.simulation_log.append(
+                self.logger.append(
                     utils.BasicLog(
                         "Agent {}: A new plan has been computed ignoring dynamic "
                         "obstacles but has conflicts with them: {}".format(
@@ -768,7 +774,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 if not (
                     plan.has_tries_remaining(max_tries) and plan.can_even_be_found()
                 ):
-                    self.simulation_log.append(
+                    self.logger.append(
                         utils.BasicLog(
                             "Agent {}: Failing goal, no tries remaining to plan after conflicts "
                             "were found with the plan ignoring dynamic obstacles.".format(
@@ -881,7 +887,7 @@ class Stilman2005Behavior(BaselineBehavior):
                     inflated_grid_by_robot.activate_entities(new_dynamic_entities)
 
                     if p.is_empty():
-                        self.simulation_log.append(
+                        self.logger.append(
                             utils.BasicLog(
                                 "Agent {}: Postponing for {} steps, could not find a plan avoiding the conflicting "
                                 "dynamic obstacles of the pure NAMO plan.".format(
@@ -896,7 +902,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 t_max,
                                 step_count,
                                 conflicts,
-                                self.simulation_log,
+                                self.logger,
                                 self.name,
                             ),
                             did_replan=True,
@@ -913,7 +919,7 @@ class Stilman2005Behavior(BaselineBehavior):
                             robot_name=self.name,
                         )
                         if conflicts:
-                            self.simulation_log.append(
+                            self.logger.append(
                                 utils.BasicLog(
                                     "Agent {}: Postponing for {} steps, a new plan has been computed avoiding the "
                                     "conflicting dynamic obstacles of the pure NAMO plan, but has other conflicts: {}".format(
@@ -928,7 +934,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                     t_max,
                                     step_count,
                                     conflicts,
-                                    self.simulation_log,
+                                    self.logger,
                                     self.name,
                                 ),
                                 did_replan=True,
@@ -936,7 +942,7 @@ class Stilman2005Behavior(BaselineBehavior):
                                 has_conflicts=True,
                             )
                         else:
-                            self.simulation_log.append(
+                            self.logger.append(
                                 utils.BasicLog(
                                     "Agent {}: Found a new plan that does not have conflicts with the dynamic obstacles "
                                     "conflicting with the pure NAMO plan, executing its first step...".format(
@@ -1072,7 +1078,7 @@ class Stilman2005Behavior(BaselineBehavior):
             neighborhood=neighborhood,
         )
         while o_1 != 0:
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: select_connect: selected entity {} for manipulation search to reach component {}.".format(
                         robot.name, w_t.entities[o_1].name, c_1
@@ -1149,7 +1155,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 )
 
             if tho_m is not None:
-                self.simulation_log.append(
+                self.logger.append(
                     utils.BasicLog(
                         "Agent {}: select_connect: found partial plan manipulating entity {} to reach component {}.".format(
                             robot.name, w_t.entities[o_1].name, c_1
@@ -1196,7 +1202,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
             # Extra check for when the goal is in a movable obstacle that we could not find how to move
             if c_1 == 0:
-                self.simulation_log.append(
+                self.logger.append(
                     utils.BasicLog(
                         "Agent {}: select_connect: did not find a reachable component if manipulating {}.".format(
                             robot.name, w_t.entities[o_1].name
@@ -1397,7 +1403,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self.world.entities[uid].name
                 for uid in static_obs_grid.obstacles_uids_in_cell(start_cell)
             }
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: rch: The robot start cell {} in a rch call must always be outside of static obstacles, here: {}.".format(
                         self.name, start_cell, obstacle_names
@@ -1412,7 +1418,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self.world.entities[uid].name
                 for uid in static_obs_grid.obstacles_uids_in_cell(goal_cell)
             }
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: rch: The robot goal cell {} in a rch call must always be outside of static obstacles, here: {}.".format(
                         self.name, goal_cell, obstacle_names
@@ -1428,7 +1434,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self.world.entities[uid].name
                 for uid in inflated_robot_grid.obstacles_uids_in_cell(start_cell)
             }
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: rch: The robot start cell {} in a rch call must always be at most in one obstacle and not a forbidden one, here: {}.".format(
                         self.name, start_cell, obstacle_names
@@ -1443,7 +1449,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self.world.entities[uid].name
                 for uid in inflated_robot_grid.obstacles_uids_in_cell(goal_cell)
             }
-            self.simulation_log.append(
+            self.logger.append(
                 utils.BasicLog(
                     "Agent {}: rch: The robot goal cell {} in a rch call must be at most within one movable obstacle, here: {}.".format(
                         self.name, goal_cell, obstacle_names
@@ -3948,4 +3954,22 @@ class Stilman2005Behavior(BaselineBehavior):
             phys_cost=phys_cost,
             social_cost=social_cost,
             weight=weight,
+        )
+
+    def light_copy(self) -> Self:
+        return Stilman2005Behavior(
+            uid=self.uid,
+            navigation_goals=copy.deepcopy(self._navigation_goals),
+            params=copy.deepcopy(self.params),
+            logs_dir=self.logs_dir,
+            full_geometry_acquired=self.full_geometry_acquired,
+            name=self.name,
+            polygon=copy.deepcopy(self.polygon),
+            style=copy.deepcopy(self.style),
+            pose=copy.deepcopy(self.pose),
+            sensors=copy.deepcopy(self.sensors),  # type: ignore
+            push_only_list=[],
+            force_pushes_only=False,
+            movable_whitelist=["box"],
+            logger=self.logger,
         )

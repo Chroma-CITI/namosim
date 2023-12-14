@@ -29,15 +29,19 @@ class World:
         discretization_data: DiscretizationData,
         config: NamosimConfigModel,
         entities: t.Optional[t.Dict[int, Entity]] = None,
+        agents: t.Optional[t.Dict[int, "behaviors.BaselineBehavior"]] = None,
         entity_to_agent: t.Optional[bidict[int, int]] = None,
         taboo_zones: t.Optional[t.Dict[int, Taboo]] = None,
         goals: t.Optional[t.Dict[int, Goal]] = None,
         init_geometry_filename: str = "world_name_placeholder.svg",
         init_geometry_file: t.Optional[minidom.Document] = None,
+        logger: utils.CustomLogger,
     ):
         self.config = config
         self.entities = entities or dict()
-        self.agents: t.Dict[int, "behaviors.BaselineBehavior"] = {}
+        self.agents: t.Dict[int, "behaviors.BaselineBehavior"] = (
+            agents if agents else {}
+        )
         self.entity_to_agent = entity_to_agent or bidict()
         self.discretization_data = discretization_data
         self.agent_configs = ({x.agent_id: x for x in config.agents},)
@@ -47,13 +51,15 @@ class World:
             conversion.clean_attributes(init_geometry_file)
         self.init_geometry_filename = init_geometry_filename
         self.init_geometry_file = init_geometry_file
-
         self.taboo_zones: t.Dict[int, Taboo] = taboo_zones or dict()
         self.goals: t.Dict[int, Goal] = goals or dict()
+        self.logger = logger
 
     # Constructor
     @classmethod
-    def load_from_svg(cls, world_svg_path: str, logs_dir: str) -> Self:
+    def load_from_svg(
+        cls, world_svg_path: str, logs_dir: str, logger: utils.CustomLogger
+    ) -> Self:
         # Import entire world from svg file
         svg_doc = minidom.parse(world_svg_path)
         config = NamosimConfigModel.from_xml(
@@ -120,6 +126,7 @@ class World:
             init_geometry_file=svg_doc,
             discretization_data=discretization_data,
             config=config,
+            logger=logger,
         )
 
         # Get all things
@@ -246,6 +253,7 @@ class World:
                     push_only_list=[],
                     force_pushes_only=False,
                     movable_whitelist=["box"],
+                    logger=logger,
                 )
             elif agent.behavior.type == "navigation_only_behavior":
                 new_robot = behaviors.NavigationOnlyBehavior(
@@ -260,6 +268,7 @@ class World:
                     push_only_list=[],
                     force_pushes_only=False,
                     movable_whitelist=["box"],
+                    logger=logger,
                 )
             elif agent.behavior.type == "stilman_only_behavior":
                 new_robot = behaviors.StilmanOnlyBehavior(
@@ -275,6 +284,7 @@ class World:
                     push_only_list=[],
                     force_pushes_only=False,
                     movable_whitelist=["box"],
+                    logger=logger,
                 )
             else:
                 raise NotImplementedError(
@@ -397,10 +407,10 @@ class World:
     def remove_entity(self, entity_uid: int):
         if entity_uid in self.entities:
             del self.entities[entity_uid]
-        else:
-            raise KeyError(
-                "Warning, you tried to remove an entity that is not registered in this world !"
-            )
+        if entity_uid in self.agents:
+            del self.agents[entity_uid]
+        if entity_uid in self.entity_to_agent:
+            del self.entity_to_agent[entity_uid]
 
     @staticmethod
     def get_discretization_data(
@@ -440,20 +450,28 @@ class World:
         for e, a in self.entity_to_agent.items():
             if a not in ignored_entities and e not in ignored_entities:
                 entity_to_agent[e] = a
+        entities = {}
+        agents = {}
+        for uid, e in self.entities.items():
+            if uid in ignored_entities:
+                continue
+
+            e = e.light_copy()
+            entities[uid] = e
+            if isinstance(e, behaviors.BaselineBehavior):
+                agents[uid] = e
 
         return World(
             config=self.config,
-            entities={
-                uid: entity.light_copy()
-                for uid, entity in self.entities.items()
-                if uid not in ignored_entities
-            },
+            entities=entities,
+            agents=agents,
             entity_to_agent=entity_to_agent,
             discretization_data=copy.deepcopy(self.discretization_data),
             taboo_zones=copy.deepcopy(self.taboo_zones),
             goals=copy.deepcopy(self.goals),
             init_geometry_filename=self.init_geometry_filename,
             init_geometry_file=self.init_geometry_file,
+            logger=self.logger,
         )
 
     def set_entity_polygon(self, id: int, polygon: Polygon):

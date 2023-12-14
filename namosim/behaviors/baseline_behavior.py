@@ -4,6 +4,7 @@ import typing as t
 from collections import OrderedDict
 
 from shapely import Polygon
+from typing_extensions import Self
 
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.navigation_plan as navp
@@ -52,8 +53,8 @@ class BaselineBehavior(Entity):
         movable_whitelist: t.List[str],
         style: Style,
         movability: str = "unknown",
+        logger: utils.CustomLogger,
         uid: int = 0,
-        logger: t.Optional[utils.CustomLogger] = None,
     ):
         super().__init__(
             name=name,
@@ -76,12 +77,7 @@ class BaselineBehavior(Entity):
         self.force_pushes_only = force_pushes_only
         self.movable_whitelist = movable_whitelist
         self.min_inflation_radius = self.compute_inflation_radius()
-
-        if logger:
-            self.simulation_log = logger
-        else:
-            self.simulation_log = utils.CustomLogger()
-
+        self.logger = logger
         self.__world: t.Optional["w.World"] = None
         self._navigation_goals = navigation_goals
         self.logs_dir = logs_dir
@@ -254,3 +250,6 @@ class BaselineBehavior(Entity):
         for sensor in self.sensors:
             json_data["sensors"].append(sensor.to_json())
         return json_data
+
+    def light_copy(self) -> Self:
+        raise NotImplementedError()

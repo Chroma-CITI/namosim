@@ -188,9 +188,12 @@ class Simulator:
         self.simulation_log = utils.CustomLogger()
 
         # Load world file
-        self.init_ref_world = World.load_from_svg(
-            simulation_file_abs_path, logs_dir=self.logs_dir
+
+        self.ref_world = World.load_from_svg(
+            simulation_file_abs_path, logs_dir=self.logs_dir, logger=self.simulation_log
         )
+        self.init_ref_world = copy.deepcopy(self.ref_world)
+
         self.config = self.init_ref_world.config
 
         self.simulation_log.append(
@@ -256,7 +259,6 @@ class Simulator:
                 + "simulation/"
                 + self.init_ref_world.init_geometry_filename,
             )
-        self.ref_world: World = copy.deepcopy(self.init_ref_world)
 
         # Associate autonomous agents with goals and behaviors
         self.goal_poses = {
@@ -508,9 +510,7 @@ class Simulator:
             logs["simulation_log"] = self.simulation_log
             logs["agents_logs"] = {}
             for uid, behavior in self.ref_world.agents.items():
-                logs["agents_logs"][
-                    self.ref_world.entities[uid].name
-                ] = behavior.simulation_log
+                logs["agents_logs"][self.ref_world.entities[uid].name] = behavior.logger
             logs_filepath = os.path.join(os.path.dirname(self.logs_dir), "logs")
             self.save(logs, logs_filepath)
 

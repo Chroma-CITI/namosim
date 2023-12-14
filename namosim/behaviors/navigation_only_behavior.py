@@ -1,6 +1,8 @@
+import copy
 import typing as t
 
 from shapely import Polygon
+from typing_extensions import Self
 
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.basic_actions as ba
@@ -30,6 +32,8 @@ class NavigationOnlyBehavior(BaselineBehavior):
         force_pushes_only: bool,
         movable_whitelist: t.List[str],
         style: Style,
+        logger: utils.CustomLogger,
+        uid: int = 0,
     ):
         BaselineBehavior.__init__(
             self,
@@ -45,6 +49,8 @@ class NavigationOnlyBehavior(BaselineBehavior):
             force_pushes_only=force_pushes_only,
             movable_whitelist=movable_whitelist,
             style=style,
+            logger=logger,
+            uid=uid,
         )
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
@@ -140,4 +146,21 @@ class NavigationOnlyBehavior(BaselineBehavior):
             did_replan=True,
             robot_name=self.name,
             has_conflicts=False,
+        )
+
+    def light_copy(self) -> Self:
+        return NavigationOnlyBehavior(
+            uid=self.uid,
+            navigation_goals=copy.deepcopy(self._navigation_goals),
+            logs_dir=self.logs_dir,
+            full_geometry_acquired=self.full_geometry_acquired,
+            name=self.name,
+            polygon=copy.deepcopy(self.polygon),
+            style=copy.deepcopy(self.style),
+            pose=copy.deepcopy(self.pose),
+            sensors=copy.deepcopy(self.sensors),  # type: ignore
+            push_only_list=[],
+            force_pushes_only=False,
+            movable_whitelist=["box"],
+            logger=self.logger,
         )
