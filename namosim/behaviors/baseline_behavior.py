@@ -149,7 +149,7 @@ class BaselineBehavior(Entity):
         return self.__world
 
     def set_world(self, world: "w.World"):
-        self.__world = world
+        self.__world = copy.deepcopy(world)
 
     @property
     def goal_pose(self):

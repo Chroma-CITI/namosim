@@ -296,6 +296,9 @@ class World:
         if goals_node:
             goals_node.parentNode.removeChild(goals_node)
 
+        for agent in world.agents.values():
+            agent.set_world(world)
+
         return world
 
     def to_svg(self) -> minidom.Document:
