@@ -247,7 +247,7 @@ class World:
                     sensors=[OmniscientSensor()],
                     push_only_list=[],
                     force_pushes_only=False,
-                    movable_whitelist=[],
+                    movable_whitelist=["box"],
                 )
             elif agent.behavior.type == "navigation_only_behavior":
                 new_robot = behaviors.NavigationOnlyBehavior(
@@ -262,7 +262,7 @@ class World:
                     sensors=[OmniscientSensor()],
                     push_only_list=[],
                     force_pushes_only=False,
-                    movable_whitelist=[],
+                    movable_whitelist=["box"],
                 )
             elif agent.behavior.type == "stilman_only_behavior":
                 new_robot = behaviors.StilmanOnlyBehavior(
@@ -278,7 +278,7 @@ class World:
                     sensors=[OmniscientSensor()],
                     push_only_list=[],
                     force_pushes_only=False,
-                    movable_whitelist=[],
+                    movable_whitelist=["box"],
                 )
             else:
                 raise NotImplementedError(
