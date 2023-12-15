@@ -187,7 +187,7 @@ class BaselineBehavior(object):
             phys_cost = 0.0
             for a, b in zip(real_path, real_path[1:]):
                 phys_cost += g(a, b)
-            return TransitPath.from_poses(
+            return TransitPath.from_poses_v2(
                 real_path, robot_polygon, robot_pose, phys_cost
             )
         else:

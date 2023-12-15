@@ -97,30 +97,6 @@ class DynamicPlan(Plan):
         # TODO Check if robot state (position and grab) are coherent with next step's preconditions
         return isinstance(last_action_result, ar.ActionSuccess)
 
-    def get_conflicts(
-        self,
-        world: World,
-        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        rp: RosPublisher,
-        check_horizon: int | None = None,
-        apply_strict_horizon: bool = False,
-        exit_early_for_any_conflict: bool = False,
-        exit_early_only_for_long_term_conflicts: bool = True,
-        robot_name: str = "",
-    ):
-        conflicts = super().get_conflicts(
-            world=world,
-            inflated_grid_by_robot=inflated_grid_by_robot,
-            check_horizon=check_horizon,
-            apply_strict_horizon=apply_strict_horizon,
-            exit_early_for_any_conflict=exit_early_for_any_conflict,
-            exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
-            rp=rp,
-            robot_name=robot_name,
-        )
-        self.current_conflicts += conflicts
-        return conflicts
-
     def save_conflicts(self, step_count: int):
         if self.current_conflicts:
             if step_count in self.conflicts_history:
@@ -142,7 +118,10 @@ class DynamicPlan(Plan):
 
     # Actions
     def pop_next_action(self):
-        return Plan.pop_next_action(self)
+        try:
+            return Plan.pop_next_action(self)
+        except Exception as e:
+            raise e
 
     def new_postpone(
         self,
@@ -1154,6 +1133,7 @@ class Stilman2005Behavior(BaselineBehavior):
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
             # TODO FIX COST COMPUTATION TO FIT SAME MODEL AS MANIP SEARCH !
             ros_publisher.cleanup_robot_sim(ns=self._robot_name)
+
             return Plan(
                 path_components=[simple_path_to_goal],
                 goal=r_f,
@@ -2991,6 +2971,7 @@ class Stilman2005Behavior(BaselineBehavior):
             translation_vector=(-1.0 * self.release_distance, 0.0),
             entity_uid=obstacle_uid,
         )
+        robot_pose = (robot_pose[0], robot_pose[1], robot_pose[2])
         new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
         old_cell = utils.real_to_grid(
             robot_pose[0], robot_pose[1], grid.res, grid.grid_pose
@@ -3007,7 +2988,7 @@ class Stilman2005Behavior(BaselineBehavior):
             # If robot cell outside of grid, return False
             return None
 
-        new_robot_polygon = release_action.apply(robot_polygon, robot_pose)
+        new_robot_polygon = release_action.apply(robot_polygon, new_robot_pose)
 
         # Check if robot is still within map bounds
         if not new_robot_polygon.within(grid.aabb_polygon):
@@ -3802,7 +3783,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         other_robot.pose, main_robot.pose, inflated_grid_by_robot_max
                     )
                 )
-                other_robot_exchange_path = TransitPath.from_poses(
+                other_robot_exchange_path = TransitPath.from_poses_v2(
                     other_robot_exchange_real_path,
                     other_robot.polygon,
                     other_robot.pose,
@@ -3987,7 +3968,7 @@ class Stilman2005Behavior(BaselineBehavior):
         evasion_transit_path = (
             None
             if len(real_path) < 2
-            else EvasionTransitPath.from_poses(real_path, robot_polygon, robot_pose)
+            else EvasionTransitPath.from_poses_v2(real_path, robot_polygon, robot_pose)
         )
 
         if transit_configuration_after_release:

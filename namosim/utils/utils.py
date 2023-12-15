@@ -8,6 +8,7 @@ from datetime import datetime
 
 import mapbox_earcut as earcut
 import numpy as np
+import numpy.typing as npt
 import shapely.affinity as affinity
 import typing_extensions as tx
 from PIL import Image, ImageDraw
@@ -861,6 +862,14 @@ def get_rotation(start_pose, end_pose):
     return angle_to_360_interval(end_pose[2] - start_pose[2])
 
 
+def add_angles(a: float, b: float):
+    return angle_to_360_interval(a + b)
+
+
+def subtract_angles(a: float, b: float):
+    return angle_to_360_interval(a - b)
+
+
 def get_translation_and_rotation(start_pose, end_pose):
     translation = get_translation(start_pose, end_pose)
     rotation = get_rotation(start_pose, end_pose)
@@ -1436,7 +1445,7 @@ def angle_to_360_interval(angle: float):
 
 
 def is_close(a: float, b: float, rel_tol: float = 1e-09):
-    return b - rel_tol <= a <= b + rel_tol or a - rel_tol <= b <= a + rel_tol
+    return np.abs(a - b) <= rel_tol
 
 
 def angle_is_close(a: float, b: float, rel_tol: float = 1e-09):
@@ -1445,11 +1454,6 @@ def angle_is_close(a: float, b: float, rel_tol: float = 1e-09):
         or is_close(a - 360.0, b, rel_tol)
         or is_close(a, b - 360.0, rel_tol)
     )
-
-
-# def circle_to_cells(x, y, r, res, grid_pose, neighborhood=CHESSBOARD_NEIGHBORHOOD):
-#     start_cell = real_to_grid(x, y, res, grid_pose)
-#
 
 
 class Circle:
@@ -1484,3 +1488,57 @@ def get_ros_version():
         return "ROS2"
 
     return None
+
+
+def rotate_2d_vector(vector: t.Tuple[float, float], degrees: float):
+    radians = math.radians(degrees)
+    a, b = vector
+    x = a * math.cos(radians) - b * math.sin(radians)
+    y = a * math.sin(radians) + b * math.cos(radians)
+    return (x, y)
+
+
+def get_angle_between_2d_vectors(a: t.Tuple[float, float], b: t.Tuple[float, float]):
+    a = np.array(a)
+    b = np.array(b)
+
+    # Compute the dot product of the two vectors
+    dot_product = np.dot(a, b)
+
+    # Compute the magnitudes of the vectors
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+
+    # Compute the angle in radians using the arccosine function
+    cosine_angle = dot_product / (norm_a * norm_b)  # type: ignore
+    angle_radians = np.arccos(cosine_angle)
+    angle_degrees = np.abs(np.degrees(angle_radians))
+    return angle_degrees
+
+
+def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]):
+    # Normalize the vectors
+    v1_norm = v1 / np.linalg.norm(v1)
+    v2_norm = v2 / np.linalg.norm(v2)
+
+    # Calculate the dot product
+    dot = np.dot(v1_norm, v2_norm)
+
+    # Calculate the cross product
+    cross = np.cross(v1_norm, v2_norm)
+
+    # Determine the sign of the angle
+    sign = -np.sign(np.linalg.norm(cross))
+
+    # Combine the dot product and sign to get the signed angle
+    signed_angle = np.arccos(dot) * sign
+
+    return np.degrees(signed_angle)
+
+
+def get_angle_to_turn(a: PoseModel, b: PoseModel) -> float:
+    """Computes the number of degrees a robot in pose `a` must rotate to be facing pose `b`"""
+    v_a = np.array(rotate_2d_vector((1, 0), a[2]))
+    v_a_to_b = np.array((b[0] - a[0], b[1] - a[1]))
+    angle = signed_angle_between(v_a, v_a_to_b)
+    return angle

@@ -687,6 +687,17 @@ class TransitPath:
         self.actions = actions
         self.action_index = 0
 
+    def __str__(self):
+        if len(self.actions) < 5:
+            return "{" + ", ".join([str(x) for x in self.actions]) + "}"
+        return (
+            "{"
+            + ", ".join([str(x) for x in self.actions[:2]])
+            + ", ..., "
+            + ", ".join([str(x) for x in self.actions[-2:]])
+            + "}"
+        )
+
     @classmethod
     def from_poses(
         cls,
@@ -745,6 +756,87 @@ class TransitPath:
             weight=weight,
         )
 
+    @classmethod
+    def from_poses_v2(
+        cls,
+        poses: t.List[PoseModel],
+        robot_polygon: Polygon,
+        robot_pose: PoseModel,
+        phys_cost: float | None = None,
+        social_cost: float = 0.0,
+        weight: float = 1.0,
+    ):
+        # Separate translation from rotation actions
+        if len(poses) == 0:
+            return cls(
+                robot_path=Path([], []),
+                actions=[],
+                phys_cost=phys_cost,
+                social_cost=social_cost,
+                weight=weight,
+            )
+        if len(poses) == 1:
+            return cls(
+                robot_path=Path(poses=poses, polygons=[robot_polygon]),
+                actions=[],
+                phys_cost=phys_cost,
+                social_cost=social_cost,
+                weight=weight,
+            )
+
+        actions: t.List[ba.BasicAction] = []
+        updated_poses = [poses[0]]
+
+        for pose, next_pose in zip(poses, poses[1:]):
+            has_translation = not all(
+                [
+                    utils.is_close(pose[0], next_pose[0], rel_tol=1e-6),
+                    utils.is_close(pose[1], next_pose[1], rel_tol=1e-6),
+                ]
+            )
+
+            current_angle = pose[2]
+            turn_towards_angle = 0.0
+
+            if has_translation:
+                turn_towards_angle = utils.get_angle_to_turn(pose, next_pose)
+
+                current_angle = utils.add_angles(current_angle, turn_towards_angle)
+                actions.append(ba.Rotation(angle=turn_towards_angle))
+                updated_poses.append((pose[0], pose[1], current_angle))
+
+                actions.append(
+                    ba.Translation.from_absolute_translation_vector(
+                        utils.get_translation(pose, next_pose)
+                    )
+                )
+                updated_poses.append((next_pose[0], next_pose[1], current_angle))
+
+            has_rotation = not utils.angle_is_close(
+                current_angle, next_pose[2], rel_tol=1e-6
+            )
+
+            if has_rotation:
+                remaining_angle = utils.subtract_angles(next_pose[2], current_angle)
+                actions.append(ba.Rotation(angle=remaining_angle))
+                updated_poses.append(next_pose)
+            else:
+                updated_poses.append(next_pose)
+
+        polygons = [
+            utils.set_polygon_pose(robot_polygon, robot_pose, pose)
+            for pose in updated_poses
+        ]
+        robot_path = Path(updated_poses, polygons)
+
+        return cls(
+            robot_path,
+            actions,
+            phys_cost=phys_cost,
+            social_cost=social_cost,
+            weight=weight,
+        )
+
     def has_infinite_cost(self):
         return True if self.total_cost == float("inf") else False
 
@@ -773,8 +865,6 @@ class TransitPath:
             shared_horizon = len(self.actions) + 1 - self.action_index
         elif shared_horizon <= 0 and apply_strict_horizon:
             return []
-        else:
-            shared_horizon = shared_horizon + 1
 
         conflicts = []
 
