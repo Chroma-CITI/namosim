@@ -9,6 +9,7 @@ import numpy.typing as npt
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Point, Pose, PoseArray, Quaternion, Vector3
 from grid_map_msgs.msg import GridMap
+from shapely import LineString
 from shapely.geometry import Polygon
 from std_msgs.msg import (
     ColorRGBA,
@@ -21,9 +22,11 @@ from visualization_msgs.msg import Marker, MarkerArray
 
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
+import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.robot as namosim_robot
+from namosim.data_models import PoseModel
 from namosim.display import tf_replacement
-from namosim.models import PoseModel
+from namosim.navigation.path_type import PathType
 
 
 def init_header(stamp: Time = Time()):
@@ -31,35 +34,38 @@ def init_header(stamp: Time = Time()):
 
 
 def plan_to_markerarray(
-    plan: t.Any, robot: namosim_robot.Robot, frame_id: str, stamp: Time = Time()
+    plan: "nav_plan.Plan",
+    robot: namosim_robot.Robot,
+    frame_id: str,
+    stamp: Time = Time(),
 ):
     markerarray = MarkerArray()
     markers = []
     p_id = 0
     for component in plan.path_components:
         current_color = ColorRGBA(**colors.hex_to_rgba(robot.style.fill))
-        if component.is_transfer:
+        if component.path_type == PathType.TRANSFER:
             current_color = ColorRGBA(
                 **colors.hex_to_rgba(colors.darken(robot.style.fill))
             )
             obstacle_end_polygon_marker = polygon_to_line_strip(
-                component.obstacle_path.polygons[-1],
-                "/end_obstacles",
-                p_id,
-                frame_id,
-                current_color,
-                cfg.path_line_z_index,
-                cfg.border_width,
+                polygon=component.obstacle_path.polygons[-1],
+                namespace="/end_obstacles",
+                p_id=p_id,
+                frame_id=frame_id,
+                color=current_color,
+                z_index=cfg.path_line_z_index,
+                line_width=robot.min_inflation_radius / 4,
             )
             markers.append(obstacle_end_polygon_marker)
         path_marker = real_path_to_triangle_list(
-            component.robot_path.poses,
-            "/plan",
-            p_id,
-            frame_id,
-            current_color,
-            robot.min_inflation_radius / 4,
-            cfg.path_line_z_index,
+            real_path=component.robot_path.poses,
+            namespace="/plan",
+            p_id=p_id,
+            frame_id=frame_id,
+            color=current_color,
+            line_width=robot.min_inflation_radius / 5,
+            z_index=cfg.path_line_z_index,
             stamp=stamp,
         )
         markers.append(path_marker)
@@ -69,6 +75,37 @@ def plan_to_markerarray(
 
 
 # Basic conversion functions
+
+
+def real_path_to_linestrip(
+    real_path: t.List[PoseModel],
+    namespace: str,
+    p_id: int,
+    frame_id: str,
+    color: ColorRGBA,
+    line_width: float,
+    z_index: float,
+    link_point: Point | None = None,
+    stamp: Time = Time(),
+):
+    marker = Marker(
+        type=Marker.LINE_STRIP,
+        ns=namespace,
+        id=p_id,
+        header=Header(frame_id=frame_id, stamp=stamp),
+        color=color,
+        scale=Vector3(x=line_width, y=line_width, z=0.0),
+        points=[],
+    )
+    for i in range(len(real_path) - 1):
+        point = real_path[i]
+        next_point = real_path[i + 1]
+        marker.points.append(Point(x=point[0], y=point[1], z=z_index))  # type: ignore
+        marker.points.append(Point(x=next_point[0], y=next_point[1], z=z_index))  # type: ignore
+    if link_point:
+        marker.points.append(Point(x=real_path[-1][0], y=real_path[-1][1], z=z_index))  # type: ignore
+        marker.points.append(Point(x=link_point[0], y=link_point[1], z=z_index))  # type: ignore
+    return marker
 
 
 def polygon_to_triangle_list(
@@ -140,7 +177,7 @@ def polygon_to_line_strip(
         id=p_id,
         header=Header(frame_id=frame_id, stamp=stamp),
         color=color,
-        scale=Vector3(x=line_width, y=0.0, z=0.0),
+        scale=Vector3(x=line_width, y=line_width, z=0.0),
         points=[],
     )
     for i in range(len(polygon.exterior.coords) - 1):
@@ -163,6 +200,20 @@ def polygon_to_line_strip(
         )
     )
     return marker
+
+
+def polygon_to_rim_points(
+    polygon: Polygon,
+):
+    points: t.List[npt.NDArray[t.Any]] = []
+    for i in range(len(polygon.exterior.coords)):
+        point = polygon.exterior.coords[i]
+        points.append(np.array((point[0], point[1])))
+
+    if len(points) > 0:
+        points.append(points[0])
+
+    return points
 
 
 def string_to_text(
@@ -254,7 +305,7 @@ def poses_to_poses_array(poses: t.List[PoseModel], stamp: Time = Time()):
 
 
 def real_path_to_triangle_list(
-    real_path: t.List[t.Tuple[float, float, float] | t.Tuple[float, float]],
+    real_path: t.Sequence[t.Tuple[float, float, float] | t.Tuple[float, float]],
     namespace: str,
     p_id: int,
     frame_id: str,
@@ -319,7 +370,9 @@ def make_delete_all_marker(frame_id: str, ns: str = "", stamp: Time = Time()):
 
 
 def path_to_polygon(
-    points: t.List[npt.NDArray[np.float_]], line_width: float
+    points: t.List[npt.NDArray[np.float_]],
+    line_width: float,
+    cap_stype: t.Literal["round"] | t.Literal["square"] | t.Literal["flat"] = "round",
 ) -> Polygon:
     """Converts a sequence of points representing a navigation path into a polygonal "line strip".
 
@@ -332,63 +385,21 @@ def path_to_polygon(
     :rtype: Polygon
     """
 
-    # remove z-coord, if any
-    points = [x[:2] for x in points]
-
-    # remove duplicate points
-    seen = set()
-    dedup_points = []
-    for p in points:
-        hp = p[0], p[1]
-        if hp not in seen:
-            seen.add(hp)
-            dedup_points.append(p)
-    points = dedup_points
-
     if len(points) < 2:
         raise Exception("Less than two points")
 
-    def get_z_ortho(x: npt.NDArray[t.Any]) -> npt.NDArray[t.Any]:
-        """Return a unit-length vector orthogonal to both x and the z-axis"""
-        z = np.array((0.0, 0.0, 1.0))
-        ortho = np.cross((x[0], x[1], 0.0), z)
-        return (ortho / np.linalg.norm(ortho))[:2]
+    # remove z-coord, if any
+    points = [x[:2] for x in points]
 
-    forward_coords = []
-    backward_coords = []
+    # remove duplicates
+    dedup_points = []
+    seen = set()
+    for p in points:
+        p = (p[0], p[1])
+        if p not in seen:
+            seen.add(p)
+            dedup_points.append(p)
 
-    if len(points) == 2:
-        a, b = points
-        o = get_z_ortho(b - a) * line_width / 2.0
-        forward_coords.extend([a + o, b + o])
-        backward_coords.extend([a - o, b - o])
-    else:
-        for i in range(len(points) - 2):
-            a = points[i]
-            b = points[i + 1]
-            c = points[i + 2]
-
-            a_to_b = b - a
-            b_to_c = c - b
-            o1 = get_z_ortho(a_to_b)
-            o2 = get_z_ortho(b_to_c)
-            o = (o1 + o2) / 2
-            o *= line_width / 2.0
-
-            # Don't forget to add the first point!
-            if i == 0:
-                forward_coords.append(a + o)
-                backward_coords.append(a - o)
-
-            forward_coords.append(b + o)
-            backward_coords.append(b - o)
-
-            # Don't forget to add the last point!
-            if i == len(points) - 3:
-                forward_coords.append(c + o)
-                backward_coords.append(c - o)
-
-    backward_coords.reverse()
-    backward_coords.append(forward_coords[0])
-
-    return Polygon(forward_coords + backward_coords)
+    linestr = LineString(coordinates=dedup_points)
+    buf = linestr.buffer(distance=line_width / 2.0, cap_style=cap_stype)
+    return buf

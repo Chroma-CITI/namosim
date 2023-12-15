@@ -27,7 +27,7 @@ from rclpy.qos import QoSProfile
 from rclpy.qos_event import PublisherEventCallbacks
 from rclpy.qos_overriding_options import QoSOverridingOptions
 from rclpy.utilities import ok  # noqa: F401 forwarding to this module
-from shapely import Polygon, affinity
+from shapely import GeometryCollection, Polygon, affinity
 from std_msgs.msg import ColorRGBA, Header
 from tf2_ros import StaticTransformBroadcaster
 from visualization_msgs.msg import Marker, MarkerArray
@@ -35,6 +35,7 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as navigation_plan
+from namosim.data_models import GridCellModel, PoseModel
 from namosim.display.conversions import (
     costmap_to_grid_map,
     geom_quat_from_yaw,
@@ -47,7 +48,6 @@ from namosim.display.conversions import (
     real_path_to_triangle_list,
     string_to_text,
 )
-from namosim.models import GridCellModel, PoseModel, SimulationModel
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
@@ -243,17 +243,16 @@ class WorldObserver(RosObserver):
                     )
 
                 markers = markers + self.entity_to_markers(
-                    entity,
-                    namespace,
-                    entity.uid,
-                    cfg.main_frame_id,
-                    entity_color,
-                    entity_color,
-                    colors.text_color_on_filling,
-                    colors.text_color_on_empty,
-                    cfg.entities_z_index,
-                    cfg.border_width,
-                    cfg.text_height,
+                    entity=entity,
+                    namespace=namespace,
+                    p_id=entity.uid,
+                    frame_id=cfg.main_frame_id,
+                    color=entity_color,
+                    border_color=entity_color,
+                    text_color_filling=colors.text_color_on_filling,
+                    text_color_empty=colors.text_color_on_empty,
+                    z_index=cfg.entities_z_index,
+                    text_height=entity.circumscribed_radius / 5,
                     add_border=False,
                     add_text=False,
                 )
@@ -262,6 +261,7 @@ class WorldObserver(RosObserver):
 
     def entity_to_markers(
         self,
+        *,
         entity: Entity,
         namespace: str,
         p_id: int,
@@ -271,7 +271,6 @@ class WorldObserver(RosObserver):
         text_color_filling: ColorRGBA,
         text_color_empty: ColorRGBA,
         z_index: float,
-        line_width: float,
         text_height: float,
         add_filling: bool = True,
         add_border: bool = True,
@@ -301,7 +300,7 @@ class WorldObserver(RosObserver):
                     frame_id,
                     border_color,
                     z_index,
-                    line_width,
+                    entity.circumscribed_radius / 4,
                     self.node.get_timestamp(),
                 )
             )
@@ -409,11 +408,8 @@ class GridMapObserver(RosObserver):
 
     def _convert(self, **kwargs: t.Any):
         costmap, res = kwargs["costmap"], kwargs["res"]
-        fixed_costmap = np.copy(costmap)
-        fixed_costmap[fixed_costmap == -1.0] = 0.0
-        grid_map = costmap_to_grid_map(
-            fixed_costmap, res, stamp=self.node.get_timestamp()
-        )
+
+        grid_map = costmap_to_grid_map(costmap, res, stamp=self.node.get_timestamp())
         return grid_map
 
     def reset(self):
@@ -448,8 +444,16 @@ class CombinedCostGridMapObserver(GridMapObserver):
         )
         for cell, combined_cost in sorted_cell_to_combined_cost.items():
             combined_costmap[cell[0]][cell[1]] = combined_cost
+
+        # re-scale and shift the costmap so it displays nicely below the 2D environment in RVIZ
+        H = combined_costmap.shape[0]
+        M = np.ptp(combined_costmap)
+        m = np.min(combined_costmap)
+        cc = (combined_costmap - m) / M
+        cc = cc * H - (4 * H)
+
         grid_map = costmap_to_grid_map(
-            combined_costmap,
+            cc,
             inflated_grid_by_obstacle.res,
             frame_id=cfg.combined_gridmap_frame_id,
             stamp=self.node.get_timestamp(),
@@ -476,14 +480,17 @@ class GoalObserver(RosObserver):
         )
 
     def _convert(self, **kwargs: t.Any):
-        q_init, q_goal, entity = kwargs["q_init"], kwargs["q_goal"], kwargs["entity"]
+        robot: Robot = kwargs["entity"]
+
+        q_init, q_goal = kwargs["q_init"], kwargs["q_goal"]
+
         if q_goal is None:
             return MarkerArray()
         else:
             polygon_at_goal_pose = affinity.translate(
-                entity.polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1]
+                robot.polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1]
             )
-            color = ColorRGBA(**colors.hex_to_rgba(colors.darken(entity.style.fill)))
+            color = ColorRGBA(**colors.hex_to_rgba(colors.darken(robot.style.fill)))
             marker_array = MarkerArray(
                 markers=[
                     polygon_to_line_strip(
@@ -493,7 +500,7 @@ class GoalObserver(RosObserver):
                         cfg.main_frame_id,
                         color,
                         cfg.fov_z_index,
-                        cfg.border_width,
+                        line_width=robot.min_inflation_radius / 4,
                     )
                 ]
             )
@@ -563,7 +570,7 @@ class RosPublisher:  # noqa: F821
     def __init__(
         self,
         node_name: str,
-        sim_config: SimulationModel,
+        agent_names: t.List[str],
         prefix_topics_with_node_name: bool = False,
     ):
         if cfg.deactivate_gui:
@@ -606,9 +613,7 @@ class RosPublisher:  # noqa: F821
             MarkerArray, "/simulation" + cfg.sim_latest_message_topic
         )
 
-        self.agents_names = [
-            a_to_b_config.agent_name for a_to_b_config in sim_config.agents_behaviors
-        ]
+        self.agents_names = agent_names
 
         # Add robot-specific publishers for each robot namespace
         for agent_name in self.agents_names:
@@ -723,6 +728,7 @@ class RosPublisher:  # noqa: F821
             world=world, robot_uid=robot_uid
         )
         self.observers[self.sim_costmap_topic].update(world=world, robot_uid=robot_uid)
+        world.discretization_data.d_height
 
     def cleanup_sim_world(self):
         if not cfg.deactivate_gui:
@@ -813,6 +819,16 @@ class RosPublisher:  # noqa: F821
             if not ns
             else "/" + ns + cfg.test_social_gridmap_topic
         )
+
+        # re-scale and shift the costmap so it displays nicely below the 2D environment in RVIZ
+        costmap = np.copy(costmap)
+        costmap[costmap == -1.0] = 0.0
+        H = costmap.shape[0]
+        M = np.ptp(costmap)
+        m = np.min(costmap)
+        costmap = (costmap - m) / M
+        costmap = costmap * H - (2 * H)
+
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_social_grid_map(self, ns: str = ""):
@@ -838,6 +854,7 @@ class RosPublisher:  # noqa: F821
             if not ns
             else "/" + ns + cfg.test_combined_gridmap_topic
         )
+
         self.observers[topic].update(
             sorted_cell_to_combined_cost=sorted_cell_to_combined_cost,
             inflated_grid_by_obstacle=inflated_grid_by_obstacle,
@@ -866,6 +883,16 @@ class RosPublisher:  # noqa: F821
             if not ns
             else "/" + ns + cfg.test_connected_components_topic
         )
+
+        # re-scale and shift the costmap so it displays nicely below the 2D environment in RVIZ
+        costmap = np.copy(costmap)
+        costmap[costmap == -1.0] = 0.0
+        H = costmap.shape[0]
+        M = np.ptp(costmap)
+        m = np.min(costmap)
+        costmap = (costmap - m) / M
+        costmap = costmap * H - (6 * H)
+
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_connected_components_grid(self, ns: str = ""):
@@ -1014,6 +1041,7 @@ class RosPublisher:  # noqa: F821
         obstacle_polygon: Polygon,
         manip_poses_ids: t.List[int],
         neighbor_poses: t.List[PoseModel],
+        line_width: float,
         res: float,
         ns: str = "",
     ):
@@ -1069,7 +1097,7 @@ class RosPublisher:  # noqa: F821
                 cfg.main_frame_id,
                 colors.flashy_cyan,
                 cfg.entities_z_index,
-                cfg.border_width,
+                line_width=line_width,
             )
             current_obstacle_polygon_marker = self.polygon_to_line_strip(
                 obstacle_polygon,
@@ -1078,7 +1106,7 @@ class RosPublisher:  # noqa: F821
                 cfg.main_frame_id,
                 colors.flashy_dark_cyan,
                 cfg.entities_z_index,
-                cfg.border_width,
+                line_width=line_width,
             )
             marker_array.markers.append(current_robot_polygon_marker)  # type: ignore
             marker_array.markers.append(current_obstacle_polygon_marker)  # type: ignore
@@ -1216,8 +1244,10 @@ class RosPublisher:  # noqa: F821
     # region ROBOT SIM
     def publish_sim(
         self,
+        *,
         robot_polygon: Polygon,
         obs_polygon: Polygon,
+        line_width: float,
         namespace: str = "/init",
         robot_name: str = "",
     ):
@@ -1247,7 +1277,7 @@ class RosPublisher:  # noqa: F821
                         cfg.main_frame_id,
                         robot_color,
                         cfg.entities_z_index,
-                        cfg.border_width,
+                        line_width=line_width,
                     ),
                     self.polygon_to_line_strip(
                         obs_polygon,
@@ -1256,7 +1286,7 @@ class RosPublisher:  # noqa: F821
                         cfg.main_frame_id,
                         obs_color,
                         cfg.entities_z_index,
-                        cfg.border_width,
+                        line_width=line_width,
                     ),
                 ]
             )
@@ -1315,6 +1345,7 @@ class RosPublisher:  # noqa: F821
         self,
         init_entity_inflated_polygon: Polygon,
         target_entity_inflated_polygon: Polygon,
+        line_width: float,
         ns: str = "",
     ):
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
@@ -1328,7 +1359,7 @@ class RosPublisher:  # noqa: F821
                         cfg.main_frame_id,
                         colors.init_diameter_inflated_polygon_color,
                         cfg.entities_z_index,
-                        cfg.border_width / 2.0,
+                        line_width=line_width,
                     ),
                     self.polygon_to_line_strip(
                         target_entity_inflated_polygon,
@@ -1337,7 +1368,7 @@ class RosPublisher:  # noqa: F821
                         cfg.main_frame_id,
                         colors.target_diameter_inflated_polygon_color,
                         cfg.entities_z_index,
-                        cfg.border_width / 2.0,
+                        line_width=line_width,
                     ),
                 ]
             )
@@ -1355,7 +1386,9 @@ class RosPublisher:  # noqa: F821
                 ),
             )
 
-    def publish_debug_polygons(self, polygons: t.List[Polygon], ns: str = ""):
+    def publish_debug_polygons(
+        self, polygons: t.List[Polygon], line_width: float, ns: str = ""
+    ):
         # FIXME Not implemented correctly in ROS...
         #  https://answers.ros.org/question/263031/delete-all-rviz-markers-in-a-specific-namespace/
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
@@ -1366,7 +1399,7 @@ class RosPublisher:  # noqa: F821
                 cfg.main_frame_id,
                 colors.robot_color,
                 cfg.entities_z_index,
-                cfg.border_width / 5.0,
+                line_width=line_width,
             )
             self.publish(full_topic, marker_array)
 
@@ -1467,7 +1500,7 @@ class RosPublisher:  # noqa: F821
         if self.is_activated(full_topic):
             horizon_cells: t.Set[GridCellModel] = set()
             for counter, index in enumerate(range(start_index, end_index)):
-                if counter > check_horizon:
+                if counter >= check_horizon:
                     break
 
                 pose = poses[index]
@@ -1537,8 +1570,8 @@ class RosPublisher:  # noqa: F821
 
     def publish_transfer_horizon_convex_polygons(
         self,
-        robot_csv_polygons: t.Dict[t.Tuple[int], Polygon],
-        obstacle_csv_polygons: t.Dict[t.Tuple[int], Polygon],
+        robot_csv_polygons: t.Dict[t.Tuple[int], GeometryCollection],
+        obstacle_csv_polygons: t.Dict[t.Tuple[int], GeometryCollection],
         start_index: int,
         end_index: int,
         check_horizon: int,

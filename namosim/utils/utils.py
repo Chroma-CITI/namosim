@@ -8,12 +8,13 @@ from datetime import datetime
 
 import mapbox_earcut as earcut
 import numpy as np
+import numpy.typing as npt
 import shapely.affinity as affinity
 import typing_extensions as tx
 from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
 
-from namosim.models import PoseModel, VertexModel
+from namosim.data_models import PoseModel, VertexModel
 
 # Constants
 SQRT_OF_2 = math.sqrt(2.0)
@@ -861,9 +862,19 @@ def get_rotation(start_pose, end_pose):
     return angle_to_360_interval(end_pose[2] - start_pose[2])
 
 
+def add_angles(a: float, b: float):
+    return angle_to_360_interval(a + b)
+
+
+def subtract_angles(a: float, b: float):
+    return angle_to_360_interval(a - b)
+
+
 def get_translation_and_rotation(start_pose, end_pose):
     translation = get_translation(start_pose, end_pose)
     rotation = get_rotation(start_pose, end_pose)
+    if math.isnan(rotation):
+        pass
     return translation, rotation
 
 
@@ -1193,27 +1204,31 @@ def polygon_to_subgrid_polygon_and_parameters(polygon, res, grid_pose):
     min_x, min_y, max_x, max_y = polygon.bounds
 
     # Clamp the values to their appropriate cell
-    min_d_x, min_d_y = (
-        int((min_x - grid_pose[0]) / res),
-        int((min_y - grid_pose[1]) / res),
-    )
-    max_d_x, max_d_y = (
-        int(math.ceil((max_x - grid_pose[0]) / res)),
-        int(math.ceil((max_y - grid_pose[1]) / res)),
-    )
+    try:
+        min_d_x, min_d_y = (
+            int((min_x - grid_pose[0]) / res),
+            int((min_y - grid_pose[1]) / res),
+        )
+        max_d_x, max_d_y = (
+            int(math.ceil((max_x - grid_pose[0]) / res)),
+            int(math.ceil((max_y - grid_pose[1]) / res)),
+        )
 
-    # Compute cell width and height of subgrid
-    d_width, d_height = max_d_x - min_d_x + 1, max_d_y - min_d_y + 1
+        # Compute cell width and height of subgrid
+        d_width, d_height = max_d_x - min_d_x + 1, max_d_y - min_d_y + 1
 
-    min_x_bi1s, min_y_bis = (
-        grid_pose[0] + res * float(min_d_x),
-        grid_pose[1] + res * float(min_d_y),
-    )
-    subgrid_projected_polygon = affinity.translate(
-        polygon, -grid_pose[0] - min_d_x * res, -grid_pose[1] - min_d_y * res
-    )
+        min_x_bi1s, min_y_bis = (
+            grid_pose[0] + res * float(min_d_x),
+            grid_pose[1] + res * float(min_d_y),
+        )
+        subgrid_projected_polygon = affinity.translate(
+            polygon, -grid_pose[0] - min_d_x * res, -grid_pose[1] - min_d_y * res
+        )
 
-    return subgrid_projected_polygon, d_width, d_height, min_d_x, min_d_y
+        return subgrid_projected_polygon, d_width, d_height, min_d_x, min_d_y
+
+    except ValueError as e:
+        raise e
 
 
 NORTH_EAST_CORNER_NEIGHBORS = ((0, 1), (1, 1), (1, 0))
@@ -1432,7 +1447,7 @@ def angle_to_360_interval(angle: float):
 
 
 def is_close(a: float, b: float, rel_tol: float = 1e-09):
-    return b - rel_tol <= a <= b + rel_tol or a - rel_tol <= b <= a + rel_tol
+    return np.abs(a - b) <= rel_tol
 
 
 def angle_is_close(a: float, b: float, rel_tol: float = 1e-09):
@@ -1441,11 +1456,6 @@ def angle_is_close(a: float, b: float, rel_tol: float = 1e-09):
         or is_close(a - 360.0, b, rel_tol)
         or is_close(a, b - 360.0, rel_tol)
     )
-
-
-# def circle_to_cells(x, y, r, res, grid_pose, neighborhood=CHESSBOARD_NEIGHBORHOOD):
-#     start_cell = real_to_grid(x, y, res, grid_pose)
-#
 
 
 class Circle:
@@ -1480,3 +1490,49 @@ def get_ros_version():
         return "ROS2"
 
     return None
+
+
+def rotate_2d_vector(vector: t.Tuple[float, float], degrees: float):
+    radians = math.radians(degrees)
+    a, b = vector
+    x = a * math.cos(radians) - b * math.sin(radians)
+    y = a * math.sin(radians) + b * math.cos(radians)
+    return (x, y)
+
+
+def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]):
+    # Normalize the vectors
+
+    norm_v1 = np.linalg.norm(v1)
+    norm_v2 = np.linalg.norm(v2)
+
+    if norm_v1 == 0 or norm_v2 == 0:
+        return 0
+
+    v1_norm = v1 / norm_v1
+    v2_norm = v2 / norm_v2
+
+    # Calculate the dot product
+    dot = max(-1.0, min(1.0, np.dot(v1_norm, v2_norm)))
+
+    # Calculate the cross product
+    cross = np.cross(v1_norm, v2_norm)
+
+    # Determine the sign of the angle
+    sign = -np.sign(np.linalg.norm(cross))
+
+    # Combine the dot product and sign to get the signed angle
+    signed_angle = np.arccos(dot) * sign
+
+    if math.isnan(signed_angle):
+        raise Exception("Angle is NaN")
+
+    return np.degrees(signed_angle)
+
+
+def get_angle_to_turn(a: PoseModel, b: PoseModel) -> float:
+    """Computes the number of degrees a robot in pose `a` must rotate to be facing pose `b`"""
+    v_a = np.array(rotate_2d_vector((1, 0), a[2]))
+    v_a_to_b = np.array((b[0] - a[0], b[1] - a[1]))
+    angle = signed_angle_between(v_a, v_a_to_b)
+    return angle

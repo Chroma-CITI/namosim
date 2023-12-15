@@ -2,8 +2,8 @@ import typing as t
 
 import namosim.navigation.basic_actions as ba
 from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
+from namosim.data_models import PoseModel
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import NavigationOnlyBehaviorConfigModel, PoseModel
 from namosim.navigation.navigation_plan import Plan
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
@@ -17,16 +17,15 @@ class NavigationOnlyBehavior(BaselineBehavior):
         initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
-        behavior_config: NavigationOnlyBehaviorConfigModel,
         logs_dir: str,
     ):
         BaselineBehavior.__init__(
             self,
-            initial_world,
-            robot_uid,
-            navigation_goals,
-            behavior_config,
-            logs_dir,
+            initial_world=initial_world,
+            robot_uid=robot_uid,
+            navigation_goals=navigation_goals,
+            name="navigation_only_behavior",
+            logs_dir=logs_dir,
         )
 
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
@@ -63,7 +62,9 @@ class NavigationOnlyBehavior(BaselineBehavior):
         if self._q_goal is None:
             if self._navigation_goals:
                 self._q_goal = self._navigation_goals.pop(0)
-                self._p_opt = Plan([], self._q_goal)
+                self._p_opt = Plan(
+                    robot_uid=self.robot.uid, path_components=[], goal=self._q_goal
+                )
             else:
                 return ThinkResult(
                     next_action=ba.GoalsFinished(),
@@ -111,7 +112,9 @@ class NavigationOnlyBehavior(BaselineBehavior):
                 has_conflicts=False,
             )
 
-        self._p_opt = Plan([path], goal=self._q_goal, robot_uid=self._robot_uid)
+        self._p_opt = Plan(
+            path_components=[path], goal=self._q_goal, robot_uid=self._robot_uid
+        )
         self.goal_to_plans[self._q_goal] = self._p_opt
 
         return ThinkResult(

@@ -2,7 +2,7 @@ import copy
 
 from shapely import Polygon
 
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 from namosim.world.entity import Entity, Style
 
 

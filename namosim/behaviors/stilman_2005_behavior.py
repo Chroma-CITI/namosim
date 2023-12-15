@@ -23,8 +23,8 @@ from namosim.behaviors.stilman_configurations import (
     RobotConfiguration,
     RobotObstacleConfiguration,
 )
+from namosim.data_models import GridCellModel, PoseModel, StilmanBehaviorParametersModel
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import GridCellModel, PoseModel, StilmanBehaviorConfigModel
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
     Conflict,
@@ -73,8 +73,8 @@ class Timer:
 class DynamicPlan(Plan):
     DEBUGGING_WAIT_TIME_GENERATOR = []
 
-    def __init__(self):
-        Plan.__init__(self)
+    def __init__(self, robot_uid: int):
+        Plan.__init__(self, robot_uid=robot_uid)
         self.update_count = 0
         """
         The number of times the plan was updated
@@ -96,30 +96,6 @@ class DynamicPlan(Plan):
     def was_last_step_success(self, w_t: World, last_action_result: ar.ActionResult):
         # TODO Check if robot state (position and grab) are coherent with next step's preconditions
         return isinstance(last_action_result, ar.ActionSuccess)
-
-    def get_conflicts(
-        self,
-        world: World,
-        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        rp: RosPublisher,
-        check_horizon: int | None = None,
-        apply_strict_horizon: bool = False,
-        exit_early_for_any_conflict: bool = False,
-        exit_early_only_for_long_term_conflicts: bool = True,
-        robot_name: str = "",
-    ):
-        conflicts = super().get_conflicts(
-            world=world,
-            inflated_grid_by_robot=inflated_grid_by_robot,
-            check_horizon=check_horizon,
-            apply_strict_horizon=apply_strict_horizon,
-            exit_early_for_any_conflict=exit_early_for_any_conflict,
-            exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
-            rp=rp,
-            robot_name=robot_name,
-        )
-        self.current_conflicts += conflicts
-        return conflicts
 
     def save_conflicts(self, step_count: int):
         if self.current_conflicts:
@@ -163,7 +139,9 @@ class DynamicPlan(Plan):
                         step_count,
                     )
                 )
-                self.update_plan(Plan([]), step_count)
+                self.update_plan(
+                    Plan(robot_uid=self.robot_uid, path_components=[]), step_count
+                )
             else:
                 return ba.Wait()
         else:
@@ -215,7 +193,8 @@ class Stilman2005Behavior(BaselineBehavior):
         initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
-        behavior_config: StilmanBehaviorConfigModel,
+        params: StilmanBehaviorParametersModel,
+        logger: utils.CustomLogger,
         logs_dir: str,
     ):
         BaselineBehavior.__init__(
@@ -223,24 +202,15 @@ class Stilman2005Behavior(BaselineBehavior):
             initial_world=initial_world,
             robot_uid=robot_uid,
             navigation_goals=navigation_goals,
-            behavior_config=behavior_config,
+            name="stilman_2005_behavior",
             logs_dir=logs_dir,
+            logger=logger,
         )
+
         self._p_opt: DynamicPlan
 
-        # Configuration parameters
-        parameters = behavior_config.parameters
-
-        # For each, specify collision model, action space
-        # self.transit_search_config =
-        # self.transfer_search_config =  # Include new opening detection parameters and social cost parameters
-        # self.grab_search_config =
-        # self.release_search_config =
-        # self.obstacle_selection_config =
-        # self.plan_execution_config =
-
         # - Original Stilman method configuration parameters
-        self.alpha = parameters.alpha_for_obstacle_choice_heur
+        self.alpha = params.alpha_for_obstacle_choice_heur
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD  # default if bad parameter
         # self.heur_w = parameters["heuristic_cost_for_traversing_obstacle_in_choice_heur"]
         # self.basic_trans_force = parameters["basic_translation_force"]
@@ -249,30 +219,34 @@ class Stilman2005Behavior(BaselineBehavior):
         self.rotation_unit_cost = 1.0
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
-        self.angular_res = parameters.collision_check_angular_res
-        self.rotation_unit_angle = 60.0  # parameters["robot_rotation_unit_angle"]
-        self.translation_unit_length = parameters.robot_translation_unit_length
-        self.forbid_rotations = parameters.forbid_rotations
+        self.rotation_unit_angle = params.robot_rotation_unit_angle
+        self.translation_unit_length = params.robot_translation_unit_length
+        self.forbid_rotations = params.forbid_rotations
         self.translation_factor = (
             self.translation_unit_cost / self.translation_unit_length
         )
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
-        self.trans_mult = 1.0 / self.world.discretization_data.res * 10.0
+        self.trans_mult = 1.0
         self.rot_mult = 1.0
+        self.release_distance = (
+            self.robot.circumscribed_radius + 1.5 * initial_world.config.cell_size
+        )
+        """The robot will move backwards by this amount when it releases an object
+        """
 
         # - S-NAMO parameters
-        self.use_social_cost = parameters.use_social_cost
-        self.bound_percentage = parameters.solution_interval_bound_percentage
-        if parameters.manipulation_search_procedure == "DFS":
+        self.use_social_cost = params.use_social_cost
+        self.bound_percentage = params.solution_interval_bound_percentage
+        if params.manipulation_search_procedure == "DFS":
             if self.use_social_cost:
                 self.manip_search_procedure = self.focused_manip_search
             else:
                 raise ValueError(
                     "Focused manipulation search requires the use_social_cost variable to be True !"
                 )
-        elif parameters.manipulation_search_procedure == "BFS":
+        elif params.manipulation_search_procedure == "BFS":
             self.manip_search_procedure = self.manip_search
         self.w_social, self.w_obs, self.w_goal = 15.0, 10.0, 2.0
         self.w_sum = self.w_social + self.w_obs + self.w_goal
@@ -280,7 +254,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         # - Extra performance parameters
         self.check_new_local_opening_before_global = (
-            parameters.check_new_local_opening_before_global
+            params.check_new_local_opening_before_global
         )
         self.activate_grids_logging = True  # not parameters["deactivate_grids_logging"]
 
@@ -329,7 +303,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self.is_first_transfer_step = False
 
-        self.check_horizon = 10
+        self.check_horizon = 20
 
         self.angular_tolerance = 0.1
         self.position_tolerance = self.world.discretization_data.res / 2.0
@@ -399,7 +373,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._q_goal = self._navigation_goals.pop(
                     0
                 )  # TODO Stop popping goals, use an index
-                self._p_opt = DynamicPlan()
+                self._p_opt = DynamicPlan(robot_uid=self.robot.uid)
                 self.goal_to_plans[self._q_goal] = self._p_opt
             else:
                 return ba.GoalsFinished()
@@ -415,6 +389,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 logs_dir=self.logs_dir,
                 ns=self._robot_name,
             )
+
             ros_publisher.publish_social_grid_map(
                 self._social_costmap,
                 self.world.discretization_data.res,
@@ -496,7 +471,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 self._q_goal = self._navigation_goals.pop(
                     0
                 )  # TODO Stop popping goals, use an index
-                self._p_opt = DynamicPlan()  # pyright: ignore[reportIncompatibleMethodOverride]
+                self._p_opt = DynamicPlan(robot_uid=self.robot.uid)  # pyright: ignore[reportIncompatibleMethodOverride]
                 self.goal_to_plans[self._q_goal] = self._p_opt
             else:
                 return ThinkResult(
@@ -637,6 +612,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 check_horizon=fov,
                 rp=ros_publisher,
                 robot_name=self._robot_name,
+                exit_early_for_any_conflict=True,
             )
             if not conflicts:
                 if plan.timer.is_running and plan.timer.is_timer_over(step_count):
@@ -725,7 +701,12 @@ class Stilman2005Behavior(BaselineBehavior):
                             )
                         )
                         plan.update_plan(
-                            Plan([evasion_path], goal, self._robot_uid), step_count
+                            Plan(
+                                robot_uid=self.robot.uid,
+                                path_components=[evasion_path],
+                                goal=goal,
+                            ),
+                            step_count,
                         )
                         return ThinkResult(
                             next_action=plan.pop_next_action(),
@@ -772,8 +753,8 @@ class Stilman2005Behavior(BaselineBehavior):
             else:
                 self.simulation_log.append(
                     utils.BasicLog(
-                        "Agent {}: Detected conflicts require immediate replanning".format(
-                            self._robot_name
+                        "Agent {}: Detected conflicts require immediate replanning. Conflicts: {}".format(
+                            self._robot_name, conflicts
                         ),
                         step_count,
                     )
@@ -1150,7 +1131,12 @@ class Stilman2005Behavior(BaselineBehavior):
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
             # TODO FIX COST COMPUTATION TO FIT SAME MODEL AS MANIP SEARCH !
             ros_publisher.cleanup_robot_sim(ns=self._robot_name)
-            return Plan([simple_path_to_goal], r_f, self._robot_uid)
+
+            return Plan(
+                path_components=[simple_path_to_goal],
+                goal=r_f,
+                robot_uid=self._robot_uid,
+            )
 
         if ccs_data is None:
             ccs_data = connectivity.init_ccs_for_grid(
@@ -1179,13 +1165,19 @@ class Stilman2005Behavior(BaselineBehavior):
         )
 
         if inflated_grid_by_robot_max.cell_to_obstacle_id(robot_cell) == -1:
-            return Plan(plan_error="start_cell_in_several_movable_obstacles_error")
+            return Plan(
+                plan_error="start_cell_in_several_movable_obstacles_error",
+                robot_uid=self.robot.uid,
+            )
 
         if (
             static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0
             or static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0
         ):
-            return Plan(plan_error="start_or_goal_cell_in_static_obstacle_error")
+            return Plan(
+                plan_error="start_or_goal_cell_in_static_obstacle_error",
+                robot_uid=self.robot.uid,
+            )
 
         # if inflated_grid_by_robot_max.grid[goal_cell[0]][goal_cell[1]] > 1: Should not be necessary thanks to first check
         #     return Plan(plan_error="goal_cell_in_more_than_one_movable_obstacle_error")
@@ -1330,9 +1322,11 @@ class Stilman2005Behavior(BaselineBehavior):
                     plan_components: t.List[TransitPath | TransferPath] = (
                         [tho_n, tho_m] if tho_n.actions else [tho_m]
                     )
-                    return Plan(plan_components, r_f, self._robot_uid).append(
-                        future_plan
-                    )
+                    return Plan(
+                        path_components=plan_components,
+                        goal=r_f,
+                        robot_uid=self._robot_uid,
+                    ).append(future_plan)
 
             # Extra check for when the goal is in a movable obstacle that we could not find how to move
             if c_1 == 0:
@@ -1362,7 +1356,10 @@ class Stilman2005Behavior(BaselineBehavior):
             )
 
         ros_publisher.cleanup_robot_sim(ns=self._robot_name)
-        return Plan(plan_error="no_plan_found_error")
+        return Plan(
+            plan_error="no_plan_found_error",
+            robot_uid=self.robot.uid,
+        )
 
     def rch_get_neighbors(
         self,
@@ -2054,9 +2051,10 @@ class Stilman2005Behavior(BaselineBehavior):
         )
         if best_transfer_end_configuration is not None:
             ros_publisher.publish_sim(
-                best_transfer_end_configuration.robot.polygon,
-                best_transfer_end_configuration.obstacle.polygon,
-                "/target",
+                robot_polygon=best_transfer_end_configuration.robot.polygon,
+                obs_polygon=best_transfer_end_configuration.obstacle.polygon,
+                line_width=robot.circumscribed_radius / 4,
+                namespace="/target",
                 robot_name=self._robot_name,
             )
 
@@ -2469,9 +2467,7 @@ class Stilman2005Behavior(BaselineBehavior):
             obstacle_polygon, inflated_grid_by_robot_max.inflation_radius
         )
         candidate_transit_end_poses = utils.sample_poses_at_middle_of_inflated_sides(
-            obstacle_polygon,
-            inflated_grid_by_robot_max.inflation_radius
-            + 1.5 * inflated_grid_by_robot_max.res,
+            obstacle_polygon, self.release_distance
         )
 
         valid_transit_end_poses, valid_transfer_start_poses = [], []
@@ -2956,8 +2952,8 @@ class Stilman2005Behavior(BaselineBehavior):
                 ordered_cells_by_cost.pop()
         return None  # If no valid configuration could be found...
 
-    @staticmethod
     def get_next_transit_start_configuration(
+        self,
         grid,
         robot_pose,
         robot_polygon,
@@ -2970,9 +2966,10 @@ class Stilman2005Behavior(BaselineBehavior):
         rot_mult,
     ):
         release_action = ba.Release(
-            translation_vector=(-1.0 * (grid.inflation_radius + 1.5 * grid.res), 0.0),
+            translation_vector=(-1.0 * self.release_distance, 0.0),
             entity_uid=obstacle_uid,
         )
+        robot_pose = (robot_pose[0], robot_pose[1], robot_pose[2])
         new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
         old_cell = utils.real_to_grid(
             robot_pose[0], robot_pose[1], grid.res, grid.grid_pose
@@ -2989,7 +2986,7 @@ class Stilman2005Behavior(BaselineBehavior):
             # If robot cell outside of grid, return False
             return None
 
-        new_robot_polygon = release_action.apply(robot_polygon, robot_pose)
+        new_robot_polygon = release_action.apply(robot_polygon, new_robot_pose)
 
         # Check if robot is still within map bounds
         if not new_robot_polygon.within(grid.aabb_polygon):
@@ -3387,6 +3384,7 @@ class Stilman2005Behavior(BaselineBehavior):
             robot_polygon=current_configuration.robot.polygon,
             obstacle_polygon=current_configuration.obstacle.polygon,
             obstacle_pose=current_configuration.obstacle.floating_point_pose,
+            line_width=self.robot.min_inflation_radius / 4,
             res=inflated_grid_by_robot_min.res,
             neighbor_poses=[n.robot.floating_point_pose for n in neighbors],
             ns=self._robot_name,

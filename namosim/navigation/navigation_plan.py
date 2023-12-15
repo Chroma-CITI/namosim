@@ -5,7 +5,7 @@ from typing_extensions import Self
 
 import namosim.display.ros2_publisher as ros2
 import namosim.utils.collision as collision
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.conflict import (
     Conflict,
@@ -26,9 +26,10 @@ from namosim.world.world import World
 class Plan:
     def __init__(
         self,
+        *,
+        robot_uid: int,
         path_components: t.List[t.Union[TransitPath, TransferPath]] = [],
         goal: t.Optional[PoseModel] = None,
-        robot_uid: t.Optional[int] = None,
         plan_error: t.Optional[str] = None,
     ):
         self.path_components = path_components
@@ -103,15 +104,16 @@ class Plan:
             # SimultaneousSpaceAccess-type Conflicts
             if isinstance(other_robot, Robot) and other_robot.uid != self.robot_uid:
                 center = other_robot.polygon.centroid
-                robot_radius = (
-                    center.hausdorff_distance(other_robot.polygon)
-                    + 1.1 * inflated_grid_by_robot.res
-                )
+                # robot_radius = (
+                #     center.hausdorff_distance(other_robot.polygon)
+                #     + 1.1 * inflated_grid_by_robot.res
+                # )
+                robot_radius = other_robot.circumscribed_radius
                 radius = robot_radius
                 min_radius_for_release = (
                     robot_radius
                     + inflated_grid_by_robot.inflation_radius
-                    + 2.0 * inflated_grid_by_robot.res
+                    + 1.5 * inflated_grid_by_robot.res
                 )
                 # Enlarge radius to account for possible grabs
                 for uid, obstacle in world.entities.items():
@@ -184,29 +186,30 @@ class Plan:
                         robot_name=robot_name,
                     )
                 else:
+                    conflicts += path.get_conflicts(
+                        robot_uid=self.robot_uid,
+                        world=world,
+                        inflated_grid_by_robot=inflated_grid_by_robot,
+                        other_entities_polygons=other_entities_polygons,
+                        other_entities_aabb_tree=other_entities_aabb_tree,
+                        other_entities_polygons_with_encompassing_circles=other_entities_polygons_with_encompassing_circles,
+                        other_entities_with_encompassing_circles_aabb_tree=other_entities_with_encompassing_circles_aabb_tree,
+                        encompassing_circle_uid_to_robot_uid=encompassing_circle_uid_to_robot_uid,
+                        previously_moved_entities_uids=previously_moved_entities_uids,
+                        has_first_action=has_first_action,
+                        shared_horizon=shared_horizon,
+                        apply_strict_horizon=apply_strict_horizon,
+                        exit_early_for_any_conflict=exit_early_for_any_conflict,
+                        exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
+                        rp=rp,
+                        robot_name=robot_name,
+                    )
+
                     # If the previously checked path components are valid, we assume it leaves any manipulated
                     # obstacles in the right place so we don't check again:
                     # - We simply deactivate collisions with them from the world representation
                     # - or if another path component needs to move them (check_start_pose)
                     previously_moved_entities_uids.add(path.obstacle_uid)
-                    conflicts += path.get_conflicts(
-                        self.robot_uid,
-                        world,
-                        inflated_grid_by_robot,
-                        other_entities_polygons,
-                        other_entities_aabb_tree,
-                        other_entities_polygons_with_encompassing_circles,
-                        other_entities_with_encompassing_circles_aabb_tree,
-                        encompassing_circle_uid_to_robot_uid,
-                        previously_moved_entities_uids,
-                        has_first_action,
-                        shared_horizon,
-                        apply_strict_horizon,
-                        exit_early_for_any_conflict,
-                        exit_early_only_for_long_term_conflicts,
-                        rp=rp,
-                        robot_name=robot_name,
-                    )
 
                     # inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
                     inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
@@ -227,7 +230,9 @@ class Plan:
                         break
 
                 if shared_horizon:
-                    shared_horizon -= path.get_length()
+                    shared_horizon = max(
+                        0, shared_horizon - path.get_remaining_length()
+                    )
             else:
                 break
 

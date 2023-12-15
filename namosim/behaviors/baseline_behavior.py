@@ -7,14 +7,8 @@ from decimal import Decimal
 from shapely import Polygon
 
 from namosim.algorithms import graph_search
+from namosim.data_models import PoseModel
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.models import (
-    NavigationOnlyBehaviorConfigModel,
-    PoseModel,
-    StilmanBehaviorConfigModel,
-    StilmanOnlyBehaviorConfigModel,
-    WuLevihnBehaviorConfigModel,
-)
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.navigation_path import TransitPath
@@ -44,22 +38,23 @@ class BaselineBehavior(object):
 
     def __init__(
         self,
+        name: str,
         initial_world: World,
         robot_uid: int,
         navigation_goals: t.List[PoseModel],
-        behavior_config: StilmanBehaviorConfigModel
-        | WuLevihnBehaviorConfigModel
-        | NavigationOnlyBehaviorConfigModel
-        | StilmanOnlyBehaviorConfigModel,
         logs_dir: str,
+        logger: t.Optional[utils.CustomLogger] = None,
     ):
-        self.simulation_log = utils.CustomLogger()
+        if logger:
+            self.simulation_log = logger
+        else:
+            self.simulation_log = utils.CustomLogger()
 
         self._initial_world = initial_world
         self._robot_uid = robot_uid
         self._robot_name = initial_world.entities[robot_uid].name
         self._navigation_goals = navigation_goals
-        self._behavior_config = behavior_config
+        self._name = name
         self.logs_dir = logs_dir
 
         decimal_res = Decimal(initial_world.discretization_data.res).as_tuple()
@@ -145,7 +140,7 @@ class BaselineBehavior(object):
 
     @property
     def name(self):
-        return self._behavior_config.name
+        return self._name
 
     @property
     def goal_pose(self):

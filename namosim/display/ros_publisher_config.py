@@ -42,8 +42,3 @@ fov_z_index = -0.04
 entities_z_index = -0.05
 taboos_z_index = -0.06
 path_line_z_index = 0.0
-
-fov_line_width = 0.05
-border_width = 0.08
-text_height = 0.2
-path_line_width = 0.1

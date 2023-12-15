@@ -1,37 +1,47 @@
 import math
+import typing as t
 
 import matplotlib.pyplot as plt
 import shapely.affinity as affinity
 from aabbtree import AABB, AABBTree
+from shapely import Polygon
 from shapely.geometry import MultiPoint, Point
 
 import namosim.navigation.basic_actions as ba
+from namosim.data_models import PoseModel
 from namosim.utils import utils
+from namosim.world.world import World
 
 
 class Action:
     def __init__(self):
         pass
 
+    def apply(self, polygon: Polygon) -> Polygon:
+        raise NotImplementedError()
+
 
 class Rotation(Action):
-    def __init__(self, angle, center):
+    def __init__(self, angle: float, center: t.Tuple[float, float]):
         Action.__init__(self)
         self.angle = angle
         self.center = center
 
-    def apply(self, polygon):
+    def apply(self, polygon: Polygon) -> Polygon:
         return affinity.rotate(
-            geom=polygon, angle=self.angle, origin=self.center, use_radians=False
+            geom=polygon,
+            angle=self.angle,
+            origin=self.center,  # type: ignore
+            use_radians=False,
         )
 
 
 class Translation(Action):
-    def __init__(self, translation_vector):
+    def __init__(self, translation_vector: t.Tuple[float, float]):
         Action.__init__(self)
         self.translation_vector = translation_vector
 
-    def apply(self, polygon):
+    def apply(self, polygon: Polygon) -> Polygon:
         return affinity.translate(
             geom=polygon,
             xoff=self.translation_vector[0],
@@ -40,16 +50,17 @@ class Translation(Action):
         )
 
 
-def convert_action(action, robot_pose):
+def convert_action(action: ba.BasicAction, robot_pose: PoseModel) -> Action:
     # TODO Deprecate this and the specific actions by changing the API of the following functions
     if isinstance(action, ba.Translation):
         translation_vector = action.compute_translation_vector(robot_pose[2])
         return Translation(translation_vector)
     elif isinstance(action, ba.Rotation):
         return Rotation(action.angle, (robot_pose[0], robot_pose[1]))
+    raise Exception("Unable to convert action")
 
 
-def bounds(points):
+def bounds(points: t.Iterable[t.Tuple[float, float]]):
     minx, miny, maxx, maxy = float("inf"), float("inf"), -float("inf"), -float("inf")
     for point in points:
         minx, miny, maxx, maxy = (
@@ -61,7 +72,13 @@ def bounds(points):
     return minx, miny, maxx, maxy
 
 
-def rotate(point, angle, center, radius=None, radians=False):
+def rotate(
+    point: t.Tuple[float, float],
+    angle: float,
+    center: t.Tuple[float, float],
+    radius: float | None = None,
+    radians: bool = False,
+):
     if not radius:
         radius = math.sqrt((point[0] - center[0]) ** 2 + (point[1] - center[1]) ** 2)
     if not radians:
@@ -71,12 +88,12 @@ def rotate(point, angle, center, radius=None, radians=False):
 
 
 def arc_bounding_box(
-    point_a,
-    rot_angle,
-    center,
-    point_b=None,
-    point_c=None,
-    bb_type="minimum_rotated_rectangle",
+    point_a: t.Tuple[float, float],
+    rot_angle: float,
+    center: t.Tuple[float, float],
+    point_b: t.Tuple[float, float] | None = None,
+    point_c: t.Tuple[float, float] | None = None,
+    bb_type: str = "minimum_rotated_rectangle",
 ):
     """
     Computes the bounding box of the arc formed by the rotation of a point A around a given center
@@ -191,6 +208,8 @@ def arc_bounding_box(
             elif bb_type == "aabbox":
                 minx, miny, maxx, maxy = bounds(list(zip(bb_points_x, bb_points_y)))
                 return [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]
+            else:
+                raise Exception("Invalid bb_type arg")
         else:
             # If the ray passing through C is not horizontal (GENERAL CASE)
 
@@ -258,8 +277,10 @@ def arc_bounding_box(
 
 
 def bounding_boxes_vertices(
-    action_sequence, polygon_sequence, bb_type="minimum_rotated_rectangle"
-):
+    action_sequence: t.List[Action],
+    polygon_sequence: t.List[Polygon],
+    bb_type: str = "minimum_rotated_rectangle",
+) -> t.List[t.List[t.Tuple[float, float]]]:
     """
     Returns for each action the pointclouds of the bounding boxes that cover each polygon's point trajectory
     during the action.
@@ -299,7 +320,7 @@ def bounding_boxes_vertices(
     return bb_vertices
 
 
-def csv_from_bb_vertices(bb_vertices):
+def csv_from_bb_vertices(bb_vertices: t.List[t.List[t.Tuple[float, float]]]) -> Polygon:
     """
     Computes the CSV (Convex Swept Volume) approximation polygon of the provided bounding boxes vertices
     :param bb_vertices: List of Bounding boxes vertices for each action
@@ -311,12 +332,12 @@ def csv_from_bb_vertices(bb_vertices):
     return MultiPoint(all_vertices).convex_hull
 
 
-def polygon_to_aabb(polygon):
+def polygon_to_aabb(polygon: Polygon):
     xmin, ymin, xmax, ymax = polygon.bounds
     return AABB([(xmin, xmax), (ymin, ymax)])
 
 
-def polygons_to_aabb_tree(polygons):
+def polygons_to_aabb_tree(polygons: t.Dict[int, Polygon]):
     aabb_tree = AABBTree()
     for uid, polygon in polygons.items():
         aabb_tree.add(polygon_to_aabb(polygon), uid)
@@ -324,13 +345,13 @@ def polygons_to_aabb_tree(polygons):
 
 
 def check_static_collision(
-    main_uid,
-    polygon,
-    other_entities_polygons,
-    aabb_tree,
-    ignored_uids=None,
-    break_at_first=True,
-    save_intersections=False,
+    main_uid: int,
+    polygon: Polygon,
+    other_entities_polygons: t.Dict[int, Polygon],
+    aabb_tree: AABBTree,
+    ignored_uids: t.Iterable[int] | None = None,
+    break_at_first: bool = True,
+    save_intersections: bool = False,
 ):
     aabb = polygon_to_aabb(polygon)
     potential_collision_uids = aabb_tree.overlap_values(aabb)
@@ -351,13 +372,15 @@ def check_static_collision(
                     return {main_uid: {uid}, uid: {main_uid}}
         return {}
     else:
-        collides_with = {}
-        if save_intersections:
-            intersections = {}
+        collides_with: t.Dict[int, t.Set[int]] = {}
+        intersections: t.Dict[t.Tuple[int, int], Polygon] = {}
+
         for uid in potential_collision_uids:
             if polygon.intersects(other_entities_polygons[uid]):
                 if save_intersections:
-                    intersection = polygon.intersection(other_entities_polygons[uid])
+                    intersection: Polygon = polygon.intersection(
+                        other_entities_polygons[uid]
+                    )
                     intersections[(main_uid, uid)] = intersection
                     intersections[(uid, main_uid)] = intersection
 
@@ -377,7 +400,9 @@ def check_static_collision(
             return collides_with
 
 
-def merge_collides_with(source, other):
+def merge_collides_with(
+    source: t.Dict[int, t.Set[int]], other: t.Dict[int, t.Set[int]]
+):
     for uid, uids in other.items():
         if uid in source:
             source[uid].update(uids)
@@ -397,21 +422,28 @@ def merge_collides_with(source, other):
 
 
 def csv_check_collisions(
-    main_uid,
-    other_polygons,
-    polygon_sequence,
-    action_sequence,
-    id_sequence=None,
-    bb_type="minimum_rotated_rectangle",
-    aabb_tree=None,
-    bb_vertices=None,
-    csv_polygons=None,
-    intersections=None,
-    ignored_entities=None,
-    display_debug=False,
-    break_at_first=True,
-    save_intersections=False,
-):
+    main_uid: int,
+    other_polygons: t.Dict[int, Polygon],
+    polygon_sequence: t.List[Polygon],
+    action_sequence: t.List[Action],
+    id_sequence: t.List[int] | None = None,
+    bb_type: str = "minimum_rotated_rectangle",
+    aabb_tree: AABBTree | None = None,
+    bb_vertices: t.List[t.List[t.Tuple[float, float]]] | None = None,
+    csv_polygons: t.Dict[t.Sequence[int], Polygon] | None = None,
+    intersections: t.Dict[t.Tuple[int, int], Polygon] | None = None,
+    ignored_entities: t.Set[int] | None = None,
+    display_debug: bool = False,
+    break_at_first: bool = True,
+    save_intersections: bool = False,
+) -> t.Tuple[
+    bool,
+    t.Dict[int, t.Set[int]],
+    AABBTree,
+    t.Dict[t.Sequence[int], Polygon],
+    t.Dict[t.Tuple[int, int], Polygon],
+    t.List[t.List[t.Tuple[float, float]]],
+]:
     # Initialize at first recursive iteration
     if not aabb_tree:
         aabb_tree = polygons_to_aabb_tree(other_polygons)
@@ -424,7 +456,7 @@ def csv_check_collisions(
     if not intersections:
         intersections = {}
     if not id_sequence:
-        id_sequence = range(len(action_sequence))
+        id_sequence = list(range(len(action_sequence)))
 
     csv_polygon = csv_from_bb_vertices(bb_vertices)
     csv_polygons[tuple(id_sequence)] = csv_polygon
@@ -549,12 +581,12 @@ def csv_check_collisions(
 
 
 def csv_simulate_simple_kinematics(
-    world,
-    agent_uid_to_next_action,
-    apply=False,
-    bb_type="minimum_rotated_rectangle",
-    ignore_collisions=False,
-    extra_transit_check=False,
+    world: World,
+    agent_uid_to_next_action: t.Dict[int, ba.BasicAction],
+    apply: bool = False,
+    bb_type: str = "minimum_rotated_rectangle",
+    ignore_collisions: bool = False,
+    extra_transit_check: bool = False,
 ):
     # Apply each action to get polygon after for robot and obstacle if relevant
     # and compute CSV for each
@@ -719,4 +751,6 @@ def csv_simulate_simple_kinematics(
                             new_polygons[agent_uid],
                         )
 
+    return collides_with
+    return collides_with
     return collides_with

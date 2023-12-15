@@ -4,12 +4,10 @@ from shapely.geometry import Polygon
 from shapely.ops import cascaded_union
 
 import namosim.world.world as world
-from namosim.models import PoseModel
+from namosim.data_models import PoseModel
 from namosim.world.entity import Style
 from namosim.world.obstacle import Obstacle
-from namosim.world.sensors.circular_sector_sensor import (
-    CircularSectorSensor,
-)
+from namosim.world.sensors.circular_sector_sensor import CircularSectorSensor
 
 
 class GFOVSensor(CircularSectorSensor):
