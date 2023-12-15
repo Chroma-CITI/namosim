@@ -2,12 +2,13 @@ import unittest
 
 from shapely.geometry import Polygon
 
+import namosim.navigation.basic_actions as ba
 from namosim.navigation.navigation_path import TransitPath
 from namosim.world.entity import Style
 from namosim.world.obstacle import Obstacle
 
 
-class NavigationPathTest(unittest.TestCase):
+class TransitPathFromPoses(unittest.TestCase):
     def setUp(self):
         self.simple_square = Obstacle(
             name="simple_square",
@@ -37,7 +38,22 @@ class NavigationPathTest(unittest.TestCase):
             poses=[
                 (401.81603000000007, -184.19798500000007, 90.0),
                 (413.3967763298543, -184.4751680398556, -129.75446123154683),
-                (401.81603000000007, -184.19798500000007, 90.0),
             ],
         )
         assert len(path.actions) == 3
+        assert isinstance(path.actions[0], ba.Rotation)
+        assert isinstance(path.actions[1], ba.Translation)
+        assert isinstance(path.actions[2], ba.Rotation)
+
+    def test_no_actions(self):
+        path = TransitPath.from_poses_v2(
+            robot_pose=(0, 0, 0),
+            robot_polygon=Polygon([(0, 0, 0), (0, 1, 0), (1, 1, 0), (0, 0, 0)]),
+            poses=[
+                (0, 0, 0),
+                (0, 0, 0),
+                (0, 0, 0),
+            ],
+        )
+        assert len(path.actions) == 0
+        assert len(path.robot_path.poses) == 3

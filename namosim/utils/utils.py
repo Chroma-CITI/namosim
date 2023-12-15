@@ -892,12 +892,9 @@ def set_polygon_pose(
 def rotate_then_translate_polygon(
     polygon, translation, rotation, rotation_center="center"
 ):
-    try:
-        return affinity.translate(
-            affinity.rotate(polygon, rotation, origin=rotation_center), *translation
-        )
-    except:
-        raise Exception("oh no")
+    return affinity.translate(
+        affinity.rotate(polygon, rotation, origin=rotation_center), *translation
+    )
 
 
 def polygon_collides_with_entities(polygon, entities, aabb_tree=None):
