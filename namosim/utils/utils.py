@@ -873,6 +873,8 @@ def subtract_angles(a: float, b: float):
 def get_translation_and_rotation(start_pose, end_pose):
     translation = get_translation(start_pose, end_pose)
     rotation = get_rotation(start_pose, end_pose)
+    if math.isnan(rotation):
+        pass
     return translation, rotation
 
 
@@ -890,9 +892,12 @@ def set_polygon_pose(
 def rotate_then_translate_polygon(
     polygon, translation, rotation, rotation_center="center"
 ):
-    return affinity.translate(
-        affinity.rotate(polygon, rotation, origin=rotation_center), *translation
-    )
+    try:
+        return affinity.translate(
+            affinity.rotate(polygon, rotation, origin=rotation_center), *translation
+        )
+    except:
+        raise Exception("oh no")
 
 
 def polygon_collides_with_entities(polygon, entities, aabb_tree=None):
@@ -1498,31 +1503,20 @@ def rotate_2d_vector(vector: t.Tuple[float, float], degrees: float):
     return (x, y)
 
 
-def get_angle_between_2d_vectors(a: t.Tuple[float, float], b: t.Tuple[float, float]):
-    a = np.array(a)
-    b = np.array(b)
-
-    # Compute the dot product of the two vectors
-    dot_product = np.dot(a, b)
-
-    # Compute the magnitudes of the vectors
-    norm_a = np.linalg.norm(a)
-    norm_b = np.linalg.norm(b)
-
-    # Compute the angle in radians using the arccosine function
-    cosine_angle = dot_product / (norm_a * norm_b)  # type: ignore
-    angle_radians = np.arccos(cosine_angle)
-    angle_degrees = np.abs(np.degrees(angle_radians))
-    return angle_degrees
-
-
 def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]):
     # Normalize the vectors
-    v1_norm = v1 / np.linalg.norm(v1)
-    v2_norm = v2 / np.linalg.norm(v2)
+
+    norm_v1 = np.linalg.norm(v1)
+    norm_v2 = np.linalg.norm(v2)
+
+    if norm_v1 == 0 or norm_v2 == 0:
+        return 0
+
+    v1_norm = v1 / norm_v1
+    v2_norm = v2 / norm_v2
 
     # Calculate the dot product
-    dot = np.dot(v1_norm, v2_norm)
+    dot = max(-1.0, min(1.0, np.dot(v1_norm, v2_norm)))
 
     # Calculate the cross product
     cross = np.cross(v1_norm, v2_norm)
@@ -1532,6 +1526,9 @@ def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]):
 
     # Combine the dot product and sign to get the signed angle
     signed_angle = np.arccos(dot) * sign
+
+    if math.isnan(signed_angle):
+        raise Exception("Angle is NaN")
 
     return np.degrees(signed_angle)
 

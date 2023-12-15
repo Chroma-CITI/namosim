@@ -118,10 +118,7 @@ class DynamicPlan(Plan):
 
     # Actions
     def pop_next_action(self):
-        try:
-            return Plan.pop_next_action(self)
-        except Exception as e:
-            raise e
+        return Plan.pop_next_action(self)
 
     def new_postpone(
         self,
@@ -306,7 +303,7 @@ class Stilman2005Behavior(BaselineBehavior):
 
         self.is_first_transfer_step = False
 
-        self.check_horizon = 10
+        self.check_horizon = 20
 
         self.angular_tolerance = 0.1
         self.position_tolerance = self.world.discretization_data.res / 2.0
@@ -615,6 +612,7 @@ class Stilman2005Behavior(BaselineBehavior):
                 check_horizon=fov,
                 rp=ros_publisher,
                 robot_name=self._robot_name,
+                exit_early_for_any_conflict=True,
             )
             if not conflicts:
                 if plan.timer.is_running and plan.timer.is_timer_over(step_count):

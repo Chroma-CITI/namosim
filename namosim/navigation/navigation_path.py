@@ -1,3 +1,4 @@
+import math
 import typing as t
 
 from aabbtree import AABBTree
@@ -646,7 +647,7 @@ class TransferPath:
     def get_length(self):
         return len(self.actions)
 
-    def get_remaining_legnth(self):
+    def get_remaining_length(self):
         return max(0, len(self.actions) - self.action_index)
 
 
@@ -787,6 +788,11 @@ class TransitPath:
         actions: t.List[ba.BasicAction] = []
         updated_poses = [poses[0]]
 
+        for p in poses:
+            for e in p:
+                if math.isnan(e):
+                    pass
+
         for pose, next_pose in zip(poses, poses[1:]):
             has_translation = not all(
                 [
@@ -820,7 +826,8 @@ class TransitPath:
                 remaining_angle = utils.subtract_angles(next_pose[2], current_angle)
                 actions.append(ba.Rotation(angle=remaining_angle))
                 updated_poses.append(next_pose)
-            else:
+
+            if not has_rotation and not has_translation:
                 updated_poses.append(next_pose)
 
         polygons = [
@@ -1038,7 +1045,7 @@ class TransitPath:
     def get_length(self):
         return len(self.actions)
 
-    def get_remaining_legnth(self):
+    def get_remaining_length(self):
         return max(0, len(self.actions) - self.action_index)
 
 
