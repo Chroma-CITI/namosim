@@ -705,64 +705,6 @@ class TransitPath:
         poses: t.List[PoseModel],
         robot_polygon: Polygon,
         robot_pose: PoseModel,
-        phys_cost=None,
-        social_cost=0.0,
-        weight=1.0,
-    ):
-        # Separate translation from rotation actions
-        if len(poses) > 1:
-            previous_pose, separated_poses, actions = poses[0], [poses[0]], []
-            for pose in poses[1:]:
-                has_rotation = not utils.angle_is_close(
-                    pose[2], previous_pose[2], rel_tol=1e-6
-                )
-                has_translation = not utils.is_close(
-                    pose[0], previous_pose[0], rel_tol=1e-6
-                ) or not utils.is_close(pose[1], previous_pose[1], rel_tol=1e-6)
-
-                if has_rotation or has_translation:
-                    if has_rotation and has_translation:
-                        separated_poses.append(
-                            (previous_pose[0], previous_pose[1], pose[2])
-                        )
-                        separated_poses.append(pose)
-                    else:
-                        separated_poses.append(pose)
-                    if has_rotation:
-                        actions.append(
-                            ba.Rotation(utils.get_rotation(previous_pose, pose))
-                        )
-                    if has_translation:
-                        actions.append(
-                            ba.Translation.from_absolute_translation_vector(
-                                utils.get_translation(previous_pose, pose)
-                            )
-                        )
-                previous_pose = pose
-
-            polygons = [
-                utils.set_polygon_pose(robot_polygon, robot_pose, pose)
-                for pose in separated_poses
-            ]
-            robot_path = Path(separated_poses, polygons)
-        elif len(poses) == 1:
-            robot_path, actions = Path(robot_pose, [robot_polygon]), []
-        else:
-            robot_path, actions = Path([], []), []
-        return cls(
-            robot_path,
-            actions,
-            phys_cost=phys_cost,
-            social_cost=social_cost,
-            weight=weight,
-        )
-
-    @classmethod
-    def from_poses_v2(
-        cls,
-        poses: t.List[PoseModel],
-        robot_polygon: Polygon,
-        robot_pose: PoseModel,
         phys_cost: float | None = None,
         social_cost: float = 0.0,
         weight: float = 1.0,

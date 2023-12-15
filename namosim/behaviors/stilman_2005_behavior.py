@@ -3781,7 +3781,7 @@ class Stilman2005Behavior(BaselineBehavior):
                         other_robot.pose, main_robot.pose, inflated_grid_by_robot_max
                     )
                 )
-                other_robot_exchange_path = TransitPath.from_poses_v2(
+                other_robot_exchange_path = TransitPath.from_poses(
                     other_robot_exchange_real_path,
                     other_robot.polygon,
                     other_robot.pose,
@@ -3966,7 +3966,7 @@ class Stilman2005Behavior(BaselineBehavior):
         evasion_transit_path = (
             None
             if len(real_path) < 2
-            else EvasionTransitPath.from_poses_v2(real_path, robot_polygon, robot_pose)
+            else EvasionTransitPath.from_poses(real_path, robot_polygon, robot_pose)
         )
 
         if transit_configuration_after_release:

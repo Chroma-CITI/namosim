@@ -19,20 +19,8 @@ class TransitPathFromPoses(unittest.TestCase):
             style=Style(),
         )
 
-    # Bug in TransitPath.from_poses()!
     def test_from_poses(self):
         path = TransitPath.from_poses(
-            robot_pose=(401.81603000000007, -184.19798500000007, 90.0),
-            robot_polygon=Polygon([(0, 0, 0), (0, 1, 0), (1, 1, 0), (0, 0, 0)]),
-            poses=[
-                (401.81603000000007, -184.19798500000007, 90.0),
-                (413.3967763298543, -184.4751680398556, -129.75446123154683),
-            ],
-        )
-        assert len(path.actions) == 2
-
-    def test_from_poses_v2(self):
-        path = TransitPath.from_poses_v2(
             robot_pose=(401.81603000000007, -184.19798500000007, 90.0),
             robot_polygon=Polygon([(0, 0, 0), (0, 1, 0), (1, 1, 0), (0, 0, 0)]),
             poses=[
@@ -46,7 +34,7 @@ class TransitPathFromPoses(unittest.TestCase):
         assert isinstance(path.actions[2], ba.Rotation)
 
     def test_no_actions(self):
-        path = TransitPath.from_poses_v2(
+        path = TransitPath.from_poses(
             robot_pose=(0, 0, 0),
             robot_polygon=Polygon([(0, 0, 0), (0, 1, 0), (1, 1, 0), (0, 0, 0)]),
             poses=[
