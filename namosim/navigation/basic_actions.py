@@ -50,6 +50,9 @@ class Rotation(BasicAction):
     def __init__(self, angle: float):
         self.angle = angle
 
+    def __str__(self):
+        return f"Rotation(angle={self.angle})"
+
     def apply(self, polygon: Polygon, pose: PoseModel) -> Polygon:
         return t.cast(
             Polygon,
@@ -162,3 +165,6 @@ class Release(Translation):
         Translation.__init__(self, translation_vector)
         self.entity_uid = entity_uid
         self.entity_uid = entity_uid
+
+    def __str__(self):
+        return f"Release(vector={self.translation_vector})"

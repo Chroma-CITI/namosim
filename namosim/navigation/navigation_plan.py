@@ -231,7 +231,7 @@ class Plan:
 
                 if shared_horizon:
                     shared_horizon = max(
-                        0, shared_horizon - path.get_remaining_legnth()
+                        0, shared_horizon - path.get_remaining_length()
                     )
             else:
                 break
