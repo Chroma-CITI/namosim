@@ -131,7 +131,7 @@ class Stilman2005Agent(Agent):
         self.check_new_local_opening_before_global = (
             params.check_new_local_opening_before_global
         )
-        self.activate_grids_logging = params.deactivate_grids_logging
+        self.activate_grids_logging = params.activate_grids_logging
         self._social_costmap = None
         self.is_first_transfer_step = False
         self.check_horizon = 20
