@@ -361,7 +361,8 @@ class Simulator:
         return (active_agents, trace_polygons, step_count)
 
     def update_report(self, action_results: t.Dict[int, ar.ActionResult]):
-        for agent_id, action_result in action_results.items():
+        for uid, action_result in action_results.items():
+            agent_id = self.ref_world.entities[uid].name
             self.report.update(agent_id=agent_id, action_result=action_result)
 
     def end_simulation(self, step_count: int, err: Exception | None = None):
@@ -1124,7 +1125,12 @@ class Simulator:
                     del self.ref_world.entity_to_agent[action.entity_uid]
 
                 action_results[agent_uid] = ar.ActionSuccess(
-                    action, self.ref_world.entities[agent_uid].pose
+                    action=action,
+                    robot_pose=self.ref_world.entities[agent_uid].pose,
+                    is_transfer=agent_uid in self.ref_world.entity_to_agent.inverse,
+                    obstacle_uid=self.ref_world.entity_to_agent.inverse.get(
+                        agent_uid, None
+                    ),
                 )
 
         return action_results
