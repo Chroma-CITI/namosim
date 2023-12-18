@@ -142,8 +142,8 @@ class Simulator:
 
     def __init__(
         self,
+        *,
         simulation_file_path: str,
-        simulation_log_stub: str = "",
         goals: t.Optional[t.Dict[str, t.List[PoseModel]]] = None,
         timestring: t.Optional[str] = None,
     ):
@@ -165,20 +165,13 @@ class Simulator:
 
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
 
-        sim_file_parent_dirname = os.path.basename(
-            os.path.normpath(
-                os.path.abspath(os.path.join(simulation_file_abs_path, ".."))
-            )
-        )
         self.simulation_filename = os.path.splitext(
             os.path.basename(simulation_file_abs_path)
         )[0]
 
         main_logs_dir = os.path.join(
             os.path.dirname(__file__),
-            "../logs/",
-            simulation_log_stub,
-            sim_file_parent_dirname,
+            "../namo_logs/",
             self.simulation_filename,
         )
         self.logs_dir = os.path.join(main_logs_dir, self.sim_start_timestring + "/")

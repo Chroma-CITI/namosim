@@ -335,7 +335,7 @@ class DynamicPlan(Plan):
         ros_publisher: "rp.RosPublisher",
         check_horizon: int | None = None,
         apply_strict_horizon: bool = False,
-        exit_early_for_any_conflict: bool = False,
+        exit_early_for_any_conflict: bool = True,
         exit_early_only_for_long_term_conflicts: bool = True,
         robot_name: str = "",
     ):
