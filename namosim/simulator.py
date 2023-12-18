@@ -31,6 +31,7 @@ from namosim.navigation.conflict import (
     StolenMovableConflict,
 )
 from namosim.navigation.navigation_plan import DynamicPlan
+from namosim.report import SimulationReport
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
@@ -215,7 +216,7 @@ class Simulator:
         self.save_stats = True
         self.save_history = False
         self.save_logs = True
-        self.pickle_saved_data = True
+        self.pickle_saved_data = False
 
         if self.pickle_saved_data:
 
@@ -304,6 +305,8 @@ class Simulator:
         self.run_exceptions_traces: t.List[t.Any] = []
         self.exception: t.Union[Exception, None] = None
 
+        self.report = SimulationReport()
+
     def step(
         self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
     ) -> t.Tuple[set[int], t.List[Polygon], int]:
@@ -345,6 +348,8 @@ class Simulator:
             action_results = self.act(actions, step_count)
             act_duration = time.time() - act_start
 
+            self.update_report(action_results=action_results)
+
             self.history.append(
                 SimulationStepResult(
                     sense_durations,
@@ -361,6 +366,10 @@ class Simulator:
             self.end_simulation(step_count=step_count, err=e)
 
         return (active_agents, trace_polygons, step_count)
+
+    def update_report(self, action_results: t.Dict[int, ar.ActionResult]):
+        for agent_id, action_result in action_results.items():
+            self.report.update(agent_id=agent_id, action_result=action_result)
 
     def end_simulation(self, step_count: int, err: Exception | None = None):
         self.run_active = False
@@ -776,7 +785,7 @@ class Simulator:
                 for uid in self.ref_world.agents.keys()
             }
 
-        report = {"stats": stats}
+        report = {"stats": stats, "report": self.report.to_json_data()}
 
         return report
 
