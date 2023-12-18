@@ -4,6 +4,7 @@ import json
 import os
 import pickle
 import random
+import shutil
 import time
 import tkinter as tk
 import traceback
@@ -145,7 +146,6 @@ class Simulator:
         *,
         simulation_file_path: str,
         goals: t.Optional[t.Dict[str, t.List[PoseModel]]] = None,
-        timestring: t.Optional[str] = None,
     ):
         self.window: tk.Tk | None = None
         self.background: tk.Label | None = None
@@ -157,28 +157,21 @@ class Simulator:
             self.background = tk.Label(self.window)
             self.background.pack()
 
-        # Load simulation file and initialize logs
-        if timestring:
-            self.sim_start_timestring = timestring
-        else:
-            self.sim_start_timestring = utils.timestamp_string()
-
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
 
         self.simulation_filename = os.path.splitext(
             os.path.basename(simulation_file_abs_path)
         )[0]
 
-        main_logs_dir = os.path.join(
+        # init logs
+        self.logs_dir = os.path.join(
             os.path.dirname(__file__),
             "../namo_logs/",
             self.simulation_filename,
         )
-        self.logs_dir = os.path.join(main_logs_dir, self.sim_start_timestring + "/")
-
+        if os.path.isdir(self.logs_dir):
+            shutil.rmtree(self.logs_dir)
         os.makedirs(self.logs_dir)
-        os.makedirs(self.logs_dir + "simulation/")
-
         self.simulation_log = utils.CustomLogger()
 
         # Load world file
@@ -249,9 +242,9 @@ class Simulator:
 
         if self.save_init_world_state:
             self.init_ref_world.save_to_files(
-                svg_filepath=self.logs_dir
-                + "simulation/"
-                + self.init_ref_world.init_geometry_filename,
+                svg_filepath=os.path.join(
+                    self.logs_dir, self.init_ref_world.init_geometry_filename
+                )
             )
 
         # Associate autonomous agents with goals and behaviors
@@ -456,9 +449,7 @@ class Simulator:
         # - Save exception traces
         if self.run_exceptions_traces:
             exceptions = {"exceptions": self.run_exceptions_traces}
-            exceptions_filepath = os.path.join(
-                os.path.dirname(self.logs_dir), "exceptions"
-            )
+            exceptions_filepath = os.path.join(self.logs_dir, "exceptions")
             self.save(exceptions, exceptions_filepath)
             self.simulation_log.append(
                 utils.BasicLog(
@@ -469,11 +460,12 @@ class Simulator:
         # - Save world end state as SVG+JSON
         if self.save_end_world_state:
             self.ref_world.save_to_files(
-                svg_filepath=self.logs_dir
-                + "simulation/"
-                + utils.append_suffix(
-                    self.init_ref_world.init_geometry_filename, "_end"
-                ),
+                svg_filepath=os.path.join(
+                    self.logs_dir,
+                    utils.append_suffix(
+                        self.init_ref_world.init_geometry_filename, "_end"
+                    ),
+                )
             )
             self.simulation_log.append(
                 utils.BasicLog("Saved simulation final state.", step_count)
@@ -482,7 +474,7 @@ class Simulator:
         # - Save stats
         if self.save_stats:
             stats = self.create_simulation_report()
-            stats_filepath = os.path.join(os.path.dirname(self.logs_dir), "stats")
+            stats_filepath = os.path.join(self.logs_dir, "stats")
             self.save(stats, stats_filepath)
             self.simulation_log.append(
                 utils.BasicLog("Saved stats at: {}".format(stats_filepath), step_count)
@@ -499,7 +491,7 @@ class Simulator:
                 agent_uid: dict(behavior.goal_to_plans)
                 for agent_uid, behavior in self.ref_world.agents.items()
             }
-            history_filepath = os.path.join(os.path.dirname(self.logs_dir), "history")
+            history_filepath = os.path.join(self.logs_dir, "history")
             self.save(history, history_filepath)
             self.simulation_log.append(
                 utils.BasicLog(
@@ -514,7 +506,7 @@ class Simulator:
             logs["agents_logs"] = {}
             for uid, behavior in self.ref_world.agents.items():
                 logs["agents_logs"][self.ref_world.entities[uid].name] = behavior.logger
-            logs_filepath = os.path.join(os.path.dirname(self.logs_dir), "logs")
+            logs_filepath = os.path.join(self.logs_dir, "logs")
             self.save(logs, logs_filepath)
 
         if self.exception is not None:
@@ -865,7 +857,7 @@ class Simulator:
         del trace_polygons[: len(trace_polygons)]
 
         world_snapshot.save_to_files(
-            svg_filepath=self.logs_dir + "simulation/" + svg_filepath,
+            svg_filepath=os.path.join(self.logs_dir, svg_filepath)
         )
 
     def sense(
