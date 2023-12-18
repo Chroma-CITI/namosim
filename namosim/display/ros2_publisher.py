@@ -1509,7 +1509,7 @@ class RosPublisher:  # noqa: F821
         if self.is_activated(full_topic):
             horizon_cells: t.Set[GridCellModel] = set()
             for counter, index in enumerate(range(start_index, end_index)):
-                if counter > check_horizon:
+                if counter >= check_horizon:
                     break
 
                 pose = poses[index]

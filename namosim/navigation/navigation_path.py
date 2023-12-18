@@ -1,3 +1,4 @@
+import math
 import typing as t
 
 from aabbtree import AABBTree
@@ -673,7 +674,7 @@ class TransferPath:
     def get_length(self):
         return len(self.actions)
 
-    def get_remaining_legnth(self):
+    def get_remaining_length(self):
         return max(0, len(self.actions) - self.action_index)
 
 
@@ -714,56 +715,96 @@ class TransitPath:
         self.actions = actions
         self.action_index = 0
 
+    def __str__(self):
+        if len(self.actions) < 5:
+            return "{" + ", ".join([str(x) for x in self.actions]) + "}"
+        return (
+            "{"
+            + ", ".join([str(x) for x in self.actions[:2]])
+            + ", ..., "
+            + ", ".join([str(x) for x in self.actions[-2:]])
+            + "}"
+        )
+
     @classmethod
     def from_poses(
         cls,
         poses: t.List[PoseModel],
         robot_polygon: Polygon,
         robot_pose: PoseModel,
-        phys_cost=None,
-        social_cost=0.0,
-        weight=1.0,
+        phys_cost: float | None = None,
+        social_cost: float = 0.0,
+        weight: float = 1.0,
     ):
         # Separate translation from rotation actions
-        if len(poses) > 1:
-            previous_pose, separated_poses, actions = poses[0], [poses[0]], []
-            for pose in poses[1:]:
-                has_rotation = not utils.angle_is_close(
-                    pose[2], previous_pose[2], rel_tol=1e-6
+        if len(poses) == 0:
+            return cls(
+                robot_path=Path([], []),
+                actions=[],
+                phys_cost=phys_cost,
+                social_cost=social_cost,
+                weight=weight,
+            )
+        if len(poses) == 1:
+            return cls(
+                robot_path=Path(poses=poses, polygons=[robot_polygon]),
+                actions=[],
+                phys_cost=phys_cost,
+                social_cost=social_cost,
+                weight=weight,
+            )
+
+        actions: t.List[ba.BasicAction] = []
+        updated_poses = [poses[0]]
+
+        for p in poses:
+            for e in p:
+                if math.isnan(e):
+                    pass
+
+        for pose, next_pose in zip(poses, poses[1:]):
+            has_translation = not all(
+                [
+                    utils.is_close(pose[0], next_pose[0], rel_tol=1e-6),
+                    utils.is_close(pose[1], next_pose[1], rel_tol=1e-6),
+                ]
+            )
+
+            current_angle = pose[2]
+            turn_towards_angle = 0.0
+
+            if has_translation:
+                turn_towards_angle = utils.get_angle_to_turn(pose, next_pose)
+
+                current_angle = utils.add_angles(current_angle, turn_towards_angle)
+                actions.append(ba.Rotation(angle=turn_towards_angle))
+                updated_poses.append((pose[0], pose[1], current_angle))
+
+                actions.append(
+                    ba.Translation.from_absolute_translation_vector(
+                        utils.get_translation(pose, next_pose)
+                    )
                 )
-                has_translation = not utils.is_close(
-                    pose[0], previous_pose[0], rel_tol=1e-6
-                ) or not utils.is_close(pose[1], previous_pose[1], rel_tol=1e-6)
+                updated_poses.append((next_pose[0], next_pose[1], current_angle))
 
-                if has_rotation or has_translation:
-                    if has_rotation and has_translation:
-                        separated_poses.append(
-                            (previous_pose[0], previous_pose[1], pose[2])
-                        )
-                        separated_poses.append(pose)
-                    else:
-                        separated_poses.append(pose)
-                    if has_rotation:
-                        actions.append(
-                            ba.Rotation(utils.get_rotation(previous_pose, pose))
-                        )
-                    if has_translation:
-                        actions.append(
-                            ba.Translation.from_absolute_translation_vector(
-                                utils.get_translation(previous_pose, pose)
-                            )
-                        )
-                previous_pose = pose
+            has_rotation = not utils.angle_is_close(
+                current_angle, next_pose[2], rel_tol=1e-6
+            )
 
-            polygons = [
-                utils.set_polygon_pose(robot_polygon, robot_pose, pose)
-                for pose in separated_poses
-            ]
-            robot_path = Path(separated_poses, polygons)
-        elif len(poses) == 1:
-            robot_path, actions = Path(robot_pose, [robot_polygon]), []
-        else:
-            robot_path, actions = Path([], []), []
+            if has_rotation:
+                remaining_angle = utils.subtract_angles(next_pose[2], current_angle)
+                actions.append(ba.Rotation(angle=remaining_angle))
+                updated_poses.append(next_pose)
+
+            if not has_rotation and not has_translation:
+                updated_poses.append(next_pose)
+
+        polygons = [
+            utils.set_polygon_pose(robot_polygon, robot_pose, pose)
+            for pose in updated_poses
+        ]
+        robot_path = Path(updated_poses, polygons)
+
         return cls(
             robot_path,
             actions,
@@ -800,8 +841,6 @@ class TransitPath:
             shared_horizon = len(self.actions) + 1 - self.action_index
         elif shared_horizon <= 0 and apply_strict_horizon:
             return []
-        else:
-            shared_horizon = shared_horizon + 1
 
         conflicts = []
 
@@ -981,7 +1020,7 @@ class TransitPath:
     def get_length(self):
         return len(self.actions)
 
-    def get_remaining_legnth(self):
+    def get_remaining_length(self):
         return max(0, len(self.actions) - self.action_index)
 
 

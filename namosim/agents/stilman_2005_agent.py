@@ -134,7 +134,7 @@ class Stilman2005Agent(Agent):
         self.activate_grids_logging = params.deactivate_grids_logging
         self._social_costmap = None
         self.is_first_transfer_step = False
-        self.check_horizon = 10
+        self.check_horizon = 20
         self.angular_tolerance = 0.1
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
@@ -491,6 +491,7 @@ class Stilman2005Agent(Agent):
                 check_horizon=fov,
                 ros_publisher=ros_publisher,
                 robot_name=self.name,
+                exit_early_for_any_conflict=True,
             )
             if not conflicts:
                 if plan.timer.is_running and plan.timer.is_timer_over(step_count):
@@ -2839,6 +2840,7 @@ class Stilman2005Agent(Agent):
             translation_vector=(-1.0 * self.release_distance, 0.0),
             entity_uid=obstacle_uid,
         )
+        robot_pose = (robot_pose[0], robot_pose[1], robot_pose[2])
         new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
         old_cell = utils.real_to_grid(
             robot_pose[0], robot_pose[1], grid.res, grid.grid_pose
@@ -2855,7 +2857,7 @@ class Stilman2005Agent(Agent):
             # If robot cell outside of grid, return False
             return None
 
-        new_robot_polygon = release_action.apply(robot_polygon, robot_pose)
+        new_robot_polygon = release_action.apply(robot_polygon, new_robot_pose)
 
         # Check if robot is still within map bounds
         if not new_robot_polygon.within(grid.aabb_polygon):
