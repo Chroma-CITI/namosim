@@ -21,7 +21,12 @@ from namosim.agents.stilman_configurations import (
 )
 from namosim.algorithms import graph_search
 from namosim.algorithms.new_local_opening_check import check_new_local_opening
-from namosim.data_models import GridCellModel, PoseModel, StilmanOnlyParametersModel
+from namosim.data_models import (
+    UID,
+    GridCellModel,
+    PoseModel,
+    StilmanOnlyParametersModel,
+)
 from namosim.navigation.navigation_path import Path, TransferPath, TransitPath
 from namosim.utils import collision, connectivity, utils
 from namosim.world.binary_occupancy_grid import (
@@ -54,7 +59,7 @@ class StilmanOnlyAgent(Agent):
         movable_whitelist: t.List[str],
         style: Style,
         logger: utils.CustomLogger,
-        uid: int = 0,
+        uid: UID = 0,
     ):
         Agent.__init__(
             self,
@@ -564,8 +569,8 @@ class StilmanOnlyAgent(Agent):
         connected_components_grid: npt.NDArray[np.int_],
         inflated_robot_grid: BinaryInflatedOccupancyGrid,
         avoid_list: t.Set[GridCellModel],
-        prev_list: t.Set[int],
-        forbidden_obstacles: t.Set[int],
+        prev_list: t.Set[UID],
+        forbidden_obstacles: t.Set[UID],
         ros_publisher: "rp.RosPublisher",
         neighborhood: t.Sequence[GridCellModel] = utils.TAXI_NEIGHBORHOOD,
     ):
@@ -585,9 +590,9 @@ class StilmanOnlyAgent(Agent):
         :param avoid_list: _description_
         :type avoid_list: t.Set[GridCellModel]
         :param prev_list: _description_
-        :type prev_list: t.Set[int]
+        :type prev_list: t.Set[UID]
         :param forbidden_obstacles: _description_
-        :type forbidden_obstacles: t.Set[int]
+        :type forbidden_obstacles: t.Set[UID]
         :param ros_publisher: _description_
         :type ros_publisher: "rp.RosPublisher"
         :param neighborhood: _description_, defaults to utils.TAXI_NEIGHBORHOOD
@@ -760,7 +765,7 @@ class StilmanOnlyAgent(Agent):
         connected_components_grid: npt.NDArray[np.int_],
         inflated_robot_grid: BinaryInflatedOccupancyGrid,
         avoid_list: t.Set[GridCellModel],
-        prev_list: t.Set[int],
+        prev_list: t.Set[UID],
         g_function: t.Callable[[RCHConfiguration, RCHConfiguration, bool], float],
         traversed_obstacles_ids: utils.OrderedSet,
         forbidden_obstacles: t.Set[int],
@@ -816,7 +821,7 @@ class StilmanOnlyAgent(Agent):
                         current.first_component_uid,
                     )
             else:
-                neighbor_cell_component_uid: int = t.cast(
+                neighbor_cell_component_uid: UID = t.cast(
                     int, connected_components_grid[neighbor_cell[0]][neighbor_cell[1]]
                 )
 
@@ -1114,9 +1119,9 @@ class StilmanOnlyAgent(Agent):
         self,
         robot_polygon: Polygon,
         robot_pose: PoseModel,
-        robot_uid: int,
-        obstacle_uid: int,
-        other_entities_polygons: t.Dict[int, Polygon],
+        robot_uid: UID,
+        obstacle_uid: UID,
+        other_entities_polygons: t.Dict[UID, Polygon],
         other_entities_aabb_tree: AABBTree,
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
@@ -1302,11 +1307,11 @@ class StilmanOnlyAgent(Agent):
     def dijkstra_for_manip_search(
         self,
         start: t.Dict[RobotObstacleConfiguration, float],
-        robot_uid: int,
+        robot_uid: UID,
         robot_name: str,
-        obstacle_uid: int,
+        obstacle_uid: UID,
         obstacle_polygon: Polygon,
-        other_entities_polygons: t.Dict[int, Polygon],
+        other_entities_polygons: t.Dict[UID, Polygon],
         other_entities_aabb_tree: AABBTree,
         inflated_grid_by_robot_min: BinaryInflatedOccupancyGrid,
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
@@ -1395,10 +1400,10 @@ class StilmanOnlyAgent(Agent):
         check_new_local_opening_before_global: bool,
         robot_name: str,
         robot_cell: GridCellModel,
-        obstacle_uid: int,
+        obstacle_uid: UID,
         old_obstacle_polygon: Polygon,
         new_obstacle_polygon: Polygon,
-        other_entities_polygons: t.Dict[int, Polygon],
+        other_entities_polygons: t.Dict[UID, Polygon],
         other_entities_aabb_tree: AABBTree,
         inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
         c_1_cells_set: t.Set[GridCellModel],
@@ -1530,10 +1535,10 @@ class StilmanOnlyAgent(Agent):
         grid: BinaryInflatedOccupancyGrid,
         robot_pose: PoseModel,
         robot_polygon: Polygon,
-        robot_uid: int,
-        obstacle_uid: int,
+        robot_uid: UID,
+        obstacle_uid: UID,
         obstacle_pose: PoseModel,
-        other_entities_polygons: t.Dict[int, Polygon],
+        other_entities_polygons: t.Dict[UID, Polygon],
         other_entities_aabb_tree: AABBTree,
         trans_mult: float,
         rot_mult: float,
@@ -1600,7 +1605,7 @@ class StilmanOnlyAgent(Agent):
         prev_transit_end_configuration: RobotConfiguration,
         next_transit_start_configuration: RobotConfiguration,
         transfer_configurations: t.List[RobotObstacleConfiguration],
-        obstacle_uid: int,
+        obstacle_uid: UID,
         phys_cost: t.Optional[float] = None,
         social_cost: float = 0.0,
         weight: float = 1.0,
@@ -1708,11 +1713,11 @@ class StilmanOnlyAgent(Agent):
         inflated_grid_by_obstacle: BinaryInflatedOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
         ccs_data: connectivity.CCSData,
-        robot_uid: int,
-        obstacle_uid: int,
+        robot_uid: UID,
+        obstacle_uid: UID,
         trans_mult: float,
         rot_mult: float,
-        other_entities_polygons: t.Dict[int, Polygon],
+        other_entities_polygons: t.Dict[UID, Polygon],
         other_entities_aabb_tree: AABBTree,
         ros_publisher: "rp.RosPublisher",
         obstacle_can_intrude_r_acc: bool = True,

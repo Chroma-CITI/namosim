@@ -7,7 +7,7 @@ from xml.dom import minidom
 
 from shapely import Polygon
 
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 from namosim.utils import collision, conversion, utils
 from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
@@ -15,7 +15,7 @@ from namosim.world.binary_occupancy_grid import (
 )
 
 
-def get_map_bounds(polygons: t.Dict[int, Polygon]):
+def get_map_bounds(polygons: t.Dict[UID, Polygon]):
     map_min_x, map_min_y, map_max_x, map_max_y = (
         float("inf"),
         float("inf"),
@@ -30,7 +30,7 @@ def get_map_bounds(polygons: t.Dict[int, Polygon]):
 
 
 def sample_poses_uniform(
-    obstacles_polygons: t.Dict[int, Polygon],
+    obstacles_polygons: t.Dict[UID, Polygon],
     robot_polygon: Polygon,
     robot_pose: PoseModel,
     nb_poses: int = 1,
@@ -84,7 +84,7 @@ def sample_poses_uniform(
     return generated_poses
 
 
-def infer_type_from_uid(obstacle_uid):
+def infer_type_from_uid(obstacle_uid: UID):
     potential_types = ["table", "stool", "box", "wall", "chair"]
     for potential_type in potential_types:
         if potential_type in obstacle_uid:
@@ -92,8 +92,12 @@ def infer_type_from_uid(obstacle_uid):
     return "wall"
 
 
-def generate_scenarios_alternatives(
-    base_svg_filepath, nb_robots, nb_goals_per_robot, grid_res, nb_scenarios
+def generate_alternative_scenarios(
+    base_svg_filepath: str,
+    nb_robots: int,
+    nb_goals_per_robot: int,
+    grid_res: float,
+    nb_scenarios: int,
 ):
     # Load SVGs
     svg_filepath = os.path.join(os.path.dirname(__file__), base_svg_filepath)
@@ -146,7 +150,7 @@ def generate_scenarios_alternatives(
 
     # Do uniform sampling in coordinates that are within map bounds or load "_samples.json",
     # for initial robot poses (can not be in any obstacles) and goals robot poses (can be in movable obstacles)
-    polygons_for_init_poses = {
+    polygons_for_init_poses: t.Dict[str, Polygon] = {
         uid: p for uid, p in obstacles_polygons.items() if "direction" not in uid
     }
     all_obstacles_grid = BinaryInflatedOccupancyGrid(
@@ -389,7 +393,7 @@ def generate_scenarios_alternatives(
 
 
 if __name__ == "__main__":
-    generate_scenarios_alternatives(
+    generate_alternative_scenarios(
         base_svg_filepath="../data/simulations/iros_2021/after_the_feast/after_the_feast_base.svg",
         nb_robots=4,
         nb_goals_per_robot=25,

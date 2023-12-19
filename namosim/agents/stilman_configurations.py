@@ -8,7 +8,7 @@ from shapely import Polygon
 
 import namosim.navigation.basic_actions as ba
 from namosim.algorithms import graph_search
-from namosim.data_models import FixedPrecisionPoseModel, GridCellModel, PoseModel
+from namosim.data_models import UID, FixedPrecisionPoseModel, GridCellModel, PoseModel
 
 
 class BaseConfiguration(ABC):
@@ -19,8 +19,8 @@ class RCHConfiguration(BaseConfiguration):
     def __init__(
         self,
         cell: t.Tuple[int, int],
-        first_obstacle_uid: int,
-        first_component_uid: int,
+        first_obstacle_uid: UID,
+        first_component_uid: UID,
     ):
         self.cell = cell
         self.first_obstacle_uid = first_obstacle_uid

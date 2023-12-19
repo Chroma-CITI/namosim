@@ -1,11 +1,12 @@
 import copy
 
 import namosim.world.world as world
+from namosim.data_models import UID
 
 
 class OmniscientSensor:
     def __init__(self):
-        self.parent_uid: int | None = None
+        self.parent_uid: UID | None = None
 
     def update_from_fov(
         self, reference_world: "world.World", target_world: "world.World"

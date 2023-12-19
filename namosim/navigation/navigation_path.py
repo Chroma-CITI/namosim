@@ -7,7 +7,7 @@ from shapely import GeometryCollection, Polygon
 import namosim.agents.agent as agent
 import namosim.display.ros2_publisher as ros2
 import namosim.world.world as world
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -74,7 +74,7 @@ class TransferPath:
         actions: t.List[ba.BasicAction],
         grab_action: ba.Grab,
         release_action: ba.Release,
-        obstacle_uid: int,
+        obstacle_uid: UID,
         manip_pose_id: int,
         phys_cost: t.Optional[float] = None,
         social_cost: float = 0.0,
@@ -109,15 +109,15 @@ class TransferPath:
 
     def get_conflicts(
         self,
-        robot_uid: int,
+        robot_uid: UID,
         world: "world.World",
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        other_entities_polygons: t.Dict[int, Polygon],
+        other_entities_polygons: t.Dict[UID, Polygon],
         other_entities_aabb_tree: AABBTree,
-        other_entities_polygons_with_encompassing_circles: t.Dict[int, Polygon],
+        other_entities_polygons_with_encompassing_circles: t.Dict[UID, Polygon],
         other_entities_with_encompassing_circles_aabb_tree: AABBTree,
-        encompassing_circle_uid_to_robot_uid: t.Dict[int, int],
-        previously_moved_entities_uids: t.Set[int],
+        encompassing_circle_uid_to_robot_uid: t.Dict[UID, int],
+        previously_moved_entities_uids: t.Set[UID],
         has_first_action: bool,
         shared_horizon: int | None = None,
         apply_strict_horizon: bool = False,

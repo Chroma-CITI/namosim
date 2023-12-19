@@ -5,13 +5,13 @@ from shapely.geometry import MultiPolygon, Point, Polygon
 
 import namosim.display.ros2_publisher as rp
 import namosim.utils.collision as collision
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 
 
 def check_new_local_opening(
     init_entity_polygon: Polygon,
     target_entity_polygon: Polygon,
-    other_entities_polygons: t.Dict[int, Polygon],
+    other_entities_polygons: t.Dict[UID, Polygon],
     other_entities_aabb_tree: AABBTree,
     inflation_radius: float,
     goal_pose: PoseModel,
