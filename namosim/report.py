@@ -3,6 +3,7 @@ import typing as t
 import matplotlib.pyplot as plt
 import numpy as np
 from pydantic import BaseModel
+from typing_extensions import Self
 
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
@@ -13,19 +14,19 @@ class AgentStats(BaseModel):
     """The svg id attribute of the agent
     """
 
-    n_goals_failed: int = 0
+    n_goals_failed: float = 0
     """The number of goals the agent failed to complete.
     """
 
-    n_goals_completed: int = 0
+    n_goals_completed: float = 0
     """The number of goals the agent completed successfully.
     """
 
-    n_actions_failed: int = 0
+    n_actions_failed: float = 0
     """The number of actions the agent failed to complete.
     """
 
-    n_actions_completed: int = 0
+    n_actions_completed: float = 0
     """The number of actions the agent completed successfully.
     """
 
@@ -80,6 +81,24 @@ class SimulationReport(BaseModel):
     def to_json_data(self):
         return self.model_dump()
 
+    def get_agent_average(self) -> Self | None:
+        avg = AgentStats(agent_id="avg")
+        N = len(self.agent_stats)
+        if N == 0:
+            return
+
+        for stats in self.agent_stats.values():
+            avg.n_goals_failed += stats.n_goals_failed / N
+            avg.n_goals_completed += stats.n_goals_completed / N
+            avg.n_actions_failed += stats.n_actions_failed / N
+            avg.n_actions_completed += stats.n_actions_completed / N
+            avg.distance_traveled += stats.distance_traveled / N
+            avg.degrees_rotated += stats.degrees_rotated / N
+            avg.transfer_distance_traveled += stats.transfer_distance_traveled / N
+            avg.transfer_degrees_rotated += stats.transfer_degrees_rotated / N
+
+        return SimulationReport(agent_stats={"avg": avg})
+
     def plot(self):
         goal_attributes = (
             "Goals Completed",
@@ -115,7 +134,7 @@ class SimulationReport(BaseModel):
         width = 0.2  # the width of the bars
         multiplier = 0
 
-        fig, ((ax_goals, ax_actions), (ax_rotations, ax_distance)) = plt.subplots(
+        _fig, ((ax_goals, ax_actions), (ax_rotations, ax_distance)) = plt.subplots(
             2, 2, layout="constrained"
         )
 
@@ -179,3 +198,8 @@ class SimulationReport(BaseModel):
 
         plt.show()
         plt.close("all")
+
+    def plot_agent_avg(self):
+        avg = self.get_agent_average()
+        if avg:
+            avg.plot()
