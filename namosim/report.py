@@ -1,5 +1,7 @@
 import typing as t
 
+import matplotlib.pyplot as plt
+import numpy as np
 from pydantic import BaseModel
 
 import namosim.navigation.action_result as ar
@@ -79,4 +81,101 @@ class SimulationReport(BaseModel):
         return self.model_dump()
 
     def plot(self):
-        pass
+        goal_attributes = (
+            "Goals Completed",
+            "Goals Failed",
+        )
+        action_attributes = (
+            "Actions Completed",
+            "Actions Failed",
+        )
+        rotation_attributes = (
+            "Total Rotation",
+            "Transfer Rotation",
+        )
+        distance_attributes = (
+            "Total Distance",
+            "Transfer Distance",
+        )
+        agent_goals = {agent_id: [] for agent_id in self.agent_stats.keys()}
+        agent_actions = {agent_id: [] for agent_id in self.agent_stats.keys()}
+        agent_rotations = {agent_id: [] for agent_id in self.agent_stats.keys()}
+        agent_distance = {agent_id: [] for agent_id in self.agent_stats.keys()}
+
+        for agent_id, stats in self.agent_stats.items():
+            agent_goals[agent_id].append(stats.n_goals_completed)
+            agent_goals[agent_id].append(stats.n_goals_failed)
+            agent_actions[agent_id].append(stats.n_actions_completed)
+            agent_actions[agent_id].append(stats.n_actions_failed)
+            agent_rotations[agent_id].append(stats.degrees_rotated)
+            agent_rotations[agent_id].append(stats.transfer_degrees_rotated)
+            agent_distance[agent_id].append(stats.distance_traveled)
+            agent_distance[agent_id].append(stats.transfer_distance_traveled)
+        x = np.arange(len(goal_attributes))  # the label locations
+        width = 0.2  # the width of the bars
+        multiplier = 0
+
+        fig, ((ax_goals, ax_actions), (ax_rotations, ax_distance)) = plt.subplots(
+            2, 2, layout="constrained"
+        )
+
+        for agent_id, measurement in agent_goals.items():
+            offset = (width) * multiplier
+            rects = ax_goals.bar(
+                x + offset, measurement, width, label=agent_id, align="edge"
+            )
+            ax_goals.bar_label(rects, padding=3)
+            multiplier += 1
+
+        multiplier = 0
+        for agent_id, measurement in agent_actions.items():
+            offset = (width) * multiplier
+            rects = ax_actions.bar(
+                x + offset, measurement, width, label=agent_id, align="edge"
+            )
+            ax_actions.bar_label(rects, padding=3)
+            multiplier += 1
+
+        multiplier = 0
+        for agent_id, measurement in agent_rotations.items():
+            offset = (width) * multiplier
+            rects = ax_rotations.bar(
+                x + offset, measurement, width, label=agent_id, align="edge"
+            )
+            ax_rotations.bar_label(rects, padding=3)
+            multiplier += 1
+
+        multiplier = 0
+        for agent_id, measurement in agent_distance.items():
+            offset = (width) * multiplier
+            rects = ax_distance.bar(
+                x + offset, measurement, width, label=agent_id, align="edge"
+            )
+            ax_distance.bar_label(rects, padding=3)
+            multiplier += 1
+
+        # Add some text for labels, title and custom x-axis tick labels, etc.
+        ax_goals.set_title("Goals")
+        ax_goals.set_xticks(x + width, goal_attributes)
+        ax_goals.legend(loc="upper center", ncols=3)
+
+        ax_actions.set_title("Actions")
+        ax_actions.set_xticks(x + width, action_attributes)
+        ax_actions.legend(loc="upper center", ncols=3)
+
+        ax_rotations.set_ylabel("Degrees")
+        ax_rotations.set_title("Rotations")
+        ax_rotations.set_xticks(x + width, rotation_attributes)
+        ax_rotations.legend(loc="upper center", ncols=3)
+
+        ax_distance.set_title("Distances")
+        ax_distance.set_xticks(x + width, distance_attributes)
+        ax_distance.legend(loc="upper center", ncols=3)
+
+        ax_goals.margins(y=1)
+        ax_actions.margins(y=1)
+        ax_rotations.margins(y=1)
+        ax_distance.margins(y=1)
+
+        plt.show()
+        plt.close("all")
