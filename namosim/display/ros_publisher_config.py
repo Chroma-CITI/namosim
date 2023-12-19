@@ -40,5 +40,4 @@ gridmap_frame_ids_to_z_indexes = {
 
 fov_z_index = -0.04
 entities_z_index = -0.05
-taboos_z_index = -0.06
 path_line_z_index = 0.0

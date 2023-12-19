@@ -552,7 +552,6 @@ class Simulator:
         return World(
             config=self.config,
             entities=entities,
-            taboo_zones=copy.deepcopy(self.ref_world.taboo_zones),
             discretization_data=copy.deepcopy(self.ref_world.discretization_data),
             logger=self.simulation_log,
         )

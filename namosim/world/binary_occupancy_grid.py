@@ -225,7 +225,7 @@ class BinaryOccupancyGrid:
 
         return prev_cells_sets
 
-    def deactivate_entities(self, uids: t.Iterable[int]):
+    def deactivate_entities(self, uids: t.Iterable[UID]):
         for uid in uids:
             if (
                 uid not in self.deactivated_entities_cells_sets
@@ -236,7 +236,7 @@ class BinaryOccupancyGrid:
                     self.grid[cell[0]][cell[1]] -= 1
                 del self.cells_sets[uid]
 
-    def activate_entities(self, uids: t.Iterable[int]):
+    def activate_entities(self, uids: t.Iterable[UID]):
         for uid in uids:
             if uid in self.deactivated_entities_cells_sets:
                 self.cells_sets[uid] = self.deactivated_entities_cells_sets[uid]

@@ -19,7 +19,6 @@ from namosim.world.entity import Entity, Style
 from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
-from namosim.world.taboo import Taboo
 
 
 class World:
@@ -31,7 +30,6 @@ class World:
         entities: t.Optional[t.Dict[UID, Entity]] = None,
         agents: t.Optional[t.Dict[UID, "agts.Agent"]] = None,
         entity_to_agent: t.Optional[bidict[UID, UID]] = None,
-        taboo_zones: t.Optional[t.Dict[UID, Taboo]] = None,
         goals: t.Optional[t.Dict[UID, Goal]] = None,
         init_geometry_filename: str = "world_name_placeholder.svg",
         init_geometry_file: t.Optional[minidom.Document] = None,
@@ -49,7 +47,6 @@ class World:
             conversion.clean_attributes(init_geometry_file)
         self.init_geometry_filename = init_geometry_filename
         self.init_geometry_file = init_geometry_file
-        self.taboo_zones: t.Dict[UID, Taboo] = taboo_zones or dict()
         self.goals: t.Dict[UID, Goal] = goals or dict()
         self.logger = logger
 
@@ -465,7 +462,6 @@ class World:
             agents=agents,
             entity_to_agent=entity_to_agent,
             discretization_data=copy.deepcopy(self.discretization_data),
-            taboo_zones=copy.deepcopy(self.taboo_zones),
             goals=copy.deepcopy(self.goals),
             init_geometry_filename=self.init_geometry_filename,
             init_geometry_file=self.init_geometry_file,
