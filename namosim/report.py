@@ -138,37 +138,37 @@ class SimulationReport(BaseModel):
             2, 2, layout="constrained"
         )
 
-        for agent_id, measurement in agent_goals.items():
-            offset = (width) * multiplier
+        for agent_id, values in agent_goals.items():
+            offset = (width + 0.05) * multiplier - 0.025
             rects = ax_goals.bar(
-                x + offset, measurement, width, label=agent_id, align="edge"
+                x + offset, values, width, label=agent_id, align="edge"
             )
             ax_goals.bar_label(rects, padding=3)
             multiplier += 1
 
         multiplier = 0
-        for agent_id, measurement in agent_actions.items():
-            offset = (width) * multiplier
+        for agent_id, values in agent_actions.items():
+            offset = (width + 0.05) * multiplier - 0.025
             rects = ax_actions.bar(
-                x + offset, measurement, width, label=agent_id, align="edge"
+                x + offset, values, width, label=agent_id, align="edge"
             )
             ax_actions.bar_label(rects, padding=3)
             multiplier += 1
 
         multiplier = 0
-        for agent_id, measurement in agent_rotations.items():
-            offset = (width) * multiplier
+        for agent_id, values in agent_rotations.items():
+            offset = (width + 0.05) * multiplier - 0.025
             rects = ax_rotations.bar(
-                x + offset, measurement, width, label=agent_id, align="edge"
+                x + offset, values, width, label=agent_id, align="edge"
             )
             ax_rotations.bar_label(rects, padding=3)
             multiplier += 1
 
         multiplier = 0
-        for agent_id, measurement in agent_distance.items():
-            offset = (width) * multiplier
+        for agent_id, values in agent_distance.items():
+            offset = (width + 0.05) * multiplier - 0.025
             rects = ax_distance.bar(
-                x + offset, measurement, width, label=agent_id, align="edge"
+                x + offset, values, width, label=agent_id, align="edge"
             )
             ax_distance.bar_label(rects, padding=3)
             multiplier += 1
