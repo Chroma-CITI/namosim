@@ -3,7 +3,6 @@ import typing as t
 import matplotlib.pyplot as plt
 import numpy as np
 from pydantic import BaseModel
-from typing_extensions import Self
 
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
@@ -81,7 +80,7 @@ class SimulationReport(BaseModel):
     def to_json_data(self):
         return self.model_dump()
 
-    def get_agent_average(self) -> Self | None:
+    def get_agent_average(self) -> t.Optional["SimulationReport"]:
         avg = AgentStats(agent_id="avg")
         N = len(self.agent_stats)
         if N == 0:
