@@ -295,14 +295,12 @@ class Simulator:
 
     def step(
         self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
-    ) -> t.Tuple[set[UID], t.List[Polygon], int]:
+    ) -> t.Tuple[set[UID], t.List[Polygon]]:
         if len(active_agents) == 0:
             self.end_simulation(step_count=step_count)
-            return (active_agents, trace_polygons, step_count)
+            return (active_agents, trace_polygons)
 
         try:
-            # Increment simulation step count
-            step_count += 1
             self.ros_publisher.publish_message(
                 "Sim steps: {}".format(step_count),
                 pose=(
@@ -351,7 +349,7 @@ class Simulator:
         except Exception as e:
             self.end_simulation(step_count=step_count, err=e)
 
-        return (active_agents, trace_polygons, step_count)
+        return (active_agents, trace_polygons)
 
     def update_report(self, action_results: t.Dict[UID, ar.ActionResult]):
         for uid, action_result in action_results.items():
@@ -409,7 +407,6 @@ class Simulator:
             active_agents: set[UID] = set(self.ref_world.agents.keys())
             self.ros_publisher.publish_sim_world(self.ref_world)
             trace_polygons: t.List[Polygon] = []
-            step_count = 0
             self.simulation_log.append(utils.BasicLog("Starting run.", step_count))
             self.ros_publisher.publish_message(
                 "Sim steps: {}".format(step_count),
@@ -429,15 +426,16 @@ class Simulator:
                 self._run_window_loop(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,
-                    step_count=step_count,
                 )
             else:
+                step_count = 0
                 while len(active_agents) > 0 and self.run_active:
-                    (active_agents, trace_polygons, step_count) = self.step(
+                    (active_agents, trace_polygons) = self.step(
                         active_agents=active_agents,
                         trace_polygons=trace_polygons,
                         step_count=step_count,
                     )
+                    step_count += 1
                 self.end_simulation(step_count=step_count)
 
         self._save_results(step_count=step_count)
@@ -515,14 +513,14 @@ class Simulator:
             raise self.exception
 
     def _run_window_loop(
-        self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
+        self, active_agents: set[UID], trace_polygons: t.List[Polygon]
     ):
         if self.window is None:
             raise Exception("No window")
         self._window_step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
-            step_count=step_count,
+            step_count=0,
         )
         self.window.mainloop()
 
@@ -531,14 +529,14 @@ class Simulator:
     ):
         if not self.window:
             raise Exception("No window")
-        (active_agents, trace_polygons, step_count) = self.step(
+        (active_agents, trace_polygons) = self.step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
             step_count=step_count,
         )
         self.render_window()
         self.window.after(
-            1, self._window_step, active_agents, trace_polygons, step_count
+            1, self._window_step, active_agents, trace_polygons, step_count + 1
         )
 
     def _create_robot_world_from_sim_world(self):
