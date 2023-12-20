@@ -296,12 +296,22 @@ class Simulator:
 
         self.report = SimulationReport()
 
+        # keyboard actions
+        self._paused = False
+        self._step = False
+
     def step(
         self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
-    ) -> t.Tuple[set[UID], t.List[Polygon]]:
+    ) -> t.Tuple[set[UID], t.List[Polygon], int]:
+        if self._paused:
+            return (active_agents, trace_polygons, step_count)
+        elif self._step:
+            self._paused = True
+            self._step = False
+
         if len(active_agents) == 0:
             self.end_simulation(step_count=step_count)
-            return (active_agents, trace_polygons)
+            return (active_agents, trace_polygons, step_count + 1)
 
         try:
             self.ros_publisher.publish_message(
@@ -352,7 +362,7 @@ class Simulator:
         except Exception as e:
             self.end_simulation(step_count=step_count, err=e)
 
-        return (active_agents, trace_polygons)
+        return (active_agents, trace_polygons, step_count + 1)
 
     def update_report(self, action_results: t.Dict[UID, ar.ActionResult]):
         for uid, action_result in action_results.items():
@@ -361,6 +371,9 @@ class Simulator:
 
     def end_simulation(self, step_count: int, err: Exception | None = None):
         self.run_active = False
+        self._paused = False
+        self._step = False
+
         if self.window:
             self.window.quit()
         if self.background:
@@ -433,12 +446,11 @@ class Simulator:
             else:
                 step_count = 0
                 while len(active_agents) > 0 and self.run_active:
-                    (active_agents, trace_polygons) = self.step(
+                    (active_agents, trace_polygons, step_count) = self.step(
                         active_agents=active_agents,
                         trace_polygons=trace_polygons,
                         step_count=step_count,
                     )
-                    step_count += 1
                 self.end_simulation(step_count=step_count)
 
         self._save_results(step_count=step_count)
@@ -525,21 +537,32 @@ class Simulator:
             trace_polygons=trace_polygons,
             step_count=0,
         )
+        self.window.bind("<KeyPress>", self._on_key_press)
         self.window.mainloop()
+
+    def _on_key_press(self, event: t.Any):
+        # Get the key symbol from the event object
+        if event.keysym == "p":
+            self._paused = not self._paused
+        elif event.keysym == "space":
+            self._paused = False
+            self._step = True
 
     def _window_step(
         self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
     ):
         if not self.window:
             raise Exception("No window")
-        (active_agents, trace_polygons) = self.step(
+
+        (active_agents, trace_polygons, step_count) = self.step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
             step_count=step_count,
         )
         self.render_window()
+
         self.window.after(
-            1, self._window_step, active_agents, trace_polygons, step_count + 1
+            1, self._window_step, active_agents, trace_polygons, step_count
         )
 
     def _create_robot_world_from_sim_world(self):
