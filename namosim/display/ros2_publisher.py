@@ -499,7 +499,7 @@ class GoalObserver(RosObserver):
                         0,
                         cfg.main_frame_id,
                         color,
-                        cfg.fov_z_index,
+                        cfg.goal_z_index,
                         line_width=robot.min_inflation_radius / 4,
                     )
                 ]
@@ -1462,7 +1462,7 @@ class RosPublisher:  # noqa: F821
                         pose=pose,
                         ns="",
                         p_id=0,
-                        z_index=cfg.fov_z_index,
+                        z_index=cfg.goal_z_index,
                         font_size=font_size,
                         frame_id=cfg.main_frame_id,
                         color=colors.black,
@@ -1480,7 +1480,7 @@ class RosPublisher:  # noqa: F821
                         pose=(0.0, 0.0, 0.0),
                         ns="",
                         p_id=0,
-                        z_index=cfg.fov_z_index,
+                        z_index=cfg.goal_z_index,
                         font_size=0.01,
                         frame_id=cfg.main_frame_id,
                         color=colors.black,
@@ -1525,7 +1525,7 @@ class RosPublisher:  # noqa: F821
                 inflated_grid_by_robot.res,
                 inflated_grid_by_robot.grid_pose,
                 colors.flashy_green,
-                z_index=0.02,
+                z_index=cfg.horizon_markers_z_index,
                 ns="/transit_horizon_cells",
             )
             marker_array = MarkerArray(markers=[cube_list_marker])
@@ -1548,7 +1548,7 @@ class RosPublisher:  # noqa: F821
                 inflated_grid_by_robot.res,
                 inflated_grid_by_robot.grid_pose,
                 colors.flashy_red,
-                z_index=0.03,
+                z_index=cfg.conflicting_cells_z_index,
                 ns="/transit_conflicting_cells",
             )
             marker_array = MarkerArray(markers=[cube_list_marker])
@@ -1571,7 +1571,7 @@ class RosPublisher:  # noqa: F821
                 inflated_grid_by_robot.res,
                 inflated_grid_by_robot.grid_pose,
                 colors.flashy_cyan,
-                z_index=-0.16,
+                z_index=cfg.conflict_markers_z_index,
                 ns="/transit_conflicting_entities_cells",
             )
             marker_array = MarkerArray(markers=[cube_list_marker])
@@ -1586,35 +1586,39 @@ class RosPublisher:  # noqa: F821
         check_horizon: int,
         ns: str,
     ):
+        if check_horizon <= 0:
+            return
         full_topic = (
             cfg.conflicts_check_topic
             if not ns
             else "/" + ns + cfg.conflicts_check_topic
         )
-        if self.is_activated(full_topic):
-            subspace = "/transfer_horizon_csv_polygons"
-            horizon_csv_polygons = []
-            for counter, index in enumerate(range(start_index, end_index)):
-                if counter > check_horizon:
-                    break
-                key = (index,)
-                if key in robot_csv_polygons:
-                    horizon_csv_polygons.append(robot_csv_polygons[key])
-                if key in obstacle_csv_polygons:
-                    horizon_csv_polygons.append(obstacle_csv_polygons[key])
-            markers = []
-            for p_id, polygon in enumerate(horizon_csv_polygons):
-                marker = polygon_to_triangle_list(
-                    polygon,
-                    subspace,
-                    p_id,
-                    frame_id=cfg.main_frame_id,
-                    color=colors.flashy_green,
-                    z_index=-0.06,
-                )
-                markers.append(marker)
-            marker_array = MarkerArray(markers=markers)
-            self.publish(full_topic, marker_array)
+        if not self.is_activated(full_topic):
+            return
+
+        horizon_csv_polygons = []
+        for i in range(
+            start_index, min(start_index + check_horizon, len(robot_csv_polygons))
+        ):
+            key = (i,)
+            if key in robot_csv_polygons:
+                horizon_csv_polygons.append(robot_csv_polygons[key])
+            if key in obstacle_csv_polygons:
+                horizon_csv_polygons.append(obstacle_csv_polygons[key])
+
+        markers = []
+        for p_id, polygon in enumerate(horizon_csv_polygons):
+            marker = polygon_to_triangle_list(
+                polygon=polygon,
+                namespace="/transfer_horizon_csv_polygons",
+                p_id=p_id,
+                frame_id=cfg.main_frame_id,
+                color=colors.flashy_green,
+                z_index=cfg.horizon_markers_z_index,
+            )
+            markers.append(marker)
+        marker_array = MarkerArray(markers=markers)
+        self.publish(full_topic, marker_array)
 
     def publish_transfer_conflicting_intersections(self):
         pass
@@ -1671,7 +1675,7 @@ class RosPublisher:  # noqa: F821
                     frame_id=cfg.main_frame_id, stamp=self.ros_node.get_timestamp()
                 ),
                 color=color,
-                scale=Vector3(x=res, y=res, z=res),
+                scale=Vector3(x=res, y=res, z=1e-6),
                 points=[],
             )
         for cell in grid_cells:

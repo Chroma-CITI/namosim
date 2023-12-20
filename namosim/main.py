@@ -60,12 +60,14 @@ def gen_alt_scenarios(
     n_robots: t.Annotated[int, typer.Option("--n-robots")] = 4,
     goals_per_robot: t.Annotated[int, typer.Option("--goals-per-robot")] = 25,
     n_scenarios: t.Annotated[int, typer.Option("--n-scenarios")] = 1,
+    use_social_cost: t.Annotated[bool, typer.Option("--use-social-cost")] = True,
 ):
     generate_alternative_scenarios(
         base_svg_filepath=scenario,
         nb_robots=n_robots,
         nb_goals_per_robot=goals_per_robot,
         nb_scenarios=n_scenarios,
+        use_social_cost=use_social_cost,
     )
 
 

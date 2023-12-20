@@ -155,6 +155,12 @@ class Agent(Entity):
     def goal_pose(self):
         return self._q_goal
 
+    def get_current_or_next_goal(self):
+        if self._q_goal:
+            return self._q_goal
+        if len(self._navigation_goals) > 0:
+            return self._navigation_goals[0]
+
     def get_plan(self):
         return self.__p_opt
 

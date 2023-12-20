@@ -194,6 +194,21 @@ class BasicTest(unittest.TestCase):
             ["Stealing Movable conflict" in x.message for x in sim.simulation_log]
         )
 
+    def test_obstacle_on_goal(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder,
+                "obstacle_on_goal.svg",
+            )
+        )
+        sim.run()
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

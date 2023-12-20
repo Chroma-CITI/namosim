@@ -5,6 +5,7 @@ import os
 import pickle
 import random
 import shutil
+import sys
 import time
 import tkinter as tk
 import traceback
@@ -36,6 +37,8 @@ from namosim.report import SimulationReport
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
+
+sys.setrecursionlimit(10000)
 
 
 class SimulationStepResult:
@@ -880,6 +883,8 @@ class Simulator:
 
                 # Record the time it took the robot to sense the world
                 sense_durations[agent_uid] = time.time() - sense_start
+            else:
+                self.ros_publisher.cleanup_robot_world(ns=behavior.name)
 
     def _agent_think(
         self,
@@ -965,12 +970,13 @@ class Simulator:
         results: t.List[t.Tuple[UID, float, ThinkResult]] = []
         for agent_uid, behavior in self.ref_world.agents.items():
             if agent_uid in active_agents:
+                self.publish_robot_goal(agent_uid=agent_uid)
+
                 think_start = time.time()
                 think_result = behavior.think(ros_publisher=self.ros_publisher)
                 think_duration = time.time() - think_start
                 results.append((agent_uid, think_duration, think_result))
 
-                self.publish_robot_goal(agent_uid=agent_uid)
                 self.publish_robot_plan(
                     agent_uid=agent_uid, did_replan=think_result.did_replan
                 )
@@ -1126,10 +1132,11 @@ class Simulator:
 
     def publish_robot_goal(self, agent_uid: UID):
         behavior = self.ref_world.agents[agent_uid]
-        if behavior and behavior.goal_pose:
+        goal = behavior.get_current_or_next_goal()
+        if behavior and goal:
             self.ros_publisher.publish_goal(
                 q_init=behavior.pose,
-                q_goal=behavior.goal_pose,
+                q_goal=goal,
                 entity=behavior,
                 ns=behavior.name,
             )

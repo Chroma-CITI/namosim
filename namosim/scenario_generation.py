@@ -24,7 +24,7 @@ from namosim.world.binary_occupancy_grid import (
 
 def reinit_svg(doc: minidom.Document) -> minidom.Document:
     """Clears an existing scenario file by removing all elements except walls and movables."""
-    doc = copy.deepcopy(doc)
+    doc = minidom.parseString(doc.toxml())
     for element in doc.documentElement.getElementsByTagName("*"):
         if element.getAttribute("type") not in ["movable", "wall"]:
             element.parentNode.removeChild(element)
@@ -92,6 +92,7 @@ def generate_alternative_scenarios(
     nb_robots: int,
     nb_goals_per_robot: int,
     nb_scenarios: int,
+    use_social_cost: bool = True,
 ):
     """Randomly generates alternative versions of a given scenario with a given number of robots and goals."""
     # Load SVGs
@@ -100,19 +101,26 @@ def generate_alternative_scenarios(
     svg_init_config = NamosimConfigModel.from_xml(
         svg_data_init.getElementsByTagName("namo_config")[0].toxml()
     )
-    svg_data_init = minidom.parse(base_svg_filepath)
 
     conversion.set_all_id_attributes_as_ids(svg_data_init)
 
-    svg_base_elements_filepath = os.path.join(
-        os.path.dirname(__file__), "../tests/unit/scenarios/minimal_stilman_2005.svg"
-    )
-    svg_base_elements_data = minidom.parse(svg_base_elements_filepath)
-    conversion.set_all_id_attributes_as_ids(svg_base_elements_data)
-    svg_base_robot_shape = svg_base_elements_data.getElementById("robot_0_shape")
-    svg_base_robot_direction = svg_base_elements_data.getElementById("robot_0_dir")
-    svg_base_goal_shape = svg_base_elements_data.getElementById("goal_0_shape")
-    svg_base_goal_direction = svg_base_elements_data.getElementById("goal_0_dir")
+    base_agent = svg_init_config.agents[0]
+    svg_base_robot = svg_data_init.getElementById(base_agent.agent_id)
+    svg_base_goal = svg_data_init.getElementById(base_agent.goals[0].goal_id)
+
+    if not svg_base_robot:
+        raise Exception(f"Path for robot {base_agent.agent_id} not found")
+    if not svg_base_goal:
+        raise Exception(f"Path for goal {base_agent.goals[0].goal_id} not found")
+
+    svg_base_robot_shape = get_elements_by_attribute(svg_base_robot, "type", "shape")[0]
+    svg_base_robot_direction = get_elements_by_attribute(
+        svg_base_robot, "type", "orientation"
+    )[0]
+    svg_base_goal_shape = get_elements_by_attribute(svg_base_goal, "type", "shape")[0]
+    svg_base_goal_direction = get_elements_by_attribute(
+        svg_base_goal, "type", "orientation"
+    )[0]
 
     if not svg_base_robot_shape:
         raise Exception("Failed to get base robot shape")
@@ -135,7 +143,7 @@ def generate_alternative_scenarios(
 
         if path.getAttribute("type") == "wall":
             static_polygons[uid] = polygon
-            static_and_movable_polygons = polygon
+            static_and_movable_polygons[uid] = polygon
         elif path.getAttribute("type") == "movable":
             static_and_movable_polygons[uid] = polygon
 
@@ -165,15 +173,8 @@ def generate_alternative_scenarios(
         svg_init_config.cell_size,
         utils.get_circumscribed_radius(base_robot_polygon),
     )
-    polygons_for_goals_poses = {
-        uid: p
-        for uid, p in all_polygons.items()
-        if not any(
-            word in uid for word in ["movable", "box", "chair", "stool", "direction"]
-        )
-    }
-    only_static_obstacles_grid = BinaryInflatedOccupancyGrid(
-        static_polygons,
+    static_and_movable_grid = BinaryInflatedOccupancyGrid(
+        static_and_movable_polygons,
         svg_init_config.cell_size,
         utils.get_circumscribed_radius(base_robot_polygon),
     )
@@ -190,11 +191,11 @@ def generate_alternative_scenarios(
         for i in range(nb_robots):
             goals_poses_for_robots.append(
                 sample_poses_uniform(
-                    polygons_for_goals_poses,
+                    static_and_movable_polygons,
                     base_robot_polygon,
                     base_robot_pose,
                     nb_poses=nb_goals_per_robot,
-                    grid=only_static_obstacles_grid,
+                    grid=static_and_movable_grid,
                 )
             )
 
@@ -213,8 +214,10 @@ def generate_alternative_scenarios(
                     "parameters": StilmanBehaviorParametersModel.model_validate(
                         {
                             "robot_translation_unit_length": svg_init_config.cell_size,
-                            "use_social_cost": True,
-                            "manipulation_search_procedure": "DFS",
+                            "use_social_cost": use_social_cost,
+                            "manipulation_search_procedure": "DFS"
+                            if use_social_cost
+                            else "BFS",
                         }
                     ),
                 }
@@ -319,4 +322,14 @@ def generate_alternative_scenarios(
         )
 
         with open(new_scenario_path, "w+") as f:
-            svg_data.writexml(f)
+            svg_data.writexml(f, addindent="  ")
+
+
+def get_elements_by_attribute(
+    root: minidom.Element, attribute_name: str, attribute_value: str
+) -> t.List[minidom.Element]:
+    result = []
+    for el in root.getElementsByTagName("*"):
+        if el.getAttribute(attribute_name) == attribute_value:
+            result.append(el)
+    return result

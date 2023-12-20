@@ -38,6 +38,9 @@ gridmap_frame_ids_to_z_indexes = {
     combined_gridmap_frame_id: -1.4,
 }
 
-fov_z_index = -0.04
-entities_z_index = -0.05
+horizon_markers_z_index = 0.01
 path_line_z_index = 0.0
+entities_z_index = -0.01
+goal_z_index = -0.02
+conflicting_cells_z_index = -0.029
+conflict_markers_z_index = -0.03

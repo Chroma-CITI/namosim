@@ -113,8 +113,6 @@ class Stilman2005Agent(Agent):
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
-        self.trans_mult = 1.0
-        self.rot_mult = 1.0
 
         # - S-NAMO parameters
         self.use_social_cost = params.use_social_cost
@@ -189,7 +187,8 @@ class Stilman2005Agent(Agent):
 
     def init(self, world: "w.World"):
         super().init(world)
-
+        self.trans_mult = world.config.cell_size / 10.0
+        self.rot_mult = 1.0
         self.position_tolerance = self.world.discretization_data.res / 2.0
         self.release_distance = (
             self.circumscribed_radius + 1.5 * self.world.config.cell_size

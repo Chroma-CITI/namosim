@@ -304,7 +304,9 @@ class World:
 
     def to_svg(self) -> minidom.Document:
         if self.init_geometry_file:
-            svg_data: minidom.Document = copy.deepcopy(self.init_geometry_file)
+            svg_data: minidom.Document = minidom.parseString(
+                self.init_geometry_file.toxml()
+            )
 
             # clear geometries
             els_to_del = list(svg_data.getElementsByTagNameNS("*", "path"))
