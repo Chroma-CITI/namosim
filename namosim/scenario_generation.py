@@ -88,6 +88,7 @@ def sample_poses_uniform(
 
 
 def generate_alternative_scenarios(
+    out_dir: str,
     base_svg_filepath: str,
     nb_robots: int,
     nb_goals_per_robot: int,
@@ -96,7 +97,6 @@ def generate_alternative_scenarios(
 ):
     """Randomly generates alternative versions of a given scenario with a given number of robots and goals."""
     # Load SVGs
-    base_svg_filename = os.path.splitext(os.path.basename(base_svg_filepath))[0]
     svg_data_init = minidom.parse(base_svg_filepath)
     svg_init_config = NamosimConfigModel.from_xml(
         svg_data_init.getElementsByTagName("namo_config")[0].toxml()
@@ -315,11 +315,14 @@ def generate_alternative_scenarios(
                 )
 
         # Create SVG file from modified data
-        base_svg_dirpath = os.path.dirname(base_svg_filepath)
         new_scenario_path = os.path.join(
-            base_svg_dirpath,
-            f"{base_svg_filename}_{nb_robots}_robots_{nb_goals_per_robot}_goals_{scenario_id}.svg",
+            out_dir,
+            f"{nb_robots}_robots_{nb_goals_per_robot}_goals_{'snamo' if use_social_cost else 'namo'}",
+            f"{scenario_id}.svg",
         )
+
+        if not os.path.exists(os.path.dirname(new_scenario_path)):
+            os.makedirs(os.path.dirname(new_scenario_path))
 
         with open(new_scenario_path, "w+") as f:
             svg_data.writexml(f, addindent="  ")

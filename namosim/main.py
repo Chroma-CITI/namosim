@@ -57,10 +57,11 @@ def compare_results(
 def gen_alt_scenarios(
     *,
     scenario: t.Annotated[str, typer.Option("--base-scenario")],
+    out_dir: t.Annotated[str, typer.Option("--out-dir")],
     n_robots: t.Annotated[int, typer.Option("--n-robots")] = 4,
     goals_per_robot: t.Annotated[int, typer.Option("--goals-per-robot")] = 25,
     n_scenarios: t.Annotated[int, typer.Option("--n-scenarios")] = 1,
-    use_social_cost: t.Annotated[bool, typer.Option("--use-social-cost")] = True,
+    use_social_cost: t.Annotated[bool, typer.Option("--use-social-cost")] = False,
 ):
     generate_alternative_scenarios(
         base_svg_filepath=scenario,
@@ -68,6 +69,7 @@ def gen_alt_scenarios(
         nb_goals_per_robot=goals_per_robot,
         nb_scenarios=n_scenarios,
         use_social_cost=use_social_cost,
+        out_dir=out_dir,
     )
 
 
