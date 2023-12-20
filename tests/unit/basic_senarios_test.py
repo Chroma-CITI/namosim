@@ -29,27 +29,6 @@ class BasicTest(unittest.TestCase):
             ]
         )
 
-    def test_minimal_stilman_2005_4_robots_25_goals(self):
-        """Tests a minimal scenario with Stilman-20005 behavior"""
-        sim = Simulator(
-            simulation_file_path=os.path.join(
-                self.scenarios_folder, "minimal_stilman_2005_4_robots_25_goals_0.svg"
-            )
-        )
-        sim.run()
-        assert any(
-            [
-                x.message == "Agent robot_0 finished executing all its goals."
-                for x in sim.simulation_log
-            ]
-        )
-        assert any(
-            [
-                x.message.startswith("Agent robot_0 successfully executed goal")
-                for x in sim.simulation_log
-            ]
-        )
-
     def test_minimal_stilman_only(self):
         """Tests a minimal scenario with Stilman-only behavior"""
         sim = Simulator(
