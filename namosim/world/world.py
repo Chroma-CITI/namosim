@@ -486,6 +486,14 @@ class World:
         with open(svg_filepath, "w+") as f:
             svg_data.writexml(f)
 
+    def get_map_bounds(self):
+        return (
+            0,
+            0,
+            self.discretization_data.width,
+            self.discretization_data.height,
+        )
+
 
 def get_orientation(geom: (Polygon | LineString)) -> float:
     orientation_geom: t.List[t.List[float]] = list(geom.coords)  # type: ignore

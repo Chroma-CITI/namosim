@@ -5,6 +5,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Scenario Generation",
+      "type": "python",
+      "request": "launch",
+      "module": "namosim.main",
+      "justMyCode": true,
+      "args": [
+        "gen-alt-scenarios",
+        "--base-scenario",
+        "tests/unit/scenarios/minimal_stilman_2005.svg",
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",

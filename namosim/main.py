@@ -4,6 +4,7 @@ import typing as t
 import typer
 
 from namosim.report import SimulationReport
+from namosim.scenario_generation import generate_alternative_scenarios
 from namosim.simulator import Simulator
 
 app = typer.Typer()
@@ -50,6 +51,22 @@ def compare_results(
     combined.agent_stats[title_a] = report_a.agent_stats["avg"]
     combined.agent_stats[title_b] = report_b.agent_stats["avg"]
     combined.plot()
+
+
+@app.command()
+def gen_alt_scenarios(
+    *,
+    scenario: t.Annotated[str, typer.Option("--base-scenario")],
+    n_robots: t.Annotated[int, typer.Option("--n-robots")] = 4,
+    goals_per_robot: t.Annotated[int, typer.Option("--goals-per-robot")] = 25,
+    n_scenarios: t.Annotated[int, typer.Option("--n-scenarios")] = 1,
+):
+    generate_alternative_scenarios(
+        base_svg_filepath=scenario,
+        nb_robots=n_robots,
+        nb_goals_per_robot=goals_per_robot,
+        nb_scenarios=n_scenarios,
+    )
 
 
 if __name__ == "__main__":

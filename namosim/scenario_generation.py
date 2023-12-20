@@ -1,5 +1,4 @@
 import copy
-import json
 import os
 import random
 import typing as t
@@ -7,7 +6,15 @@ from xml.dom import minidom
 
 from shapely import Polygon
 
-from namosim.data_models import UID, PoseModel
+from namosim.data_models import (
+    UID,
+    AgentConfigModel,
+    GoalConfigModel,
+    NamosimConfigModel,
+    PoseModel,
+    StilmanBehaviorConfigModel,
+    StilmanBehaviorParametersModel,
+)
 from namosim.utils import collision, conversion, utils
 from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
@@ -15,18 +22,12 @@ from namosim.world.binary_occupancy_grid import (
 )
 
 
-def get_map_bounds(polygons: t.Dict[UID, Polygon]):
-    map_min_x, map_min_y, map_max_x, map_max_y = (
-        float("inf"),
-        float("inf"),
-        -float("inf"),
-        -float("inf"),
-    )
-    for polygon in polygons.values():
-        min_x, min_y, max_x, max_y = polygon.bounds
-        map_min_x, map_min_y = min(map_min_x, min_x), min(map_min_y, min_y)
-        map_max_x, map_max_y = max(map_max_x, max_x), max(map_max_y, max_y)
-    return map_min_x, map_min_y, map_max_x, map_max_y
+def reinit_svg(doc: minidom.Document) -> minidom.Document:
+    doc = copy.deepcopy(doc)
+    for element in doc.documentElement.getElementsByTagName("*"):
+        if element.getAttribute("type") not in ["movable", "wall"]:
+            element.parentNode.removeChild(element)
+    return doc
 
 
 def sample_poses_uniform(
@@ -36,17 +37,18 @@ def sample_poses_uniform(
     nb_poses: int = 1,
     grid: BinaryOccupancyGrid | None = None,
     no_collisions_between_poses: bool = False,
-):
+) -> t.List[PoseModel]:
+    """Samples robot poses which do not collide with any of the provided obstacle polygons"""
     # Make AABB Tree from polygons
     aabb_tree = collision.polygons_to_aabb_tree(obstacles_polygons)
 
     # Compute map bounds
-    map_min_x, map_min_y, map_max_x, map_max_y = get_map_bounds(obstacles_polygons)
+    map_min_x, map_min_y, map_max_x, map_max_y = utils.map_bounds(
+        obstacles_polygons.values()
+    )
 
-    generated_poses = []
-
-    if no_collisions_between_poses:
-        generated_polygons = []
+    generated_poses: t.List[PoseModel] = []
+    generated_polygons: t.List[Polygon] = []
 
     while len(generated_poses) < nb_poses:
         rand_pose = (
@@ -84,56 +86,62 @@ def sample_poses_uniform(
     return generated_poses
 
 
-def infer_type_from_uid(obstacle_uid: UID):
-    potential_types = ["table", "stool", "box", "wall", "chair"]
-    for potential_type in potential_types:
-        if potential_type in obstacle_uid:
-            return potential_type
-    return "wall"
-
-
 def generate_alternative_scenarios(
     base_svg_filepath: str,
     nb_robots: int,
     nb_goals_per_robot: int,
-    grid_res: float,
     nb_scenarios: int,
 ):
     # Load SVGs
-    svg_filepath = os.path.join(os.path.dirname(__file__), base_svg_filepath)
-    svg_data_init = minidom.parse(svg_filepath)
+    base_svg_filename = os.path.splitext(os.path.basename(base_svg_filepath))[0]
+    svg_data_init = minidom.parse(base_svg_filepath)
+    svg_init_config = NamosimConfigModel.from_xml(
+        svg_data_init.getElementsByTagName("namo_config")[0].toxml()
+    )
+    svg_data_init = minidom.parse(base_svg_filepath)
+
     conversion.set_all_id_attributes_as_ids(svg_data_init)
 
     svg_base_elements_filepath = os.path.join(
-        os.path.dirname(__file__), "../data/simulations/iros_2021/common_elements.svg"
+        os.path.dirname(__file__), "../tests/unit/scenarios/minimal_stilman_2005.svg"
     )
     svg_base_elements_data = minidom.parse(svg_base_elements_filepath)
     conversion.set_all_id_attributes_as_ids(svg_base_elements_data)
-    svg_base_robot_shape = svg_base_elements_data.getElementById(
-        "base_circular_like_robot_shape"
-    )
-    svg_base_robot_direction = svg_base_elements_data.getElementById(
-        "base_circular_like_robot_direction"
-    )
-    svg_base_goal_shape = svg_base_elements_data.getElementById(
-        "base_circular_like_robot_goal_shape"
-    )
-    svg_base_goal_direction = svg_base_elements_data.getElementById(
-        "base_circular_like_robot_goal_direction"
-    )
+    svg_base_robot_shape = svg_base_elements_data.getElementById("robot_0_shape")
+    svg_base_robot_direction = svg_base_elements_data.getElementById("robot_0_dir")
+    svg_base_goal_shape = svg_base_elements_data.getElementById("goal_0_shape")
+    svg_base_goal_direction = svg_base_elements_data.getElementById("goal_0_dir")
+
+    if not svg_base_robot_shape:
+        raise Exception("Failed to get base robot shape")
+    if not svg_base_robot_direction:
+        raise Exception("Failed to get base robot direction")
+    if not svg_base_goal_shape:
+        raise Exception("Failed to get base goal shape")
+    if not svg_base_goal_direction:
+        raise Exception("Failed to get base goal direction")
 
     # Convert svg_data paths into polygons
-    obstacles_polygons = {
-        path.getAttribute("id"): conversion.svg_pathd_to_shapely_geometry(
-            path.getAttribute("d"), scaling_value=0.01
-        )
-        for path in svg_data_init.getElementsByTagName("path")
-    }
+    all_polygons = {}
+    static_polygons = {}
+    static_and_movable_polygons = {}
+
+    for path in svg_data_init.getElementsByTagNameNS("*", "path"):
+        uid = path.getAttribute("id")
+        polygon = conversion.svg_pathd_to_shapely_geometry(path.getAttribute("d"))
+        all_polygons[uid] = polygon
+
+        if path.getAttribute("type") == "wall":
+            static_polygons[uid] = polygon
+            static_and_movable_polygons = polygon
+        elif path.getAttribute("type") == "movable":
+            static_and_movable_polygons[uid] = polygon
+
     base_robot_polygon = conversion.svg_pathd_to_shapely_geometry(
-        svg_base_robot_shape.getAttribute("d"), scaling_value=0.01
+        svg_base_robot_shape.getAttribute("d")
     )
     base_robot_orientation_polygon = conversion.svg_pathd_to_shapely_geometry(
-        svg_base_robot_direction.getAttribute("d"), scaling_value=0.01
+        svg_base_robot_direction.getAttribute("d")
     )
     base_robot_orientation_geom_coords = list(base_robot_orientation_polygon.coords)
     base_robot_orientation_vector = (
@@ -142,7 +150,7 @@ def generate_alternative_scenarios(
         base_robot_orientation_geom_coords[1][1]
         - base_robot_orientation_geom_coords[0][1],
     )
-    base_robot_pose = (
+    base_robot_pose: PoseModel = (
         base_robot_polygon.centroid.coords[0][0],
         base_robot_polygon.centroid.coords[0][1],
         utils.yaw_from_direction(base_robot_orientation_vector),
@@ -150,41 +158,33 @@ def generate_alternative_scenarios(
 
     # Do uniform sampling in coordinates that are within map bounds or load "_samples.json",
     # for initial robot poses (can not be in any obstacles) and goals robot poses (can be in movable obstacles)
-    polygons_for_init_poses: t.Dict[str, Polygon] = {
-        uid: p for uid, p in obstacles_polygons.items() if "direction" not in uid
-    }
     all_obstacles_grid = BinaryInflatedOccupancyGrid(
-        polygons_for_init_poses,
-        grid_res,
+        all_polygons,
+        svg_init_config.cell_size,
         utils.get_circumscribed_radius(base_robot_polygon),
     )
     polygons_for_goals_poses = {
         uid: p
-        for uid, p in obstacles_polygons.items()
+        for uid, p in all_polygons.items()
         if not any(
             word in uid for word in ["movable", "box", "chair", "stool", "direction"]
         )
     }
     only_static_obstacles_grid = BinaryInflatedOccupancyGrid(
-        polygons_for_goals_poses,
-        grid_res,
+        static_polygons,
+        svg_init_config.cell_size,
         utils.get_circumscribed_radius(base_robot_polygon),
     )
 
     for c_scenario in range(nb_scenarios):
-        svg_data = copy.deepcopy(svg_data_init)
-
+        svg_data = reinit_svg(svg_data_init)
         scenario_id = ("{:0" + str(len(str(nb_scenarios))) + "d}").format(c_scenario)
 
-        initial_robot_poses = sample_poses_uniform(
-            polygons_for_init_poses,
-            base_robot_polygon,
-            base_robot_pose,
-            nb_poses=nb_robots,
-            grid=all_obstacles_grid,
-            no_collisions_between_poses=True,
-        )
-        goals_poses_for_robots = []
+        # Create the NamoConfig
+        namo_config = copy.deepcopy(svg_init_config)
+        namo_config.agents = []
+
+        goals_poses_for_robots: t.List[t.List[PoseModel]] = []
         for i in range(nb_robots):
             goals_poses_for_robots.append(
                 sample_poses_uniform(
@@ -195,6 +195,50 @@ def generate_alternative_scenarios(
                     grid=only_static_obstacles_grid,
                 )
             )
+
+        for i_robot in range(nb_robots):
+            goals: t.List[GoalConfigModel] = []
+            for i_goal in range(len(goals_poses_for_robots[i_robot])):
+                goals.append(
+                    GoalConfigModel.model_validate(
+                        {"goal_id": f"robot_{i_robot}_goal_{i_goal}"}
+                    )
+                )
+
+            behavior_config = StilmanBehaviorConfigModel.model_validate(
+                {
+                    "type": "stilman_2005_behavior",
+                    "parameters": StilmanBehaviorParametersModel.model_validate(
+                        {
+                            "robot_translation_unit_length": svg_init_config.cell_size,
+                            "use_social_cost": True,
+                            "manipulation_search_procedure": "DFS",
+                        }
+                    ),
+                }
+            )
+            agent_config = AgentConfigModel.model_validate(
+                {
+                    "agent_id": f"robot_{i_robot}",
+                    "behavior": behavior_config,
+                    "goals": goals,
+                }
+            )
+
+            namo_config.agents.append(agent_config)
+
+        svg_data.documentElement.appendChild(
+            minidom.parseString(namo_config.to_xml()).documentElement
+        )
+
+        initial_robot_poses = sample_poses_uniform(
+            all_polygons,
+            base_robot_polygon,
+            base_robot_pose,
+            nb_poses=nb_robots,
+            grid=all_obstacles_grid,
+            no_collisions_between_poses=True,
+        )
 
         # Save sampled coordinates in same folder as svg_filepath with same filename - ".svg" + "_samples.json"
         # TODO
@@ -213,7 +257,7 @@ def generate_alternative_scenarios(
                 svg_base_robot_shape.getAttribute("style"),
                 svg_data,
                 robot_group,
-                scale=0.01,
+                namo_type="shape",
             )
             # Add robot direction shape
             conversion.add_shapely_geometry_to_svg(
@@ -228,14 +272,15 @@ def generate_alternative_scenarios(
                 svg_base_robot_direction.getAttribute("style"),
                 svg_data,
                 robot_group,
-                scale=0.01,
+                namo_type="orientation",
             )
             # Add robot goals
             robot_goals_layer = conversion.add_group(
                 svg_data, robot_id + "_goals", goals_group
             )
-            for goal_counter, goal_pose in enumerate(goals_poses_for_robots[i]):
-                goal_id = robot_id + "_goal_" + str(goal_counter)
+
+            for i_goal, goal_pose in enumerate(goals_poses_for_robots[i]):
+                goal_id = robot_id + "_goal_" + str(i_goal)
                 goal_group = conversion.add_group(
                     svg_data, goal_id, robot_goals_layer, is_layer=False
                 )
@@ -248,7 +293,7 @@ def generate_alternative_scenarios(
                     svg_base_goal_shape.getAttribute("style"),
                     svg_data,
                     goal_group,
-                    scale=0.01,
+                    namo_type="shape",
                 )
                 # Add goal direction shape
                 conversion.add_shapely_geometry_to_svg(
@@ -261,142 +306,15 @@ def generate_alternative_scenarios(
                     svg_base_goal_direction.getAttribute("style"),
                     svg_data,
                     goal_group,
-                    scale=0.01,
+                    namo_type="orientation",
                 )
 
         # Create SVG file from modified data
-        base_svg_dirpath = os.path.dirname(svg_filepath)
-        scenario_dirpath = os.path.join(
+        base_svg_dirpath = os.path.dirname(base_svg_filepath)
+        new_scenario_path = os.path.join(
             base_svg_dirpath,
-            str(nb_robots) + "_robots/",
-            str(nb_goals_per_robot) + "_goals/",
-            scenario_id + "/",
+            f"{base_svg_filename}_{nb_robots}_robots_{nb_goals_per_robot}_goals_{scenario_id}.svg",
         )
-        if not os.path.exists(scenario_dirpath):
-            os.makedirs(scenario_dirpath)
-        scenario_world_svg_filename = "world_" + scenario_id + ".svg"
-        with open(
-            os.path.join(scenario_dirpath, scenario_world_svg_filename), "w+"
-        ) as f:
+
+        with open(new_scenario_path, "w+") as f:
             svg_data.writexml(f)
-
-        # Create json file to describe world data
-        world_json_data = {
-            "discretization_data": {
-                "res": 0.1,
-            },
-            "files": {"geometry_file": "./" + scenario_world_svg_filename},
-            "geometry_scale": 0.01,
-            "no_scaling_workaround": True,
-            "things": {
-                "entities": [
-                    {
-                        "force_pushes_only": True,
-                        "geometry": {
-                            "from": "file",
-                            "id": "robot_" + str(c_robot) + "_shape",
-                            "orientation_id": "robot_" + str(c_robot) + "_direction",
-                        },
-                        "movable_whitelist": ["stool", "box", "chair"],
-                        "name": "robot_" + str(c_robot),
-                        "push_only_list": ["stool", "box", "chair"],
-                        "sensors": [{"type": "omniscient"}],
-                        "type": "robot",
-                    }
-                    for c_robot in range(nb_robots)
-                ]
-                + [
-                    {
-                        "geometry": {"from": "file", "id": obstacle_uid},
-                        "name": obstacle_uid,
-                        "type": infer_type_from_uid(obstacle_uid),
-                    }
-                    for obstacle_uid in obstacles_polygons.keys()
-                ],
-                "zones": {
-                    "goals": [
-                        {
-                            "geometry": {
-                                "from": "file",
-                                "id": "robot_"
-                                + str(c_robot)
-                                + "_goal_"
-                                + str(c_goals)
-                                + "_shape",
-                                "orientation_id": "robot_"
-                                + str(c_robot)
-                                + "_goal_"
-                                + str(c_goals)
-                                + "_direction",
-                            },
-                            "name": "robot_" + str(c_robot) + "_goal_" + str(c_goals),
-                        }
-                        for c_robot in range(nb_robots)
-                        for c_goals in range(nb_goals_per_robot)
-                    ]
-                },
-            },
-        }
-        scenario_world_json_filename = "world_" + scenario_id + ".json"
-        with open(
-            os.path.join(scenario_dirpath, scenario_world_json_filename), "w+"
-        ) as f:
-            json.dump(world_json_data, f)
-
-        # Create json files to describe simulation data for snamo then namo
-        simulation_json_data = {
-            "agents_behaviors": [
-                {
-                    "agent_name": "robot_" + str(c_robot),
-                    "behavior": {
-                        "name": "stilman_2005_behavior",
-                        "parameters": {
-                            "alpha_for_obstacle_choice_heur": 0.5,
-                            "basic_rotation_moment": 2.0,
-                            "basic_translation_force": 2.0,
-                            "check_new_local_opening_before_global": True,
-                            "collision_check_angular_res": 5.0,
-                            "activate_grids_logging": False,
-                            "forbid_rotations": False,
-                            "heuristic_cost_for_traversing_obstacle_in_choice_heur": 2.0,
-                            "neighborhood_for_obstacle_choice_heur": "TAXI",
-                            "robot_rotation_unit_angle": 30.0,
-                            "robot_translation_unit_length": 0.1,
-                            "solution_interval_bound_percentage": 0.01,
-                        },
-                        "navigation_goals": [
-                            {"name": "robot_" + str(c_robot) + "_goal_" + str(c_goal)}
-                            for c_goal in range(nb_goals_per_robot)
-                        ],
-                    },
-                }
-                for c_robot in range(nb_robots)
-            ],
-            "display_sim_knowledge_only_once": False,
-            "files": {"world_file": "./" + scenario_world_json_filename},
-            "provide_walls": True,
-        }
-
-        for behavior in simulation_json_data["agents_behaviors"]:
-            behavior["behavior"]["parameters"]["use_social_cost"] = True
-            behavior["behavior"]["parameters"]["manipulation_search_procedure"] = "DFS"
-        scenario_json_filename = "sim_snamo_" + scenario_id + ".json"
-        with open(os.path.join(scenario_dirpath, scenario_json_filename), "w+") as f:
-            json.dump(simulation_json_data, f)
-
-        for behavior in simulation_json_data["agents_behaviors"]:
-            behavior["behavior"]["parameters"]["use_social_cost"] = False
-            behavior["behavior"]["parameters"]["manipulation_search_procedure"] = "BFS"
-        scenario_json_filename = "sim_namo_" + scenario_id + ".json"
-        with open(os.path.join(scenario_dirpath, scenario_json_filename), "w+") as f:
-            json.dump(simulation_json_data, f)
-
-
-if __name__ == "__main__":
-    generate_alternative_scenarios(
-        base_svg_filepath="../data/simulations/iros_2021/after_the_feast/after_the_feast_base.svg",
-        nb_robots=4,
-        nb_goals_per_robot=25,
-        grid_res=0.1,
-        nb_scenarios=1000,
-    )

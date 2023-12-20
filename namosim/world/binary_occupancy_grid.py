@@ -155,6 +155,13 @@ class BinaryOccupancyGrid:
 
         self.update(new_or_updated_polygons=polygons, fill=fill)
 
+    def get_bounds(self):
+        min_x = self.params.grid_pose[0]
+        min_y = self.params.grid_pose[1]
+        max_x = self.params.grid_pose[0] + self.params.r_width
+        max_y = self.params.grid_pose[1] + self.params.r_height
+        return (min_x, min_y, max_x, max_y)
+
     def update(
         self,
         new_or_updated_polygons: t.Dict[UID, Polygon] | None = None,
