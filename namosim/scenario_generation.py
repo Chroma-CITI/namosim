@@ -23,6 +23,7 @@ from namosim.world.binary_occupancy_grid import (
 
 
 def reinit_svg(doc: minidom.Document) -> minidom.Document:
+    """Clears an existing scenario file by removing all elements except walls and movables."""
     doc = copy.deepcopy(doc)
     for element in doc.documentElement.getElementsByTagName("*"):
         if element.getAttribute("type") not in ["movable", "wall"]:
@@ -92,6 +93,7 @@ def generate_alternative_scenarios(
     nb_goals_per_robot: int,
     nb_scenarios: int,
 ):
+    """Randomly generates alternative versions of a given scenario with a given number of robots and goals."""
     # Load SVGs
     base_svg_filename = os.path.splitext(os.path.basename(base_svg_filepath))[0]
     svg_data_init = minidom.parse(base_svg_filepath)
