@@ -126,6 +126,9 @@ class TransferPath:
         rp: t.Optional["ros2.RosPublisher"] = None,
         robot_name: str = "",
     ):
+        # if rp:
+        #     rp.cleanup_swept_area(ns=robot_name)
+
         if shared_horizon is None:
             # If no horizon is given, check all unexecuted actions
             shared_horizon = len(self.actions) - self.action_index
@@ -138,14 +141,13 @@ class TransferPath:
         collision_aabb_tree = other_entities_aabb_tree
 
         # Compute and display horizon convex polygons
-        if rp and self.robot_path.csv_polygons and self.obstacle_path.csv_polygons:
+        if rp:
             rp.publish_transfer_horizon_convex_polygons(
-                robot_csv_polygons=self.robot_path.csv_polygons,
-                obstacle_csv_polygons=self.obstacle_path.csv_polygons,
+                robot_csv_polygons=self.robot_path.csv_polygons or {},
+                obstacle_csv_polygons=self.obstacle_path.csv_polygons or {},
                 start_index=self.action_index,
-                end_index=len(self.actions),
                 check_horizon=shared_horizon,
-                ns=robot_name,
+                robot_name=robot_name,
             )
 
         # Check conflicts for all actions within horizon (Robot-Robot) and beyond (other conflicts)
@@ -847,14 +849,14 @@ class TransitPath:
         encompassing_circles_uids = set(encompassing_circle_uid_to_robot_uid.keys())
 
         # Compute and display horizon cells
-        rp.publish_transit_horizon_cells(
-            self.robot_path.poses,
-            self.action_index,
-            len(self.actions) + 1,
-            shared_horizon,
-            inflated_grid_by_robot,
-            robot_name,
-        )
+        if rp:
+            rp.publish_transit_horizon_cells(
+                poses=self.robot_path.poses,
+                start_index=self.action_index,
+                check_horizon=shared_horizon,
+                inflated_grid_by_robot=inflated_grid_by_robot,
+                robot_name=robot_name,
+            )
 
         # Check for RobotRobot conflicts within horizon, and RobotObstacle conflicts even beyond
         conflicting_cells = set()

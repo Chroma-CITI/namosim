@@ -657,6 +657,14 @@ class RosPublisher:  # noqa: F821
             ] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.conflicts_check_topic
             )
+            self.my_publishers[
+                ns + cfg.conflict_horizon_topic
+            ] = self.ros_node.create_publisher(
+                MarkerArray, ns + cfg.conflict_horizon_topic
+            )
+            self.my_publishers[
+                ns + cfg.swept_area_topic
+            ] = self.ros_node.create_publisher(MarkerArray, ns + cfg.swept_area_topic)
             # TODO: Last publisher to refactor, as it requires separating it into smaller meaningful units
             self.my_publishers[
                 ns + cfg.robot_sim_topic
@@ -1497,23 +1505,18 @@ class RosPublisher:  # noqa: F821
         self,
         poses: t.List[PoseModel],
         start_index: int,
-        end_index: int,
         check_horizon: int,
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        ns: str,
+        robot_name: str,
     ):
-        full_topic = (
-            cfg.conflicts_check_topic
-            if not ns
-            else "/" + ns + cfg.conflicts_check_topic
-        )
+        if check_horizon <= 0:
+            return
+
+        full_topic = "/" + robot_name + cfg.conflict_horizon_topic
+
         if self.is_activated(full_topic):
             horizon_cells: t.Set[GridCellModel] = set()
-            for counter, index in enumerate(range(start_index, end_index)):
-                if counter >= check_horizon:
-                    break
-
-                pose = poses[index]
+            for pose in poses[start_index : start_index + check_horizon]:
                 cell = utils.real_to_grid(
                     pose[0],
                     pose[1],
@@ -1583,17 +1586,11 @@ class RosPublisher:  # noqa: F821
         robot_csv_polygons: t.Dict[t.Tuple[int], GeometryCollection],
         obstacle_csv_polygons: t.Dict[t.Tuple[int], GeometryCollection],
         start_index: int,
-        end_index: int,
         check_horizon: int,
-        ns: str,
+        robot_name: str,
     ):
-        if check_horizon <= 0:
-            return
-        full_topic = (
-            cfg.conflicts_check_topic
-            if not ns
-            else "/" + ns + cfg.conflicts_check_topic
-        )
+        full_topic = "/" + robot_name + cfg.swept_area_topic
+
         if not self.is_activated(full_topic):
             return
 
@@ -1615,7 +1612,7 @@ class RosPublisher:  # noqa: F821
                 p_id=p_id,
                 frame_id=cfg.main_frame_id,
                 color=colors.flashy_green,
-                z_index=cfg.horizon_markers_z_index,
+                z_index=cfg.swept_area_z_index,
             )
             markers.append(marker)
         marker_array = MarkerArray(markers=markers)
@@ -1626,6 +1623,16 @@ class RosPublisher:  # noqa: F821
 
     def publish_transfer_conflicting_convex_polygons(self):
         pass
+
+    def cleanup_swept_area(self, ns: str):
+        full_topic = "/" + ns + cfg.swept_area_topic
+        if self.is_activated(full_topic):
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
+
+    def cleanup_conflict_horizon(self, ns: str):
+        full_topic = "/" + ns + cfg.conflict_horizon_topic
+        if self.is_activated(full_topic):
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
 
     def cleanup_conflicts_checks(self, ns: str):
         full_topic = (
@@ -1653,6 +1660,8 @@ class RosPublisher:  # noqa: F821
             self.cleanup_social_grid_map(ns=ns)
             self.cleanup_combined_costmap(ns=ns)
             self.cleanup_conflicts_checks(ns=ns)
+            self.cleanup_swept_area(ns=ns)
+            self.cleanup_conflict_horizon(ns=ns)
 
     def init_header(self):
         return Header(stamp=self.ros_node.get_timestamp(), frame_id="map")

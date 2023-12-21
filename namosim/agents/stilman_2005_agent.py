@@ -187,7 +187,7 @@ class Stilman2005Agent(Agent):
 
     def init(self, world: "w.World"):
         super().init(world)
-        self.trans_mult = 1.0
+        self.trans_mult = 100.0
         self.rot_mult = 1.0
         self.position_tolerance = self.world.discretization_data.res / 2.0
         self.release_distance = (

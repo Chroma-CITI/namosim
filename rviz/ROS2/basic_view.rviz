@@ -9,7 +9,6 @@ Panels:
         - /namosim1
         - /namosim1/Simulation1
         - /namosim1/robot_01
-        - /namosim1/robot_01/conflicts_check1
         - /namosim1/robot_01/conflicts_check1/Namespaces1
         - /namosim1/robot_01/goal1/Topic1
         - /namosim1/robot_01/goal1/Namespaces1
@@ -173,7 +172,32 @@ Visualization Manager:
               Name: a_star
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
+              Name: conflict_horizon
+              Namespaces:
+                /transit_horizon_cells: true
+              Topic:
+                Depth: 5
+                Durability Policy: Volatile
+                History Policy: Keep Last
+                Reliability Policy: Reliable
+                Value: /robot_0/conflict_horizon
+              Value: true
+            - Class: rviz_default_plugins/MarkerArray
+              Enabled: true
               Name: conflicts_check
+              Namespaces:
+                /transit_conflicting_cells: true
+                /transit_conflicting_entities_cells: true
+              Topic:
+                Depth: 5
+                Durability Policy: Volatile
+                History Policy: Keep Last
+                Reliability Policy: Reliable
+                Value: /robot_0/conflicts_check
+              Value: true
+            - Class: rviz_default_plugins/MarkerArray
+              Enabled: true
+              Name: swept_area
               Namespaces:
                 {}
               Topic:
@@ -181,7 +205,7 @@ Visualization Manager:
                 Durability Policy: Volatile
                 History Policy: Keep Last
                 Reliability Policy: Reliable
-                Value: /robot_0/conflicts_check
+                Value: /robot_0/swept_area
               Value: true
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
@@ -240,7 +264,8 @@ Visualization Manager:
               Enabled: true
               Name: plan
               Namespaces:
-                {}
+                /end_obstacles: true
+                /plan: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -249,17 +274,26 @@ Visualization Manager:
                 Value: /robot_0/plan
               Value: true
             - Class: rviz_default_plugins/MarkerArray
-              Enabled: false
+              Enabled: true
               Name: sim
               Namespaces:
-                {}
+                /blocking_areas/init: true
+                /blocking_areas/target: true
+                /diameter_inflated_polygon/init: true
+                /diameter_inflated_polygon/target: true
+                /manip_search/close_set: true
+                /manip_search/current/obstacle/polygon: true
+                /manip_search/current/obstacle/pose: true
+                /manip_search/current/robot/polygon: true
+                /manip_search/current/robot/pose: true
+                /manip_search_neighbors: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
                 History Policy: Keep Last
                 Reliability Policy: Reliable
                 Value: /robot_0/sim
-              Value: false
+              Value: true
             - Class: rviz_common/Group
               Displays:
                 - Class: rviz_default_plugins/MarkerArray
@@ -274,7 +308,7 @@ Visualization Manager:
                     Reliability Policy: Reliable
                     Value: /robot_0/stilman_rch/close_set
                   Value: true
-              Enabled: false
+              Enabled: true
               Name: stilman_rch
             - Class: rviz_common/Group
               Displays:
@@ -1014,7 +1048,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 3.5967116355895996
+      Scale: 1.0482968091964722
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
       X: 0
