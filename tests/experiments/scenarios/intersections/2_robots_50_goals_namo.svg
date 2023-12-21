@@ -69,7 +69,8 @@
       <goal goal_id="robot_0_goal_48" />
       <goal goal_id="robot_0_goal_49" />
       <behavior type="stilman_2005_behavior">
-        <parameters robot_translation_unit_length="20.0" use_social_cost="false" robot_rotation_unit_angle="30.0" />
+        <parameters robot_translation_unit_length="20.0" use_social_cost="false" robot_rotation_unit_angle="30.0"
+          manipulation_search_procedure="BFS" />
       </behavior>
     </agent>
     <agent agent_id="robot_1">
@@ -124,7 +125,8 @@
       <goal goal_id="robot_1_goal_48" />
       <goal goal_id="robot_1_goal_49" />
       <behavior type="stilman_2005_behavior">
-        <parameters robot_translation_unit_length="20.0" use_social_cost="false" robot_rotation_unit_angle="30.0" />
+        <parameters robot_translation_unit_length="20.0" use_social_cost="false" robot_rotation_unit_angle="30.0"
+          manipulation_search_procedure="BFS" />
       </behavior>
     </agent>
   </namo_config>
