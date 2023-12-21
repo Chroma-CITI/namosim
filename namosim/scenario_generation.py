@@ -352,7 +352,7 @@ def generate_scenarios_alternatives(
                             "basic_translation_force": 2.0,
                             "check_new_local_opening_before_global": True,
                             "collision_check_angular_res": 5.0,
-                            "deactivate_grids_logging": True,
+                            "activate_grids_logging": False,
                             "forbid_rotations": False,
                             "heuristic_cost_for_traversing_obstacle_in_choice_heur": 2.0,
                             "neighborhood_for_obstacle_choice_heur": "TAXI",

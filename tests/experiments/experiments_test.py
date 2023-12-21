@@ -72,6 +72,24 @@ class ExperimentsTests(unittest.TestCase):
         print(f"Execution time: {elapsed_time} seconds")
         assert True
 
+    def test_intersections_2_robots_50_goals_namo(self):
+        config.DISPLAY_WINDOW = True
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder,
+                "intersections/2_robots_50_goals_namo.svg",
+            )
+        )
+
+        start_time = time.perf_counter()
+        sim.run()
+        end_time = time.perf_counter()
+
+        elapsed_time = end_time - start_time
+
+        print(f"Execution time: {elapsed_time} seconds")
+        assert True
+
     def test_citi_lab_2_robots_50_goals_snamo(self):
         config.DISPLAY_WINDOW = True
         sim = Simulator(

@@ -4,6 +4,7 @@ import json
 import os
 import pickle
 import random
+import shutil
 import time
 import tkinter as tk
 import traceback
@@ -31,6 +32,7 @@ from namosim.navigation.conflict import (
     StolenMovableConflict,
 )
 from namosim.navigation.navigation_plan import DynamicPlan
+from namosim.report import SimulationReport
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
@@ -141,10 +143,9 @@ class Simulator:
 
     def __init__(
         self,
+        *,
         simulation_file_path: str,
-        simulation_log_stub: str = "",
         goals: t.Optional[t.Dict[str, t.List[PoseModel]]] = None,
-        timestring: t.Optional[str] = None,
     ):
         self.window: tk.Tk | None = None
         self.background: tk.Label | None = None
@@ -156,35 +157,21 @@ class Simulator:
             self.background = tk.Label(self.window)
             self.background.pack()
 
-        # Load simulation file and initialize logs
-        if timestring:
-            self.sim_start_timestring = timestring
-        else:
-            self.sim_start_timestring = utils.timestamp_string()
-
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
 
-        sim_file_parent_dirname = os.path.basename(
-            os.path.normpath(
-                os.path.abspath(os.path.join(simulation_file_abs_path, ".."))
-            )
-        )
         self.simulation_filename = os.path.splitext(
             os.path.basename(simulation_file_abs_path)
         )[0]
 
-        main_logs_dir = os.path.join(
+        # init logs
+        self.logs_dir = os.path.join(
             os.path.dirname(__file__),
-            "../logs/",
-            simulation_log_stub,
-            sim_file_parent_dirname,
+            "../namo_logs/",
             self.simulation_filename,
         )
-        self.logs_dir = os.path.join(main_logs_dir, self.sim_start_timestring + "/")
-
+        if os.path.isdir(self.logs_dir):
+            shutil.rmtree(self.logs_dir)
         os.makedirs(self.logs_dir)
-        os.makedirs(self.logs_dir + "simulation/")
-
         self.simulation_log = utils.CustomLogger()
 
         # Load world file
@@ -215,7 +202,7 @@ class Simulator:
         self.save_stats = True
         self.save_history = False
         self.save_logs = True
-        self.pickle_saved_data = True
+        self.pickle_saved_data = False
 
         if self.pickle_saved_data:
 
@@ -255,9 +242,9 @@ class Simulator:
 
         if self.save_init_world_state:
             self.init_ref_world.save_to_files(
-                svg_filepath=self.logs_dir
-                + "simulation/"
-                + self.init_ref_world.init_geometry_filename,
+                svg_filepath=os.path.join(
+                    self.logs_dir, self.init_ref_world.init_geometry_filename
+                )
             )
 
         # Associate autonomous agents with goals and behaviors
@@ -304,6 +291,8 @@ class Simulator:
         self.run_exceptions_traces: t.List[t.Any] = []
         self.exception: t.Union[Exception, None] = None
 
+        self.report = SimulationReport()
+
     def step(
         self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
     ) -> t.Tuple[set[int], t.List[Polygon], int]:
@@ -345,6 +334,8 @@ class Simulator:
             action_results = self.act(actions, step_count)
             act_duration = time.time() - act_start
 
+            self.update_report(action_results=action_results)
+
             self.history.append(
                 SimulationStepResult(
                     sense_durations,
@@ -361,6 +352,11 @@ class Simulator:
             self.end_simulation(step_count=step_count, err=e)
 
         return (active_agents, trace_polygons, step_count)
+
+    def update_report(self, action_results: t.Dict[int, ar.ActionResult]):
+        for uid, action_result in action_results.items():
+            agent_id = self.ref_world.entities[uid].name
+            self.report.update(agent_id=agent_id, action_result=action_result)
 
     def end_simulation(self, step_count: int, err: Exception | None = None):
         self.run_active = False
@@ -453,9 +449,7 @@ class Simulator:
         # - Save exception traces
         if self.run_exceptions_traces:
             exceptions = {"exceptions": self.run_exceptions_traces}
-            exceptions_filepath = os.path.join(
-                os.path.dirname(self.logs_dir), "exceptions"
-            )
+            exceptions_filepath = os.path.join(self.logs_dir, "exceptions")
             self.save(exceptions, exceptions_filepath)
             self.simulation_log.append(
                 utils.BasicLog(
@@ -466,11 +460,12 @@ class Simulator:
         # - Save world end state as SVG+JSON
         if self.save_end_world_state:
             self.ref_world.save_to_files(
-                svg_filepath=self.logs_dir
-                + "simulation/"
-                + utils.append_suffix(
-                    self.init_ref_world.init_geometry_filename, "_end"
-                ),
+                svg_filepath=os.path.join(
+                    self.logs_dir,
+                    utils.append_suffix(
+                        self.init_ref_world.init_geometry_filename, "_end"
+                    ),
+                )
             )
             self.simulation_log.append(
                 utils.BasicLog("Saved simulation final state.", step_count)
@@ -479,7 +474,7 @@ class Simulator:
         # - Save stats
         if self.save_stats:
             stats = self.create_simulation_report()
-            stats_filepath = os.path.join(os.path.dirname(self.logs_dir), "stats")
+            stats_filepath = os.path.join(self.logs_dir, "stats")
             self.save(stats, stats_filepath)
             self.simulation_log.append(
                 utils.BasicLog("Saved stats at: {}".format(stats_filepath), step_count)
@@ -496,7 +491,7 @@ class Simulator:
                 agent_uid: dict(behavior.goal_to_plans)
                 for agent_uid, behavior in self.ref_world.agents.items()
             }
-            history_filepath = os.path.join(os.path.dirname(self.logs_dir), "history")
+            history_filepath = os.path.join(self.logs_dir, "history")
             self.save(history, history_filepath)
             self.simulation_log.append(
                 utils.BasicLog(
@@ -511,7 +506,7 @@ class Simulator:
             logs["agents_logs"] = {}
             for uid, behavior in self.ref_world.agents.items():
                 logs["agents_logs"][self.ref_world.entities[uid].name] = behavior.logger
-            logs_filepath = os.path.join(os.path.dirname(self.logs_dir), "logs")
+            logs_filepath = os.path.join(self.logs_dir, "logs")
             self.save(logs, logs_filepath)
 
         if self.exception is not None:
@@ -776,7 +771,7 @@ class Simulator:
                 for uid in self.ref_world.agents.keys()
             }
 
-        report = {"stats": stats}
+        report = {"stats": stats, "report": self.report.to_json_data()}
 
         return report
 
@@ -862,7 +857,7 @@ class Simulator:
         del trace_polygons[: len(trace_polygons)]
 
         world_snapshot.save_to_files(
-            svg_filepath=self.logs_dir + "simulation/" + svg_filepath,
+            svg_filepath=os.path.join(self.logs_dir, svg_filepath)
         )
 
     def sense(
@@ -1122,7 +1117,12 @@ class Simulator:
                     del self.ref_world.entity_to_agent[action.entity_uid]
 
                 action_results[agent_uid] = ar.ActionSuccess(
-                    action, self.ref_world.entities[agent_uid].pose
+                    action=action,
+                    robot_pose=self.ref_world.entities[agent_uid].pose,
+                    is_transfer=agent_uid in self.ref_world.entity_to_agent.inverse,
+                    obstacle_uid=self.ref_world.entity_to_agent.inverse.get(
+                        agent_uid, None
+                    ),
                 )
 
         return action_results

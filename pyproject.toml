@@ -42,6 +42,7 @@ rospkg = "^1.5.0"
 six = "^1.16.0"
 cairosvg = "^2.7.1"
 pydantic-xml = "^2.5.0"
+typer = { extras = ["all"], version = "^0.9.0" }
 
 [tool.poetry.group.dev.dependencies]
 sphinx = "^7.2.6"
@@ -77,6 +78,7 @@ pyright \
   namosim/world/models.py \
   namosim/world/obstacle.py \
   namosim/world/world.py \
+  namosim/report.py \
 """
 all_checks = ["lint_check", "type_check", "test"]
 
