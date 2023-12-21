@@ -322,4 +322,9 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
             )
 
     def to_image(self) -> Image.Image:
-        return Image.fromarray(self.grid > 0)
+        grid = self.grid.astype(np.float32)
+        grid = grid - np.min(grid)
+        grid /= np.max(grid)
+        grid *= 255
+        grid = grid.astype(np.uint8)
+        return Image.fromarray(grid, "L")
