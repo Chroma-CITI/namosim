@@ -11,8 +11,11 @@ app = typer.Typer()
 
 
 @app.command()
-def run(scenario: str):
-    sim = Simulator(simulation_file_path=scenario)
+def run(
+    scenario: str,
+    logs_dir: t.Annotated[t.Optional[str], typer.Option("--logs-dir")] = None,
+):
+    sim = Simulator(simulation_file_path=scenario, logs_dir=logs_dir)
     sim.run()
 
 

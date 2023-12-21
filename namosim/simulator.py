@@ -4,7 +4,6 @@ import json
 import os
 import pickle
 import random
-import shutil
 import sys
 import time
 import tkinter as tk
@@ -149,6 +148,7 @@ class Simulator:
         *,
         simulation_file_path: str,
         goals: t.Optional[t.Dict[str, t.List[PoseModel]]] = None,
+        logs_dir: str | None = None,
     ):
         self.window: tk.Tk | None = None
         self.background: tk.Label | None = None
@@ -167,14 +167,16 @@ class Simulator:
         )[0]
 
         # init logs
-        self.logs_dir = os.path.join(
-            os.path.dirname(__file__),
-            "../namo_logs/",
-            self.simulation_filename,
-        )
-        if os.path.isdir(self.logs_dir):
-            shutil.rmtree(self.logs_dir)
-        os.makedirs(self.logs_dir)
+        if logs_dir:
+            self.logs_dir = logs_dir
+        else:
+            self.logs_dir = os.path.join(
+                os.path.dirname(__file__),
+                "../namo_logs/",
+                self.simulation_filename,
+            )
+        if not os.path.isdir(self.logs_dir):
+            os.makedirs(self.logs_dir)
         self.simulation_log = utils.CustomLogger()
 
         # Load world file

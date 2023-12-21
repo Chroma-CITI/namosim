@@ -37,6 +37,7 @@ import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as navigation_plan
 import namosim.world.world as world
 from namosim.agents import agent
+from namosim.config import DEACTIVATE_RVIZ
 from namosim.data_models import UID, GridCellModel, PoseModel
 from namosim.display.conversions import (
     costmap_to_grid_map,
@@ -146,7 +147,7 @@ class RosObserver:
         self._duration = 1.0 / self.rate
 
     def update(self, **kwargs: t.Any):
-        if not cfg.deactivate_gui and self.is_active:
+        if not DEACTIVATE_RVIZ and self.is_active:
             connections = self.get_subscription_count()
             if connections > 0:
                 elapsed_time = time.time() - self._last_time
@@ -172,7 +173,7 @@ class RosObserver:
         | OccupancyGrid
         | None = None,
     ):
-        if not cfg.deactivate_gui and reset_msg is not None:
+        if not DEACTIVATE_RVIZ and reset_msg is not None:
             self._publisher.publish(reset_msg)
 
 
@@ -573,7 +574,7 @@ class RosPublisher:  # noqa: F821
         agent_names: t.List[str],
         prefix_topics_with_node_name: bool = False,
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
 
         # HACK: Must necessarily be invoked in the init method of this singleton and not at module-level (rclpy bug...)
@@ -705,7 +706,7 @@ class RosPublisher:  # noqa: F821
         return node_name
 
     def publish(self, topic: str, msg: t.Any):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         publisher = self.my_publishers[topic]
         connections = publisher.get_subscription_count()
@@ -714,15 +715,15 @@ class RosPublisher:  # noqa: F821
             publisher.publish(msg)
 
     def is_activated(self, topic: str = ""):
-        if cfg.deactivate_gui or (topic and topic not in self.my_publishers):
+        if DEACTIVATE_RVIZ or (topic and topic not in self.my_publishers):
             return False
-        elif not cfg.deactivate_gui and not topic:
+        elif not DEACTIVATE_RVIZ and not topic:
             return True
         return topic in self.my_publishers
 
     # region SIM WORLD
     def publish_sim_world(self, world: "world.World", robot_uid: UID | None = None):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         self.observers[self.sim_knowledge_topic].update(
             world=world, robot_uid=robot_uid
@@ -731,7 +732,7 @@ class RosPublisher:  # noqa: F821
         world.discretization_data.d_height
 
     def cleanup_sim_world(self):
-        if not cfg.deactivate_gui:
+        if not DEACTIVATE_RVIZ:
             self.observers[self.sim_knowledge_topic].reset()
             self.observers[self.sim_costmap_topic].reset()
 
@@ -739,7 +740,7 @@ class RosPublisher:  # noqa: F821
 
     # region ROBOT WORLD
     def publish_robot_world(self, world: "world.World", robot_uid: UID):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         world_topic = (
             self.prefix
@@ -754,7 +755,7 @@ class RosPublisher:  # noqa: F821
         self.observers[costmap_topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_robot_world(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
 
         world_topic = self.prefix + "/" + ns + cfg.robot_knowledge_topic
@@ -768,7 +769,7 @@ class RosPublisher:  # noqa: F821
 
     # region ROBOT SIM
     def publish_robot_sim_world(self, world: "world.World", robot_uid: UID):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = (
             self.prefix
@@ -779,13 +780,13 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_robot_sim_world(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + "/" + ns + cfg.robot_sim_world_topic
         self.observers[topic].reset()
 
     def publish_robot_sim_costmap(self, world: "world.World", robot_uid: UID):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = (
             self.prefix
@@ -796,7 +797,7 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_robot_sim_costmap(self, world: "world.World", robot_uid: UID):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = (
             self.prefix
@@ -812,7 +813,7 @@ class RosPublisher:  # noqa: F821
     def publish_social_grid_map(
         self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
@@ -832,7 +833,7 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_social_grid_map(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
@@ -847,7 +848,7 @@ class RosPublisher:  # noqa: F821
         inflated_grid_by_obstacle: BinaryInflatedOccupancyGrid,
         ns: str = "",
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
@@ -861,7 +862,7 @@ class RosPublisher:  # noqa: F821
         )
 
     def cleanup_combined_costmap(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
@@ -876,7 +877,7 @@ class RosPublisher:  # noqa: F821
     def publish_connected_components_grid(
         self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_connected_components_topic
@@ -896,7 +897,7 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_connected_components_grid(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_connected_components_topic
@@ -1203,7 +1204,7 @@ class RosPublisher:  # noqa: F821
 
     # region Q MANIPS FOR OBS
     def publish_q_manips_for_obs(self, poses: t.List[PoseModel], ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.obs_manip_poses_topic
@@ -1213,7 +1214,7 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(poses=poses)
 
     def cleanup_q_manips_for_obs(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.obs_manip_poses_topic
@@ -1232,14 +1233,14 @@ class RosPublisher:  # noqa: F821
         ns: str = "",
     ):
         """Publishes the optimal path to observers"""
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (cfg.plan_topic if not ns else "/" + ns + cfg.plan_topic)
         self.observers[topic].update(plan=plan, robot=robot)
 
     def cleanup_p_opt(self, ns: str = ""):
         """Clears the optimal path from observers"""
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (cfg.plan_topic if not ns else "/" + ns + cfg.plan_topic)
         self.observers[topic].reset()
@@ -1417,7 +1418,7 @@ class RosPublisher:  # noqa: F821
             )
 
     def cleanup_robot_sim(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
@@ -1434,7 +1435,7 @@ class RosPublisher:  # noqa: F821
         entity: "agent.Agent",
         ns: str = "",
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
 
         topic = self.prefix + (
@@ -1639,7 +1640,7 @@ class RosPublisher:  # noqa: F821
 
     # region EXTRA COMBINED CLEANUP METHODS
     def cleanup_all(self):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         self.cleanup_sim_world()
         self.cleanup_message()

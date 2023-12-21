@@ -1,9 +1,6 @@
 # Target display rate (in Hz)
 rate = 100000
 
-# Deactivate GUI
-deactivate_gui = False
-
 # Simulation topics names (without namespace)
 sim_knowledge_topic = "/knowledge"
 sim_costmap_topic = "/costmap"
