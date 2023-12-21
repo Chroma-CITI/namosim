@@ -14,6 +14,8 @@
         "gen-alt-scenarios",
         "--base-scenario",
         "tests/experiments/scenarios/intersections/1_robot_50_goals_snamo.svg",
+        "--out-dir",
+        "tests/experiments/scenarios/intersections/generated"
       ]
     },
     {

@@ -1617,12 +1617,6 @@ class Stilman2005Agent(Agent):
         )
         obstacle_min_inflation_radius = utils.get_inscribed_radius(obstacle_polygon)
 
-        inf_robot, inf_obstacle = copy.deepcopy(robot), copy.deepcopy(obstacle)
-        inf_robot.polygon, inf_obstacle.polygon = (
-            robot.polygon.buffer(res, join_style="mitre"),
-            obstacle.polygon.buffer(res, join_style="mitre"),
-        )
-
         goal_pose, goal_cell = (
             r_f,
             utils.real_to_grid(
