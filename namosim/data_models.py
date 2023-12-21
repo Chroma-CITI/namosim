@@ -3,6 +3,7 @@ import typing as t
 from pydantic_xml import BaseXmlModel, attr, element
 
 PoseModel = t.Tuple[float, float, float]
+UID = t.Union[str, int]
 FixedPrecisionPoseModel = t.Tuple[int, int, int]
 GridCellModel = t.Tuple[int, int]
 GridCellSet = t.Set[GridCellModel]

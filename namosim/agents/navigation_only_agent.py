@@ -9,7 +9,7 @@ import namosim.navigation.basic_actions as ba
 import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.world as w
 from namosim.agents.agent import Agent, ThinkResult
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.entity import Style
@@ -33,7 +33,7 @@ class NavigationOnlyAgent(Agent):
         movable_whitelist: t.List[str],
         style: Style,
         logger: utils.CustomLogger,
-        uid: int = 0,
+        uid: UID = 0,
     ):
         Agent.__init__(
             self,

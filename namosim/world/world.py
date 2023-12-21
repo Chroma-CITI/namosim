@@ -12,14 +12,13 @@ from typing_extensions import Self
 import namosim.agents as agts
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
-from namosim.data_models import NamosimConfigModel, PoseModel
+from namosim.data_models import UID, NamosimConfigModel, PoseModel
 from namosim.display import conversions
 from namosim.world.discretization_data import DiscretizationData
 from namosim.world.entity import Entity, Style
 from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
-from namosim.world.taboo import Taboo
 
 
 class World:
@@ -28,18 +27,17 @@ class World:
         *,
         discretization_data: DiscretizationData,
         config: NamosimConfigModel,
-        entities: t.Optional[t.Dict[int, Entity]] = None,
-        agents: t.Optional[t.Dict[int, "agts.Agent"]] = None,
-        entity_to_agent: t.Optional[bidict[int, int]] = None,
-        taboo_zones: t.Optional[t.Dict[int, Taboo]] = None,
-        goals: t.Optional[t.Dict[int, Goal]] = None,
+        entities: t.Optional[t.Dict[UID, Entity]] = None,
+        agents: t.Optional[t.Dict[UID, "agts.Agent"]] = None,
+        entity_to_agent: t.Optional[bidict[UID, UID]] = None,
+        goals: t.Optional[t.Dict[UID, Goal]] = None,
         init_geometry_filename: str = "world_name_placeholder.svg",
         init_geometry_file: t.Optional[minidom.Document] = None,
         logger: utils.CustomLogger,
     ):
         self.config = config
         self.entities = entities or dict()
-        self.agents: t.Dict[int, "agts.Agent"] = agents if agents else {}
+        self.agents: t.Dict[UID, "agts.Agent"] = agents if agents else {}
         self.entity_to_agent = entity_to_agent or bidict()
         self.discretization_data = discretization_data
         self.agent_configs = ({x.agent_id: x for x in config.agents},)
@@ -49,8 +47,7 @@ class World:
             conversion.clean_attributes(init_geometry_file)
         self.init_geometry_filename = init_geometry_filename
         self.init_geometry_file = init_geometry_file
-        self.taboo_zones: t.Dict[int, Taboo] = taboo_zones or dict()
-        self.goals: t.Dict[int, Goal] = goals or dict()
+        self.goals: t.Dict[UID, Goal] = goals or dict()
         self.logger = logger
 
     # Constructor
@@ -307,7 +304,9 @@ class World:
 
     def to_svg(self) -> minidom.Document:
         if self.init_geometry_file:
-            svg_data: minidom.Document = copy.deepcopy(self.init_geometry_file)
+            svg_data: minidom.Document = minidom.parseString(
+                self.init_geometry_file.toxml()
+            )
 
             # clear geometries
             els_to_del = list(svg_data.getElementsByTagNameNS("*", "path"))
@@ -402,7 +401,7 @@ class World:
         #             new_entity.name, obj.name))
         self.entities[new_entity.uid] = new_entity
 
-    def remove_entity(self, entity_uid: int):
+    def remove_entity(self, entity_uid: UID):
         if entity_uid in self.entities:
             del self.entities[entity_uid]
         if entity_uid in self.agents:
@@ -433,7 +432,7 @@ class World:
         )
 
     # TO DEPRECATE
-    def get_entity_uid_from_name(self, name: str) -> int:
+    def get_entity_uid_from_name(self, name: str) -> UID:
         for entity_uid, entity in self.entities.items():
             if entity.name == name:
                 return entity_uid
@@ -443,8 +442,8 @@ class World:
             )
         )
 
-    def light_copy(self, ignored_entities: t.Iterable[int]):
-        entity_to_agent: bidict[int, int] = bidict()
+    def light_copy(self, ignored_entities: t.Iterable[UID]):
+        entity_to_agent: bidict[UID, UID] = bidict()
         for e, a in self.entity_to_agent.items():
             if a not in ignored_entities and e not in ignored_entities:
                 entity_to_agent[e] = a
@@ -465,7 +464,6 @@ class World:
             agents=agents,
             entity_to_agent=entity_to_agent,
             discretization_data=copy.deepcopy(self.discretization_data),
-            taboo_zones=copy.deepcopy(self.taboo_zones),
             goals=copy.deepcopy(self.goals),
             init_geometry_filename=self.init_geometry_filename,
             init_geometry_file=self.init_geometry_file,
@@ -489,6 +487,14 @@ class World:
         # Save SVG to specified path
         with open(svg_filepath, "w+") as f:
             svg_data.writexml(f)
+
+    def get_map_bounds(self):
+        return (
+            0,
+            0,
+            self.discretization_data.width,
+            self.discretization_data.height,
+        )
 
 
 def get_orientation(geom: (Polygon | LineString)) -> float:

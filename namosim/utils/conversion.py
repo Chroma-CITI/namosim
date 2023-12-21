@@ -42,6 +42,7 @@ def add_shapely_geometry_to_svg(
     scale=1.0,
     map_width=None,
     map_height=None,
+    namo_type: str | None = None,
 ):
     if map_width and map_height:
         shapely_geometry = affinity.translate(
@@ -52,6 +53,9 @@ def add_shapely_geometry_to_svg(
     new_path.setAttribute("id", uname)
     new_path.setAttribute("d", pathd)
     new_path.setAttribute("style", style)
+    if namo_type:
+        new_path.setAttribute("type", namo_type)
+
     if svg_group:
         svg_group.appendChild(new_path)
     else:

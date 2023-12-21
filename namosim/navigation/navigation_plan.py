@@ -12,7 +12,7 @@ import namosim.navigation.navigation_plan as nav_plan
 import namosim.utils.collision as collision
 import namosim.world.world as w
 import namosim.world.world as world
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.conflict import (
     Conflict,
@@ -33,7 +33,7 @@ class Plan:
     def __init__(
         self,
         *,
-        robot_uid: int,
+        robot_uid: UID,
         path_components: t.List[t.Union[TransitPath, TransferPath]] = [],
         goal: t.Optional[PoseModel] = None,
         plan_error: t.Optional[str] = None,
@@ -302,7 +302,7 @@ class Timer:
 class DynamicPlan(Plan):
     DEBUGGING_WAIT_TIME_GENERATOR = []
 
-    def __init__(self, robot_uid: int):
+    def __init__(self, robot_uid: UID):
         super().__init__(robot_uid=robot_uid)
         self.update_count = 0
         """

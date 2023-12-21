@@ -10,7 +10,7 @@ import namosim.display.ros2_publisher as rp
 import namosim.navigation.navigation_plan as navp
 import namosim.world.world as w
 from namosim.algorithms import graph_search
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.navigation_path import TransitPath
@@ -54,7 +54,7 @@ class Agent(Entity):
         style: Style,
         movability: str = "unknown",
         logger: utils.CustomLogger,
-        uid: int = 0,
+        uid: UID = 0,
     ):
         super().__init__(
             name=name,
@@ -155,6 +155,12 @@ class Agent(Entity):
     def goal_pose(self):
         return self._q_goal
 
+    def get_current_or_next_goal(self):
+        if self._q_goal:
+            return self._q_goal
+        if len(self._navigation_goals) > 0:
+            return self._navigation_goals[0]
+
     def get_plan(self):
         return self.__p_opt
 
@@ -205,9 +211,9 @@ class Agent(Entity):
     def update_world_from_sensors(
         self, reference_world: "w.World", target_world: "w.World"
     ):
-        added_uids: set[int] = set()
-        updated_uids: set[int] = set()
-        removed_uids: set[int] = set()
+        added_uids: set[UID] = set()
+        updated_uids: set[UID] = set()
+        removed_uids: set[UID] = set()
 
         for sensor in self.sensors:
             s_uids_to_add, s_uids_to_update, s_uids_to_remove = sensor.update_from_fov(

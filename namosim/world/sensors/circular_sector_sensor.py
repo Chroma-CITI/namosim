@@ -2,6 +2,8 @@ import numpy as np
 from shapely import affinity
 from shapely.geometry import LineString, Point, Polygon
 
+from namosim.data_models import UID
+
 
 class CircularSectorSensor:
     def __init__(
@@ -14,7 +16,7 @@ class CircularSectorSensor:
         self.fov_polygon = self._create_fov(
             fov_max_radius, fov_min_radius, fov_opening_angle, parent_entity_pose
         )
-        self.parent_uid: int | None = None
+        self.parent_uid: UID | None = None
 
     def _create_fov(
         self, fov_max_radius, fov_min_radius, fov_opening_angle, parent_entity_pose

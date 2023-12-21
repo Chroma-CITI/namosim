@@ -4,7 +4,7 @@ import json
 import os
 import pickle
 import random
-import shutil
+import sys
 import time
 import tkinter as tk
 import traceback
@@ -21,7 +21,7 @@ import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.agents.agent import Agent, ThinkResult
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 from namosim.exceptions import timeout
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -37,14 +37,16 @@ from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
 
+sys.setrecursionlimit(10000)
+
 
 class SimulationStepResult:
     def __init__(
         self,
-        sense_durations: t.Dict[int, float],
-        think_durations: t.Dict[int, float],
+        sense_durations: t.Dict[UID, float],
+        think_durations: t.Dict[UID, float],
         act_duration: float,
-        action_results: t.Dict[int, ar.ActionResult],
+        action_results: t.Dict[UID, ar.ActionResult],
         step_index: int,
     ):
         self.sense_durations = sense_durations
@@ -146,6 +148,7 @@ class Simulator:
         *,
         simulation_file_path: str,
         goals: t.Optional[t.Dict[str, t.List[PoseModel]]] = None,
+        logs_dir: str | None = None,
     ):
         self.window: tk.Tk | None = None
         self.background: tk.Label | None = None
@@ -164,14 +167,16 @@ class Simulator:
         )[0]
 
         # init logs
-        self.logs_dir = os.path.join(
-            os.path.dirname(__file__),
-            "../namo_logs/",
-            self.simulation_filename,
-        )
-        if os.path.isdir(self.logs_dir):
-            shutil.rmtree(self.logs_dir)
-        os.makedirs(self.logs_dir)
+        if logs_dir:
+            self.logs_dir = logs_dir
+        else:
+            self.logs_dir = os.path.join(
+                os.path.dirname(__file__),
+                "../namo_logs/",
+                self.simulation_filename,
+            )
+        if not os.path.isdir(self.logs_dir):
+            os.makedirs(self.logs_dir)
         self.simulation_log = utils.CustomLogger()
 
         # Load world file
@@ -252,7 +257,7 @@ class Simulator:
             goal.name: goal.pose for goal in self.init_ref_world.goals.values()
         }
 
-        self.agent_uid_to_goals: t.Dict[int, t.List[PoseModel]]
+        self.agent_uid_to_goals: t.Dict[UID, t.List[PoseModel]]
         """
         Maps an agent uid to a list of goal poses
         """
@@ -293,16 +298,24 @@ class Simulator:
 
         self.report = SimulationReport()
 
+        # keyboard actions
+        self._paused = False
+        self._step = False
+
     def step(
-        self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
-    ) -> t.Tuple[set[int], t.List[Polygon], int]:
+        self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
+    ) -> t.Tuple[set[UID], t.List[Polygon], int]:
+        if self._paused:
+            return (active_agents, trace_polygons, step_count)
+        elif self._step:
+            self._paused = True
+            self._step = False
+
         if len(active_agents) == 0:
             self.end_simulation(step_count=step_count)
-            return (active_agents, trace_polygons, step_count)
+            return (active_agents, trace_polygons, step_count + 1)
 
         try:
-            # Increment simulation step count
-            step_count += 1
             self.ros_publisher.publish_message(
                 "Sim steps: {}".format(step_count),
                 pose=(
@@ -351,15 +364,18 @@ class Simulator:
         except Exception as e:
             self.end_simulation(step_count=step_count, err=e)
 
-        return (active_agents, trace_polygons, step_count)
+        return (active_agents, trace_polygons, step_count + 1)
 
-    def update_report(self, action_results: t.Dict[int, ar.ActionResult]):
+    def update_report(self, action_results: t.Dict[UID, ar.ActionResult]):
         for uid, action_result in action_results.items():
             agent_id = self.ref_world.entities[uid].name
             self.report.update(agent_id=agent_id, action_result=action_result)
 
     def end_simulation(self, step_count: int, err: Exception | None = None):
         self.run_active = False
+        self._paused = False
+        self._step = False
+
         if self.window:
             self.window.quit()
         if self.background:
@@ -406,10 +422,9 @@ class Simulator:
         step_count = 0
 
         while self.run_active:
-            active_agents: set[int] = set(self.ref_world.agents.keys())
+            active_agents: set[UID] = set(self.ref_world.agents.keys())
             self.ros_publisher.publish_sim_world(self.ref_world)
             trace_polygons: t.List[Polygon] = []
-            step_count = 0
             self.simulation_log.append(utils.BasicLog("Starting run.", step_count))
             self.ros_publisher.publish_message(
                 "Sim steps: {}".format(step_count),
@@ -429,9 +444,9 @@ class Simulator:
                 self._run_window_loop(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,
-                    step_count=step_count,
                 )
             else:
+                step_count = 0
                 while len(active_agents) > 0 and self.run_active:
                     (active_agents, trace_polygons, step_count) = self.step(
                         active_agents=active_agents,
@@ -515,28 +530,39 @@ class Simulator:
             raise self.exception
 
     def _run_window_loop(
-        self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
+        self, active_agents: set[UID], trace_polygons: t.List[Polygon]
     ):
         if self.window is None:
             raise Exception("No window")
         self._window_step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
-            step_count=step_count,
+            step_count=0,
         )
+        self.window.bind("<KeyPress>", self._on_key_press)
         self.window.mainloop()
 
+    def _on_key_press(self, event: t.Any):
+        # Get the key symbol from the event object
+        if event.keysym == "p":
+            self._paused = not self._paused
+        elif event.keysym == "space":
+            self._paused = False
+            self._step = True
+
     def _window_step(
-        self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
+        self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
     ):
         if not self.window:
             raise Exception("No window")
+
         (active_agents, trace_polygons, step_count) = self.step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
             step_count=step_count,
         )
         self.render_window()
+
         self.window.after(
             1, self._window_step, active_agents, trace_polygons, step_count
         )
@@ -552,7 +578,6 @@ class Simulator:
         return World(
             config=self.config,
             entities=entities,
-            taboo_zones=copy.deepcopy(self.ref_world.taboo_zones),
             discretization_data=copy.deepcopy(self.ref_world.discretization_data),
             logger=self.simulation_log,
         )
@@ -612,7 +637,7 @@ class Simulator:
         }
         for sim_step_result in self.history:
             # Only repeat successful actions when replaying the simulation
-            successful_actions: t.Dict[int, ba.BasicAction] = {
+            successful_actions: t.Dict[UID, ba.BasicAction] = {
                 uid: action_result.action
                 for uid, action_result in sim_step_result.action_results.items()
                 if (
@@ -779,7 +804,7 @@ class Simulator:
         self,
         goals_geometries: t.Dict[str, PoseModel],
         max_nb_goals: float = float("inf"),
-    ) -> t.Dict[int, t.List[PoseModel]]:
+    ) -> t.Dict[UID, t.List[PoseModel]]:
         """
         Contructs and returns a dictionary that maps an agent uid to a list of nativation goal poses. Each
         agent may multiple navigation goals.
@@ -810,7 +835,7 @@ class Simulator:
 
     def save_world_snapshot(
         self,
-        agent_uid: int,
+        agent_uid: UID,
         action: ba.BasicAction,
         trace_polygons: t.List[Polygon],
         step_count: int,
@@ -862,9 +887,9 @@ class Simulator:
 
     def sense(
         self,
-        active_agents: set[int],
+        active_agents: set[UID],
         step_count: int,
-        sense_durations: t.Dict[int, float],
+        sense_durations: t.Dict[UID, float],
     ):
         for agent_uid, behavior in self.ref_world.agents.items():
             if agent_uid in active_agents:
@@ -883,12 +908,14 @@ class Simulator:
 
                 # Record the time it took the robot to sense the world
                 sense_durations[agent_uid] = time.time() - sense_start
+            else:
+                self.ros_publisher.cleanup_robot_world(ns=behavior.name)
 
     def _agent_think(
         self,
-        agent_uid: int,
+        agent_uid: UID,
         behavior: Agent,
-        results: Queue[t.Tuple[int, float, ThinkResult]],
+        results: Queue[t.Tuple[UID, float, ThinkResult]],
     ):
         think_start = time.time()
         think_result = behavior.think(ros_publisher=self.ros_publisher)
@@ -897,14 +924,14 @@ class Simulator:
 
     def process_think_results(
         self,
-        results: t.Iterable[t.Tuple[int, float, ThinkResult]],
-        think_durations: t.Dict[int, float],
-        active_agents: t.Set[int],
+        results: t.Iterable[t.Tuple[UID, float, ThinkResult]],
+        think_durations: t.Dict[UID, float],
+        active_agents: t.Set[UID],
         trace_polygons: t.List[Polygon],
         step_count: int,
-    ) -> t.Dict[int, ba.BasicAction]:
+    ) -> t.Dict[UID, ba.BasicAction]:
         """Process the results of each agent's think step. Updates the set of activate agents and the dictionary of think durations."""
-        agent_uid_to_next_action: t.Dict[int, ba.BasicAction] = {}
+        agent_uid_to_next_action: t.Dict[UID, ba.BasicAction] = {}
         for agent_uid, think_duration, think_result in results:
             think_durations[agent_uid] = think_duration
 
@@ -960,20 +987,21 @@ class Simulator:
 
     def think(
         self,
-        active_agents: set[int],
+        active_agents: t.Set[UID],
         step_count: int,
-        think_durations: t.Dict[int, float],
+        think_durations: t.Dict[UID, float],
         trace_polygons: t.List[Polygon],
     ):
-        results: t.List[t.Tuple[int, float, ThinkResult]] = []
+        results: t.List[t.Tuple[UID, float, ThinkResult]] = []
         for agent_uid, behavior in self.ref_world.agents.items():
             if agent_uid in active_agents:
+                self.publish_robot_goal(agent_uid=agent_uid)
+
                 think_start = time.time()
                 think_result = behavior.think(ros_publisher=self.ros_publisher)
                 think_duration = time.time() - think_start
                 results.append((agent_uid, think_duration, think_result))
 
-                self.publish_robot_goal(agent_uid=agent_uid)
                 self.publish_robot_plan(
                     agent_uid=agent_uid, did_replan=think_result.did_replan
                 )
@@ -988,21 +1016,21 @@ class Simulator:
 
     def act(
         self,
-        agent_uid_to_next_action: t.Dict[int, ba.BasicAction],
+        agent_uid_to_next_action: t.Dict[UID, ba.BasicAction],
         step_count: int,
         ignore_collisions: bool = True,
-    ) -> t.Dict[int, ar.ActionResult]:
+    ) -> t.Dict[UID, ar.ActionResult]:
         """
         Processes agent actions and produce the actions results
         """
         # Only Grab and Release actions require further checks, and Wait actions are necessarily valid
-        to_check: t.Dict[int, ba.BasicAction] = {
+        to_check: t.Dict[UID, ba.BasicAction] = {
             uid: a
             for uid, a in agent_uid_to_next_action.items()
             if isinstance(a, (ba.Translation, ba.Rotation))
             and not isinstance(a, (ba.Grab, ba.Release))
         }
-        action_results: t.Dict[int, ar.ActionResult] = {
+        action_results: t.Dict[UID, ar.ActionResult] = {
             uid: ar.ActionSuccess(a, self.ref_world.entities[uid].pose)
             for uid, a in agent_uid_to_next_action.items()
             if isinstance(a, (ba.Wait, ba.GoalSuccess, ba.GoalFailed, ba.GoalsFinished))
@@ -1127,17 +1155,18 @@ class Simulator:
 
         return action_results
 
-    def publish_robot_goal(self, agent_uid: int):
+    def publish_robot_goal(self, agent_uid: UID):
         behavior = self.ref_world.agents[agent_uid]
-        if behavior and behavior.goal_pose:
+        goal = behavior.get_current_or_next_goal()
+        if behavior and goal:
             self.ros_publisher.publish_goal(
                 q_init=behavior.pose,
-                q_goal=behavior.goal_pose,
+                q_goal=goal,
                 entity=behavior,
                 ns=behavior.name,
             )
 
-    def publish_robot_plan(self, agent_uid: int, did_replan: bool):
+    def publish_robot_plan(self, agent_uid: UID, did_replan: bool):
         behavior = self.ref_world.agents[agent_uid]
         if behavior and behavior.goal_pose:
             if did_replan:

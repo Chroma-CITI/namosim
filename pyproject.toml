@@ -75,7 +75,6 @@ pyright \
   namosim/world/binary_occupancy_grid.py \
   namosim/world/entity.py \
   namosim/world/goal.py \
-  namosim/world/models.py \
   namosim/world/obstacle.py \
   namosim/world/world.py \
   namosim/report.py \

@@ -1,6 +1,6 @@
 from shapely import Polygon
 
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 
 
 class Goal:
@@ -11,7 +11,7 @@ class Goal:
         name: str,
         polygon: Polygon,
         pose: PoseModel,
-        uid: int = 0,
+        uid: UID = 0,
     ):
         if uid == 0:
             self.uid = Goal.last_id
