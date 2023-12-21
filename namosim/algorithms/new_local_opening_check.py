@@ -3,9 +3,9 @@ import typing as t
 from aabbtree import AABBTree
 from shapely.geometry import MultiPolygon, Point, Polygon
 
+import namosim.display.ros2_publisher as rp
 import namosim.utils.collision as collision
 from namosim.data_models import PoseModel
-from namosim.display.ros2_publisher import RosPublisher
 
 
 def check_new_local_opening(
@@ -15,7 +15,7 @@ def check_new_local_opening(
     other_entities_aabb_tree: AABBTree,
     inflation_radius: float,
     goal_pose: PoseModel,
-    ros_publisher: RosPublisher,
+    ros_publisher: "rp.RosPublisher",
     init_blocking_areas: t.List[Polygon] | None = None,
     init_entity_inflated_polygon: t.Optional[Polygon] = None,
     ns: str = "",

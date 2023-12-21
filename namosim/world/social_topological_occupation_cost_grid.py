@@ -10,7 +10,7 @@ from PIL import Image
 from scipy.spatial import Voronoi
 from shapely.geometry import LineString, Point
 
-from namosim.display.ros2_publisher import RosPublisher
+import namosim.display.ros2_publisher as rp
 from namosim.utils import utils
 
 rel_path_to_costmap_logs_dir = "../../../logs/costmaps/"
@@ -240,7 +240,7 @@ def voronoi_skeleton(entities, entities_to_ignore=tuple()):
 def compute_social_costmap(
     binary_occ_grid,
     res,
-    ros_publisher: RosPublisher,
+    ros_publisher: "rp.RosPublisher",
     neighborhood=utils.TAXI_NEIGHBORHOOD,
     skeleton_function=skeleteton_social_cost_function_02,
     decay_function=exp_decay_function,
@@ -429,7 +429,7 @@ class SocialTopologicalOccupationCostGrid:
         res,
         grid_pose,
         inflation_radius,
-        ros_publisher: RosPublisher,
+        ros_publisher: "rp.RosPublisher",
         skeleton_function=skeleteton_social_cost_function,
         decay_function=exp_decay_function,
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -452,7 +452,7 @@ class SocialTopologicalOccupationCostGrid:
     def from_binary_occ_grid(
         cls,
         binary_occ_grid,
-        ros_publisher: RosPublisher,
+        ros_publisher: "rp.RosPublisher",
         skeleton_function=skeleteton_social_cost_function,
         decay_function=exp_decay_function,
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,

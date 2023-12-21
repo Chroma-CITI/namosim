@@ -8,9 +8,9 @@ from shapely import Polygon
 from shapely.geometry import MultiPoint, Point
 
 import namosim.navigation.basic_actions as ba
+import namosim.world.world as w
 from namosim.data_models import PoseModel
 from namosim.utils import utils
-from namosim.world.world import World
 
 
 class Action:
@@ -581,7 +581,7 @@ def csv_check_collisions(
 
 
 def csv_simulate_simple_kinematics(
-    world: World,
+    world: "w.World",
     agent_uid_to_next_action: t.Dict[int, ba.BasicAction],
     apply: bool = False,
     bb_type: str = "minimum_rotated_rectangle",

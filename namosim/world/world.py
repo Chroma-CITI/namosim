@@ -9,10 +9,10 @@ from bidict import bidict
 from shapely.geometry import LineString, Polygon, box
 from typing_extensions import Self
 
+import namosim.agents as agts
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
-import namosim.world.robot as robot
-from namosim.data_models import NamosimConfigModel
+from namosim.data_models import NamosimConfigModel, PoseModel
 from namosim.display import conversions
 from namosim.world.discretization_data import DiscretizationData
 from namosim.world.entity import Entity, Style
@@ -25,17 +25,21 @@ from namosim.world.taboo import Taboo
 class World:
     def __init__(
         self,
+        *,
         discretization_data: DiscretizationData,
         config: NamosimConfigModel,
         entities: t.Optional[t.Dict[int, Entity]] = None,
+        agents: t.Optional[t.Dict[int, "agts.Agent"]] = None,
         entity_to_agent: t.Optional[bidict[int, int]] = None,
         taboo_zones: t.Optional[t.Dict[int, Taboo]] = None,
         goals: t.Optional[t.Dict[int, Goal]] = None,
         init_geometry_filename: str = "world_name_placeholder.svg",
         init_geometry_file: t.Optional[minidom.Document] = None,
+        logger: utils.CustomLogger,
     ):
         self.config = config
         self.entities = entities or dict()
+        self.agents: t.Dict[int, "agts.Agent"] = agents if agents else {}
         self.entity_to_agent = entity_to_agent or bidict()
         self.discretization_data = discretization_data
         self.agent_configs = ({x.agent_id: x for x in config.agents},)
@@ -45,13 +49,15 @@ class World:
             conversion.clean_attributes(init_geometry_file)
         self.init_geometry_filename = init_geometry_filename
         self.init_geometry_file = init_geometry_file
-
         self.taboo_zones: t.Dict[int, Taboo] = taboo_zones or dict()
         self.goals: t.Dict[int, Goal] = goals or dict()
+        self.logger = logger
 
     # Constructor
     @classmethod
-    def load_from_svg(cls, world_svg_path: str) -> Self:
+    def load_from_svg(
+        cls, world_svg_path: str, logs_dir: str, logger: utils.CustomLogger
+    ) -> Self:
         # Import entire world from svg file
         svg_doc = minidom.parse(world_svg_path)
         config = NamosimConfigModel.from_xml(
@@ -118,6 +124,7 @@ class World:
             init_geometry_file=svg_doc,
             discretization_data=discretization_data,
             config=config,
+            logger=logger,
         )
 
         # Get all things
@@ -193,19 +200,8 @@ class World:
 
             robot_pose[0] = t.cast(float, list(robot_polygon.centroid.coords)[0][0])
             robot_pose[1] = t.cast(float, list(robot_polygon.centroid.coords)[0][1])
-            new_robot = robot.Robot(
-                name=agent.agent_id,
-                full_geometry_acquired=True,
-                polygon=robot_polygon,
-                pose=tuple(robot_pose),  # type: ignore
-                sensors=[OmniscientSensor()],
-                push_only_list=[],
-                force_pushes_only=True,
-                movable_whitelist=["box"],
-                style=Style.from_string(robot_style),
-            )
-            world.add_entity(new_robot)
 
+            goal_poses: t.List[PoseModel] = []
             for goal in agent.goals:
                 goal_el = svg_doc.getElementById(goal.goal_id)
                 if not goal_el:
@@ -239,10 +235,73 @@ class World:
                     pose=tuple(goal_pose),  # type: ignore
                 )
                 world.goals[goal.uid] = goal
+                goal_poses.append((goal_pose[0], goal_pose[1], goal_pose[2]))
+
+            if agent.behavior.type == "stilman_2005_behavior":
+                new_robot = agts.Stilman2005Agent(
+                    navigation_goals=goal_poses,
+                    params=agent.behavior.parameters,
+                    logs_dir=logs_dir,
+                    full_geometry_acquired=True,
+                    name=agent.agent_id,
+                    polygon=robot_polygon,
+                    style=Style.from_string(robot_style),
+                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    sensors=[OmniscientSensor()],
+                    push_only_list=[],
+                    force_pushes_only=False,
+                    movable_whitelist=["box"],
+                    logger=logger,
+                )
+            elif agent.behavior.type == "navigation_only_behavior":
+                new_robot = agts.NavigationOnlyAgent(
+                    navigation_goals=goal_poses,
+                    logs_dir=logs_dir,
+                    full_geometry_acquired=True,
+                    name=agent.agent_id,
+                    polygon=robot_polygon,
+                    style=Style.from_string(robot_style),
+                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    sensors=[OmniscientSensor()],
+                    push_only_list=[],
+                    force_pushes_only=False,
+                    movable_whitelist=["box"],
+                    logger=logger,
+                )
+            elif agent.behavior.type == "stilman_only_behavior":
+                new_robot = agts.StilmanOnlyAgent(
+                    navigation_goals=goal_poses,
+                    params=agent.behavior.parameters,
+                    logs_dir=logs_dir,
+                    full_geometry_acquired=True,
+                    name=agent.agent_id,
+                    polygon=robot_polygon,
+                    style=Style.from_string(robot_style),
+                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    sensors=[OmniscientSensor()],
+                    push_only_list=[],
+                    force_pushes_only=False,
+                    movable_whitelist=["box"],
+                    logger=logger,
+                )
+            else:
+                raise NotImplementedError(
+                    "You tried to associate entity '{agent_name}' with a behavior named"
+                    "'{b_name}' that is not implemented yet."
+                    "Maybe you mispelled something ?".format(
+                        agent_name=agent.agent_id, b_name=agent.behavior.type
+                    )
+                )
+
+            world.add_entity(new_robot)
+            world.agents[new_robot.uid] = new_robot
 
         goals_node = svg_doc.getElementById("goals")
         if goals_node:
             goals_node.parentNode.removeChild(goals_node)
+
+        for agent in world.agents.values():
+            agent.init(world)
 
         return world
 
@@ -293,7 +352,7 @@ class World:
                         map_width=self.discretization_data.width,
                         map_height=self.discretization_data.height,
                     )
-                elif isinstance(entity, robot.Robot):
+                elif isinstance(entity, agts.Agent):
                     robot_group = conversion.add_group(
                         svg_data, entity.name, is_layer=False
                     )
@@ -346,10 +405,10 @@ class World:
     def remove_entity(self, entity_uid: int):
         if entity_uid in self.entities:
             del self.entities[entity_uid]
-        else:
-            raise KeyError(
-                "Warning, you tried to remove an entity that is not registered in this world !"
-            )
+        if entity_uid in self.agents:
+            del self.agents[entity_uid]
+        if entity_uid in self.entity_to_agent:
+            del self.entity_to_agent[entity_uid]
 
     @staticmethod
     def get_discretization_data(
@@ -389,20 +448,28 @@ class World:
         for e, a in self.entity_to_agent.items():
             if a not in ignored_entities and e not in ignored_entities:
                 entity_to_agent[e] = a
+        entities = {}
+        agents = {}
+        for uid, e in self.entities.items():
+            if uid in ignored_entities:
+                continue
+
+            e = e.light_copy()
+            entities[uid] = e
+            if isinstance(e, agts.Agent):
+                agents[uid] = e
 
         return World(
             config=self.config,
-            entities={
-                uid: entity.light_copy()
-                for uid, entity in self.entities.items()
-                if uid not in ignored_entities
-            },
+            entities=entities,
+            agents=agents,
             entity_to_agent=entity_to_agent,
             discretization_data=copy.deepcopy(self.discretization_data),
             taboo_zones=copy.deepcopy(self.taboo_zones),
             goals=copy.deepcopy(self.goals),
             init_geometry_filename=self.init_geometry_filename,
             init_geometry_file=self.init_geometry_file,
+            logger=self.logger,
         )
 
     def set_entity_polygon(self, id: int, polygon: Polygon):
