@@ -738,8 +738,6 @@ class TransitPath:
         social_cost: float = 0.0,
         weight: float = 1.0,
     ):
-        if robot_pose != poses[0]:
-            raise Exception("Robot pose not equal to start pose")
         # Separate translation from rotation actions
         if len(poses) == 0:
             return cls(
@@ -749,6 +747,10 @@ class TransitPath:
                 social_cost=social_cost,
                 weight=weight,
             )
+
+        if robot_pose != poses[0]:
+            raise Exception("Robot pose not equal to start pose")
+            
         if len(poses) == 1:
             return cls(
                 robot_path=Path(poses=poses, polygons=[robot_polygon]),
