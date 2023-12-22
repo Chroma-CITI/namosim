@@ -1054,6 +1054,9 @@ class Stilman2005Agent(Agent):
             static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0
             or static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0
         ):
+            static_obs_inf_grid.update({self.uid: self.polygon})
+            static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] = 10
+            static_obs_inf_grid.to_image().save("static.png")
             return nav_plan.Plan(
                 plan_error="start_or_goal_cell_in_static_obstacle_error",
                 robot_uid=self.uid,

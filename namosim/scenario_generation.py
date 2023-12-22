@@ -171,12 +171,14 @@ def generate_alternative_scenarios(
     all_obstacles_grid = BinaryInflatedOccupancyGrid(
         all_polygons,
         svg_init_config.cell_size,
-        utils.get_circumscribed_radius(base_robot_polygon),
+        utils.get_circumscribed_radius(base_robot_polygon)
+        + 0.5 * svg_init_config.cell_size,
     )
     static_and_movable_grid = BinaryInflatedOccupancyGrid(
         static_and_movable_polygons,
         svg_init_config.cell_size,
-        utils.get_circumscribed_radius(base_robot_polygon),
+        utils.get_circumscribed_radius(base_robot_polygon)
+        + 0.5 * svg_init_config.cell_size,
     )
 
     for c_scenario in range(nb_scenarios):
