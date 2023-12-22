@@ -1526,7 +1526,7 @@ def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]):
     cross = np.cross(v1_norm, v2_norm)
 
     # Determine the sign of the angle
-    sign = -np.sign(np.linalg.norm(cross))
+    sign = np.sign(cross)
 
     # Combine the dot product and sign to get the signed angle
     signed_angle = np.arccos(dot) * sign
