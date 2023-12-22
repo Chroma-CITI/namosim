@@ -1,6 +1,6 @@
 import typing as t
 
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 from namosim.utils import utils
 
 
@@ -17,14 +17,14 @@ class RobotRobotConflict(Conflict):
 
     def __init__(
         self,
-        robot_uid: int,
+        robot_uid: UID,
         robot_pose: PoseModel,
-        other_robot_uid: int,
+        other_robot_uid: UID,
         other_robot_pose: PoseModel,
         colliding_uids: t.Tuple[float, float],
-        robot_transfered_obstacle_uid: int | None = None,
+        robot_transfered_obstacle_uid: UID | None = None,
         robot_transfered_obstacle_pose: PoseModel | None = None,
-        other_robot_transfered_obstacle_uid: int | None = None,
+        other_robot_transfered_obstacle_uid: UID | None = None,
         other_robot_transfered_obstacle_pose: PoseModel | None = None,
         at_grab: bool = False,
         at_release: bool = False,
@@ -133,14 +133,14 @@ class SimultaneousSpaceAccess(RobotRobotConflict):
 
     def __init__(
         self,
-        robot_uid: int,
+        robot_uid: UID,
         robot_pose: PoseModel,
-        other_robot_uid: int,
+        other_robot_uid: UID,
         other_robot_pose: PoseModel,
         colliding_uids: t.Tuple[int, int],
-        robot_transfered_obstacle_uid: int | None = None,
+        robot_transfered_obstacle_uid: UID | None = None,
         robot_transfered_obstacle_pose: PoseModel | None = None,
-        other_robot_transfered_obstacle_uid: int | None = None,
+        other_robot_transfered_obstacle_uid: UID | None = None,
         other_robot_transfered_obstacle_pose: PoseModel | None = None,
         at_grab: bool = False,
         at_release: bool = False,
@@ -162,7 +162,7 @@ class SimultaneousSpaceAccess(RobotRobotConflict):
 
 
 class RobotObstacleConflict(Conflict):
-    def __init__(self, obstacle_uid: int):
+    def __init__(self, obstacle_uid: UID):
         self.obstacle_uid = obstacle_uid
 
     def __str__(self):
@@ -175,7 +175,7 @@ class RobotObstacleConflict(Conflict):
 class StolenMovableConflict(
     Conflict
 ):  # If Movable is in grabbed state, postpone, else immediate replan
-    def __init__(self, obstacle_uid: int):
+    def __init__(self, obstacle_uid: UID):
         self.obstacle_uid = obstacle_uid
 
     def __str__(self):
@@ -185,7 +185,7 @@ class StolenMovableConflict(
 
 
 class StealingMovableConflict(Conflict):
-    def __init__(self, obstacle_uid: int, thief_uid: int):
+    def __init__(self, obstacle_uid: UID, thief_uid: UID):
         self.obstacle_uid = obstacle_uid
         self.thief_uid = thief_uid
 
@@ -196,7 +196,7 @@ class StealingMovableConflict(Conflict):
 
 
 class ConcurrentGrabConflict(StealingMovableConflict):  # Systematic postpone
-    def __init__(self, obstacle_uid: int, other_robot_uid: int):
+    def __init__(self, obstacle_uid: UID, other_robot_uid: UID):
         self.obstacle_uid = obstacle_uid
         self.other_robot_uid = other_robot_uid
 

@@ -4,6 +4,7 @@ import json
 import os
 import pickle
 import random
+import sys
 import time
 import tkinter as tk
 import traceback
@@ -19,11 +20,8 @@ import namosim.config as config
 import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
-from namosim.behaviors.baseline_behavior import BaselineBehavior, ThinkResult
-from namosim.behaviors.navigation_only_behavior import NavigationOnlyBehavior
-from namosim.behaviors.stilman_2005_behavior import DynamicPlan, Stilman2005Behavior
-from namosim.behaviors.stilman_only_behavior import StilmanOnlyBehavior
-from namosim.data_models import PoseModel
+from namosim.agents.agent import Agent, ThinkResult
+from namosim.data_models import UID, PoseModel
 from namosim.exceptions import timeout
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -33,19 +31,22 @@ from namosim.navigation.conflict import (
     StealingMovableConflict,
     StolenMovableConflict,
 )
+from namosim.navigation.navigation_plan import DynamicPlan
+from namosim.report import SimulationReport
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
-from namosim.world.robot import Robot
 from namosim.world.world import World
+
+sys.setrecursionlimit(10000)
 
 
 class SimulationStepResult:
     def __init__(
         self,
-        sense_durations: t.Dict[int, float],
-        think_durations: t.Dict[int, float],
+        sense_durations: t.Dict[UID, float],
+        think_durations: t.Dict[UID, float],
         act_duration: float,
-        action_results: t.Dict[int, ar.ActionResult],
+        action_results: t.Dict[UID, ar.ActionResult],
         step_index: int,
     ):
         self.sense_durations = sense_durations
@@ -144,10 +145,10 @@ class Simulator:
 
     def __init__(
         self,
+        *,
         simulation_file_path: str,
-        simulation_log_stub: str = "",
         goals: t.Optional[t.Dict[str, t.List[PoseModel]]] = None,
-        timestring: t.Optional[str] = None,
+        logs_dir: str | None = None,
     ):
         self.window: tk.Tk | None = None
         self.background: tk.Label | None = None
@@ -159,39 +160,33 @@ class Simulator:
             self.background = tk.Label(self.window)
             self.background.pack()
 
-        # Load simulation file and initialize logs
-        if timestring:
-            self.sim_start_timestring = timestring
-        else:
-            self.sim_start_timestring = utils.timestamp_string()
-
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
-        # Load world file
-        self.init_ref_world = World.load_from_svg(simulation_file_abs_path)
-        self.config = self.init_ref_world.config
 
-        sim_file_parent_dirname = os.path.basename(
-            os.path.normpath(
-                os.path.abspath(os.path.join(simulation_file_abs_path, ".."))
-            )
-        )
         self.simulation_filename = os.path.splitext(
             os.path.basename(simulation_file_abs_path)
         )[0]
 
-        main_logs_dir = os.path.join(
-            os.path.dirname(__file__),
-            "../logs/",
-            simulation_log_stub,
-            sim_file_parent_dirname,
-            self.simulation_filename,
-        )
-        self.logs_dir = os.path.join(main_logs_dir, self.sim_start_timestring + "/")
-
-        os.makedirs(self.logs_dir)
-        os.makedirs(self.logs_dir + "simulation/")
-
+        # init logs
+        if logs_dir:
+            self.logs_dir = logs_dir
+        else:
+            self.logs_dir = os.path.join(
+                os.path.dirname(__file__),
+                "../namo_logs/",
+                self.simulation_filename,
+            )
+        if not os.path.isdir(self.logs_dir):
+            os.makedirs(self.logs_dir)
         self.simulation_log = utils.CustomLogger()
+
+        # Load world file
+
+        self.ref_world = World.load_from_svg(
+            simulation_file_abs_path, logs_dir=self.logs_dir, logger=self.simulation_log
+        )
+        self.init_ref_world = copy.deepcopy(self.ref_world)
+
+        self.config = self.init_ref_world.config
 
         self.simulation_log.append(
             utils.BasicLog("Simulation file successfully loaded", 0)
@@ -212,7 +207,7 @@ class Simulator:
         self.save_stats = True
         self.save_history = False
         self.save_logs = True
-        self.pickle_saved_data = True
+        self.pickle_saved_data = False
 
         if self.pickle_saved_data:
 
@@ -252,18 +247,17 @@ class Simulator:
 
         if self.save_init_world_state:
             self.init_ref_world.save_to_files(
-                svg_filepath=self.logs_dir
-                + "simulation/"
-                + self.init_ref_world.init_geometry_filename,
+                svg_filepath=os.path.join(
+                    self.logs_dir, self.init_ref_world.init_geometry_filename
+                )
             )
-        self.ref_world: World = copy.deepcopy(self.init_ref_world)
 
         # Associate autonomous agents with goals and behaviors
         self.goal_poses = {
             goal.name: goal.pose for goal in self.init_ref_world.goals.values()
         }
 
-        self.agent_uid_to_goals: t.Dict[int, t.List[PoseModel]]
+        self.agent_uid_to_goals: t.Dict[UID, t.List[PoseModel]]
         """
         Maps an agent uid to a list of goal poses
         """
@@ -271,11 +265,6 @@ class Simulator:
         self.saved_goals: t.Dict[str, t.List[PoseModel]]
         """
         Maps an agent name to a list of goal poses
-        """
-
-        self.agent_uid_to_behavior: t.Dict[int, BaselineBehavior]
-        """
-        Maps an agent uid to an instance of `BaselineBehavior`
         """
 
         if goals:
@@ -291,10 +280,6 @@ class Simulator:
                 for id, goals in self.agent_uid_to_goals.items()
             }
 
-        self.agent_uid_to_behavior = self.initialize_agents_behaviors(
-            self.agent_uid_to_goals
-        )
-
         self.history: t.List[SimulationStepResult] = []
         """
         A list of simulation step results
@@ -302,7 +287,7 @@ class Simulator:
 
         # Time stats
         self.agent_uid_and_goal_to_world_snapshot = {
-            agent_uid: [] for agent_uid in self.agent_uid_to_behavior.keys()
+            agent_uid: [] for agent_uid in self.ref_world.agents.keys()
         }
 
         self.catch_exceptions = False
@@ -311,16 +296,26 @@ class Simulator:
         self.run_exceptions_traces: t.List[t.Any] = []
         self.exception: t.Union[Exception, None] = None
 
+        self.report = SimulationReport()
+
+        # keyboard actions
+        self._paused = False
+        self._step = False
+
     def step(
-        self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
-    ) -> t.Tuple[set[int], t.List[Polygon], int]:
+        self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
+    ) -> t.Tuple[set[UID], t.List[Polygon], int]:
+        if self._paused:
+            return (active_agents, trace_polygons, step_count)
+        elif self._step:
+            self._paused = True
+            self._step = False
+
         if len(active_agents) == 0:
             self.end_simulation(step_count=step_count)
-            return (active_agents, trace_polygons, step_count)
+            return (active_agents, trace_polygons, step_count + 1)
 
         try:
-            # Increment simulation step count
-            step_count += 1
             self.ros_publisher.publish_message(
                 "Sim steps: {}".format(step_count),
                 pose=(
@@ -339,7 +334,8 @@ class Simulator:
 
             # Think loop: get each agent to think about their next step
             think_durations = {}
-            with timeout(10 * 60):
+            # actions = {}
+            with timeout(20 * 60):
                 actions = self.think(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,
@@ -351,6 +347,8 @@ class Simulator:
             act_start = time.time()
             action_results = self.act(actions, step_count)
             act_duration = time.time() - act_start
+
+            self.update_report(action_results=action_results)
 
             self.history.append(
                 SimulationStepResult(
@@ -367,10 +365,18 @@ class Simulator:
         except Exception as e:
             self.end_simulation(step_count=step_count, err=e)
 
-        return (active_agents, trace_polygons, step_count)
+        return (active_agents, trace_polygons, step_count + 1)
+
+    def update_report(self, action_results: t.Dict[UID, ar.ActionResult]):
+        for uid, action_result in action_results.items():
+            agent_id = self.ref_world.entities[uid].name
+            self.report.update(agent_id=agent_id, action_result=action_result)
 
     def end_simulation(self, step_count: int, err: Exception | None = None):
         self.run_active = False
+        self._paused = False
+        self._step = False
+
         if self.window:
             self.window.quit()
         if self.background:
@@ -417,10 +423,9 @@ class Simulator:
         step_count = 0
 
         while self.run_active:
-            active_agents: set[int] = set(self.agent_uid_to_behavior.keys())
+            active_agents: set[UID] = set(self.ref_world.agents.keys())
             self.ros_publisher.publish_sim_world(self.ref_world)
             trace_polygons: t.List[Polygon] = []
-            step_count = 0
             self.simulation_log.append(utils.BasicLog("Starting run.", step_count))
             self.ros_publisher.publish_message(
                 "Sim steps: {}".format(step_count),
@@ -440,9 +445,9 @@ class Simulator:
                 self._run_window_loop(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,
-                    step_count=step_count,
                 )
             else:
+                step_count = 0
                 while len(active_agents) > 0 and self.run_active:
                     (active_agents, trace_polygons, step_count) = self.step(
                         active_agents=active_agents,
@@ -460,9 +465,7 @@ class Simulator:
         # - Save exception traces
         if self.run_exceptions_traces:
             exceptions = {"exceptions": self.run_exceptions_traces}
-            exceptions_filepath = os.path.join(
-                os.path.dirname(self.logs_dir), "exceptions"
-            )
+            exceptions_filepath = os.path.join(self.logs_dir, "exceptions")
             self.save(exceptions, exceptions_filepath)
             self.simulation_log.append(
                 utils.BasicLog(
@@ -473,11 +476,12 @@ class Simulator:
         # - Save world end state as SVG+JSON
         if self.save_end_world_state:
             self.ref_world.save_to_files(
-                svg_filepath=self.logs_dir
-                + "simulation/"
-                + utils.append_suffix(
-                    self.init_ref_world.init_geometry_filename, "_end"
-                ),
+                svg_filepath=os.path.join(
+                    self.logs_dir,
+                    utils.append_suffix(
+                        self.init_ref_world.init_geometry_filename, "_end"
+                    ),
+                )
             )
             self.simulation_log.append(
                 utils.BasicLog("Saved simulation final state.", step_count)
@@ -486,7 +490,7 @@ class Simulator:
         # - Save stats
         if self.save_stats:
             stats = self.create_simulation_report()
-            stats_filepath = os.path.join(os.path.dirname(self.logs_dir), "stats")
+            stats_filepath = os.path.join(self.logs_dir, "stats")
             self.save(stats, stats_filepath)
             self.simulation_log.append(
                 utils.BasicLog("Saved stats at: {}".format(stats_filepath), step_count)
@@ -501,9 +505,9 @@ class Simulator:
             history["simulation_history"] = self.history
             history["agent_plans_history"] = {
                 agent_uid: dict(behavior.goal_to_plans)
-                for agent_uid, behavior in self.agent_uid_to_behavior.items()
+                for agent_uid, behavior in self.ref_world.agents.items()
             }
-            history_filepath = os.path.join(os.path.dirname(self.logs_dir), "history")
+            history_filepath = os.path.join(self.logs_dir, "history")
             self.save(history, history_filepath)
             self.simulation_log.append(
                 utils.BasicLog(
@@ -516,11 +520,9 @@ class Simulator:
             logs = {}
             logs["simulation_log"] = self.simulation_log
             logs["agents_logs"] = {}
-            for uid, behavior in self.agent_uid_to_behavior.items():
-                logs["agents_logs"][
-                    self.ref_world.entities[uid].name
-                ] = behavior.simulation_log
-            logs_filepath = os.path.join(os.path.dirname(self.logs_dir), "logs")
+            for uid, behavior in self.ref_world.agents.items():
+                logs["agents_logs"][self.ref_world.entities[uid].name] = behavior.logger
+            logs_filepath = os.path.join(self.logs_dir, "logs")
             self.save(logs, logs_filepath)
 
         if self.exception is not None:
@@ -529,28 +531,39 @@ class Simulator:
             raise self.exception
 
     def _run_window_loop(
-        self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
+        self, active_agents: set[UID], trace_polygons: t.List[Polygon]
     ):
         if self.window is None:
             raise Exception("No window")
         self._window_step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
-            step_count=step_count,
+            step_count=0,
         )
+        self.window.bind("<KeyPress>", self._on_key_press)
         self.window.mainloop()
 
+    def _on_key_press(self, event: t.Any):
+        # Get the key symbol from the event object
+        if event.keysym == "p":
+            self._paused = not self._paused
+        elif event.keysym == "space":
+            self._paused = False
+            self._step = True
+
     def _window_step(
-        self, active_agents: set[int], trace_polygons: t.List[Polygon], step_count: int
+        self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
     ):
         if not self.window:
             raise Exception("No window")
+
         (active_agents, trace_polygons, step_count) = self.step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
             step_count=step_count,
         )
         self.render_window()
+
         self.window.after(
             1, self._window_step, active_agents, trace_polygons, step_count
         )
@@ -558,7 +571,7 @@ class Simulator:
     def _create_robot_world_from_sim_world(self):
         entities = dict()
         for entity_uid, entity in self.ref_world.entities.items():
-            if isinstance(entity, Robot) or (
+            if isinstance(entity, Agent) or (
                 isinstance(entity, Obstacle) and entity.type_ == "wall"
             ):
                 entities[entity_uid] = copy.deepcopy(entity)
@@ -566,14 +579,14 @@ class Simulator:
         return World(
             config=self.config,
             entities=entities,
-            taboo_zones=copy.deepcopy(self.ref_world.taboo_zones),
             discretization_data=copy.deepcopy(self.ref_world.discretization_data),
+            logger=self.simulation_log,
         )
 
     def create_simulation_report(self):
         all_movable_types = set()
         for entity in self.init_ref_world.entities.values():
-            if isinstance(entity, Robot):
+            if isinstance(entity, Agent):
                 all_movable_types.update(set(entity.movable_whitelist))
 
         all_movables_uids = {
@@ -593,7 +606,7 @@ class Simulator:
             [
                 uid
                 for uid, entity in self.init_ref_world.entities.items()
-                if isinstance(entity, Robot)
+                if isinstance(entity, Agent)
             ],
             ros_publisher=self.ros_publisher,
         )
@@ -615,18 +628,17 @@ class Simulator:
                 ),
                 agents_stats={
                     replay_world.entities[uid].name: AgentStepStats()
-                    for uid in self.agent_uid_to_behavior.keys()
+                    for uid in self.ref_world.agents.keys()
                 },
                 act_time=0.0,
             )
         ]
         prev_agent_poses = {
-            uid: replay_world.entities[uid].pose
-            for uid in self.agent_uid_to_behavior.keys()
+            uid: replay_world.entities[uid].pose for uid in self.ref_world.agents.keys()
         }
         for sim_step_result in self.history:
             # Only repeat successful actions when replaying the simulation
-            successful_actions: t.Dict[int, ba.BasicAction] = {
+            successful_actions: t.Dict[UID, ba.BasicAction] = {
                 uid: action_result.action
                 for uid, action_result in sim_step_result.action_results.items()
                 if (
@@ -669,7 +681,7 @@ class Simulator:
                     [
                         uid
                         for uid, entity in replay_world.entities.items()
-                        if isinstance(entity, Robot)
+                        if isinstance(entity, Agent)
                         or uid in replay_world.entity_to_agent.keys()
                     ],
                     ros_publisher=self.ros_publisher,
@@ -740,7 +752,7 @@ class Simulator:
                     current_goal = self.saved_goals[replay_world.entities[uid].name][
                         agent_stats.nb_goals
                     ]
-                    current_plan = self.agent_uid_to_behavior[uid].goal_to_plans[
+                    current_plan = self.ref_world.agents[uid].goal_to_plans[
                         current_goal
                     ]
 
@@ -782,10 +794,10 @@ class Simulator:
 
             prev_agent_poses = {
                 uid: replay_world.entities[uid].pose
-                for uid in self.agent_uid_to_behavior.keys()
+                for uid in self.ref_world.agents.keys()
             }
 
-        report = {"stats": stats}
+        report = {"stats": stats, "report": self.report.to_json_data()}
 
         return report
 
@@ -793,7 +805,7 @@ class Simulator:
         self,
         goals_geometries: t.Dict[str, PoseModel],
         max_nb_goals: float = float("inf"),
-    ) -> t.Dict[int, t.List[PoseModel]]:
+    ) -> t.Dict[UID, t.List[PoseModel]]:
         """
         Contructs and returns a dictionary that maps an agent uid to a list of nativation goal poses. Each
         agent may multiple navigation goals.
@@ -822,63 +834,9 @@ class Simulator:
 
         return agent_uid_to_goals
 
-    def initialize_agents_behaviors(
-        self, agents_navigation_goals: t.Dict[int, t.List[PoseModel]]
-    ) -> t.Dict[int, BaselineBehavior]:
-        agent_uid_to_behavior = dict()
-
-        for agent in self.config.agents:
-            agent_uid = self.ref_world.get_entity_uid_from_name(agent.agent_id)
-            agent_navigation_goals = agents_navigation_goals[agent_uid]
-            if agent_uid in agent_uid_to_behavior:
-                raise RuntimeError(
-                    "You can only associate a single behavior with entity: {entity_name}.".format(
-                        entity_name=agent.agent_id
-                    )
-                )
-            else:
-                behavior_config = agent.behavior
-                self.ros_publisher.cleanup_robot_world(ns=agent.agent_id)
-                agent_world = copy.deepcopy(self.ref_world)
-
-                if behavior_config.type == "stilman_2005_behavior":
-                    agent_uid_to_behavior[agent_uid] = Stilman2005Behavior(
-                        initial_world=agent_world,
-                        robot_uid=agent_uid,
-                        navigation_goals=agent_navigation_goals,
-                        params=behavior_config.parameters,
-                        logger=self.simulation_log,
-                        logs_dir=self.logs_dir,
-                    )
-                elif behavior_config.type == "navigation_only_behavior":
-                    agent_uid_to_behavior[agent_uid] = NavigationOnlyBehavior(
-                        initial_world=agent_world,
-                        robot_uid=agent_uid,
-                        navigation_goals=agent_navigation_goals,
-                        logs_dir=self.logs_dir,
-                    )
-                elif behavior_config.type == "stilman_only_behavior":
-                    agent_uid_to_behavior[agent_uid] = StilmanOnlyBehavior(
-                        initial_world=agent_world,
-                        robot_uid=agent_uid,
-                        navigation_goals=agent_navigation_goals,
-                        params=behavior_config.parameters,
-                        logs_dir=self.logs_dir,
-                    )
-                else:
-                    raise NotImplementedError(
-                        "You tried to associate entity '{agent_name}' with a behavior named"
-                        "'{b_name}' that is not implemented yet."
-                        "Maybe you mispelled something ?".format(
-                            agent_name=agent.agent_id, b_name=behavior_config.type
-                        )
-                    )
-
-        return agent_uid_to_behavior
-
     def save_world_snapshot(
         self,
-        agent_uid: int,
+        agent_uid: UID,
         action: ba.BasicAction,
         trace_polygons: t.List[Polygon],
         step_count: int,
@@ -925,16 +883,16 @@ class Simulator:
         del trace_polygons[: len(trace_polygons)]
 
         world_snapshot.save_to_files(
-            svg_filepath=self.logs_dir + "simulation/" + svg_filepath,
+            svg_filepath=os.path.join(self.logs_dir, svg_filepath)
         )
 
     def sense(
         self,
-        active_agents: set[int],
+        active_agents: set[UID],
         step_count: int,
-        sense_durations: t.Dict[int, float],
+        sense_durations: t.Dict[UID, float],
     ):
-        for agent_uid, behavior in self.agent_uid_to_behavior.items():
+        for agent_uid, behavior in self.ref_world.agents.items():
             if agent_uid in active_agents:
                 sense_start = time.time()
                 last_action_result = (
@@ -947,18 +905,18 @@ class Simulator:
                 behavior.sense(self.ref_world, last_action_result, step_count)
 
                 # Publish the robot's perceived/sensed world to RVIZ
-                self.ros_publisher.publish_robot_world(
-                    behavior.world, behavior.robot_uid
-                )
+                self.ros_publisher.publish_robot_world(behavior.world, behavior.uid)
 
                 # Record the time it took the robot to sense the world
                 sense_durations[agent_uid] = time.time() - sense_start
+            else:
+                self.ros_publisher.cleanup_robot_world(ns=behavior.name)
 
     def _agent_think(
         self,
-        agent_uid: int,
-        behavior: BaselineBehavior,
-        results: Queue[t.Tuple[int, float, ThinkResult]],
+        agent_uid: UID,
+        behavior: Agent,
+        results: Queue[t.Tuple[UID, float, ThinkResult]],
     ):
         think_start = time.time()
         think_result = behavior.think(ros_publisher=self.ros_publisher)
@@ -967,14 +925,14 @@ class Simulator:
 
     def process_think_results(
         self,
-        results: t.Iterable[t.Tuple[int, float, ThinkResult]],
-        think_durations: t.Dict[int, float],
-        active_agents: t.Set[int],
+        results: t.Iterable[t.Tuple[UID, float, ThinkResult]],
+        think_durations: t.Dict[UID, float],
+        active_agents: t.Set[UID],
         trace_polygons: t.List[Polygon],
         step_count: int,
-    ) -> t.Dict[int, ba.BasicAction]:
+    ) -> t.Dict[UID, ba.BasicAction]:
         """Process the results of each agent's think step. Updates the set of activate agents and the dictionary of think durations."""
-        agent_uid_to_next_action: t.Dict[int, ba.BasicAction] = {}
+        agent_uid_to_next_action: t.Dict[UID, ba.BasicAction] = {}
         for agent_uid, think_duration, think_result in results:
             think_durations[agent_uid] = think_duration
 
@@ -1030,20 +988,21 @@ class Simulator:
 
     def think(
         self,
-        active_agents: set[int],
+        active_agents: t.Set[UID],
         step_count: int,
-        think_durations: t.Dict[int, float],
+        think_durations: t.Dict[UID, float],
         trace_polygons: t.List[Polygon],
     ):
-        results: t.List[t.Tuple[int, float, ThinkResult]] = []
-        for agent_uid, behavior in self.agent_uid_to_behavior.items():
+        results: t.List[t.Tuple[UID, float, ThinkResult]] = []
+        for agent_uid, behavior in self.ref_world.agents.items():
             if agent_uid in active_agents:
+                self.publish_robot_goal(agent_uid=agent_uid)
+
                 think_start = time.time()
                 think_result = behavior.think(ros_publisher=self.ros_publisher)
                 think_duration = time.time() - think_start
                 results.append((agent_uid, think_duration, think_result))
 
-                self.publish_robot_goal(agent_uid=agent_uid)
                 self.publish_robot_plan(
                     agent_uid=agent_uid, did_replan=think_result.did_replan
                 )
@@ -1058,21 +1017,21 @@ class Simulator:
 
     def act(
         self,
-        agent_uid_to_next_action: t.Dict[int, ba.BasicAction],
+        agent_uid_to_next_action: t.Dict[UID, ba.BasicAction],
         step_count: int,
         ignore_collisions: bool = True,
-    ) -> t.Dict[int, ar.ActionResult]:
+    ) -> t.Dict[UID, ar.ActionResult]:
         """
         Processes agent actions and produce the actions results
         """
         # Only Grab and Release actions require further checks, and Wait actions are necessarily valid
-        to_check: t.Dict[int, ba.BasicAction] = {
+        to_check: t.Dict[UID, ba.BasicAction] = {
             uid: a
             for uid, a in agent_uid_to_next_action.items()
             if isinstance(a, (ba.Translation, ba.Rotation))
             and not isinstance(a, (ba.Grab, ba.Release))
         }
-        action_results: t.Dict[int, ar.ActionResult] = {
+        action_results: t.Dict[UID, ar.ActionResult] = {
             uid: ar.ActionSuccess(a, self.ref_world.entities[uid].pose)
             for uid, a in agent_uid_to_next_action.items()
             if isinstance(a, (ba.Wait, ba.GoalSuccess, ba.GoalFailed, ba.GoalsFinished))
@@ -1187,30 +1146,36 @@ class Simulator:
                     del self.ref_world.entity_to_agent[action.entity_uid]
 
                 action_results[agent_uid] = ar.ActionSuccess(
-                    action, self.ref_world.entities[agent_uid].pose
+                    action=action,
+                    robot_pose=self.ref_world.entities[agent_uid].pose,
+                    is_transfer=agent_uid in self.ref_world.entity_to_agent.inverse,
+                    obstacle_uid=self.ref_world.entity_to_agent.inverse.get(
+                        agent_uid, None
+                    ),
                 )
 
         return action_results
 
-    def publish_robot_goal(self, agent_uid: int):
-        behavior = self.agent_uid_to_behavior[agent_uid]
-        if behavior and behavior.goal_pose:
+    def publish_robot_goal(self, agent_uid: UID):
+        behavior = self.ref_world.agents[agent_uid]
+        goal = behavior.get_current_or_next_goal()
+        if behavior and goal:
             self.ros_publisher.publish_goal(
-                q_init=behavior.robot.pose,
-                q_goal=behavior.goal_pose,
-                entity=behavior.robot,
-                ns=behavior.robot.name,
+                q_init=behavior.pose,
+                q_goal=goal,
+                entity=behavior,
+                ns=behavior.name,
             )
 
-    def publish_robot_plan(self, agent_uid: int, did_replan: bool):
-        behavior = self.agent_uid_to_behavior[agent_uid]
+    def publish_robot_plan(self, agent_uid: UID, did_replan: bool):
+        behavior = self.ref_world.agents[agent_uid]
         if behavior and behavior.goal_pose:
             if did_replan:
-                self.ros_publisher.cleanup_p_opt(ns=behavior.robot.name)
+                self.ros_publisher.cleanup_p_opt(ns=behavior.name)
             plan = behavior.get_plan()
             if plan:
                 self.ros_publisher.publish_p_opt(
                     plan=plan,
-                    robot=behavior.robot,
-                    ns=behavior.robot.name,
+                    robot=behavior,
+                    ns=behavior.name,
                 )

@@ -29,6 +29,13 @@ poetry shell
 
 You should be all set to start.
 
+### Install ROS packages
+
+```
+sudo apt update
+sudo apt install ros-iron-grid-map
+```
+
 ## Examples
 
 ### IROS 2021 Experiments

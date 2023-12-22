@@ -118,3 +118,5 @@ data/
 
 .ruff_cache
 *.png
+namo_logs/
+generated/

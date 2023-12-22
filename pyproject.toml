@@ -42,6 +42,7 @@ rospkg = "^1.5.0"
 six = "^1.16.0"
 cairosvg = "^2.7.1"
 pydantic-xml = "^2.5.0"
+typer = { extras = ["all"], version = "^0.9.0" }
 
 [tool.poetry.group.dev.dependencies]
 sphinx = "^7.2.6"
@@ -62,8 +63,8 @@ test.env = { NAMO_NO_DISPLAY_WINDOW = "TRUE" }                        # env vars
 type_check = """
 pyright \
   namosim/algorithms/new_local_opening_check.py \
-  namosim/behaviors/baseline_behavior.py \
-  namosim/behaviors/navigation_only_behavior.py \
+  namosim/agents/agent.py \
+  namosim/agents/navigation_only_agent.py \
   namosim/display/colors.py \
   namosim/display/ros2_publisher.py \
   namosim/exceptions.py \
@@ -74,10 +75,9 @@ pyright \
   namosim/world/binary_occupancy_grid.py \
   namosim/world/entity.py \
   namosim/world/goal.py \
-  namosim/world/models.py \
   namosim/world/obstacle.py \
-  namosim/world/robot.py \
   namosim/world/world.py \
+  namosim/report.py \
 """
 all_checks = ["lint_check", "type_check", "test"]
 

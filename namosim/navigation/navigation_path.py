@@ -4,8 +4,10 @@ import typing as t
 from aabbtree import AABBTree
 from shapely import GeometryCollection, Polygon
 
+import namosim.agents.agent as agent
 import namosim.display.ros2_publisher as ros2
-from namosim.data_models import PoseModel
+import namosim.world.world as world
+from namosim.data_models import UID, PoseModel
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -18,8 +20,6 @@ from namosim.navigation.conflict import (
 from namosim.navigation.path_type import PathType
 from namosim.utils import collision, utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
-from namosim.world.robot import Robot
-from namosim.world.world import World
 
 
 class Path:
@@ -74,7 +74,7 @@ class TransferPath:
         actions: t.List[ba.BasicAction],
         grab_action: ba.Grab,
         release_action: ba.Release,
-        obstacle_uid: int,
+        obstacle_uid: UID,
         manip_pose_id: int,
         phys_cost: t.Optional[float] = None,
         social_cost: float = 0.0,
@@ -109,15 +109,15 @@ class TransferPath:
 
     def get_conflicts(
         self,
-        robot_uid: int,
-        world: World,
+        robot_uid: UID,
+        world: "world.World",
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        other_entities_polygons: t.Dict[int, Polygon],
+        other_entities_polygons: t.Dict[UID, Polygon],
         other_entities_aabb_tree: AABBTree,
-        other_entities_polygons_with_encompassing_circles: t.Dict[int, Polygon],
+        other_entities_polygons_with_encompassing_circles: t.Dict[UID, Polygon],
         other_entities_with_encompassing_circles_aabb_tree: AABBTree,
-        encompassing_circle_uid_to_robot_uid: t.Dict[int, int],
-        previously_moved_entities_uids: t.Set[int],
+        encompassing_circle_uid_to_robot_uid: t.Dict[UID, int],
+        previously_moved_entities_uids: t.Set[UID],
         has_first_action: bool,
         shared_horizon: int | None = None,
         apply_strict_horizon: bool = False,
@@ -126,6 +126,9 @@ class TransferPath:
         rp: t.Optional["ros2.RosPublisher"] = None,
         robot_name: str = "",
     ):
+        # if rp:
+        #     rp.cleanup_swept_area(ns=robot_name)
+
         if shared_horizon is None:
             # If no horizon is given, check all unexecuted actions
             shared_horizon = len(self.actions) - self.action_index
@@ -138,14 +141,13 @@ class TransferPath:
         collision_aabb_tree = other_entities_aabb_tree
 
         # Compute and display horizon convex polygons
-        if rp and self.robot_path.csv_polygons and self.obstacle_path.csv_polygons:
+        if rp:
             rp.publish_transfer_horizon_convex_polygons(
-                robot_csv_polygons=self.robot_path.csv_polygons,
-                obstacle_csv_polygons=self.obstacle_path.csv_polygons,
+                robot_csv_polygons=self.robot_path.csv_polygons or {},
+                obstacle_csv_polygons=self.obstacle_path.csv_polygons or {},
                 start_index=self.action_index,
-                end_index=len(self.actions),
                 check_horizon=shared_horizon,
-                ns=robot_name,
+                robot_name=robot_name,
             )
 
         # Check conflicts for all actions within horizon (Robot-Robot) and beyond (other conflicts)
@@ -215,7 +217,10 @@ class TransferPath:
                     if self.obstacle_uid in collides_with:
                         for uid in collides_with[self.obstacle_uid]:
                             if (
-                                isinstance(world.entities[uid], Robot)
+                                isinstance(
+                                    world.entities[uid],
+                                    agent.Agent,
+                                )
                                 and uid not in world.entity_to_agent.inverse
                             ):
                                 conflicts.append(
@@ -288,7 +293,7 @@ class TransferPath:
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         elif (
-                            isinstance(world.entities[uid], Robot)
+                            isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
                             if counter <= shared_horizon:
@@ -297,10 +302,16 @@ class TransferPath:
                                         robot_uid=robot_uid,
                                         robot_pose=self.robot_path.poses[0],
                                         other_robot_uid=uid
-                                        if isinstance(world.entities[uid], Robot)
+                                        if isinstance(
+                                            world.entities[uid],
+                                            agent.Agent,
+                                        )
                                         else world.entity_to_agent[uid],
                                         other_robot_pose=world.entities[uid].pose
-                                        if isinstance(world.entities[uid], Robot)
+                                        if isinstance(
+                                            world.entities[uid],
+                                            agent.Agent,
+                                        )
                                         else world.entities[
                                             world.entity_to_agent[uid]
                                         ].pose,
@@ -394,7 +405,7 @@ class TransferPath:
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         elif (
-                            isinstance(world.entities[uid], Robot)
+                            isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
                             if counter <= shared_horizon:
@@ -403,10 +414,16 @@ class TransferPath:
                                         robot_uid=robot_uid,
                                         robot_pose=robot_before_release_pose,
                                         other_robot_uid=uid
-                                        if isinstance(world.entities[uid], Robot)
+                                        if isinstance(
+                                            world.entities[uid],
+                                            agent.Agent,
+                                        )
                                         else world.entity_to_agent[uid],
                                         other_robot_pose=world.entities[uid].pose
-                                        if isinstance(world.entities[uid], Robot)
+                                        if isinstance(
+                                            world.entities[uid],
+                                            agent.Agent,
+                                        )
                                         else world.entities[
                                             world.entity_to_agent[uid]
                                         ].pose,
@@ -494,7 +511,7 @@ class TransferPath:
                                     return conflicts
 
                         elif (
-                            isinstance(world.entities[uid], Robot)
+                            isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
                             if counter <= shared_horizon:
@@ -503,10 +520,16 @@ class TransferPath:
                                         robot_uid=robot_uid,
                                         robot_pose=self.robot_path.poses[index],
                                         other_robot_uid=uid
-                                        if isinstance(world.entities[uid], Robot)
+                                        if isinstance(
+                                            world.entities[uid],
+                                            agent.Agent,
+                                        )
                                         else world.entity_to_agent[uid],
                                         other_robot_pose=world.entities[uid].pose
-                                        if isinstance(world.entities[uid], Robot)
+                                        if isinstance(
+                                            world.entities[uid],
+                                            agent.Agent,
+                                        )
                                         else world.entities[
                                             world.entity_to_agent[uid]
                                         ].pose,
@@ -596,7 +619,7 @@ class TransferPath:
                                 if exit_early_for_any_conflict:
                                     return conflicts
                         elif (
-                            isinstance(world.entities[uid], Robot)
+                            isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
                             if counter <= shared_horizon:
@@ -605,10 +628,16 @@ class TransferPath:
                                         robot_uid=robot_uid,
                                         robot_pose=self.robot_path.poses[index],
                                         other_robot_uid=uid
-                                        if isinstance(world.entities[uid], Robot)
+                                        if isinstance(
+                                            world.entities[uid],
+                                            agent.Agent,
+                                        )
                                         else world.entity_to_agent[uid],
                                         other_robot_pose=world.entities[uid].pose
-                                        if isinstance(world.entities[uid], Robot)
+                                        if isinstance(
+                                            world.entities[uid],
+                                            agent.Agent,
+                                        )
                                         else world.entities[
                                             world.entity_to_agent[uid]
                                         ].pose,
@@ -718,6 +747,10 @@ class TransitPath:
                 social_cost=social_cost,
                 weight=weight,
             )
+
+        if robot_pose != poses[0]:
+            raise Exception("Robot pose not equal to start pose")
+            
         if len(poses) == 1:
             return cls(
                 robot_path=Path(poses=poses, polygons=[robot_polygon]),
@@ -820,14 +853,14 @@ class TransitPath:
         encompassing_circles_uids = set(encompassing_circle_uid_to_robot_uid.keys())
 
         # Compute and display horizon cells
-        rp.publish_transit_horizon_cells(
-            self.robot_path.poses,
-            self.action_index,
-            len(self.actions) + 1,
-            shared_horizon,
-            inflated_grid_by_robot,
-            robot_name,
-        )
+        if rp:
+            rp.publish_transit_horizon_cells(
+                poses=self.robot_path.poses,
+                start_index=self.action_index,
+                check_horizon=shared_horizon,
+                inflated_grid_by_robot=inflated_grid_by_robot,
+                robot_name=robot_name,
+            )
 
         # Check for RobotRobot conflicts within horizon, and RobotObstacle conflicts even beyond
         conflicting_cells = set()
@@ -906,7 +939,7 @@ class TransitPath:
                                 )
                                 return conflicts
                     elif (
-                        isinstance(world.entities[uid], Robot)
+                        isinstance(world.entities[uid], agent.Agent)
                         or uid in world.entity_to_agent
                     ):
                         if counter <= shared_horizon:
@@ -915,10 +948,16 @@ class TransitPath:
                                     robot_uid=robot_uid,
                                     robot_pose=self.robot_path.poses[index],
                                     other_robot_uid=uid
-                                    if isinstance(world.entities[uid], Robot)
+                                    if isinstance(
+                                        world.entities[uid],
+                                        agent.Agent,
+                                    )
                                     else world.entity_to_agent[uid],
                                     other_robot_pose=world.entities[uid].pose
-                                    if isinstance(world.entities[uid], Robot)
+                                    if isinstance(
+                                        world.entities[uid],
+                                        agent.Agent,
+                                    )
                                     else world.entities[
                                         world.entity_to_agent[uid]
                                     ].pose,

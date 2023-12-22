@@ -4,7 +4,7 @@ from abc import ABC
 from shapely import Polygon, affinity
 from shapely.geometry import LineString, Point
 
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 from namosim.utils import utils
 
 
@@ -155,13 +155,13 @@ class AbsoluteTranslation(Translation):
 
 
 class Grab(Translation):
-    def __init__(self, translation_vector: t.Tuple[float, float], entity_uid: int):
+    def __init__(self, translation_vector: t.Tuple[float, float], entity_uid: UID):
         Translation.__init__(self, translation_vector)
         self.entity_uid = entity_uid
 
 
 class Release(Translation):
-    def __init__(self, translation_vector: t.Tuple[float, float], entity_uid: int):
+    def __init__(self, translation_vector: t.Tuple[float, float], entity_uid: UID):
         Translation.__init__(self, translation_vector)
         self.entity_uid = entity_uid
         self.entity_uid = entity_uid

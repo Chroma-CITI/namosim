@@ -3,6 +3,7 @@ import typing as t
 from pydantic_xml import BaseXmlModel, attr, element
 
 PoseModel = t.Tuple[float, float, float]
+UID = t.Union[str, int]
 FixedPrecisionPoseModel = t.Tuple[int, int, int]
 GridCellModel = t.Tuple[int, int]
 GridCellSet = t.Set[GridCellModel]
@@ -38,7 +39,7 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     basic_translation_force: float = attr(default=2.0)
     check_new_local_opening_before_global: bool = attr(default=True)
     collision_check_angular_res: float = attr(default=5.0)
-    deactivate_grids_logging: bool = attr(default=True)
+    activate_grids_logging: bool = attr(default=False)
     forbid_rotations: bool = attr(default=False)
     heuristic_cost_for_traversing_obstacle_in_choice_heur: float = attr(default=2.0)
     manipulation_search_procedure: t.Literal["BFS", "DFS"] = attr(default="BFS")
