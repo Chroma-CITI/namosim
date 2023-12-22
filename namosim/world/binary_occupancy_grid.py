@@ -259,26 +259,31 @@ class BinaryOccupancyGrid:
         for cell in cells:
             self.grid[cell[0]][cell[1]] -= 1
 
-    def cell_to_obstacle_id(self, cell: GridCellModel):
+    def cell_to_obstacle_ids(self, cell: GridCellModel) -> t.Set[UID]:
         """
         If cell is contained only by one obstacle o_i, returns o_i.
-        If contained by no obstacle, returns 0. If contained by more than one, returns -1.
+        If contained by no obstacle, returns None. If contained by more than one, returns -1.
         :param cell: cell coordinates (x, y)
         :type cell: tuple(int, int)
         :return: obstacle uid or 0 or -1
         :rtype: int
         """
         if self.grid[cell[0]][cell[1]] == 0:
-            return 0
-        elif self.grid[cell[0]][cell[1]] > 1:
-            return -1
-        else:
-            for uid, cell_set in self.cells_sets.items():
-                if cell in cell_set:
-                    return uid
+            return set()
+
+        result = set()
+        for uid, cell_set in self.cells_sets.items():
+            if cell in cell_set:
+                result.add(uid)
+
+        if len(result) == 0:
             raise RuntimeError(
                 "It should be impossible for an occupied cell of the grid to not be in any cells set."
             )
+
+        if len(result) > 1:
+            assert self.grid[cell[0]][cell[1]] > 1
+        return result
 
     def obstacles_uids_in_cell(self, cell: GridCellModel):
         return {uid for uid, cell_set in self.cells_sets.items() if cell in cell_set}
@@ -322,7 +327,8 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
             )
 
     def to_image(self) -> Image.Image:
-        grid = self.grid.astype(np.float32)
+        grid = np.flipud(self.grid)
+        grid = grid.astype(np.float32)
         grid = grid - np.min(grid)
         grid /= np.max(grid)
         grid *= 255
