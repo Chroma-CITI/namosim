@@ -6,6 +6,7 @@ from collections import OrderedDict
 
 import numpy as np
 import numpy.typing as npt
+from aabbtree import AABBTree
 from shapely import Polygon
 from shapely.geometry import Point
 from typing_extensions import Self
@@ -135,7 +136,7 @@ class Stilman2005Agent(Agent):
             params.check_new_local_opening_before_global
         )
         self.activate_grids_logging = params.activate_grids_logging
-        self._social_costmap = None
+        self._social_costmap: npt.NDArray[t.Any] | None = None
         self.is_first_transfer_step = False
         self.check_horizon = 20
         self.angular_tolerance = 0.1
@@ -737,6 +738,19 @@ class Stilman2005Agent(Agent):
                     step_count,
                 )
             )
+            # robot_cell = utils.real_to_grid(
+            #     self.pose[0],
+            #     self.pose[1],
+            #     static_obs_inf_grid.res,
+            #     static_obs_inf_grid.grid_pose,
+            # )
+            # goal_cell = utils.real_to_grid(
+            #     goal[0], goal[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose
+            # )
+            # static_obs_inf_grid.update({self.uid: self.polygon})
+            # static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] = 10
+            # static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] = 10
+            # static_obs_inf_grid.to_image().save("static.png")
             return ThinkResult(
                 next_action=ba.GoalFailed(goal),
                 did_replan=True,
@@ -1044,7 +1058,7 @@ class Stilman2005Agent(Agent):
             ).visited
         )
 
-        if inflated_grid_by_robot_max.cell_to_obstacle_id(robot_cell) == -1:
+        if len(inflated_grid_by_robot_max.cell_to_obstacle_ids(robot_cell)) > 1:
             return nav_plan.Plan(
                 plan_error="start_cell_in_several_movable_obstacles_error",
                 robot_uid=self.uid,
@@ -1054,6 +1068,9 @@ class Stilman2005Agent(Agent):
             static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0
             or static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0
         ):
+            # static_obs_inf_grid.update({self.uid: self.polygon})
+            # static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] = 10
+            # static_obs_inf_grid.to_image().save("static.png")
             return nav_plan.Plan(
                 plan_error="start_or_goal_cell_in_static_obstacle_error",
                 robot_uid=self.uid,
@@ -1279,24 +1296,24 @@ class Stilman2005Agent(Agent):
                 # Note: This validation was added according to the description in the article about not allowing
                 # transitions between two different obstacles or to a cell with several obstacles, though it was not
                 # explicit in the pseudocode formulation in Stilman's thesis.
-                cur_cell_obs_uid = inflated_robot_grid.cell_to_obstacle_id(current.cell)
-                neighbor_cell_obs_uid = inflated_robot_grid.cell_to_obstacle_id(
+                cur_cell_obs = inflated_robot_grid.cell_to_obstacle_ids(current.cell)
+                neighbor_cell_obs = inflated_robot_grid.cell_to_obstacle_ids(
                     neighbor_cell
                 )
 
                 cur_and_neighbor_not_in_mult_obs = (
-                    cur_cell_obs_uid != -1 and neighbor_cell_obs_uid != -1
+                    len(cur_cell_obs) <= 1 and len(neighbor_cell_obs) <= 1
                 )
                 current_or_neighbor_in_free_space = (
-                    cur_cell_obs_uid == 0 or neighbor_cell_obs_uid == 0
+                    len(cur_cell_obs) == 0 or len(neighbor_cell_obs) == 0
                 )
                 transition_is_valid = (
                     cur_and_neighbor_not_in_mult_obs
                     and (
                         current_or_neighbor_in_free_space
-                        or cur_cell_obs_uid == neighbor_cell_obs_uid
+                        or cur_cell_obs == neighbor_cell_obs
                     )
-                    and neighbor_cell_obs_uid != current.first_obstacle_uid
+                    and current.first_obstacle_uid not in neighbor_cell_obs
                 )
                 if transition_is_valid:
                     neighbor = RCHConfiguration(
@@ -1305,7 +1322,7 @@ class Stilman2005Agent(Agent):
                         current.first_component_uid,
                     )
             else:
-                neighbor_cell_component_uid: UID = t.cast(
+                neighbor_cell_component_uid: int = t.cast(
                     int, connected_components_grid[neighbor_cell[0]][neighbor_cell[1]]
                 )
 
@@ -1336,10 +1353,10 @@ class Stilman2005Agent(Agent):
                             pass
 
                     else:
-                        neighbor_cell_obs_uid = inflated_robot_grid.cell_to_obstacle_id(
+                        neighbor_cell_obs = inflated_robot_grid.cell_to_obstacle_ids(
                             neighbor_cell
                         )
-                        if neighbor_cell_obs_uid == current.first_obstacle_uid:
+                        if current.first_obstacle_uid in neighbor_cell_obs:
                             neighbor = RCHConfiguration(
                                 neighbor_cell, current.first_obstacle_uid, 0
                             )
@@ -1351,12 +1368,13 @@ class Stilman2005Agent(Agent):
                         # If no obstacle has been traversed, we are still in the robot acc. space
                         neighbor = RCHConfiguration(neighbor_cell, 0, 0)
                     else:
-                        neighbor_cell_obstacle_uid = (
-                            inflated_robot_grid.cell_to_obstacle_id(neighbor_cell)
+                        neighbor_cell_obstacles = (
+                            inflated_robot_grid.cell_to_obstacle_ids(neighbor_cell)
                         )
-                        if neighbor_cell_obstacle_uid > 0:
+                        if len(neighbor_cell_obstacles) > 0:
+                            neighbor_obs_uid = list(neighbor_cell_obstacles)[0]
                             neighbor = RCHConfiguration(
-                                neighbor_cell, neighbor_cell_obstacle_uid, 0
+                                neighbor_cell, neighbor_obs_uid, 0
                             )
                         else:
                             # The neighbor is in multiple obstacles, which is forbidden
@@ -1398,7 +1416,7 @@ class Stilman2005Agent(Agent):
         connected_components_grid: npt.NDArray[np.int_],
         inflated_robot_grid: BinaryInflatedOccupancyGrid,
         avoid_list: t.Set[GridCellModel],
-        prev_list: t.Set[UID],
+        prev_list: t.Set[int],
         forbidden_obstacles: t.Set[UID],
         ros_publisher: "rp.RosPublisher",
         neighborhood: t.Sequence[GridCellModel] = utils.TAXI_NEIGHBORHOOD,
@@ -1433,8 +1451,11 @@ class Stilman2005Agent(Agent):
             )
             return 0, 0
 
-        start_obstacle_uid = inflated_robot_grid.cell_to_obstacle_id(start_cell)
-        if start_obstacle_uid == -1 or start_obstacle_uid in forbidden_obstacles:
+        start_obstacles = inflated_robot_grid.cell_to_obstacle_ids(start_cell)
+        if (
+            len(start_obstacles) > 1
+            or len(start_obstacles.intersection(forbidden_obstacles)) > 0
+        ):
             obstacle_names = {
                 self.world.entities[uid].name
                 for uid in inflated_robot_grid.obstacles_uids_in_cell(start_cell)
@@ -1535,9 +1556,8 @@ class Stilman2005Agent(Agent):
         def exit_condition(_current: RCHConfiguration, _goal: RCHConfiguration) -> bool:
             return _current.cell == _goal.cell
 
-        start = RCHConfiguration(
-            start_cell, start_obstacle_uid if start_obstacle_uid > 0 else 0, 0
-        )
+        start_obs_id = list(start_obstacles)[0] if len(start_obstacles) > 0 else 0
+        start = RCHConfiguration(start_cell, start_obs_id, 0)
         goal = RCHConfiguration(
             goal_cell, 0, 0
         )  # Note the zeroes are never used, this line is just for coherence
@@ -1629,19 +1649,18 @@ class Stilman2005Agent(Agent):
             transfer_start_configs_to_cost,
             transfer_start_to_prev_transit_end,
         ) = self.get_transfer_start_to_transit_end_and_cost(
-            robot_polygon,
-            robot_pose,
-            robot_uid,
-            obstacle_uid,
-            other_entities_polygons,
-            other_entities_aabb_tree,
-            inflated_grid_by_robot_max,
-            ccs_data,
-            r_acc_cells,
-            obstacle_pose,
-            obstacle_polygon,
-            trans_mult,
-            rot_mult,
+            robot_polygon=robot_polygon,
+            robot_pose=robot_pose,
+            robot_uid=robot_uid,
+            obstacle_uid=obstacle_uid,
+            other_entities_polygons=other_entities_polygons,
+            other_entities_aabb_tree=other_entities_aabb_tree,
+            inflated_grid_by_robot_max=inflated_grid_by_robot_max,
+            r_acc_cells=r_acc_cells,
+            obstacle_pose=obstacle_pose,
+            obstacle_polygon=obstacle_polygon,
+            trans_mult=trans_mult,
+            rot_mult=rot_mult,
             ros_publisher=ros_publisher,
         )
 
@@ -1828,19 +1847,18 @@ class Stilman2005Agent(Agent):
             transfer_start_configs_to_cost,
             transfer_start_to_prev_transit_end,
         ) = self.get_transfer_start_to_transit_end_and_cost(
-            robot_polygon,
-            robot_pose,
-            robot_uid,
-            obstacle_uid,
-            other_entities_polygons,
-            other_entities_aabb_tree,
-            inflated_grid_by_robot_max,
-            ccs_data,
-            r_acc_cells,
-            obstacle_pose,
-            obstacle_polygon,
-            trans_mult,
-            rot_mult,
+            robot_polygon=robot_polygon,
+            robot_pose=robot_pose,
+            robot_uid=robot_uid,
+            obstacle_uid=obstacle_uid,
+            other_entities_polygons=other_entities_polygons,
+            other_entities_aabb_tree=other_entities_aabb_tree,
+            inflated_grid_by_robot_max=inflated_grid_by_robot_max,
+            r_acc_cells=r_acc_cells,
+            obstacle_pose=obstacle_pose,
+            obstacle_polygon=obstacle_polygon,
+            trans_mult=trans_mult,
+            rot_mult=rot_mult,
             ros_publisher=ros_publisher,
         )
 
@@ -2190,30 +2208,30 @@ class Stilman2005Agent(Agent):
 
     def a_star_for_manip_search(
         self,
-        start,
-        goal,
-        robot_uid,
-        robot_name,
-        obstacle_uid,
-        obstacle_polygon,
-        other_entities_polygons,
-        other_entities_aabb_tree,
-        inflated_grid_by_robot_min,
-        inflated_grid_by_robot_max,
-        inflated_grid_by_obstacle,
-        r_acc_cells,
+        start: t.Dict[RobotObstacleConfiguration, float],
+        goal: RobotObstacleConfiguration,
+        robot_uid: UID,
+        robot_name: str,
+        obstacle_uid: UID,
+        obstacle_polygon: Polygon,
+        other_entities_polygons: t.Dict[UID, Polygon],
+        other_entities_aabb_tree: AABBTree,
+        inflated_grid_by_robot_min: BinaryInflatedOccupancyGrid,
+        inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
+        inflated_grid_by_obstacle: BinaryInflatedOccupancyGrid,
+        r_acc_cells: t.Set[GridCellModel],
         c_1_cells_set,
-        ccs_data,
-        trans_mult,
-        rot_mult,
+        ccs_data: connectivity.CCSData,
+        trans_mult: float,
+        rot_mult: float,
         sorted_cell_to_combined_cost,
         bound_quantile,
         check_new_local_opening_before_global,
-        overall_goal_pose,
-        overall_goal_cell,
+        overall_goal_pose: PoseModel,
+        overall_goal_cell: GridCellModel,
         ros_publisher: "rp.RosPublisher",
-        obstacle_can_intrude_r_acc=True,
-        obstacle_can_intrude_c_1_x=True,
+        obstacle_can_intrude_r_acc: bool = True,
+        obstacle_can_intrude_c_1_x: bool = True,
     ):
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
             neighbors, tentative_g_scores = self.get_neighbors(
@@ -2355,19 +2373,18 @@ class Stilman2005Agent(Agent):
 
     def get_transfer_start_to_transit_end_and_cost(
         self,
-        robot_polygon,
-        robot_pose,
-        robot_uid,
-        obstacle_uid,
-        other_entities_polygons,
-        other_entities_aabb_tree,
-        inflated_grid_by_robot_max,
-        ccs_data,
-        r_acc_cells,
-        obstacle_pose,
-        obstacle_polygon,
-        trans_mult,
-        rot_mult,
+        robot_polygon: Polygon,
+        robot_pose: PoseModel,
+        robot_uid: UID,
+        obstacle_uid: UID,
+        other_entities_polygons: t.Dict[UID, Polygon],
+        other_entities_aabb_tree: AABBTree,
+        inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
+        r_acc_cells: t.Set[GridCellModel],
+        obstacle_pose: PoseModel,
+        obstacle_polygon: Polygon,
+        trans_mult: float,
+        rot_mult: float,
         ros_publisher: "rp.RosPublisher",
     ):
         robot_cell = utils.real_to_grid(
@@ -2376,11 +2393,11 @@ class Stilman2005Agent(Agent):
             inflated_grid_by_robot_max.res,
             inflated_grid_by_robot_max.grid_pose,
         )
-        cell_in_manip_obs = (
-            inflated_grid_by_robot_max.cell_to_obstacle_id(robot_cell) == obstacle_uid
+        robot_cell_in_manip_obs = (
+            obstacle_uid in inflated_grid_by_robot_max.cell_to_obstacle_ids(robot_cell)
         )
 
-        if cell_in_manip_obs:
+        if robot_cell_in_manip_obs:
             # If we are in the case where the robot starts from within the inflation of the manipulated obstacle,
             # exit early with only the start transfer configuration
             transfer_start_configuration = RobotObstacleConfiguration(
@@ -3625,10 +3642,14 @@ class Stilman2005Agent(Agent):
 
             max_evasion_cell_social_cost = main_robot_evasion_cell_social_cost
             other_robot_evasion_path_max_duration = 0
+
+            max_x_coord = float("-inf")
+
             for robot_uid in other_robots_uids:
                 # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
                 #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
                 other_robot = t.cast(Agent, w_t.entities[robot_uid])
+                max_x_coord = max(max_x_coord, other_robot.pose[0])
 
                 inflated_grid_by_robot_max.deactivate_entities({robot_uid})
                 inflated_grid_by_robot_max.activate_entities({main_robot_uid})
@@ -3675,12 +3696,15 @@ class Stilman2005Agent(Agent):
 
                 inflated_grid_by_robot_max.activate_entities({robot_uid})
 
+            main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
             if main_robot_evasion_cell_social_cost < max_evasion_cell_social_cost:
-                main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
-                # main_robot_evasion_path.set_wait(100)
                 return main_robot_evasion_path
-            else:
-                return None
+            elif main_robot_evasion_cell_social_cost == max_evasion_cell_social_cost:
+                ## tie breaking
+                if self.pose[0] > max_x_coord:
+                    return main_robot_evasion_path
+
+            return None  # Wait for others to evade
 
     def compute_evasion_for_one(
         self,
@@ -3692,7 +3716,7 @@ class Stilman2005Agent(Agent):
         ros_publisher: "rp.RosPublisher",
         use_combined_cost: bool = False,
         return_path: bool = True,
-    ):
+    ) -> t.Tuple[float, EvasionTransitPath | None]:
         """Computes an evasion path for a given robot"""
         if self._social_costmap is None:
             raise Exception("No social costmap")
@@ -3780,6 +3804,9 @@ class Stilman2005Agent(Agent):
         social_cost = np.array(social_cost)
         distance_cost = np.array(distance_cost)
 
+        if len(social_cost) == 0:
+            return robot_start_social_cost, None
+
         if not use_combined_cost:
             min_social_cost_index = np.argmin(social_cost)
             evasion_cell = accessible_cells[min_social_cost_index]
@@ -3832,10 +3859,11 @@ class Stilman2005Agent(Agent):
             inflated_grid_by_robot_max.grid_pose,
         )
 
-        evasion_transit_path = (
-            None
-            if len(real_path) < 2
-            else EvasionTransitPath.from_poses(real_path, robot_polygon, robot_pose)
+        if len(real_path) < 2:
+            return robot_start_social_cost, None
+
+        evasion_transit_path = EvasionTransitPath.from_poses(
+            real_path, robot_polygon, robot_pose
         )
 
         if transit_configuration_after_release:
@@ -3843,9 +3871,13 @@ class Stilman2005Agent(Agent):
                 transit_configuration_after_release
             )
 
-        return self._social_costmap[evasion_cell[0]][
-            evasion_cell[1]
-        ], evasion_transit_path
+        if self._social_costmap is None:
+            raise Exception("Social costmap not initialized")
+
+        evasion_cell_social_cost = t.cast(
+            float, self._social_costmap[evasion_cell[0]][evasion_cell[1]]
+        )
+        return evasion_cell_social_cost, evasion_transit_path
 
     def h(self, r_i, r_j):
         translation_cost = self.translation_factor * utils.euclidean_distance(r_j, r_i)

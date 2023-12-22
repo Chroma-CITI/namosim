@@ -1419,6 +1419,17 @@ def accurate_rasterize_in_grid(
     return grid_cells
 
 
+def accurate_rasterize_in_grid_v2(
+    polygon: Polygon,
+    res: float,
+    grid_pose: PoseModel,
+    d_width: int,
+    d_height: int,
+    fill: bool = True,
+):
+    pass
+
+
 def shapely_geom_to_local(global_geom, local_cs_pose_in_global):
     translated_geometry = affinity.translate(
         global_geom, -local_cs_pose_in_global[0], -local_cs_pose_in_global[1]
