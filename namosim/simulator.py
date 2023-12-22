@@ -334,7 +334,8 @@ class Simulator:
 
             # Think loop: get each agent to think about their next step
             think_durations = {}
-            with timeout(10 * 60):
+            # actions = {}
+            with timeout(20 * 60):
                 actions = self.think(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,

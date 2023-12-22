@@ -36,6 +36,15 @@ class ExperimentsTests(unittest.TestCase):
         sim.run()
         assert True
 
+    def test_evasion(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "multi_robot/evasion.svg"
+            )
+        )
+        sim.run()
+        assert True
+
     def test_intersections_1_robots_50_goals_namo(self):
         config.DISPLAY_WINDOW = True
         sim = Simulator(
@@ -106,7 +115,7 @@ class ExperimentsTests(unittest.TestCase):
         sim = Simulator(
             simulation_file_path=os.path.join(
                 self.scenarios_folder,
-                "intersections/generated/1_robots_50_goals_namo/00.svg",
+                "intersections/generated/2_robots_50_goals_namo/07.svg",
             )
         )
         sim.run()
