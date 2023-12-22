@@ -846,19 +846,19 @@ def get_circumscribed_radius(polygon: Polygon) -> float:
 #     return inscribed_radius
 
 
-def get_inscribed_radius(polygon):
+def get_inscribed_radius(polygon: Polygon) -> float:
     return polygon.centroid.distance(LineString(polygon.exterior.coords))
 
 
-def get_inscribed_square_sidelength(radius):
+def get_inscribed_square_sidelength(radius: float):
     return math.sqrt(radius**2 * 2)
 
 
-def get_translation(start_pose, end_pose):
+def get_translation(start_pose: PoseModel, end_pose: PoseModel):
     return end_pose[0] - start_pose[0], end_pose[1] - start_pose[1]
 
 
-def get_rotation(start_pose, end_pose):
+def get_rotation(start_pose: PoseModel, end_pose: PoseModel):
     return angle_to_360_interval(end_pose[2] - start_pose[2])
 
 
@@ -870,7 +870,7 @@ def subtract_angles(a: float, b: float):
     return angle_to_360_interval(a - b)
 
 
-def get_translation_and_rotation(start_pose, end_pose):
+def get_translation_and_rotation(start_pose: PoseModel, end_pose: PoseModel):
     translation = get_translation(start_pose, end_pose)
     rotation = get_rotation(start_pose, end_pose)
     if math.isnan(rotation):
@@ -879,8 +879,11 @@ def get_translation_and_rotation(start_pose, end_pose):
 
 
 def set_polygon_pose(
-    polygon, init_polygon_pose, end_polygon_pose, rotation_center="center"
-):
+    polygon: Polygon,
+    init_polygon_pose: PoseModel,
+    end_polygon_pose: PoseModel,
+    rotation_center: t.Union[str, t.Tuple[float, float]] = "center",
+) -> Polygon:
     translation, rotation = get_translation_and_rotation(
         init_polygon_pose, end_polygon_pose
     )
@@ -890,10 +893,14 @@ def set_polygon_pose(
 
 
 def rotate_then_translate_polygon(
-    polygon, translation, rotation, rotation_center="center"
-):
+    polygon: Polygon,
+    translation: t.Tuple[float, float],
+    rotation: float,
+    rotation_center: t.Union[str, t.Tuple[float, float]] = "center",
+) -> Polygon:
     return affinity.translate(
-        affinity.rotate(polygon, rotation, origin=rotation_center), *translation
+        affinity.rotate(polygon, rotation, origin=rotation_center),  # type: ignore
+        *translation,
     )
 
 
@@ -1412,6 +1419,17 @@ def accurate_rasterize_in_grid(
     return grid_cells
 
 
+def accurate_rasterize_in_grid_v2(
+    polygon: Polygon,
+    res: float,
+    grid_pose: PoseModel,
+    d_width: int,
+    d_height: int,
+    fill: bool = True,
+):
+    pass
+
+
 def shapely_geom_to_local(global_geom, local_cs_pose_in_global):
     translated_geometry = affinity.translate(
         global_geom, -local_cs_pose_in_global[0], -local_cs_pose_in_global[1]
@@ -1519,7 +1537,7 @@ def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]):
     cross = np.cross(v1_norm, v2_norm)
 
     # Determine the sign of the angle
-    sign = -np.sign(np.linalg.norm(cross))
+    sign = np.sign(cross)
 
     # Combine the dot product and sign to get the signed angle
     signed_angle = np.arccos(dot) * sign

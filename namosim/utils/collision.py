@@ -8,9 +8,9 @@ from shapely import Polygon
 from shapely.geometry import MultiPoint, Point
 
 import namosim.navigation.basic_actions as ba
-from namosim.data_models import PoseModel
+import namosim.world.world as w
+from namosim.data_models import UID, PoseModel
 from namosim.utils import utils
-from namosim.world.world import World
 
 
 class Action:
@@ -337,7 +337,7 @@ def polygon_to_aabb(polygon: Polygon):
     return AABB([(xmin, xmax), (ymin, ymax)])
 
 
-def polygons_to_aabb_tree(polygons: t.Dict[int, Polygon]):
+def polygons_to_aabb_tree(polygons: t.Dict[UID, Polygon]):
     aabb_tree = AABBTree()
     for uid, polygon in polygons.items():
         aabb_tree.add(polygon_to_aabb(polygon), uid)
@@ -345,9 +345,9 @@ def polygons_to_aabb_tree(polygons: t.Dict[int, Polygon]):
 
 
 def check_static_collision(
-    main_uid: int,
+    main_uid: UID,
     polygon: Polygon,
-    other_entities_polygons: t.Dict[int, Polygon],
+    other_entities_polygons: t.Dict[UID, Polygon],
     aabb_tree: AABBTree,
     ignored_uids: t.Iterable[int] | None = None,
     break_at_first: bool = True,
@@ -372,7 +372,7 @@ def check_static_collision(
                     return {main_uid: {uid}, uid: {main_uid}}
         return {}
     else:
-        collides_with: t.Dict[int, t.Set[int]] = {}
+        collides_with: t.Dict[UID, t.Set[UID]] = {}
         intersections: t.Dict[t.Tuple[int, int], Polygon] = {}
 
         for uid in potential_collision_uids:
@@ -401,7 +401,7 @@ def check_static_collision(
 
 
 def merge_collides_with(
-    source: t.Dict[int, t.Set[int]], other: t.Dict[int, t.Set[int]]
+    source: t.Dict[UID, t.Set[UID]], other: t.Dict[UID, t.Set[UID]]
 ):
     for uid, uids in other.items():
         if uid in source:
@@ -422,8 +422,8 @@ def merge_collides_with(
 
 
 def csv_check_collisions(
-    main_uid: int,
-    other_polygons: t.Dict[int, Polygon],
+    main_uid: UID,
+    other_polygons: t.Dict[UID, Polygon],
     polygon_sequence: t.List[Polygon],
     action_sequence: t.List[Action],
     id_sequence: t.List[int] | None = None,
@@ -432,13 +432,13 @@ def csv_check_collisions(
     bb_vertices: t.List[t.List[t.Tuple[float, float]]] | None = None,
     csv_polygons: t.Dict[t.Sequence[int], Polygon] | None = None,
     intersections: t.Dict[t.Tuple[int, int], Polygon] | None = None,
-    ignored_entities: t.Set[int] | None = None,
+    ignored_entities: t.Set[UID] | None = None,
     display_debug: bool = False,
     break_at_first: bool = True,
     save_intersections: bool = False,
 ) -> t.Tuple[
     bool,
-    t.Dict[int, t.Set[int]],
+    t.Dict[UID, t.Set[UID]],
     AABBTree,
     t.Dict[t.Sequence[int], Polygon],
     t.Dict[t.Tuple[int, int], Polygon],
@@ -581,8 +581,8 @@ def csv_check_collisions(
 
 
 def csv_simulate_simple_kinematics(
-    world: World,
-    agent_uid_to_next_action: t.Dict[int, ba.BasicAction],
+    world: "w.World",
+    agent_uid_to_next_action: t.Dict[UID, ba.BasicAction],
     apply: bool = False,
     bb_type: str = "minimum_rotated_rectangle",
     ignore_collisions: bool = False,

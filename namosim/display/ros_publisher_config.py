@@ -1,9 +1,6 @@
 # Target display rate (in Hz)
 rate = 100000
 
-# Deactivate GUI
-deactivate_gui = False
-
 # Simulation topics names (without namespace)
 sim_knowledge_topic = "/knowledge"
 sim_costmap_topic = "/costmap"
@@ -23,6 +20,8 @@ test_connected_components_topic = "/test/connected_components"
 robot_sim_world_topic = "/robot_sim/world"
 test_combined_gridmap_topic = "/test/combined_costmap"
 plan_topic = "/plan"
+swept_area_topic = "/swept_area"
+conflict_horizon_topic = "/conflict_horizon"
 conflicts_check_topic = "/conflicts_check"
 
 default_queue_size = 100
@@ -38,7 +37,10 @@ gridmap_frame_ids_to_z_indexes = {
     combined_gridmap_frame_id: -1.4,
 }
 
-fov_z_index = -0.04
-entities_z_index = -0.05
-taboos_z_index = -0.06
-path_line_z_index = 0.0
+horizon_markers_z_index = 0.02
+path_line_z_index = 0.01
+entities_z_index = 0.0
+swept_area_z_index = -0.01
+goal_z_index = -0.02
+conflicting_cells_z_index = -0.029
+conflict_markers_z_index = -0.03

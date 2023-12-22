@@ -1,0 +1,1389 @@
+<?xml version="1.0" ?>
+<svg xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+  xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns="http://www.w3.org/2000/svg"
+  xmlns:svg="http://www.w3.org/2000/svg" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+  xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" height="943.70929cm" id="svg2"
+  inkscape:export-filename="/home/xia0ben/INRIA/Code/s-namo-sim/data/worlds/s-namo_cases/04_after_the_feast/04_after_the_feast.svg.png"
+  inkscape:export-xdpi="600" inkscape:export-ydpi="600" inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+  sodipodi:docname="2_robots_50_goals.svg" stroke-miterlimit="10"
+  style="fill:none;stroke:none;stroke-linecap:square;stroke-miterlimit:10" version="1.1"
+  viewBox="0 0 949.99997 943.70929" width="950cm">
+
+
+
+
+  <path
+    d="m 188.59684,197.5624 c 0,0 0,0 0,0 0,0 12.50618,-12.50617 12.50618,-12.50617 0,0 50.02321,0 50.02321,0 0,0 0,0 0,0 0,0 12.50611,12.50617 12.50611,12.50617 0,0 0,50.02316 0,50.02316 0,0 -12.50611,12.50617 -12.50611,12.50617 0,0 -50.02321,0 -50.02321,0 0,0 -12.50618,-12.50617 -12.50618,-12.50617 0,0 0,-50.02316 0,-50.02316"
+    id="table_01" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 354.49554,197.5624 c 0,0 0,0 0,0 0,0 12.50614,-12.50617 12.50614,-12.50617 0,0 50.02315,0 50.02315,0 0,0 0,0 0,0 0,0 12.50619,12.50617 12.50619,12.50617 0,0 0,50.02316 0,50.02316 0,0 -12.50619,12.50617 -12.50619,12.50617 0,0 -50.02315,0 -50.02315,0 0,0 -12.50614,-12.50617 -12.50614,-12.50617 0,0 0,-50.02316 0,-50.02316"
+    id="table_02" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 520.39419,197.5624 c 0,0 0,0 0,0 0,0 12.50611,-12.50617 12.50611,-12.50617 0,0 50.02326,0 50.02326,0 0,0 0,0 0,0 0,0 12.50605,12.50617 12.50605,12.50617 0,0 0,50.02316 0,50.02316 0,0 -12.50605,12.50617 -12.50605,12.50617 0,0 -50.02326,0 -50.02326,0 0,0 -12.50611,-12.50617 -12.50611,-12.50617 0,0 0,-50.02316 0,-50.02316"
+    id="table_03" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 686.29287,197.5624 c 0,0 0,0 0,0 0,0 12.50619,-12.50617 12.50619,-12.50617 0,0 50.02309,0 50.02309,0 0,0 0,0 0,0 0,0 12.50616,12.50617 12.50616,12.50617 0,0 0,50.02316 0,50.02316 0,0 -12.50616,12.50617 -12.50616,12.50617 0,0 -50.02309,0 -50.02309,0 0,0 -12.50619,-12.50617 -12.50619,-12.50617 0,0 0,-50.02316 0,-50.02316"
+    id="table_04" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 251.15396,350.95459 c 0,0 0,0 0,0 0,0 12.50619,12.50614 12.50619,12.50614 0,0 0,50.02315 0,50.02315 0,0 0,0 0,0 0,0 -12.50619,12.50616 -12.50619,12.50616 0,0 -50.02313,0 -50.02313,0 0,0 -12.50618,-12.50616 -12.50618,-12.50616 0,0 0,-50.02315 0,-50.02315 0,0 12.50618,-12.50614 12.50618,-12.50614 0,0 50.02313,0 50.02313,0"
+    id="table_05" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 417.05264,350.95459 c 0,0 0,0 0,0 0,0 12.50616,12.50614 12.50616,12.50614 0,0 0,50.02315 0,50.02315 0,0 0,0 0,0 0,0 -12.50616,12.50616 -12.50616,12.50616 0,0 -50.02317,0 -50.02317,0 0,0 -12.50614,-12.50616 -12.50614,-12.50616 0,0 0,-50.02315 0,-50.02315 0,0 12.50614,-12.50614 12.50614,-12.50614 0,0 50.02317,0 50.02317,0"
+    id="table_06" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 582.95131,350.95459 c 0,0 0,0 0,0 0,0 12.50616,12.50614 12.50616,12.50614 0,0 0,50.02315 0,50.02315 0,0 0,0 0,0 0,0 -12.50616,12.50616 -12.50616,12.50616 0,0 -50.0232,0 -50.0232,0 0,0 -12.50611,-12.50616 -12.50611,-12.50616 0,0 0,-50.02315 0,-50.02315 0,0 12.50611,-12.50614 12.50611,-12.50614 0,0 50.0232,0 50.0232,0"
+    id="table_07" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 748.84998,350.95459 c 0,0 0,0 0,0 0,0 12.5062,12.50614 12.5062,12.50614 0,0 0,50.02315 0,50.02315 0,0 0,0 0,0 0,0 -12.5062,12.50616 -12.5062,12.50616 0,0 -50.02317,0 -50.02317,0 0,0 -12.50619,-12.50616 -12.50619,-12.50616 0,0 0,-50.02315 0,-50.02315 0,0 12.50619,-12.50614 12.50619,-12.50614 0,0 50.02317,0 50.02317,0"
+    id="table_08" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 251.15396,516.85289 c 0,0 0,0 0,0 0,0 12.50619,12.50617 12.50619,12.50617 0,0 0,50.02315 0,50.02315 0,0 0,0 0,0 0,0 -12.50619,12.50617 -12.50619,12.50617 0,0 -50.02313,0 -50.02313,0 0,0 -12.50618,-12.50617 -12.50618,-12.50617 0,0 0,-50.02315 0,-50.02315 0,0 12.50618,-12.50617 12.50618,-12.50617 0,0 50.02313,0 50.02313,0"
+    id="table_09" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 417.05264,516.85289 c 0,0 0,0 0,0 0,0 12.50616,12.50617 12.50616,12.50617 0,0 0,50.02315 0,50.02315 0,0 0,0 0,0 0,0 -12.50616,12.50617 -12.50616,12.50617 0,0 -50.02317,0 -50.02317,0 0,0 -12.50614,-12.50617 -12.50614,-12.50617 0,0 0,-50.02315 0,-50.02315 0,0 12.50614,-12.50617 12.50614,-12.50617 0,0 50.02317,0 50.02317,0"
+    id="table_10" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 582.95131,516.85289 c 0,0 0,0 0,0 0,0 12.50616,12.50617 12.50616,12.50617 0,0 0,50.02315 0,50.02315 0,0 0,0 0,0 0,0 -12.50616,12.50617 -12.50616,12.50617 0,0 -50.0232,0 -50.0232,0 0,0 -12.50611,-12.50617 -12.50611,-12.50617 0,0 0,-50.02315 0,-50.02315 0,0 12.50611,-12.50617 12.50611,-12.50617 0,0 50.0232,0 50.0232,0"
+    id="table_11" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 748.84998,516.85289 c 0,0 0,0 0,0 0,0 12.5062,12.50617 12.5062,12.50617 0,0 0,50.02315 0,50.02315 0,0 0,0 0,0 0,0 -12.5062,12.50617 -12.5062,12.50617 0,0 -50.02317,0 -50.02317,0 0,0 -12.50619,-12.50617 -12.50619,-12.50617 0,0 0,-50.02315 0,-50.02315 0,0 12.50619,-12.50617 12.50619,-12.50617 0,0 50.02317,0 50.02317,0"
+    id="table_12" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 251.15396,682.75124 c 0,0 0,0 0,0 0,0 12.50619,12.50616 12.50619,12.50616 0,0 0,50.02317 0,50.02317 0,0 0,0 0,0 0,0 -12.50619,12.50614 -12.50619,12.50614 0,0 -50.02313,0 -50.02313,0 0,0 -12.50618,-12.50614 -12.50618,-12.50614 0,0 0,-50.02317 0,-50.02317 0,0 12.50618,-12.50616 12.50618,-12.50616 0,0 50.02313,0 50.02313,0"
+    id="table_13" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 417.05264,682.75124 c 0,0 0,0 0,0 0,0 12.50616,12.50616 12.50616,12.50616 0,0 0,50.02317 0,50.02317 0,0 0,0 0,0 0,0 -12.50616,12.50614 -12.50616,12.50614 0,0 -50.02317,0 -50.02317,0 0,0 -12.50614,-12.50614 -12.50614,-12.50614 0,0 0,-50.02317 0,-50.02317 0,0 12.50614,-12.50616 12.50614,-12.50616 0,0 50.02317,0 50.02317,0"
+    id="table_14" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 582.95131,682.75124 c 0,0 0,0 0,0 0,0 12.50616,12.50616 12.50616,12.50616 0,0 0,50.02317 0,50.02317 0,0 0,0 0,0 0,0 -12.50616,12.50614 -12.50616,12.50614 0,0 -50.0232,0 -50.0232,0 0,0 -12.50611,-12.50614 -12.50611,-12.50614 0,0 0,-50.02317 0,-50.02317 0,0 12.50611,-12.50616 12.50611,-12.50616 0,0 50.0232,0 50.0232,0"
+    id="table_15" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 748.84998,682.75124 c 0,0 0,0 0,0 0,0 12.5062,12.50616 12.5062,12.50616 0,0 0,50.02317 0,50.02317 0,0 0,0 0,0 0,0 -12.5062,12.50614 -12.5062,12.50614 0,0 -50.02317,0 -50.02317,0 0,0 -12.50619,-12.50614 -12.50619,-12.50614 0,0 0,-50.02317 0,-50.02317 0,0 12.50619,-12.50616 12.50619,-12.50616 0,0 50.02317,0 50.02317,0"
+    id="table_16" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 58.759923,65.95705 c 0,0 57.524827,0 57.524827,0 0,0 0,57.466 0,57.466 0,0 -57.524827,0 -57.524827,0 0,0 0,-57.466 0,-57.466"
+    id="stool_01" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 197.35141,102.83746 c 0,0 57.52491,0 57.52491,0 0,0 0,57.46596 0,57.46596 0,0 -57.52491,0 -57.52491,0 0,0 0,-57.46596 0,-57.46596"
+    id="stool_02" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 446.22839,112.69232 c 0,0 57.52488,0 57.52488,0 0,0 0,57.46597 0,57.46597 0,0 -57.52488,0 -57.52488,0 0,0 0,-57.46597 0,-57.46597"
+    id="stool_03" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 765.49519,67.15917 c 0,0 57.52492,0 57.52492,0 0,0 0,57.46596 0,57.46596 0,0 -57.52492,0 -57.52492,0 0,0 0,-57.46596 0,-57.46596"
+    id="stool_04" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 612.10537,193.83753 c 0,0 57.52489,0 57.52489,0 0,0 0,57.46593 0,57.46593 0,0 -57.52489,0 -57.52489,0 0,0 0,-57.46593 0,-57.46593"
+    id="stool_05" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 363.25748,276.78667 c 0,0 57.52488,0 57.52488,0 0,0 0,57.46596 0,57.46596 0,0 -57.52488,0 -57.52488,0 0,0 0,-57.46596 0,-57.46596"
+    id="stool_06" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 280.3317,359.73914 c 0,0 57.52493,0 57.52493,0 0,0 0,57.46598 0,57.46598 0,0 -57.52493,0 -57.52493,0 0,0 0,-57.46598 0,-57.46598"
+    id="stool_07" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 445.38048,764.24885 c 0,0 57.52492,0 57.52492,0 0,0 0,57.46593 0,57.46593 0,0 -57.52492,0 -57.52492,0 0,0 0,-57.46593 0,-57.46593"
+    id="stool_08" inkscape:connector-curvature="0"
+    style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-width:2.82332373;stroke-linecap:square;stroke-miterlimit:10"
+    type="movable" />
+  <path
+    d="m 120.88223,442.68994 c 0,0 57.52485,0 57.52485,0 0,0 0,57.46597 0,57.46597 0,0 -57.52485,0 -57.52485,0 0,0 0,-57.46597 0,-57.46597"
+    id="stool_09" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 614.07552,525.68005 c 0,0 57.52491,0 57.52491,0 0,0 0,57.46593 0,57.46593 0,0 -57.52491,0 -57.52491,0 0,0 0,-57.46593 0,-57.46593"
+    id="stool_10" inkscape:connector-curvature="0"
+    style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-width:2.82332373;stroke-linecap:square;stroke-miterlimit:10"
+    type="movable" />
+  <path
+    d="m 446.96758,442.06966 c 0,0 57.52492,0 57.52492,0 0,0 0,57.46593 0,57.46593 0,0 -57.52492,0 -57.52492,0 0,0 0,-57.46593 0,-57.46593"
+    id="stool_11" inkscape:connector-curvature="0"
+    style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-width:2.82332373;stroke-linecap:square;stroke-miterlimit:10"
+    type="movable" />
+  <path
+    d="m 279.82664,608.58337 c 0,0 57.52489,0 57.52489,0 0,0 0,57.46593 0,57.46593 0,0 -57.52489,0 -57.52489,0 0,0 0,-57.46593 0,-57.46593"
+    id="stool_12" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 691.93479,607.5321 c 0,0 57.52492,0 57.52492,0 0,0 0,57.46593 0,57.46593 0,0 -57.52492,0 -57.52492,0 0,0 0,-57.46593 0,-57.46593"
+    id="stool_13" inkscape:connector-curvature="0"
+    style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-width:2.82332373;stroke-linecap:square;stroke-miterlimit:10"
+    type="movable" />
+  <path
+    d="m 848.05361,666.05263 c 0,0 57.52481,0 57.52481,0 0,0 0,57.46596 0,57.46596 0,0 -57.52481,0 -57.52481,0 0,0 0,-57.46596 0,-57.46596"
+    id="stool_14" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 139.82661,807.0043 c 0,0 57.52483,0 57.52483,0 0,0 0,57.46599 0,57.46599 0,0 -57.52483,0 -57.52483,0 0,0 0,-57.46599 0,-57.46599"
+    id="stool_15" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 612.13206,739.93029 c 0,0 57.52479,0 57.52479,0 0,0 0,57.46596 0,57.46596 0,0 -57.52479,0 -57.52479,0 0,0 0,-57.46596 0,-57.46596"
+    id="stool_16" inkscape:connector-curvature="0"
+    style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-width:2.82332373;stroke-linecap:square;stroke-miterlimit:10"
+    type="movable" />
+  <path
+    d="m 857.32919,856.15221 c 0,0 57.52492,0 57.52492,0 0,0 0,57.46599 0,57.46599 0,0 -57.52492,0 -57.52492,0 0,0 0,-57.46599 0,-57.46599"
+    id="stool_17" inkscape:connector-curvature="0" style="fill:#f1c232;fill-rule:evenodd;stroke-width:2.82332373"
+    type="movable" />
+  <path
+    d="m 530.25561,276.90521 c 0,0 57.52491,0 57.52491,0 0,0 0,57.46597 0,57.46597 0,0 -57.52491,0 -57.52491,0 0,0 0,-57.46597 0,-57.46597"
+    id="stool_18" inkscape:connector-curvature="0"
+    style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-width:2.82332373;stroke-linecap:square;stroke-miterlimit:10"
+    type="movable" />
+  <path
+    d="m 775.88477,440.658 c 0,0 57.52492,0 57.52492,0 0,0 0,57.46593 0,57.46593 0,0 -57.52492,0 -57.52492,0 0,0 0,-57.46593 0,-57.46593"
+    id="stool_19" inkscape:connector-curvature="0"
+    style="fill:#f1c232;fill-rule:evenodd;stroke:none;stroke-width:2.82332373;stroke-linecap:square;stroke-miterlimit:10"
+    type="movable" />
+  <path
+    d="m 433.30513,15.84464 c 0,0 83.37283,0 83.37283,0 0,0 0,83.37278 0,83.37278 0,0 -83.37283,0 -83.37283,0 0,0 0,-83.37278 0,-83.37278"
+    id="pillar_top" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 850.5247,429.73021 c 0,0 83.37281,0 83.37281,0 0,0 0,83.37281 0,83.37281 0,0 -83.37281,0 -83.37281,0 0,0 0,-83.37281 0,-83.37281"
+    id="pillar_right" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 433.2855,844.47944 c 0,0 83.37284,0 83.37284,0 0,0 0,83.37272 0,83.37272 0,0 -83.37284,0 -83.37284,0 0,0 0,-83.37272 0,-83.37272"
+    id="pillar_bottom" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 16.443439,429.73513 c 0,0 83.372779,0 83.372779,0 0,0 0,83.3728 0,83.3728 0,0 -83.372779,0 -83.372779,0 0,0 0,-83.3728 0,-83.3728"
+    id="pillar_left" inkscape:connector-curvature="0" style="fill:#000000;fill-rule:evenodd;stroke-width:2.82332373"
+    type="wall" />
+  <path
+    d="m 15.791661,15.78428 c 0,0 0,-15.77521 0,-15.77521 0,0 918.410829,0 918.410829,0 0,0 0,15.77521 0,15.77521 0,0 -918.410829,0 -918.410829,0"
+    id="wall_ext_top" inkscape:connector-curvature="0"
+    style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.82332373;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+    type="wall" />
+  <path
+    d="m 15.791661,943.67607 c 0,0 0,-15.77521 0,-15.77521 0,0 918.410829,0 918.410829,0 0,0 0,15.77521 0,15.77521 0,0 -918.410829,0 -918.410829,0"
+    id="wall_ext_bottom" inkscape:connector-curvature="0"
+    style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.82332373;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-opacity:1"
+    type="wall" />
+  <path
+    d="m 0,943.68544 c 0,0 15.772013,0 15.772013,0 0,0 0,-943.68544 0,-943.68544 C 15.772013,0 0,0 0,0 0,0 0,943.68544 0,943.68544"
+    id="wall_ext_left" inkscape:connector-curvature="0"
+    style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.82332373;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+    type="wall" />
+  <path
+    d="m 934.22798,943.7093 c 0,0 15.77202,0 15.77202,0 0,0 0,-943.68544 0,-943.68544 0,0 -15.77202,0 -15.77202,0 0,0 0,943.68544 0,943.68544"
+    id="wall_ext_right" inkscape:connector-curvature="0"
+    style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.82332373;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-opacity:1"
+    type="wall" />
+
+
+
+  <namo_config cell_size="15.0" random_seed="10">
+    <agent agent_id="robot_0">
+      <goal goal_id="robot_0_goal_0" />
+      <goal goal_id="robot_0_goal_1" />
+      <goal goal_id="robot_0_goal_2" />
+      <goal goal_id="robot_0_goal_3" />
+      <goal goal_id="robot_0_goal_4" />
+      <goal goal_id="robot_0_goal_5" />
+      <goal goal_id="robot_0_goal_6" />
+      <goal goal_id="robot_0_goal_7" />
+      <goal goal_id="robot_0_goal_8" />
+      <goal goal_id="robot_0_goal_9" />
+      <goal goal_id="robot_0_goal_10" />
+      <goal goal_id="robot_0_goal_11" />
+      <goal goal_id="robot_0_goal_12" />
+      <goal goal_id="robot_0_goal_13" />
+      <goal goal_id="robot_0_goal_14" />
+      <goal goal_id="robot_0_goal_15" />
+      <goal goal_id="robot_0_goal_16" />
+      <goal goal_id="robot_0_goal_17" />
+      <goal goal_id="robot_0_goal_18" />
+      <goal goal_id="robot_0_goal_19" />
+      <goal goal_id="robot_0_goal_20" />
+      <goal goal_id="robot_0_goal_21" />
+      <goal goal_id="robot_0_goal_22" />
+      <goal goal_id="robot_0_goal_23" />
+      <goal goal_id="robot_0_goal_24" />
+      <behavior type="stilman_2005_behavior">
+        <parameters alpha_for_obstacle_choice_heur="0.5" basic_rotation_moment="2.0" basic_translation_force="2.0"
+          check_new_local_opening_before_global="true" collision_check_angular_res="5.0" activate_grids_logging="false"
+          forbid_rotations="false" heuristic_cost_for_traversing_obstacle_in_choice_heur="2.0"
+          manipulation_search_procedure="DFS" neighborhood_for_obstacle_choice_heur="TAXI"
+          robot_rotation_unit_angle="30.0" robot_translation_unit_length="15.0"
+          solution_interval_bound_percentage="0.01" use_social_cost="true" />
+      </behavior>
+    </agent>
+    <agent agent_id="robot_1">
+      <goal goal_id="robot_1_goal_0" />
+      <goal goal_id="robot_1_goal_1" />
+      <goal goal_id="robot_1_goal_2" />
+      <goal goal_id="robot_1_goal_3" />
+      <goal goal_id="robot_1_goal_4" />
+      <goal goal_id="robot_1_goal_5" />
+      <goal goal_id="robot_1_goal_6" />
+      <goal goal_id="robot_1_goal_7" />
+      <goal goal_id="robot_1_goal_8" />
+      <goal goal_id="robot_1_goal_9" />
+      <goal goal_id="robot_1_goal_10" />
+      <goal goal_id="robot_1_goal_11" />
+      <goal goal_id="robot_1_goal_12" />
+      <goal goal_id="robot_1_goal_13" />
+      <goal goal_id="robot_1_goal_14" />
+      <goal goal_id="robot_1_goal_15" />
+      <goal goal_id="robot_1_goal_16" />
+      <goal goal_id="robot_1_goal_17" />
+      <goal goal_id="robot_1_goal_18" />
+      <goal goal_id="robot_1_goal_19" />
+      <goal goal_id="robot_1_goal_20" />
+      <goal goal_id="robot_1_goal_21" />
+      <goal goal_id="robot_1_goal_22" />
+      <goal goal_id="robot_1_goal_23" />
+      <goal goal_id="robot_1_goal_24" />
+      <behavior type="stilman_2005_behavior">
+        <parameters alpha_for_obstacle_choice_heur="0.5" basic_rotation_moment="2.0" basic_translation_force="2.0"
+          check_new_local_opening_before_global="true" collision_check_angular_res="5.0" activate_grids_logging="false"
+          forbid_rotations="false" heuristic_cost_for_traversing_obstacle_in_choice_heur="2.0"
+          manipulation_search_procedure="DFS" neighborhood_for_obstacle_choice_heur="TAXI"
+          robot_rotation_unit_angle="30.0" robot_translation_unit_length="15.0"
+          solution_interval_bound_percentage="0.01" use_social_cost="true" />
+      </behavior>
+    </agent>
+    <agent agent_id="robot_2">
+      <goal goal_id="robot_2_goal_0" />
+      <goal goal_id="robot_2_goal_1" />
+      <goal goal_id="robot_2_goal_2" />
+      <goal goal_id="robot_2_goal_3" />
+      <goal goal_id="robot_2_goal_4" />
+      <goal goal_id="robot_2_goal_5" />
+      <goal goal_id="robot_2_goal_6" />
+      <goal goal_id="robot_2_goal_7" />
+      <goal goal_id="robot_2_goal_8" />
+      <goal goal_id="robot_2_goal_9" />
+      <goal goal_id="robot_2_goal_10" />
+      <goal goal_id="robot_2_goal_11" />
+      <goal goal_id="robot_2_goal_12" />
+      <goal goal_id="robot_2_goal_13" />
+      <goal goal_id="robot_2_goal_14" />
+      <goal goal_id="robot_2_goal_15" />
+      <goal goal_id="robot_2_goal_16" />
+      <goal goal_id="robot_2_goal_17" />
+      <goal goal_id="robot_2_goal_18" />
+      <goal goal_id="robot_2_goal_19" />
+      <goal goal_id="robot_2_goal_20" />
+      <goal goal_id="robot_2_goal_21" />
+      <goal goal_id="robot_2_goal_22" />
+      <goal goal_id="robot_2_goal_23" />
+      <goal goal_id="robot_2_goal_24" />
+      <behavior type="stilman_2005_behavior">
+        <parameters alpha_for_obstacle_choice_heur="0.5" basic_rotation_moment="2.0" basic_translation_force="2.0"
+          check_new_local_opening_before_global="true" collision_check_angular_res="5.0" activate_grids_logging="false"
+          forbid_rotations="false" heuristic_cost_for_traversing_obstacle_in_choice_heur="2.0"
+          manipulation_search_procedure="DFS" neighborhood_for_obstacle_choice_heur="TAXI"
+          robot_rotation_unit_angle="30.0" robot_translation_unit_length="15.0"
+          solution_interval_bound_percentage="0.01" use_social_cost="true" />
+      </behavior>
+    </agent>
+    <agent agent_id="robot_3">
+      <goal goal_id="robot_3_goal_0" />
+      <goal goal_id="robot_3_goal_1" />
+      <goal goal_id="robot_3_goal_2" />
+      <goal goal_id="robot_3_goal_3" />
+      <goal goal_id="robot_3_goal_4" />
+      <goal goal_id="robot_3_goal_5" />
+      <goal goal_id="robot_3_goal_6" />
+      <goal goal_id="robot_3_goal_7" />
+      <goal goal_id="robot_3_goal_8" />
+      <goal goal_id="robot_3_goal_9" />
+      <goal goal_id="robot_3_goal_10" />
+      <goal goal_id="robot_3_goal_11" />
+      <goal goal_id="robot_3_goal_12" />
+      <goal goal_id="robot_3_goal_13" />
+      <goal goal_id="robot_3_goal_14" />
+      <goal goal_id="robot_3_goal_15" />
+      <goal goal_id="robot_3_goal_16" />
+      <goal goal_id="robot_3_goal_17" />
+      <goal goal_id="robot_3_goal_18" />
+      <goal goal_id="robot_3_goal_19" />
+      <goal goal_id="robot_3_goal_20" />
+      <goal goal_id="robot_3_goal_21" />
+      <goal goal_id="robot_3_goal_22" />
+      <goal goal_id="robot_3_goal_23" />
+      <goal goal_id="robot_3_goal_24" />
+      <behavior type="stilman_2005_behavior">
+        <parameters alpha_for_obstacle_choice_heur="0.5" basic_rotation_moment="2.0" basic_translation_force="2.0"
+          check_new_local_opening_before_global="true" collision_check_angular_res="5.0" activate_grids_logging="false"
+          forbid_rotations="false" heuristic_cost_for_traversing_obstacle_in_choice_heur="2.0"
+          manipulation_search_procedure="DFS" neighborhood_for_obstacle_choice_heur="TAXI"
+          robot_rotation_unit_angle="30.0" robot_translation_unit_length="15.0"
+          solution_interval_bound_percentage="0.01" use_social_cost="true" />
+      </behavior>
+    </agent>
+  </namo_config>
+  <svg:g id="goals" inkscape:groupmode="layer">
+    <svg:g id="robot_0_goals" inkscape:groupmode="layer">
+      <svg:g id="robot_0_goal_0">
+        <svg:path id="robot_0_goal_0_shape"
+          d="M 150.1877381514362,174.0918426223908 L 140.4222988727793,169.87368365280042 L 133.01444096593653,162.23952158022018 L 129.09191592092046,152.35163267835856 L 129.25191356958968,141.7153248323316 L 133.4700694494202,131.94989506381148 L 141.10423152200045,124.54203715696872 L 150.99212042343518,120.61951211285702 L 161.62842826988904,120.77950976062186 L 171.39385803798226,124.99766564135666 L 178.8017159452519,132.63182771303264 L 182.72424098893683,142.51971661537164 L 182.56424334159877,153.15602446092123 L 178.34608746086397,162.92145422901456 L 170.711925389188,170.3293121362841 L 160.8240364864221,174.25183718087328 L 150.1877381514362,174.0918426223908 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_0_direction"
+          d="M156.2645250014023 147.41788953170806L132.16180432284423 139.5874450413587"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_1">
+        <svg:path id="robot_0_goal_1_shape"
+          d="M 110.69315163449056,751.1525154444868 L 100.33916069495666,748.7129374027095 L 91.70691489089694,742.4967390711978 L 86.11057587248473,733.450328774548 L 84.40215026236916,722.9509037532558 L 86.84172693067984,712.596922718413 L 93.05792526219153,703.9646769143534 L 102.10433555857975,698.3683378969063 L 112.6037605801335,696.6599122858255 L 122.95774161471451,699.0994889551014 L 131.58998741903594,705.3156872856479 L 137.18632643622146,714.3620975830012 L 138.8947520475637,724.86152260359 L 136.45517537828795,735.215503638171 L 130.23897704774134,743.8477494424924 L 121.19256675012645,749.444088460643 L 110.69315163449056,751.1525154444868 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_1_direction"
+          d="M111.99624972906491 723.8261719592595L86.89361659371247 720.3455377215179"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_2">
+        <svg:path id="robot_0_goal_2_shape"
+          d="M 643.4882195932939,114.62759345587222 L 636.9994795623411,106.19830391234711 L 634.230434890558,95.9275112981394 L 635.6026017799456,85.37887595075892 L 640.9071148748103,76.15831280800865 L 649.3363970994582,69.66957959052434 L 659.6071897136659,66.90053491874119 L 670.155825060234,68.27270180871199 L 679.3763882037965,73.57721490299343 L 685.8651214204685,82.00649712822451 L 688.634166093064,92.27728974184902 L 687.2619992022809,102.8259250890004 L 681.9574861088117,112.04648823197965 L 673.5282038835807,118.53522144865178 L 663.2574112699562,121.30426612124722 L 652.7087759219925,119.93209923104735 L 643.4882195932939,114.62759345587222 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_2_direction"
+          d="M661.7525416938072 94.25993163429666L644.484168161244 75.71106965936917"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_3">
+        <svg:path id="robot_0_goal_3_shape"
+          d="M 678.7976257397813,125.70119441694692 L 687.5350203226017,119.63369037475843 L 697.9292638490203,117.37172423179777 L 708.3979039734058,119.25961289653367 L 717.3472025847086,125.0099779465778 L 723.4147001805939,133.7473648851526 L 725.6766663235544,144.14160841157116 L 723.7887776582759,154.61024853511685 L 718.0384126087745,163.55954714725965 L 709.3010256696568,169.62704474230475 L 698.9067821437811,171.88901088610532 L 688.4381420196926,170.00112221998688 L 679.4888434080926,164.2507571713253 L 673.4213458130475,155.51337023220776 L 671.1593796692468,145.11912670633194 L 673.0472683348228,134.65048658140358 L 678.7976257397813,125.70119441694692 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_3_direction"
+          d="M698.2449747145249 144.9424971836379L717.6184656280459 128.604662111366"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_4">
+        <svg:path id="robot_0_goal_4_shape"
+          d="M 201.58233515612886,287.53304355243654 L 212.18826858365918,286.71399194925834 L 222.30030934243285,290.01602480967824 L 230.378994775203,296.93638544642863 L 235.1944153645082,306.4215511482564 L 236.01346526925244,317.0274747216181 L 232.71143240883242,327.13951548039176 L 225.79107177203838,335.21820091216284 L 216.30590607025425,340.0336215024671 L 205.69998249684892,340.85267140621215 L 195.5879417381189,337.55063854679133 L 187.50925630630417,330.6302779089982 L 182.69383571604357,321.14511220821316 L 181.8747858122984,310.53918863480783 L 185.17681867171945,300.4271478760778 L 192.0971793094688,292.348462443264 L 201.58233515612886,287.53304355243654 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_4_direction"
+          d="M208.63704366644055 313.96518697336137L233.6115389263901 309.660353464874"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_5">
+        <svg:path id="robot_0_goal_5_shape"
+          d="M 286.3605555631579,39.5997397898966 L 292.780906994725,31.11824482184727 L 301.9582819747894,25.73934365212108 L 312.49547192161964,24.28188775613137 L 322.78831280353177,26.967789917914956 L 331.26979926959916,33.38813608586918 L 336.64870043932535,42.56551106593372 L 338.10615633453824,53.10270101213416 L 335.4202541735314,63.39554189467606 L 328.99990800480043,71.87702836011363 L 319.82253302551277,77.25592953046964 L 309.2853430785355,78.7133854250527 L 298.9925021967704,76.02748326467565 L 290.51101573133275,69.60713709594461 L 285.13211456097673,60.429762116657 L 283.6746586656169,49.89257216904991 L 286.3605555631579,39.5997397898966 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_5_direction"
+          d="M310.8228791798366 51.84807990607408L324.1627983299251 30.300375571409063"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_6">
+        <svg:path id="robot_0_goal_6_shape"
+          d="M 643.0841308683684,670.6670801860471 L 653.0095011309133,674.4937882424919 L 660.7149185644885,681.8275002284341 L 665.0273291558738,691.5516796054121 L 665.2901878837101,702.1859425856206 L 661.4634825366127,712.1113032227433 L 654.1297705506704,719.8167206563184 L 644.4055911740832,724.1291312467831 L 633.7713281934839,724.3919899755402 L 623.8459675567519,720.5652846275221 L 616.1405501227862,713.2315726425004 L 611.8281395327119,703.5073932649925 L 611.5652808035643,692.8731302853139 L 615.3919861515824,682.9477696485818 L 622.7256981366043,675.2423522146162 L 632.4498775145025,670.9299416236214 L 643.0841308683684,670.6670801860471 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_6_direction"
+          d="M638.072276055273 697.5614742512283L662.4671665922342 704.4277920937642"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_7">
+        <svg:path id="robot_0_goal_7_shape"
+          d="M 130.04597769085518,649.4084502145464 L 140.45967993949608,651.5790434225249 L 149.25002839433824,657.5695829108222 L 155.0787904476952,666.4680143787654 L 157.05857613278516,676.9196693904918 L 154.8879840412829,687.3333617021917 L 148.89744455298563,696.1237101570339 L 139.99901308527905,701.9524722094193 L 129.54735807331605,703.9322578954808 L 119.13366576185268,701.761665803007 L 110.34331730677394,695.7711263156814 L 104.51455525462512,686.8726948470031 L 102.53476956832702,676.4210398360117 L 104.70536166080097,666.0073475245483 L 110.69590114812655,657.2169990694696 L 119.59433261704129,651.3882370163492 L 130.04597769085518,649.4084502145464 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_7_direction"
+          d="M129.45106377378005 676.7593770229282L154.63542385435227 679.5886900768547"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_8">
+        <svg:path id="robot_0_goal_8_shape"
+          d="M 688.7667150857999,907.2658390672724 L 678.8163497299745,903.5046027434737 L 671.0627847620854,896.2218134696366 L 666.6864045204477,886.5262554328375 L 666.3534925989131,875.8939549529067 L 670.1147262768359,865.9435992401441 L 677.397515550673,858.190034272255 L 687.0930735870877,853.8136540315405 L 697.725374067403,853.4807421090827 L 707.675729779781,857.2419757879286 L 715.4292947480546,864.5247650608427 L 719.8056749883847,874.2203230981803 L 720.1385869112269,884.8526235775726 L 716.377353232381,894.8029792899507 L 709.0945639594668,902.5565442582243 L 699.3990059217447,906.9329244994774 L 688.7667150857999,907.2658390672724 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_8_direction"
+          d="M693.6012796940483 880.3390104904379L669.1616830157209 873.6335560520175"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_9">
+        <svg:path id="robot_0_goal_9_shape"
+          d="M 92.62796467837356,204.06046343147239 L 89.19428204220716,193.99237061545398 L 89.87488777760066,183.37664807050476 L 94.5661143881596,173.82945253711796 L 102.55380408890463,166.80425096793533 L 112.62188778385368,163.37057242998935 L 123.23761032880296,164.0511781653829 L 132.78480586123297,168.7424047762329 L 139.81000743137236,176.73009447668687 L 143.24368596836155,186.7981781719269 L 142.56308023392478,197.4139007165852 L 137.87185362211812,206.96109624930625 L 129.8841639226208,213.98629781915452 L 119.81608022738064,217.41997635614382 L 109.20035768272245,216.73937062170694 L 99.65316214904468,212.04814401019132 L 92.62796467837356,204.06046343147239 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_9_direction"
+          d="M116.47156343193288 190.64741352101066L106.08469903768386 167.53096800963237"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_10">
+        <svg:path id="robot_0_goal_10_shape"
+          d="M 305.5608468328414,82.56925998238808 L 294.94024914533594,83.16890500907198 L 284.898624110998,79.65855517064392 L 276.96471315488094,72.57268143448823 L 272.3463860078561,62.990004449110415 L 271.74674247555134,52.369416648775996 L 275.2570923139795,42.327791614437956 L 282.34296605015817,34.39388065932053 L 291.9256430355128,29.77555351129604 L 302.5462308358704,29.175909979991047 L 312.58785587018525,32.68625981741934 L 320.52176682532576,39.77213355459776 L 325.14009397332717,49.354810538952734 L 325.7397375046323,59.97539833931046 L 322.22938766720387,70.0170233736253 L 315.1435139300485,77.95093432976546 L 305.5608468328414,82.56925998238808 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_10_direction"
+          d="M299.05401509129484 55.99693875376124L273.9958721788989 59.78461334471831"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_11">
+        <svg:path id="robot_0_goal_11_shape"
+          d="M 150.66784047091693,248.70272512980875 L 146.39651399803813,258.445026683341 L 138.72208604723016,265.81116169067366 L 128.81296285537297,269.67973083609843 L 118.17768515044777,269.46175840170395 L 108.43539309006907,265.1904350703777 L 101.06925808273643,257.51600711956974 L 97.20068893821356,247.60688392814438 L 97.41866137170605,236.97160622278727 L 101.68998470393426,227.22931416284052 L 109.36441265384026,219.86317915507595 L 119.2735358461676,215.99461001098496 L 129.9088135506227,216.21258244404567 L 139.65110561056957,220.4839057762738 L 147.01724061833403,228.15833372617988 L 150.88580976332707,238.06745691893911 L 150.66784047091693,248.70272512980875 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_11_direction"
+          d="M124.02740727168465 242.48063217295453L116.06569824330474 266.54031202062606"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_12">
+        <svg:path id="robot_0_goal_12_shape"
+          d="M 919.7165313626208,339.585361695903 L 912.8820354407641,347.7368238280603 L 903.448339772874,352.65232739982446 L 892.8516735320345,353.58357078615825 L 882.7052569209524,350.3887509481407 L 874.5538030182863,343.55426070649423 L 869.6382994465223,334.120565038604 L 868.7070560609329,323.52389879843236 L 871.9018758982061,313.3774821866825 L 878.7363661405969,305.2260282846843 L 888.1700618077426,300.31052471225246 L 898.7667280486588,299.3792813273308 L 908.9131446596641,302.57410116393623 L 917.0645985616625,309.4085914063271 L 921.9801021340943,318.8422870734728 L 922.9113455197604,329.43895331505666 L 919.7165313626208,339.585361695903 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_12_direction"
+          d="M895.8940857857422 326.13477780371784L881.4983278386196 346.99189069483725"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_13">
+        <svg:path id="robot_0_goal_13_shape"
+          d="M 108.65071052773393,731.8225380957683 L 102.01290370693616,723.5101262912652 L 99.06141190166485,713.2902688831695 L 100.24552769327497,702.7188725961885 L 105.38501445418078,693.4053169015298 L 113.69741906229044,686.7675170234432 L 123.91727647038633,683.816025218172 L 134.48867275656548,685.0001410103797 L 143.8022284520259,690.1396277706879 L 150.4400283293107,698.4520323793952 L 153.39152013538384,708.6718897868934 L 152.20740434237425,719.2432860736702 L 147.0679175828678,728.556841768533 L 138.7555129741605,735.1946416458178 L 128.53565556666226,738.1461334518908 L 117.96425927908373,736.962017659479 L 108.65071052773393,731.8225380957683 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_13_direction"
+          d="M126.54946151302155 711.1328831184304L108.9535368041173 692.8944501083386"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_14">
+        <svg:path id="robot_0_goal_14_shape"
+          d="M 808.6874154069112,776.0240663122092 L 809.4523137380879,786.6340427467181 L 806.0987025944033,796.7290950801807 L 799.1371909686953,804.7723472551078 L 789.6275664525378,809.5392839449256 L 779.0175998807395,810.3041806279954 L 768.922547547277,806.9505694843108 L 760.8792953733491,799.9890578585641 L 756.112358682532,790.4794333424453 L 755.3474620004615,779.8694667706084 L 758.7010731431469,769.7744144371843 L 765.6625847698929,761.7311622632179 L 775.1722092850125,756.9642255724395 L 785.7821758568493,756.199328890369 L 795.8772281902734,759.5529400330544 L 803.920480365239,766.5144516597617 L 808.6874154069112,776.0240663122092 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_14_direction"
+          d="M782.2196025208573 782.9437487006729L786.3968867641361 807.939894431083"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_15">
+        <svg:path id="robot_0_goal_15_shape"
+          d="M 745.880636297713,107.60649587786224 L 753.9554818631191,114.53134522587777 L 758.7656240288472,124.01919649283366 L 759.5788018708665,134.6255762456799 L 756.271186469475,144.7357851554658 L 749.3463428929638,152.81062255514757 L 739.8584916260077,157.62076472087574 L 729.2521118738375,158.43394256215788 L 719.1419029633757,155.12632716150347 L 711.0670655643698,148.20148358425524 L 706.2569233979657,138.71363231803628 L 705.4437455573595,128.107252565129 L 708.7513609573382,117.99704365540424 L 715.6762045345863,109.92220625639823 L 725.1640558008053,105.11206408999419 L 735.7704355543885,104.298886248651 L 745.880636297713,107.60649587786224 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_15_direction"
+          d="M732.165592090563 131.27767423470925L752.8610959447619 145.9048108391811"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_16">
+        <svg:path id="robot_0_goal_16_shape"
+          d="M 276.7622226499757,143.41594627321228 L 281.8287429544122,134.0624954980916 L 290.08902638483886,127.35992084595887 L 300.28547799628154,124.32859700977053 L 310.8658120405888,125.43003940677022 L 320.21925361661386,130.49655579126318 L 326.92182826874654,138.75683922168992 L 329.953152104072,148.95329083262732 L 328.85170970793524,159.53362487743982 L 323.78519332257935,168.88706645295952 L 315.52490989301555,175.5896411055976 L 305.32845828121526,178.6209649404177 L 294.74812423726564,177.51952254478624 L 285.39468266174595,172.4530061594303 L 278.6921080091078,164.19272272986655 L 275.6607841734249,153.99627111756092 L 276.7622226499757,143.41594627321228 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_16_direction"
+          d="M302.79311229061125 151.8314020560016L312.72759548064545 128.51696342300067"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_17">
+        <svg:path id="robot_0_goal_17_shape"
+          d="M 312.73957381709556,130.778609354335 L 309.564364355978,140.93118116033088 L 302.74561163517006,149.09582448694766 L 293.3214558994342,154.02956934586905 L 282.7266038585213,154.98128047546504 L 272.5740418333432,151.80607309399193 L 264.4093985067264,144.98732037318393 L 259.4756536487489,135.5631646377783 L 258.52394251820897,124.96831259653516 L 261.699149900626,114.81575057168732 L 268.5179026204901,106.65110724474027 L 277.94205835683965,101.71736238709298 L 288.53691039713885,100.7656512562229 L 298.6894724219868,103.94085863863995 L 306.85411574893374,110.759611358504 L 311.78786060752503,120.18376709518373 L 312.73957381709556,130.778609354335 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_17_direction"
+          d="M285.57684255312705 127.52082597304764L280.3064574647247 152.30953400805788"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_18">
+        <svg:path id="robot_0_goal_18_shape"
+          d="M 150.48304311945773,325.9994198577041 L 148.58113223440225,336.4655272708343 L 142.81876806188282,345.4071126147014 L 134.07326773280468,351.46291757014956 L 123.67601696110742,353.71098790567623 L 113.20991951035688,351.8090778810316 L 104.26833416648984,346.04671370851213 L 98.21252921201906,337.30121337964556 L 95.96445887551502,326.90396260773673 L 97.86636890113701,316.43786515719773 L 103.62873307267907,307.49627981311914 L 112.37423340252312,301.44047485885994 L 122.7714841734545,299.19240452214444 L 133.23758162399352,301.0943145477663 L 142.1791669680721,306.85667871930843 L 148.23497192330873,315.60217904936394 L 150.48304311945773,325.9994198577041 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_18_direction"
+          d="M123.12586442920039 326.10849245604356L120.94552784577357 351.357316931809"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_19">
+        <svg:path id="robot_0_goal_19_shape"
+          d="M 368.6030776592586,37.52775569301809 L 375.8245947328964,29.717098835043316 L 385.48542994308013,25.264565583054264 L 396.11477612247,24.847972900657282 L 406.09443637503125,28.53077415601763 L 413.90508528847045,35.752285157285996 L 418.35761854045944,45.4131203674699 L 418.7742112221452,56.042466546156675 L 415.0914099674961,66.0221267994209 L 407.8698989655165,73.83277571215706 L 398.2090637560439,78.28530896484904 L 387.5797175766458,78.70190164583187 L 377.60005732409286,75.01910039188567 L 369.78940841135653,67.79758938990608 L 365.3368751586646,58.13675418043351 L 364.9202824769706,47.507408000332475 L 368.6030776592586,37.52775569301809 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_19_direction"
+          d="M391.745661420926 52.117064440948525L407.1353216961805 31.982135545188953"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_20">
+        <svg:path id="robot_0_goal_20_shape"
+          d="M 617.7834091733553,440.25625279990055 L 628.3704562825249,441.2911938156589 L 637.7555521524962,446.29886441483376 L 644.5099138859323,454.51684149184183 L 647.6052414354981,464.6940508934378 L 646.5703004581237,475.2810880032152 L 641.5626298589489,484.6661838731865 L 633.3446527820713,491.42054560563105 L 623.1674433803448,494.5158731561883 L 612.580406270698,493.4809321778227 L 603.1953104005961,488.4732615796393 L 596.4409486682821,480.25528450177006 L 593.3456211175944,470.07807510103515 L 594.3805620959602,459.4910379913883 L 599.3882326941434,450.10594212128643 L 607.6062097721431,443.35158038798085 L 617.7834091733553,440.25625279990055 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_20_direction"
+          d="M620.1414376356518 467.5118360982155L645.4840420806595 467.60881531718957"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_21">
+        <svg:path id="robot_0_goal_21_shape"
+          d="M 788.6606809125472,760.4460845713662 L 782.5774380846767,751.7196405020425 L 780.2967406011926,741.3294909214434 L 782.1657570888775,730.8574649936155 L 787.8999822117133,721.8978162235089 L 796.626418648423,715.8145798557097 L 807.0165682290221,713.5338823722257 L 817.488594156011,715.4028988604548 L 826.4482429269566,721.1371239827463 L 832.5314792939167,729.8635604200002 L 834.8121767782399,740.2537100000551 L 832.9431602891717,750.7257359275882 L 827.2089351677191,759.6853846979895 L 818.4824987304652,765.7686210649498 L 808.0923491504102,768.0493185492728 L 797.6203232220383,766.180302060749 L 788.6606809125472,760.4460845713662 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_21_direction"
+          d="M807.8668995429553 740.9640858114745L791.4941714277493 721.6200743585576"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_22">
+        <svg:path id="robot_0_goal_22_shape"
+          d="M 604.727555503871,160.02396108075766 L 601.0579192794008,150.03945110890993 L 601.4885464490868,139.4106529849862 L 605.9538267181712,129.75571529575893 L 613.77400040795,122.54450684607957 L 623.7585013576858,118.87487493331582 L 634.3872994816094,119.30550210300191 L 644.0422371698871,123.77078237239971 L 651.253445620516,131.59095606186497 L 654.9230775323301,141.57545701191418 L 654.4924503635939,152.20425513552436 L 650.0271700932465,161.85919282411567 L 642.2069964047307,169.070401274431 L 632.2224954546814,172.74003318624523 L 621.5936973310712,172.30940601750876 L 611.9387596415304,167.8441257474749 L 604.727555503871,160.02396108075766 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_22_direction"
+          d="M628.2489407837761 146.0535801287964L617.3210175444334 123.18793999561672"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_23">
+        <svg:path id="robot_0_goal_23_shape"
+          d="M 702.976038212285,40.649548835522296 L 706.0940109249614,50.819844581511006 L 705.08261576484,61.409172659745195 L 700.0958801820093,70.80539625708809 L 691.8929503236086,77.5780313115697 L 681.7226638220809,80.69600021252006 L 671.1333357438468,79.68460505239864 L 661.7371121474691,74.69786946930674 L 654.9644770920222,66.49493961116718 L 651.8465081920373,56.32465310937846 L 652.8579033511933,45.73532503140541 L 657.8446389352505,36.33910143476669 L 666.0475687924247,29.56646637958079 L 676.2178552942136,26.448497479595858 L 686.8071833721866,27.459892638751853 L 696.2034069697906,32.44662822254804 L 702.976038212285,40.649548835522296 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_23_direction"
+          d="M678.7256674044793 53.31235417984249L688.386440600209 76.74153398379019"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_0_goal_24">
+        <svg:path id="robot_0_goal_24_shape"
+          d="M 827.6603583077904,260.4159554045806 L 819.3481814424473,267.0540564249874 L 809.1284285038166,270.00590994299 L 798.5569903136799,268.8221683088258 L 789.2432527214073,263.6830111887016 L 782.6051586439663,255.37084151950614 L 779.6533051259638,245.15108858087535 L 780.8370467607256,234.57965039154044 L 785.9762038802522,225.26591279846605 L 794.2883735500453,218.627818721827 L 804.5081264880783,215.67596520302266 L 815.079564678011,216.85970683858613 L 824.3933022704877,221.99886395731107 L 831.0313963471269,230.31103362710417 L 833.9832498659312,240.5307865651372 L 832.7995082309652,251.1022247558716 L 827.6603583077904,260.4159554045806 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_0_goal_24_direction"
+          d="M806.9700696737616 242.5179366510746L788.7322594531086 260.11450686746855"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+    </svg:g>
+    <svg:g id="robot_1_goals" inkscape:groupmode="layer">
+      <svg:g id="robot_1_goal_0">
+        <svg:path id="robot_1_goal_0_shape"
+          d="M 60.46508078514506,203.2471738971085 L 54.13695330804825,194.6966492330024 L 51.56269016825712,184.37531411561054 L 53.13415337545251,173.8545226504798 L 58.61213687261733,164.73595145495665 L 67.16265409026954,158.4078306516626 L 77.48398920766152,155.8335675118716 L 88.00478067196906,157.40503071963474 L 97.12335186831541,162.8830142162318 L 103.45147267078613,171.43353143445177 L 106.02573581140047,181.75486655127588 L 104.45427260281411,192.27565801615117 L 98.97628910704026,201.39422921192977 L 90.4257718888203,207.7223500144006 L 80.10443677199606,210.29661315501482 L 69.58364530629768,208.72514994699623 L 60.46508078514506,203.2471738971085 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_0_direction"
+          d="M79.11141697591376 183.2286510623827L62.19701033121311 164.35645318077002"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_1">
+        <svg:path id="robot_1_goal_1_shape"
+          d="M 812.348505565356,234.96532258546256 L 801.8443780681488,236.64460068044434 L 791.4971974326935,234.17627286274035 L 782.8822284842602,227.9361719275097 L 777.3110218237257,218.8742571084082 L 775.631746223322,208.37013929450598 L 778.1000740410262,198.02295865905057 L 784.3401749763816,189.4079897116095 L 793.4020897953583,183.83678305008277 L 803.9062076093853,182.15750745067135 L 814.2533882447158,184.6258352673832 L 822.8683571922818,190.86593620373094 L 828.4395638536836,199.92785102171536 L 830.1188394530951,210.4319688357425 L 827.650511636383,220.77914947107308 L 821.4104107001604,229.39411841963113 L 812.348505565356,234.96532258546256 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_1_direction"
+          d="M803.1665598526029 209.19481641223308L778.6251277296151 215.51740404530062"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_2">
+        <svg:path id="robot_1_goal_2_shape"
+          d="M 93.64519185533536,722.3357277390137 L 104.28244339231091,722.2612352093126 L 114.13848629248136,726.2631357163713 L 121.71283489128504,733.7321244677443 L 125.85235762663771,743.5311547956151 L 125.92684915198865,754.1683963836914 L 121.92494864492991,764.0244392838617 L 114.4559598935833,771.5987878816658 L 104.65692956568611,775.7383106180182 L 94.01968797763615,775.8128021423694 L 84.16364507743955,771.8109016363104 L 76.58929647966178,764.3419128839641 L 72.44977374328309,754.5428825570666 L 72.3752822189318,743.9056409690165 L 76.37718272499089,734.0495980688199 L 83.84617147736353,726.4752494700425 L 93.64519185533536,722.3357277390137 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_2_direction"
+          d="M98.83200519547378 749.1969281187803L124.04660836193372 746.6511881118306"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_3">
+        <svg:path id="robot_1_goal_3_shape"
+          d="M 110.20181247981998,604.1406978299402 L 107.76340245139096,593.7864317559431 L 109.47303424498364,583.2871961433506 L 115.07037982273937,574.2414086072919 L 123.70333349916268,568.0262050978512 L 134.05759009681117,565.5877982613075 L 144.5568257094037,567.2974300549002 L 153.60261324448192,572.8947756328525 L 159.81781675490305,581.5277293090792 L 162.25622359046622,591.8819859069243 L 160.54659179785403,602.3812215193202 L 154.9492462189212,611.427009054595 L 146.316292543675,617.6422125648195 L 135.96203594582983,620.0806194003828 L 125.46280033343396,618.3709876077705 L 116.4170127971787,612.7736420290344 L 110.20181247981998,604.1406978299402 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_3_direction"
+          d="M135.23667802172858 593.1097134345771L127.14683161511849 569.092815422084"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_4">
+        <svg:path id="robot_1_goal_4_shape"
+          d="M 293.84404370523373,492.1275033882311 L 290.38053592054825,482.0696316837752 L 291.0296753490568,471.4519385576413 L 295.69258498188253,461.89088090587296 L 303.6594180162293,454.8420359475926 L 313.7172806118024,451.37853228814294 L 324.33497373793625,452.02767171665147 L 333.8960313887487,456.690581349771 L 340.94487634798503,464.6574143838239 L 344.4083800064787,474.71527697969094 L 343.75924057892604,485.3329701055308 L 339.09633094485065,494.8940277566373 L 331.12949791175356,501.94287271557954 L 321.0716353158866,505.40637637407343 L 310.45394219004663,504.75723694652066 L 300.8928845379844,500.09432731273915 L 293.84404370523373,492.1275033882311 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_4_direction"
+          d="M317.6477835809832 478.6438437459215L307.1924513305041 455.5582847845896"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_5">
+        <svg:path id="robot_1_goal_5_shape"
+          d="M 301.93167187662203,323.8094806486919 L 302.1631369102026,334.4444744585679 L 298.3071240376234,344.3585026028137 L 290.95072808682596,352.04225092504726 L 281.21385441328607,356.32593332557167 L 270.5788705364041,356.55739720808924 L 260.66484239215833,352.70138433550994 L 252.98109407092474,345.34498838472416 L 248.69741166940042,335.6081147111728 L 248.46594778788278,324.9731308343024 L 252.3219606594621,315.05910269004505 L 259.67835661124786,307.37535436882297 L 269.41523028379936,303.0916719672871 L 280.0502141606697,302.8602080857694 L 289.9642423049271,306.7162209573488 L 297.64799062714906,314.07261690914606 L 301.93167187662203,323.8094806486919 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_5_direction"
+          d="M275.1499416906163 329.3921369595556L278.0675122363223 354.56642517463456"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_6">
+        <svg:path id="robot_1_goal_6_shape"
+          d="M 342.8089318249378,435.9229315724524 L 352.1019688810998,441.0994295846872 L 358.7066416723308,449.43819967620357 L 361.61748066587285,459.66969839428054 L 360.3913127987452,470.2363041030528 L 355.21481881469066,479.5293320069976 L 346.8760487231743,486.1340047982286 L 336.64455000561287,489.0448437909138 L 326.07794429632503,487.818675924643 L 316.7849163928958,482.6421819397316 L 310.18024360114936,474.30341184907206 L 307.26940460897964,464.0719131306537 L 308.49557247473496,453.5053074222228 L 313.6720664596464,444.2122795187935 L 322.0108365503059,437.60760672704714 L 332.24233526923973,434.69676773402057 L 342.8089318249378,435.9229315724524 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_6_direction"
+          d="M334.08700974993275 461.8527444690229L357.2826425098887 472.0615458624429"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_7">
+        <svg:path id="robot_1_goal_7_shape"
+          d="M 63.08094488771951,567.2227566350521 L 73.32044399205904,564.3401662218816 L 83.88363020710904,565.595509324214 L 93.16234777590478,570.7976194674981 L 99.74400095990461,579.1545618035788 L 102.62658777556351,589.394051578008 L 101.37124467323099,599.957237793058 L 96.16913452970823,609.2359553608825 L 87.81219219386628,615.8176085458534 L 77.57270241919844,618.7001953605412 L 67.00951620438718,617.4448522591798 L 57.73079863632381,612.2427421146862 L 51.14914545159161,603.8857997798151 L 48.266558636903824,593.6463100051473 L 49.52190173826523,583.083123790336 L 54.724011882520244,573.8044062213016 L 63.08094488771951,567.2227566350521 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_7_direction"
+          d="M75.18110657510567 591.7587139987096L98.8268568800903 582.6408470585003"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_8">
+        <svg:path id="robot_1_goal_8_shape"
+          d="M 759.9805129101472,798.926258771971 L 770.2914728955785,801.5417460261375 L 778.8166453789819,807.9039958991475 L 784.258170475086,817.0443653825331 L 785.7876099545269,827.5713525451433 L 783.172124242242,837.8823026507002 L 776.809874369232,846.4074751341036 L 767.6695048861246,851.8490002292472 L 757.1425177232362,853.3784397096487 L 746.8315676179575,850.7629539964032 L 738.306395134276,844.4007041243539 L 732.8648700394106,835.2603346402858 L 731.335430558731,824.733347478358 L 733.9509162719764,814.4223973730792 L 740.3131661440259,805.8972248893976 L 749.4535356283719,800.4556997935716 L 759.9805129101472,798.926258771971 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_8_direction"
+          d="M758.2124092597555 826.2264589468708L783.2521515946305 830.1339272868717"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_9">
+        <svg:path id="robot_1_goal_9_shape"
+          d="M 306.8967580410073,918.3027359694437 L 298.4483739754394,911.8388767446053 L 293.1167130849906,902.6339768827027 L 291.71343475402193,892.089435186158 L 294.4522038649907,881.8105350699083 L 300.9160577825879,873.3621594791563 L 310.12095764449043,868.0304985887077 L 320.6654993404013,866.6272202585125 L 330.9443994572848,869.3659893687077 L 339.3927750474029,875.8298432870785 L 344.7244359384855,885.0347431482074 L 346.1277142680468,895.579284844892 L 343.3889451584854,905.8581849610019 L 336.9250912401146,914.30656055112 L 327.72019137898553,919.6382214422025 L 317.1756496816673,921.0414997725373 L 306.8967580410073,918.3027359694437 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_9_direction"
+          d="M319.2706659473148 893.9036885728332L297.7918098118821 880.4531962346911"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_10">
+        <svg:path id="robot_1_goal_10_shape"
+          d="M 674.5566117913552,87.62347377415233 L 684.648687664866,90.98601358226949 L 692.6857514368257,97.9546859984365 L 697.4442568145826,107.46852729594593 L 698.1997465036909,118.07917662445948 L 694.8372089558568,128.17124275731135 L 687.8685365396898,136.208306529271 L 678.3546952425279,140.96681190609024 L 667.7440459136669,141.72230159613628 L 657.6519797811627,138.35976404736448 L 649.6149160088553,131.39109163213516 L 644.8564106323836,121.8772503340357 L 644.1009209419901,111.26660100611218 L 647.4634584907619,101.17453487360785 L 654.4321309059912,93.13747110130066 L 663.9459722044382,88.37896572389127 L 674.5566117913552,87.62347377415233 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_10_direction"
+          d="M670.7967378442781 114.72126830509353L695.4836723794506 120.44946769767284"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_11">
+        <svg:path id="robot_1_goal_11_shape"
+          d="M 731.1832475050196,857.5802805494063 L 735.8768396581463,867.126319628416 L 736.5600205772471,877.7418767569972 L 733.1288320015974,887.8108138718404 L 726.1056035660365,895.8002385185196 L 716.5595730088035,900.4938254401414 L 705.9440158802222,901.1770063592421 L 695.8750787662905,897.7458177831815 L 687.8856541186999,890.7225893480316 L 683.1920671979894,881.1765587903874 L 682.5088862779774,870.5610016622173 L 685.9400748549497,860.4920645478746 L 692.9633032891877,852.5026399006949 L 702.5093338468321,847.8090529799846 L 713.1248909750022,847.1258720599724 L 723.1938280902564,850.5570606365336 L 731.1832475050196,857.5802805494063 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_11_direction"
+          d="M709.2516904563456 873.9336878039761L722.510748980736 895.5312425746401"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_12">
+        <svg:path id="robot_1_goal_12_shape"
+          d="M 96.39734516640196,588.1311074553474 L 99.46273430520678,577.9448393052559 L 106.19292141642798,569.7070379744185 L 115.56324932146846,564.6718116025107 L 126.14720629493355,563.6057447064511 L 136.33346464232005,566.6711318713535 L 144.57126597315744,573.4013189825747 L 149.60649234411778,582.7716468872952 L 150.67255924112482,593.3556038610803 L 147.607172075275,603.5418622081468 L 140.8769849650012,611.7796635393041 L 131.50665705933324,616.8148899099446 L 120.92270008649568,617.8809568072716 L 110.73644173942908,614.8155696414217 L 102.49864040827175,608.0853825311478 L 97.46341403668389,598.7150546251601 L 96.39734516640196,588.1311074553474 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_12_direction"
+          d="M123.59367240907575 591.0953771985739L128.5960628938874 566.2512009300297"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_13">
+        <svg:path id="robot_1_goal_13_shape"
+          d="M 825.8940978349721,589.9950637664475 L 816.9436260393765,595.743604801712 L 806.4745874414989,597.6293460762629 L 796.0808195515443,595.365248305829 L 787.3446631533225,589.2959637327642 L 781.5961282845645,580.3454998088592 L 779.7103870100136,569.8764612109817 L 781.9744847809596,559.482693321886 L 788.0437693535123,550.7465369228053 L 796.9942332779293,544.9980020549064 L 807.4632718752948,543.1122607794964 L 817.8570397649025,545.3763585513013 L 826.5931961634712,551.4456431229952 L 832.3417310313703,560.3961070474121 L 834.2274723067801,570.8651456447776 L 831.9633745354872,581.2589135352443 L 825.8940978349721,589.9950637664475 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_13_direction"
+          d="M807.1531187280127 570.0651159369588L787.2031790477049 585.693836670823"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_14">
+        <svg:path id="robot_1_goal_14_shape"
+          d="M 93.58987017181313,281.06675336100125 L 92.54393957422299,270.48078630159205 L 95.62872280472756,260.3003687394686 L 102.37453739166683,252.07537419704033 L 111.75443373051668,247.05798558188746 L 122.34039097437842,246.01205689331402 L 132.52080853650187,249.09684012381865 L 140.74580307793224,255.8426547108229 L 145.76319169408293,265.22255104960766 L 146.80912038165854,275.8085082935345 L 143.72433715215175,285.9889258555928 L 136.9785225641496,294.21392039708826 L 127.5986262263627,299.2313090131739 L 117.01266898243587,300.27723770074954 L 106.83225142037749,297.19245447124274 L 98.60725687788421,290.4466398833057 L 93.58987017181313,281.06675336100125 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_14_direction"
+          d="M119.86491785521046 273.4477653186507L115.0263819562288 248.57115832775855"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_15">
+        <svg:path id="robot_1_goal_15_shape"
+          d="M 79.86389588235309,715.1936568731132 L 90.40500010638019,716.622569444291 L 99.596883072304,721.9766404990263 L 106.04017867531664,730.4407111176196 L 108.75394244325938,740.7262412476049 L 107.32503028322199,751.267335480622 L 101.97095922848669,760.4592184465458 L 93.50688861006066,766.9025140485726 L 83.2213584799081,769.6162778175012 L 72.68026424705832,768.1873656564779 L 63.48838128096716,762.8332946027285 L 57.04508567910776,754.3692239833166 L 54.331321910011894,744.0836938541499 L 55.76023407103506,733.5425996213 L 61.11430512478458,724.350716655209 L 69.57837574436374,717.9074210523636 L 79.86389588235309,715.1936568731132 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_15_direction"
+          d="M81.20418182623703 742.51820175477L106.52555362739261 743.5598999513136"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_16">
+        <svg:path id="robot_1_goal_16_shape"
+          d="M 486.7933217390441,573.0176597805588 L 497.2440937256188,575.0021078858259 L 506.1399251848198,580.8348578348538 L 512.1265238011679,589.6278770359629 L 514.2924710859172,600.042545355344 L 512.3080239196554,610.4933073866395 L 506.4752739706275,619.3891388458404 L 497.68225476973754,625.3757374612129 L 487.26758645013723,627.5416847469379 L 476.8168244190611,625.5572375797004 L 467.92099295964084,619.7244876316482 L 461.93439434448754,610.9314684297825 L 459.7684470585435,600.5168001111579 L 461.75289422578095,590.0660380800817 L 467.58564417383315,581.1702066206615 L 476.37866337591794,575.1836080045325 L 486.7933217390441,573.0176597805588 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_16_direction"
+          d="M486.6864933312666 600.3748472717235L511.91732475504347 602.7543746806826"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_17">
+        <svg:path id="robot_1_goal_17_shape"
+          d="M 528.6583765216151,652.0291382418725 L 527.0646018757694,662.5465786042482 L 521.5672739938452,671.6535086839739 L 513.0033611117424,677.9634964662197 L 502.6766035403109,680.5158917929501 L 492.1591731612834,678.9221177146192 L 483.0522430815578,673.4247898326948 L 476.74225530029514,664.8608769507748 L 474.1898599725815,654.5341193791605 L 475.78363405189566,644.0166890003159 L 481.2809619328368,634.9097589204075 L 489.84487481573996,628.5997711393276 L 500.1716323863711,626.0473758114313 L 510.6890627652159,627.6411498907454 L 519.7959928451243,633.1384777716866 L 526.1059806271874,641.7023906547724 L 528.6583765216151,652.0291382418725 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_17_direction"
+          d="M501.3161965434875 652.9414522547337L499.87818096300464 678.2434109973948"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_18">
+        <svg:path id="robot_1_goal_18_shape"
+          d="M 597.131377117137,885.5185180264892 L 601.857878877375,875.9887304890706 L 609.8715077727909,868.9931217775322 L 619.952218667019,865.5966798847087 L 630.5653471247855,866.316504989843 L 640.0951253279496,871.0430031638558 L 647.0907340394879,879.0566320592717 L 650.487175931431,889.1373429530258 L 649.7673508271773,899.7504714112663 L 645.0408526522838,909.2802496139565 L 637.0272237577485,916.2758583259688 L 626.9465128631139,919.6723002174379 L 616.3333844057539,918.952475113658 L 606.8036062030637,914.2259769387646 L 599.8079974910514,906.2123480442293 L 596.4115555987019,896.1316371491206 L 597.131377117137,885.5185180264892 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_18_direction"
+          d="M623.4483576351229 892.9913787741322L632.5370562136754 869.3344017235187"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_19">
+        <svg:path id="robot_1_goal_19_shape"
+          d="M 140.36773320388687,623.151112943888 L 133.61353983259193,614.9329902080665 L 130.51843784602448,604.7557050587185 L 131.5535835454927,594.1686836152147 L 136.5614193675588,584.7836836566496 L 144.77953500545863,578.0294973287079 L 154.95682015480673,574.9343953421405 L 165.5438415975172,575.9695410422175 L 174.9288415568755,580.9773768636747 L 181.68302788402394,589.1954925021835 L 184.7781298713847,599.3727776509228 L 183.74298417051438,609.959799094242 L 178.73514834985036,619.3447990529916 L 170.51703271134164,626.09898538014 L 160.33974756260233,629.1940873675007 L 149.75272611848976,628.1589416672392 L 140.36773320388687,623.151112943888 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_19_direction"
+          d="M157.97338483534776 602.2114820831613L140.12239457632433 584.2226202015055"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_20">
+        <svg:path id="robot_1_goal_20_shape"
+          d="M 359.0100621150004,128.61172685316535 L 351.66432656195394,120.91777867407154 L 347.8221170081053,110.99839285323014 L 348.0683322167069,100.3637359365548 L 352.36552054149007,90.63281530465258 L 360.0594621652145,83.28708730252981 L 369.9788479860559,79.44487774868128 L 380.6135049019853,79.69109295794897 L 390.34442553463356,83.98828128206594 L 397.6901535360102,91.68222290645645 L 401.53236309060475,101.60160872663187 L 401.2861478805913,112.23626564322728 L 396.9889595572201,121.96718627520943 L 389.29501793282947,129.3129142765863 L 379.37563211265416,133.15512383118062 L 368.74097519531284,132.90890862183323 L 359.0100621150004,128.61172685316535 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_20_direction"
+          d="M375.0123761034326 106.42269674400427L355.87500830130915 89.80890251657729"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_21">
+        <svg:path id="robot_1_goal_21_shape"
+          d="M 154.2921814482368,782.6970713941002 L 145.51477034857342,788.7065409035811 L 135.10576537156922,790.8995764042278 L 124.64986584837825,788.9423552043451 L 115.73887048473492,783.1328108614415 L 109.72940737075888,774.3554074485745 L 107.53637187011216,763.9464024715703 L 109.49359307053206,753.4905029492228 L 115.30313741289834,744.579507584736 L 124.0805408263025,738.5700444716034 L 134.48954580276953,736.3770089701133 L 144.94544532565422,738.3342301713766 L 153.85644068960394,744.1437745128994 L 159.86590380273654,752.9211779263036 L 162.0589393042267,763.3301829027707 L 160.10171810350042,773.7860824264988 L 154.2921814482368,782.6970713941002 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_21_direction"
+          d="M134.97276827315696 763.3273167972328L115.49143456085224 779.5364081294098"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_22">
+        <svg:path id="robot_1_goal_22_shape"
+          d="M 60.584989461021735,830.5439060337835 L 50.515302120175136,833.97290971641 L 39.89989699484266,833.287370991422 L 30.354882477352078,828.5917083624386 L 23.333393498541966,820.600754954773 L 19.90439390989701,810.5310767368992 L 20.589932634884974,799.9156716115667 L 25.28559526415887,790.370657095033 L 33.27654867153393,783.349168115266 L 43.346226889698244,779.920168527578 L 53.961632014740246,780.6057072516089 L 63.50664653156451,785.3013698818397 L 70.52813551104083,793.292323288258 L 73.957135098729,803.3620015064223 L 73.27159637469782,813.9774066314643 L 68.57593374475772,823.5224211492455 L 60.584989461021735,830.5439060337835 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_22_direction"
+          d="M47.18302080363651 806.6940768353402L24.061751074088193 817.0701980334811"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_23">
+        <svg:path id="robot_1_goal_23_shape"
+          d="M 720.4677737468687,129.7668747586548 L 719.4985526407979,140.36014053675262 L 714.54921950589,149.77613176646912 L 706.3733161765327,156.58136169743705 L 696.2155113998233,159.7397862986095 L 685.6222556211632,158.7705651688691 L 676.2062643914468,153.821232033961 L 669.4010344614712,145.64532870472806 L 666.2426098593064,135.48752392789436 L 667.2118309900391,124.8942681493586 L 672.1611641239548,115.47827691951795 L 680.33706745418,108.67304698966655 L 690.4948722300215,105.51462238737747 L 701.0881280085573,106.48384351811012 L 710.5041192383981,111.43317665202596 L 717.3093491692416,119.60907998237542 L 720.4677737468687,129.7668747586548 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_23_direction"
+          d="M693.2273484191323 132.29399781600887L693.2876395318078 157.63671609970459"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_1_goal_24">
+        <svg:path id="robot_1_goal_24_shape"
+          d="M 311.0711231288695,124.94549503979613 L 309.4589709626924,114.43085596891206 L 311.99333765884575,104.09965203288289 L 318.2883366002668,95.524715415517 L 327.3856508307883,90.01150241090829 L 337.9002802026316,88.39935267740952 L 348.2314841386607,90.93371937356301 L 356.8064207550337,97.22871831510258 L 362.3196337606354,106.32603254550554 L 363.93178349314104,116.84066191746729 L 361.3974167979806,127.17186585337788 L 355.10241785544804,135.7468024698694 L 346.0051036260381,141.26001547535247 L 335.4904742540763,142.8721652078583 L 325.1592703181657,140.33779851269776 L 316.5843337006812,134.04279957028382 L 311.0711231288695,124.94549503979613 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_1_goal_24_direction"
+          d="M336.8997502461658 115.92833746516067L330.73404194348393 91.34702248505278"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+    </svg:g>
+    <svg:g id="robot_2_goals" inkscape:groupmode="layer">
+      <svg:g id="robot_2_goal_0">
+        <svg:path id="robot_2_goal_0_shape"
+          d="M 820.3358989768901,186.37815983719383 L 829.1616982708124,192.3163360067996 L 835.0432165658248,201.1799995757665 L 837.0850813987976,211.61969965135313 L 834.976410604325,222.0461156858097 L 829.0382392168104,230.8719061978802 L 820.1745756478437,236.75342449289246 L 809.7348755728425,238.79528932505468 L 799.3084595378003,236.68661853139292 L 790.4826690263155,230.74844714306766 L 784.6011507307176,221.88478357491135 L 782.559285899141,211.44508349909972 L 784.6679566922173,201.01866746486814 L 790.6061280805425,192.19287695338323 L 799.4697916486987,186.31135865778538 L 809.909491725096,184.26949382539806 L 820.3358989768901,186.37815983719383 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_0_direction"
+          d="M809.4685241501296 211.48447948585022L831.7255201233829 223.6040147604234"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_1">
+        <svg:path id="robot_2_goal_1_shape"
+          d="M 116.81009617962093,231.67967344763463 L 121.52185361808961,241.21675954554235 L 122.22524324352241,251.83099679337272 L 118.81323017282875,261.9064479728362 L 111.8052247668561,269.909228994012 L 102.26814718074957,274.6209811847617 L 91.6539099329193,275.3243708101944 L 81.5784587543667,271.91235773908795 L 73.57567773227993,264.9043523335282 L 68.86392554244117,255.36727474700888 L 68.16053591609761,244.75303749959141 L 71.57254898811482,234.6775863206259 L 78.58055439276393,226.67480529895204 L 88.11763197928326,221.96305310911316 L 98.73186922670072,221.2596634827696 L 108.80732040657699,224.67167655437402 L 116.81009617962093,231.67967344763463 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_1_direction"
+          d="M94.90971256477872 248.07480446064108L108.20986458050879 269.64707743739314"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_2">
+        <svg:path id="robot_2_goal_2_shape"
+          d="M 99.35739900503575,824.4213417355564 L 108.98376532226871,828.9479012374646 L 116.14511617782193,836.8137669394749 L 119.75122994040021,846.8213886947012 L 119.25308647083432,857.4472296932653 L 114.72653035953886,867.0735866034231 L 106.86066465752845,874.2349374589761 L 96.85304290275758,877.8410512206642 L 86.22720190373809,877.3429077519886 L 76.60084499403581,872.8163516398029 L 69.43949413802716,864.9504859386827 L 65.8333803767946,854.9428641830217 L 66.33152384501477,844.3170231848925 L 70.85807995720052,834.69066627519 L 78.72394565832064,827.5293154191814 L 88.73156741443722,823.9232016570587 L 99.35739900503575,824.4213417355564 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_2_direction"
+          d="M92.43547309207145 850.8885679378194L116.27700208397232 859.4815011013782"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_3">
+        <svg:path id="robot_2_goal_3_shape"
+          d="M 783.9417970946332,150.01207696453093 L 793.1176106760373,144.6305237949348 L 803.6543969094066,143.1700700330257 L 813.9480062705371,145.85300797207378 L 822.4313447285045,152.27092137524482 L 827.8128920552601,161.446726841815 L 829.2733458171691,171.98351307518442 L 826.5904078776443,182.27712243543579 L 820.17249447495,190.76046089428246 L 810.996689007903,196.1420082201589 L 800.4599027750106,197.60246198294703 L 790.1662934142822,194.91952404254312 L 781.6829549559126,188.50161064072768 L 776.301407630036,179.3258051736807 L 774.840953867248,168.7890189407883 L 777.5238918071749,158.4954095791809 L 783.9417970946332,150.01207696453093 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_3_direction"
+          d="M801.8607385505253 170.68424791787652L822.4269138662969 155.8758233593362"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_4">
+        <svg:path id="robot_2_goal_4_shape"
+          d="M 668.1727033858599,433.8142323147777 L 678.6830703355934,435.45400546366835 L 687.7658624732464,440.99112351393427 L 694.0383227850195,449.58256060568834 L 696.5455141648354,459.9203860650396 L 694.9057416271312,470.4307430340031 L 689.3686235768653,479.5135351716563 L 680.7771864852982,485.78599548244694 L 670.4393610257598,488.29318686324524 L 659.9290040569833,486.65341432455847 L 650.8462119191431,481.1162962752749 L 644.5737516085394,472.5248591827256 L 642.0665602275542,462.18703372416957 L 643.7063327662408,451.6766767553931 L 649.2434508155245,442.593884617553 L 657.834887908261,436.3214243059669 L 668.1727033858599,433.8142323147777 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_4_direction"
+          d="M668.9653865755406 461.1601419337582L694.2608118579374 462.70883971179984"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_5">
+        <svg:path id="robot_2_goal_5_shape"
+          d="M 120.93105821187658,233.74926448787073 L 131.4930887749432,232.48428236044072 L 141.73521976374298,235.35752828215755 L 150.09818126447237,241.93152437294236 L 155.30878696977777,251.2054788707212 L 156.5737669852831,261.7674996598894 L 153.70052106356627,272.00963064868915 L 147.12652497269573,280.3725921484222 L 137.8525704750026,285.58319785472406 L 127.2905496857486,286.84817786923304 L 117.04841869703466,283.97493194851245 L 108.68545719721578,277.4009358566457 L 103.47485149099987,268.1269813599488 L 102.20987147649078,257.5649605706948 L 105.08311739721137,247.32282958198084 L 111.65711348899242,238.95986808116572 L 120.93105821187658,233.74926448787073 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_5_direction"
+          d="M129.09266842688703 259.86085648064545L153.86371341388588 254.50806886323358"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_6">
+        <svg:path id="robot_2_goal_6_shape"
+          d="M 915.4192481075495,68.04693404058514 L 910.9097832959211,77.68132019179154 L 903.0566419483932,84.85662229652144 L 893.0554370958479,88.48049469518025 L 882.4287285938851,88.0012137156424 L 872.7943518557577,83.49175227792307 L 865.6190497510278,75.63861093039509 L 861.99517735326,65.63740607830368 L 862.4744583319068,55.01069757588709 L 866.9839197705171,45.37632083821347 L 874.837061117154,38.20101873302974 L 884.8382659701365,34.57714633571584 L 895.4649744716621,35.056427313908785 L 905.0993512093357,39.56588875251907 L 912.2746533145195,47.41903009915609 L 915.8985257127244,57.42023495259241 L 915.4192481075495,68.04693404058514 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_6_direction"
+          d="M888.9397765845434 61.17200061876338L880.3891775517338 85.0287451830402"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_7">
+        <svg:path id="robot_2_goal_7_shape"
+          d="M 515.8891360801261,621.7865853185585 L 523.6671307708614,614.5299009524884 L 533.6300868138268,610.8021273268059 L 544.2612049865427,611.1707410298703 L 553.9420162757772,615.5796566136918 L 561.1986931668822,623.3576446625739 L 564.9264667925647,633.3206007055393 L 564.5578530888429,643.9517188775015 L 560.1489375056788,653.6325301674897 L 552.3709494561393,660.8892070578411 L 542.4079934138314,664.6169806842771 L 531.7768752412117,664.2483669798017 L 522.096063951881,659.8394513973913 L 514.8393870615295,652.0614633478517 L 511.1116134350935,642.0985073055438 L 511.4802271389114,631.4673891321705 L 515.8891360801261,621.7865853185585 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_7_direction"
+          d="M537.892494504457 638.0432556854253L554.7254769479771 619.0983960374579"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_8">
+        <svg:path id="robot_2_goal_8_shape"
+          d="M 116.60207071361091,589.7321942945608 L 126.11456815751703,584.9709904785547 L 136.7250108736874,584.2125086493313 L 146.81803906850902,587.572171061371 L 154.8570929063546,594.5385372041497 L 159.6182914305251,604.0510261636117 L 160.37677325974843,614.6614688797821 L 157.01711084729115,624.754497073695 L 150.05074470493,632.7935509124493 L 140.53825574505046,637.5547494357111 L 129.92781302929765,638.3132312658431 L 119.83478483496728,634.9535688524772 L 111.79573099663045,627.9872027110247 L 107.03453247336867,618.4747137511451 L 106.27605064323663,607.8642710353923 L 109.63571305618504,597.7712428401533 L 116.60207071361091,589.7321942945608 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_8_direction"
+          d="M133.11067207499556 611.5471707184038L154.6136092986454 598.135209796122"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_9">
+        <svg:path id="robot_2_goal_9_shape"
+          d="M 143.8735899248203,771.9430851892569 L 142.5674771954391,782.5001083935517 L 137.32076639917472,791.7536923013552 L 128.9322719979221,798.2950768141696 L 118.67902812322738,801.128384755264 L 108.12201491405138,799.8222723206958 L 98.86843100624806,794.5755615244314 L 92.3270464944214,786.1870671233346 L 89.49373855233905,775.933823248484 L 90.79985098789514,765.376810039464 L 96.04656178317175,756.1232261315048 L 104.43505618525639,749.5818416198339 L 114.68830005911913,746.7485336775958 L 125.2453132681393,748.0546461131519 L 134.49889717609847,753.3013569084285 L 141.04028168875715,761.6898513106688 L 143.8735899248203,771.9430851892569 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_9_direction"
+          d="M116.56649779663941 773.6013500649741L115.81962193917327 798.9331321080632"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_10">
+        <svg:path id="robot_2_goal_10_shape"
+          d="M 131.03788677562304,245.64802327709663 L 120.432314325556,246.47173585090502 L 110.3188233801844,243.17414730527332 L 102.23709739742364,236.25733772253182 L 97.41750877356534,226.77428919688293 L 96.59379790252146,216.16872660023716 L 99.89138644815316,206.05523565486556 L 106.80819603093877,197.97350967310376 L 116.29124455654343,193.1539210482464 L 126.89680715323342,192.33021017820158 L 137.01029809856092,195.6277987228342 L 145.09202408036683,202.5446083066189 L 149.91161270517998,212.0276568312246 L 150.7353235752249,222.6332194279147 L 147.43773503059217,232.74671037324208 L 140.52092544685158,240.82843635604706 L 131.03788677562304,245.64802327709663 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_10_direction"
+          d="M123.97156243419474 219.21898290033175L98.99896145561931 223.53479167620355"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_11">
+        <svg:path id="robot_2_goal_11_shape"
+          d="M 626.7893617941529,412.93770047664 L 618.0249736541068,406.9092537506176 L 612.2347370870446,397.9856922522107 L 610.3001273475793,387.52558542578197 L 612.5156982831979,377.1213608380351 L 618.5441401372486,368.3569814302973 L 627.4677016356557,362.56674486323516 L 637.9278084614905,360.63213512457435 L 648.3320330498314,362.84770605938843 L 657.0964124569753,368.8761479142438 L 662.8866490246312,377.79970941184604 L 664.8212587626981,388.25981623848554 L 662.6056878284778,398.66404082602173 L 656.5772459736224,407.42842023316564 L 647.6536844760201,413.2186568008218 L 637.1935776487869,415.15326653969316 L 626.7893617941529,412.93770047664 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_11_direction"
+          d="M637.9138419531571 387.9442402891726L615.7824067583142 375.5969093532375"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_12">
+        <svg:path id="robot_2_goal_12_shape"
+          d="M 581.8175325090165,825.3165427968153 L 577.5670050549741,835.0679368387101 L 569.9083133214867,842.4504316913874 L 560.0074679085707,846.3401373067105 L 549.3717492823794,846.1448602022598 L 539.6203647403203,841.8943358695052 L 532.237869887643,834.2356441360178 L 528.3481642732228,824.3347987235317 L 528.5434413767706,813.6990800969105 L 532.7939657104281,803.9476955552813 L 540.4526574430126,796.5652007021741 L 550.3535028564016,792.6754950881838 L 560.98922148212,792.8707721913017 L 570.7406060237493,797.1212965249592 L 578.1231008768564,804.7799882575438 L 582.0128064917496,814.6808336713626 L 581.8175325090165,825.3165427968153 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_12_direction"
+          d="M555.1638825151767 819.1513125641186L547.2535330503299 843.227927283988"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_13">
+        <svg:path id="robot_2_goal_13_shape"
+          d="M 866.2248454439107,635.1897989454416 L 859.4784000632561,626.9653145163896 L 856.392890812425,616.785116975014 L 857.4380135605131,606.199075783626 L 862.454691847955,596.8187995188595 L 870.6791691724505,590.0723611748656 L 880.8593667138261,586.9868519240346 L 891.4454079044203,588.0319746727308 L 900.8256841699808,593.0486529595645 L 907.5721225131806,601.273130284668 L 910.6576317648056,611.4533278254356 L 909.6125090153155,622.0393690166379 L 904.5958307292756,631.4196452815903 L 896.371353404172,638.1660836247902 L 886.1911558634044,641.2515928764151 L 875.6051146714084,640.2064701275331 L 866.2248454439107,635.1897989454416 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_13_direction"
+          d="M883.8502233571169 614.266769447637L866.0161942374607 596.261092276692"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_14">
+        <svg:path id="robot_2_goal_14_shape"
+          d="M 313.34177140542766,150.04338131168015 L 323.6049503861031,147.24627090833633 L 334.15730198110117,148.58964916256514 L 343.39232033884804,153.868946994324 L 349.90406220198616,162.28047846908464 L 352.70116908573885,172.54364809017704 L 351.35779083151004,183.09599968517512 L 346.0784929995205,192.33101804194905 L 337.66696152499054,198.84275990606022 L 327.4037919036676,201.63986678883987 L 316.85144030890007,200.296488535584 L 307.6164219518956,195.01719070262152 L 301.1046800880151,186.60565922906449 L 298.3075732052354,176.34248960774153 L 299.6509514584912,165.790138012974 L 304.9302492912231,156.55511965499647 L 313.34177140542766,150.04338131168015 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_14_direction"
+          d="M325.2369247871388 174.67938022985663L348.9578803875351 165.75899512443277"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_15">
+        <svg:path id="robot_2_goal_15_shape"
+          d="M 573.7786697674997,800.6174401116592 L 584.0992880230192,798.0403277311631 L 594.6205165030995,799.6089387691021 L 603.7405886793233,805.0844143799328 L 610.0710599673887,813.6332024293591 L 612.6481690291441,823.9538112522081 L 611.0795579912049,834.4750397322882 L 605.6040823801645,843.5951119075345 L 597.0552943309481,849.9255831965776 L 586.7346855078893,852.5026922573552 L 576.2134570280189,850.9340812203938 L 567.0933848525628,845.4586056083755 L 560.7629135637294,836.9098175601367 L 558.1858045029519,826.589208737078 L 559.7544155399132,816.0679802572076 L 565.2298911517219,806.9479080807739 L 573.7786697674997,800.6174401116592 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_15_direction"
+          d="M585.1445507253227 825.5020511569186L609.0507465596681 817.0907013392638"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_16">
+        <svg:path id="robot_2_goal_16_shape"
+          d="M 398.10492124962394,132.23294420895786 L 396.08119695729835,142.67618170441506 L 390.2150438960754,151.5500217740073 L 381.3995799129647,157.50352027714086 L 370.9768422059547,159.6302977769999 L 360.5336146621762,157.6065744611002 L 351.65977459258414,151.74042139987716 L 345.7062760904253,142.9249574169894 L 343.5794985895915,132.50221970975656 L 345.60322190646605,122.05899216620094 L 351.46937496671416,113.18515209638599 L 360.28483895057684,107.23165359445 L 370.7075766568348,105.10487609339339 L 381.15080420039044,107.12859941026784 L 390.02464427020544,112.994752470516 L 395.97814277311625,121.81021645460146 L 398.10492124962394,132.23294420895786 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_16_direction"
+          d="M370.74832866708675 132.02326598537297L368.27396147428124 157.244973144489"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_17">
+        <svg:path id="robot_2_goal_17_shape"
+          d="M 212.7001701978912,30.86918980554151 L 222.7920434379291,34.23233772153924 L 230.8286872869257,41.201494411037515 L 235.5866193844973,50.7156224225389 L 236.34146971078584,61.326317255015056 L 232.97832405565802,71.41818075453011 L 226.00916736615974,79.45482460352673 L 216.495039355006,84.21275670016064 L 205.8843445221822,84.96760702738698 L 195.7924810230148,81.60446137132146 L 187.75583717367053,74.63530468276076 L 182.99790507738427,65.12117667066946 L 182.2430547498104,54.510481838783335 L 185.6062004058759,44.41861833961582 L 192.5753570944366,36.381974490271546 L 202.08948510687546,31.624042393047603 L 212.7001701978912,30.86918980554151 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_17_direction"
+          d="M208.93866343719876 57.96675773014738L233.62525276584458 63.69644466259251"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_18">
+        <svg:path id="robot_2_goal_18_shape"
+          d="M 545.7253331423371,638.593969104027 L 543.3566404893224,648.9644061494666 L 537.1996380083801,657.6389729840737 L 528.1917221248782,663.297064632332 L 517.7042295539047,665.0772734450302 L 507.3338024223199,662.7085820976951 L 498.6592355877128,656.5515796167527 L 493.00114394042146,647.5436637335059 L 491.22093512675633,637.0561711622772 L 493.5896264750583,626.6857440309476 L 499.7466289550337,618.0111771960856 L 508.7545448392475,612.3530855490492 L 519.2420374095092,610.572876735129 L 529.6124645408389,612.941568083431 L 538.287031375701,619.0985705634064 L 543.9451230237044,628.1064864478752 L 545.7253331423371,638.593969104027 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_18_direction"
+          d="M518.3907147832133 637.4778321354094L515.0818809908036 662.6036878215198"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_19">
+        <svg:path id="robot_2_goal_19_shape"
+          d="M 305.70169640047806,320.9804606031455 L 304.16801999593304,331.5068325367233 L 298.72279764711686,340.64501303889915 L 290.1950650827705,347.003812216049 L 279.88305442202534,349.6151490337945 L 269.3566924748745,348.08147313973325 L 260.21851197269865,342.63625079091696 L 253.85971279653296,334.1085182267477 L 251.24837597780322,323.79650756582544 L 252.7820518728488,313.27014561885176 L 258.2272742206808,304.1319651164988 L 266.75500678583427,297.77316594051024 L 277.0670174457723,295.16182912160343 L 287.5933793927461,296.6955050166489 L 296.73155989509905,302.140727364481 L 303.0903590720718,310.66845992981155 L 305.70169640047806,320.9804606031455 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_19_direction"
+          d="M278.36517326626847 322.04892949106954L277.0716978106067 347.3586889974465"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_20">
+        <svg:path id="robot_2_goal_20_shape"
+          d="M 89.5085157071349,615.1836236667663 L 80.84809625932934,609.0067470785589 L 75.21071617244257,599.985841632077 L 73.45457904379674,589.4942958903988 L 75.84706837173684,579.1293241751104 L 82.02393993992138,570.4689133753503 L 91.04484538640321,564.8315332884634 L 101.53639112747402,563.075396160612 L 111.9013628433699,565.4678854877577 L 120.5617736425225,571.6447570567366 L 126.19915373001692,580.6656625024241 L 127.95529085726088,591.1572082442893 L 125.56280153072254,601.5221799593907 L 119.38592996174367,610.1825907585435 L 110.36502451605605,615.8199708460378 L 99.87347877358349,617.5761079740761 L 89.5085157071349,615.1836236667663 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_20_direction"
+          d="M101.05715460905725 590.3833000723117L79.13927241476352 577.6607435233275"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_21">
+        <svg:path id="robot_2_goal_21_shape"
+          d="M 878.8433505194764,172.4966272715211 L 885.7212452424773,180.61150457048188 L 888.9701428760088,190.74074212743687 L 888.0954727159159,201.34222795610162 L 883.2303616903101,210.802002718302 L 875.1154913817743,217.67989029124863 L 864.9862538248193,220.9287879247803 L 854.3847679969386,220.0541177640664 L 844.9249932339542,215.1890067390815 L 838.0471056617916,207.0741364299248 L 834.798208027476,196.94489887359066 L 835.6728781889738,186.34341304508916 L 840.5379892131747,176.88363828272554 L 848.6528595223314,170.005750710563 L 858.7820970786655,166.75685307624735 L 869.383582907951,167.63152323712427 L 878.8433505194764,172.4966272715211 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_21_direction"
+          d="M861.5568813534679 193.70052093992513L879.678292925681 211.41693840101186"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_22">
+        <svg:path id="robot_2_goal_22_shape"
+          d="M 844.5669639983931,354.76646471188803 L 852.728205678737,361.5892796465679 L 857.6572145170504,371.0159259850184 L 858.6036327844063,381.6112476945066 L 855.4233472413226,391.7622293075077 L 848.6005379750615,399.92346275023385 L 839.173891636611,404.85247158854725 L 828.5785699277894,405.79888985515765 L 818.4275883141216,402.61860431281946 L 810.2663548720622,395.79579504581295 L 805.3373460330821,386.3691487081079 L 804.3909277671384,375.7738269985409 L 807.57121330881,365.62284538561846 L 814.3940225758165,357.461611943559 L 823.8206689135216,352.5326031045789 L 834.4159906237552,351.58618483788985 L 844.5669639983931,354.76646471188803 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_22_direction"
+          d="M831.1505106378569 378.6081488298852L852.028218780776 392.9740218532737"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_23">
+        <svg:path id="robot_2_goal_23_shape"
+          d="M 348.7803600726074,86.66510147021472 L 350.13397824845526,97.21613872879198 L 347.34682830920946,107.48203296819247 L 340.84328081437843,115.89989609649365 L 331.6134023569927,121.18818386333487 L 321.0623748542373,122.54179984526922 L 310.79648061483675,119.75464990602336 L 302.3786174875312,113.25110241109826 L 297.09032971969435,104.02122395380661 L 295.7367137387556,93.47019645095713 L 298.5238636770059,83.20430221165077 L 305.02741117292663,74.78643908425101 L 314.2572896292226,69.49815131650837 L 324.8083171320722,68.14453533556957 L 335.0742113713786,70.93168527381988 L 343.4920744997739,77.43523276964652 L 348.7803600726074,86.66510147021472 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_23_direction"
+          d="M322.7382147123022 95.04566162079232L328.2987956341751 119.77089053452221"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_2_goal_24">
+        <svg:path id="robot_2_goal_24_shape"
+          d="M 672.0743663619365,121.90714833158836 L 672.4798851601381,132.53692838115558 L 668.7866721751761,142.51274750371908 L 661.5570375315608,150.31588357738678 L 651.8915882470941,154.75837544259457 L 641.2618181103483,155.16389292729366 L 631.2859989877849,151.47067994233157 L 623.4828629151173,144.24104529871158 L 619.0403710489094,134.57559601424975 L 618.6348535652103,123.94582587749915 L 622.3280665491723,113.97000675494053 L 629.5577011937924,106.16687068226793 L 639.2231504772542,101.72437881606504 L 649.8529206140048,101.31886133236583 L 659.8287397365635,105.01207431632793 L 667.6318758102359,112.24170896094313 L 672.0743663619365,121.90714833158836 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_2_goal_24_direction"
+          d="M645.3876072393782 127.92744822495649L648.716866140036 153.0506056737612"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+    </svg:g>
+    <svg:g id="robot_3_goals" inkscape:groupmode="layer">
+      <svg:g id="robot_3_goal_0">
+        <svg:path id="robot_3_goal_0_shape"
+          d="M 86.70341135825998,750.0061293643588 L 97.27190315708566,748.7963151240614 L 107.49889159333674,751.7230021321272 L 115.82741234229235,758.3405765970314 L 120.98952218235644,767.6416123373212 L 122.19933436179343,778.2100943513541 L 119.27264735372745,788.4370827876052 L 112.65507288874272,796.765603535564 L 103.35403714853345,801.9277133766249 L 92.78555513442012,803.137525555065 L 82.55856669824965,800.2108385479959 L 74.23004595021024,793.5932640820143 L 69.06793610922995,784.2922283428019 L 67.85812393078965,773.7237463286884 L 70.78481093785894,763.496757892518 L 77.40238540375987,755.1682371434819 L 86.70341135825998,750.0061293643588 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_0_direction"
+          d="M94.72856616082396 776.1599820084718L119.5272235407254 770.936611719157"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_1">
+        <svg:path id="robot_3_goal_1_shape"
+          d="M 278.4975769696527,901.5647970671401 L 271.63941782914065,909.6963604224418 L 262.1914751798375,914.5844243555213 L 251.59214705441752,915.484864777769 L 241.4550589897454,912.260568046369 L 233.32350384739095,905.4024146099622 L 228.43543991431153,895.954471960659 L 227.53499949280632,885.3551438359088 L 230.7592962234637,875.2180557705669 L 237.61744966061303,867.0865006288823 L 247.06539230917372,862.198436695133 L 257.6647204346663,861.2979962742977 L 267.8018084992658,864.5222930042853 L 275.9333636409504,871.3804464414346 L 280.8214275746997,880.8283890899953 L 281.7218679962776,891.4277172161577 L 278.4975769696527,901.5647970671401 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_1_direction"
+          d="M254.71432590883677 888.0450304543216L240.25800792215244 908.8602142222566"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_2">
+        <svg:path id="robot_3_goal_2_shape"
+          d="M 404.01841107076416,804.9293440046639 L 407.2839304600969,815.0532292527179 L 406.42661123654864,825.6561436194063 L 401.5770240695131,835.123881151344 L 393.4734355916028,842.0150710067836 L 383.3495595316101,845.2805864503785 L 372.74664516492163,844.4232672268301 L 363.27890763394544,839.5736800595195 L 356.3877177775443,831.4700915818844 L 353.12220233491104,821.3462155216166 L 353.97952155749783,810.7433011552032 L 358.82910872576986,801.2755636239519 L 366.93269720244365,794.3843737678259 L 377.0565732627114,791.1188583251925 L 387.65948762912484,791.9761775477793 L 397.1272251613375,796.8257647157764 L 404.01841107076416,804.9293440046639 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_2_direction"
+          d="M379.9547212257452 817.943411568114L389.9551338600904 841.2296468191773"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_3">
+        <svg:path id="robot_3_goal_3_shape"
+          d="M 910.321483886519,235.91020202627692 L 905.4201255090145,245.35124833763132 L 897.2789102040865,252.197955770931 L 887.1373064217913,255.4080059866243 L 876.5392494113588,254.49267465499804 L 867.0982123665691,249.59132003516504 L 860.2515049332696,241.45010473023694 L 857.041454718448,231.30850094843186 L 857.9567860492025,220.71044393750924 L 862.8581406699072,211.26940689320975 L 870.9993559739636,204.42269945942007 L 881.1409597566403,201.21264924508853 L 891.7390167666913,202.12798057535292 L 901.1800538109908,207.02933519605767 L 908.0267612447806,215.17055050011413 L 911.2368114599838,225.31215428328085 L 910.321483886519,235.91020202627692 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_3_direction"
+          d="M884.1467192381159 227.9535182261775L874.6235030387787 251.43894686279634"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_4">
+        <svg:path id="robot_3_goal_4_shape"
+          d="M 675.6084210055294,826.8733892813983 L 684.2771773776938,833.0385601920813 L 689.9267393695889,842.0518414269108 L 691.6970487486108,852.5410050907536 L 689.3185644581756,862.9091995489604 L 683.1533985558276,871.5779472663054 L 674.1401173209979,877.2275092582003 L 663.6509536577614,878.9978186364273 L 653.2827591989485,876.6193343467872 L 644.6140114822099,870.454168443644 L 638.9644494897084,861.4408872096096 L 637.194140112088,850.9517235455779 L 639.5726244011216,840.58352908756 L 645.7377903042648,831.9147813708213 L 654.7510715382994,826.26521937832 L 665.2402352029374,824.4949099999045 L 675.6084210055294,826.8733892813983 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_4_direction"
+          d="M664.0932971188017 851.6892923258691L686.0283472121166 864.3822266764757"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_5">
+        <svg:path id="robot_3_goal_5_shape"
+          d="M 454.7144553217893,316.1682492863663 L 450.5487248999667,306.38033023017385 L 450.44578844258535,295.74331028076426 L 454.4212664674653,285.87659227840743 L 461.8699668007528,278.2822847268319 L 471.6578770624122,274.1165590637389 L 482.2948970118218,274.01362260635767 L 492.1616150132459,277.98910063159826 L 499.75592256575413,285.4378009645251 L 503.92164822791443,295.2257112265452 L 504.0245846862285,305.8627311755939 L 500.0491066600552,315.7294491773789 L 492.60040632806096,323.3237567295263 L 482.81249606604086,327.4894823916867 L 472.175476116992,327.5924188500006 L 462.3087581142745,323.6169408241881 L 454.7144553217893,316.1682492863663 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_5_direction"
+          d="M477.50564668953615 301.03587652145825L465.44478834025216 278.74702951441134"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_6">
+        <svg:path id="robot_3_goal_6_shape"
+          d="M 609.6697651043203,449.1481078132985 L 619.6889377972259,452.72201994814526 L 627.5777586971953,459.8580758704739 L 632.1352511175621,469.46982974282383 L 632.6675594276712,480.0940140270888 L 629.0936497573373,490.1131770289939 L 621.9575938350085,498.00199792896325 L 612.3458399630258,502.55949034839983 L 601.7216556783935,503.09179865943923 L 591.7024926768559,499.517888988175 L 583.8136717765192,492.38183306677655 L 579.2561793574498,482.77007919386364 L 578.7238710460433,472.14589491016153 L 582.2977807173074,462.12673190862375 L 589.433836638706,454.2379110082872 L 599.0455905119861,449.6804185882875 L 609.6697651043203,449.1481078132985 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_6_direction"
+          d="M605.3411806301692 476.16089140012906L629.9022665446896 482.4066950893737"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_7">
+        <svg:path id="robot_3_goal_7_shape"
+          d="M 773.3915175761974,784.900156361561 L 775.3046946935942,774.4361025240016 L 781.0766816303687,765.5007258604189 L 789.8286962953116,759.4543394214818 L 800.2283612120741,757.2174635952246 L 810.6924050881858,759.1306398414861 L 819.6277817517685,764.9026267782605 L 825.6741681897283,773.6546414429909 L 827.9110440169628,784.0543063599658 L 825.9978677697242,794.5183502358649 L 820.2258808339269,803.4537268996603 L 811.4738661682195,809.5001133374076 L 801.0742012522215,811.7369891648545 L 790.6101573763224,809.8238129176159 L 781.6747807125271,804.0518259818186 L 775.6283942738027,795.2998113158986 L 773.3915175761974,784.900156361561 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_7_direction"
+          d="M800.7487976075029 784.8205354374649L802.9563146617083 759.5740728440553"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_8">
+        <svg:path id="robot_3_goal_8_shape"
+          d="M 340.2260866676313,124.89348469673712 L 329.60630481977535,124.27956051426861 L 320.0298489404157,119.64833150793845 L 312.954636774145,111.70491143428058 L 309.4578134079992,101.65857527680453 L 310.071737948991,91.03880342198488 L 314.70296695532124,81.46234754262537 L 322.64638702888806,74.38713537735055 L 332.69272318645517,70.89031201020873 L 343.31249504118364,71.50423655219652 L 352.8889509206342,76.13546555753078 L 359.9641630858182,84.0788856320936 L 363.46098645305074,94.12522178866482 L 362.8470619110632,104.7449936433934 L 358.2158329057287,114.32144952284386 L 350.27241283107503,121.39666168902374 L 340.2260866676313,124.89348469673712 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_8_direction"
+          d="M336.78813821908057 97.75296840675526L311.46165371268853 98.66191701505011"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_9">
+        <svg:path id="robot_3_goal_9_shape"
+          d="M 613.5203543194698,124.5561400396358 L 606.5162761574157,116.54992005154475 L 603.1092186819307,106.47278014593974 L 603.8178314335877,95.85890160732231 L 608.5342678900438,86.32412992703291 L 616.5404810004896,79.32005902358162 L 626.6176209060947,75.91300154809664 L 637.231499443938,76.62161430038657 L 646.7662711250015,81.33805075620978 L 653.7703420276786,89.34426386728853 L 657.1773995039377,99.42140377226053 L 656.4687867508736,110.03528231073687 L 651.7523502958246,119.57005399116736 L 643.7461371847459,126.57412489384456 L 633.6689972797737,129.98118237010374 L 623.0551187405233,129.27256961767262 L 613.5203543194698,124.5561400396358 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_9_direction"
+          d="M630.4727903471664 103.08425091071467L612.0762753269044 85.65366743986363"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_10">
+        <svg:path id="robot_3_goal_10_shape"
+          d="M 528.1910939645803,77.52316539282879 L 530.6414496626953,67.17171977636588 L 536.8666311885736,58.545949996905165 L 545.9188626280593,52.95903173812201 L 556.4200605090655,51.26153743563225 L 566.7714962222724,53.711891749970164 L 575.397266001733,59.937073275848434 L 580.9841842595513,68.9893047150714 L 582.681678563006,79.49050259634032 L 580.2313242477032,89.8419383092845 L 574.0061427227898,98.46770808900783 L 564.953911282602,104.0546263465634 L 554.4527134022981,105.75212065028086 L 544.1012776893538,103.30176633497808 L 535.4755079096303,97.07658481006456 L 529.8885896511099,88.02435336961412 L 528.1910939645803,77.52316539282879 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_10_direction"
+          d="M555.5160660023229 78.85471092882642L559.0228313436181 53.755714895794995"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_11">
+        <svg:path id="robot_3_goal_11_shape"
+          d="M 645.2647168010476,417.65321096492005 L 650.6020716761009,426.8548038887358 L 652.0118261697924,437.3984930716505 L 649.2794065852952,447.6790783117325 L 642.8207622212124,456.13144820551577 L 633.619177440241,461.4687972768288 L 623.0754882573262,462.8785517705202 L 612.7949030181255,460.1461321855504 L 604.342533123461,453.6874878219402 L 599.0051840530291,444.48590304049617 L 597.5954295584565,433.9422138580542 L 600.3278491443075,423.66162861838075 L 606.7864935070365,415.20925872418877 L 615.9880782884807,409.87190965375703 L 626.5317674709227,408.46215515918436 L 636.8123527114772,411.19457474456283 L 645.2647168010476,417.65321096492005 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_11_direction"
+          d="M624.5065940923876 435.472511314019L639.215923197037 456.10967784230365"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_12">
+        <svg:path id="robot_3_goal_12_shape"
+          d="M 368.747347126697,855.7186928824647 L 367.229426206882,866.2473483274424 L 361.7978861562068,875.3936679149216 L 353.27967972031774,881.7652225744938 L 342.97158873447154,884.3919894218842 L 332.4429432766735,882.8740689976066 L 323.29662368919435,877.4425289469314 L 316.92506903060666,868.9243225112181 L 314.2983021822318,858.6162315251961 L 315.8162226074938,848.0875860675737 L 321.2477626571846,838.9412664799189 L 329.7659690938824,832.5697118215069 L 340.07406007891984,829.9429449729564 L 350.60270553654226,831.4608653982184 L 359.74902512419703,836.8924054479093 L 366.12057978359354,845.4106118847826 L 368.747347126697,855.7186928824647 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_12_direction"
+          d="M341.41245367716954 856.8280724113521L340.15685825356064 882.1397393884054"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_13">
+        <svg:path id="robot_3_goal_13_shape"
+          d="M 448.82974928788855,693.5099030516654 L 444.24612559618953,683.9105768643351 L 443.68493446090287,673.2878722262465 L 447.2315621267059,663.2590147706587 L 454.3461045384826,655.350795621314 L 463.94542214450274,650.7671770628818 L 474.5681267825914,650.2059859275952 L 484.5969842372627,653.7526135937987 L 492.50520338752386,660.8671560051749 L 497.0888219450397,670.4664736115955 L 497.65001308124266,681.0891782492836 L 494.1033854141228,691.1180357043556 L 486.9888430036628,699.0262548542161 L 477.38952539724227,703.609873411732 L 466.76682075955415,704.171064547935 L 456.7379633035659,700.6244368812156 L 448.82974928788855,693.5099030516654 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_13_direction"
+          d="M470.9477164676517 677.4095105927506L457.937631646719 655.6610693157953"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_14">
+        <svg:path id="robot_3_goal_14_shape"
+          d="M 909.8933563694566,80.9462021560621 L 906.4008440887528,90.99403910572471 L 899.3290224031452,98.94049286607367 L 889.7545582693806,103.57581229579932 L 879.1350420501482,104.1942935909841 L 869.0872148111611,100.7017836960921 L 861.1407610508121,93.62996201048452 L 856.5054416220196,84.05549787707957 L 855.8869603259017,73.43598165748745 L 859.3794702217268,63.38815441886004 L 866.4512919064011,55.441700658151376 L 876.0257560407392,50.80638122971857 L 886.6452722593983,50.18789993324094 L 896.6930994980257,53.68040982906609 L 904.6395532587344,60.75223151374064 L 909.2748726881003,70.3266956484382 L 909.8933563694566,80.9462021560621 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_14_direction"
+          d="M882.8463452942453 76.83690610347946L876.8000031313238 101.44785390062691"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_15">
+        <svg:path id="robot_3_goal_15_shape"
+          d="M 305.10862766894746,553.4686844493539 L 295.59832734758294,548.7030934896379 L 288.6356813424324,540.6608083712555 L 285.2806591976868,530.5662367571352 L 286.04405544432535,519.956153344944 L 290.8096427795203,510.4458623430304 L 298.8519278979027,503.48321633787987 L 308.9464995115455,500.12819419401296 L 319.55658292421407,500.8915904397728 L 329.0668739256501,505.6571777758463 L 336.02951993127823,513.6994628933502 L 339.38454207466765,523.7940345078715 L 338.6211458293853,534.4041179196615 L 333.8555584933118,543.9144089210977 L 325.8132733758079,550.8770549267257 L 315.7187017608091,554.2320770709938 L 305.10862766894746,553.4686844493539 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_15_direction"
+          d="M312.68948203833867 527.1826090740439L289.07002234788655 517.9968522213862"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_16">
+        <svg:path id="robot_3_goal_16_shape"
+          d="M 179.05474316936338,151.20526897863465 L 174.20027408622875,160.67051061943607 L 166.0931196228442,167.55751547098214 L 155.96756292716475,170.8178300672929 L 145.36509610985377,169.95507794132925 L 135.8998637541417,165.10061256985614 L 129.01285890259575,156.99345810647162 L 125.75254430715907,146.8679014112779 L 126.61529643224856,136.26543459348125 L 131.46976180459575,126.800202238255 L 139.5769162671062,119.91319738622315 L 149.702472963174,116.6528827912723 L 160.30493978009665,117.51563491587603 L 169.77017213532295,122.37010028822317 L 176.6571769873547,130.47725475073378 L 179.91749158317967,140.6028114472872 L 179.05474316936338,151.20526897863465 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_16_direction"
+          d="M152.8408341725887 143.37851379993845L143.43422635782656 166.9108901024773"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_17">
+        <svg:path id="robot_3_goal_17_shape"
+          d="M 99.84076553236503,254.10369448865185 L 106.5126374781683,245.81859979174726 L 115.84722748688273,240.71740202185026 L 126.42339355409575,239.5766737531253 L 136.63103702473273,242.57010967517147 L 144.91612338136753,249.2419761047064 L 150.01732115126453,258.5765661134209 L 151.15804941923187,269.15273217998106 L 148.16461349794326,279.36037565127083 L 141.4927470676509,287.6454620072527 L 132.1581570596939,292.7466597778026 L 121.58199099237623,293.8873880451172 L 111.3743475218439,290.8939521244813 L 103.08926116586196,284.222085694189 L 97.98806339531217,274.887495686232 L 96.84733512724006,264.3113296182614 L 99.84076553236503,254.10369448865185 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_17_direction"
+          d="M123.92468250114433 267.08029095855L137.90494037895002 245.942424588098"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_18">
+        <svg:path id="robot_3_goal_18_shape"
+          d="M 649.9684738166566,690.0341084997843 L 639.8909406942411,693.4399851218144 L 629.2771374065651,692.7300773187059 L 619.7429283625573,688.0125135862803 L 612.7398035470958,680.0054612783396 L 609.3339309980919,669.9279372882717 L 610.0438388012004,659.3141340005958 L 614.7614025339144,649.7799249575456 L 622.7684548415668,642.7768001411265 L 632.845978831923,639.3709275930802 L 643.4597821193105,640.0808353952312 L 652.9939911626492,644.7983991289026 L 659.9971159787798,652.8054514355975 L 663.4029885268262,662.8829754259538 L 662.6930807246752,673.4967787133413 L 657.9755169912921,683.0309877576375 L 649.9684738166566,690.0341084997843 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_18_direction"
+          d="M636.6212950009452 666.1535738672907L613.4762646684036 676.4765858275068"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_19">
+        <svg:path id="robot_3_goal_19_shape"
+          d="M 837.426191226959,231.00589969134217 L 833.0244386945288,221.32182802488308 L 832.6637054160523,210.69042826661064 L 836.398859467865,200.73024885690302 L 843.6612955719747,192.95762602566015 L 853.3453585618299,188.55587846372907 L 863.9767583201022,188.1951451852526 L 873.9369377288863,191.93029923744848 L 881.7095605610529,199.19273534117497 L 886.1113081220601,208.8767983314134 L 886.4720414014604,219.50819808930248 L 882.7368873483408,229.46837749846975 L 875.474451245538,237.2410003302531 L 865.7903882552995,241.64274789126046 L 855.1589884974104,242.00348117066062 L 845.1988090873195,238.2683271179243 L 837.426191226959,231.00589969134217 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_19_direction"
+          d="M859.8438981827878 215.32554496575733L847.2463316185477 193.3355854004334"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_20">
+        <svg:path id="robot_3_goal_20_shape"
+          d="M 45.66539482509148,257.91538564411394 L 47.672526699284276,247.46894648823547 L 53.524575599360816,238.58579879220417 L 62.33057088114484,232.61830377657714 L 72.74991689160572,230.47497166107848 L 83.19634609426691,232.48210257465553 L 92.07949379029827,238.33415147473215 L 98.0469888049501,247.14014675629483 L 100.19032092142396,257.559492766977 L 98.18319000687165,268.0059219694168 L 92.33114110777029,276.8890696656696 L 83.52514582523239,282.85656468010006 L 73.10579981552542,284.99989679679516 L 62.659370613085486,282.9927658822429 L 53.77622291683281,277.1407169831415 L 47.80872790142709,268.3347217003824 L 45.66539482509148,257.91538564411394 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_20_direction"
+          d="M73.02228575071143 258.08160572666554L75.45658325127368 232.855999674406"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_21">
+        <svg:path id="robot_3_goal_21_shape"
+          d="M 120.42019858431729,789.15151613523 L 110.05060655170598,786.779126943913 L 101.37823501874061,780.6190326822474 L 95.72335472883583,771.6091004643457 L 93.94688444412918,761.1209739790964 L 96.31927232623264,750.7513918598739 L 102.47936658789831,742.0790203269086 L 111.48929880554454,736.4241400379706 L 121.97742529104926,734.6476697522971 L 132.34700741001632,737.0200576353674 L 141.01937894323714,743.1801518960661 L 146.67425923191968,752.1900841146793 L 148.45072951784857,762.6782105992172 L 146.0783416347782,773.0477927181843 L 139.91824737407944,781.7201642514051 L 130.90831515521097,787.3750445410545 L 120.42019858431729,789.15151613523 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_21_direction"
+          d="M121.54607923806566 761.8172975491838L96.42140462883572 758.4995075007703"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_22">
+        <svg:path id="robot_3_goal_22_shape"
+          d="M 871.2994780652398,278.17490226970347 L 862.5364634391103,284.20534537615197 L 852.1327327720959,286.42326726986664 L 841.6721825419994,284.49105647702754 L 832.7473193973696,278.7028389886584 L 826.71688270479,269.93983203400865 L 824.4989608110753,259.53610136699433 L 826.4311716044535,249.07555113774004 L 832.2193890922836,240.15068799226788 L 840.9823960474724,234.12025130053064 L 851.3861267139476,231.90232940597377 L 861.846676943741,233.83454020019417 L 870.7715400886741,239.622757687182 L 876.8019767804113,248.38576464237087 L 879.0198986749682,258.7894953088462 L 877.0876878812869,269.2500455394818 L 871.2994780652398,278.17490226970347 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_22_direction"
+          d="M851.9337982433657 258.85140456289525L832.4912835465929 275.1070382721915"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_23">
+        <svg:path id="robot_3_goal_23_shape"
+          d="M 923.7179993042757,283.1083965348465 L 919.9255071939381,293.0468910380848 L 912.6183841522418,300.7775276335991 L 902.9091188810157,305.12341276292557 L 892.2758245633393,305.4229053282812 L 882.3373396947998,301.6304158941149 L 874.6067030992856,294.3232928524185 L 870.2608179708811,284.61402758158 L 869.9613254046035,273.98073326351596 L 873.7538148396918,264.04224839536414 L 881.0609378804662,256.3116117994624 L 890.7702031522267,251.96572667144528 L 901.4034974693687,251.6662341047803 L 911.3419823375207,255.45872353986852 L 919.0726189334224,262.76584658064303 L 923.4185040623613,272.475111852791 L 923.7179993042757,283.1083965348465 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_23_direction"
+          d="M896.8064987698258 278.18922373777013L890.0242628999664 302.6076242101726"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+      <svg:g id="robot_3_goal_24">
+        <svg:path id="robot_3_goal_24_shape"
+          d="M 137.6385623277775,608.424377008414 L 138.0403026874592,597.794453486522 L 142.47938054072054,588.1274282392662 L 150.2799351957175,580.8950083994933 L 160.25444178931053,577.1982717227196 L 170.88435532731785,577.6000126403993 L 180.55138057457356,582.0390904936608 L 187.78380041334898,589.8396451485867 L 191.48053709112023,599.8141517422507 L 191.07879617244296,610.4440652801869 L 186.63971832017913,620.1110905275137 L 178.83916366425572,627.3435103662181 L 168.8646570715891,631.0402470440604 L 158.23474353365285,630.6385061253832 L 148.56771828632608,626.1994282731192 L 141.33529844662425,618.3988736171248 L 137.6385623277775,608.424377008414 z"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="shape" />
+        <svg:path id="robot_3_goal_24_direction"
+          d="M164.70501622223065 604.4451580667886L163.29051623340214 579.1418737976144"
+          style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+          type="orientation" />
+      </svg:g>
+    </svg:g>
+  </svg:g>
+  <svg:g id="robot_0">
+    <svg:path id="robot_0_shape"
+      d="M 620.7601604975425,339.58014193800466 L 629.7121456780499,333.83395792373506 L 640.1816804628941,331.9509734024681 L 650.5748518144717,334.2178079621748 L 659.309409757022,340.28939271339675 L 665.0555876068581,349.2413700205899 L 666.9385721281249,359.7109048054341 L 664.6717375679063,370.1040761561527 L 658.6001528171964,378.838634099562 L 649.6481755094915,384.5848119485389 L 639.1786407251591,386.4677964706649 L 628.7854693739284,384.20096190958736 L 620.0509114310312,378.12937715973646 L 614.304733582054,369.1773998520315 L 612.4217490599283,358.7078650676989 L 614.688583620494,348.31469371560945 L 620.7601604975425,339.58014193800466 z"
+      style="fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-width:0;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
+      type="shape" />
+    <svg:path id="robot_0_direction" d="M639.4958908093085 359.5150240353398L659.4499451238669 343.89155702456765"
+      style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+      type="orientation" />
+  </svg:g>
+  <svg:g id="robot_1">
+    <svg:path id="robot_1_shape"
+      d="M 163.23987440540066,606.1649067101646 L 171.39008888444596,613.0008904245565 L 176.30387041869653,622.4354831742227 L 177.2331795540175,633.0323192206728 L 174.03650771889352,643.1781525044183 L 167.20052968621394,651.3283587550094 L 157.76593693654786,656.2421402892599 L 147.16910089076555,657.1714494238364 L 137.02326760635208,653.974777589457 L 128.87306135642905,647.138799556033 L 123.95927982151068,637.7042068071112 L 123.0299706876018,627.1073707605846 L 126.22664252131369,616.9615374769154 L 133.06262055473746,608.8113312269924 L 142.49721330365935,603.897549692074 L 153.09404935085377,602.9682405574207 L 163.23987440540066,606.1649067101646 z"
+      style="fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-width:0;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
+      type="shape" />
+    <svg:path id="robot_1_direction" d="M149.78494219423897 629.984896667279L170.6394270448651 644.3844614745932"
+      style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+      type="orientation" />
+  </svg:g>
+  <svg:g id="robot_2">
+    <svg:path id="robot_2_shape"
+      d="M 129.91905930723283,282.1008285151187 L 127.85960966945674,292.53707959428186 L 121.96312430450132,301.39079348503196 L 113.12733881724819,307.31409024339075 L 102.69738421606539,309.4051882469047 L 92.26114308518123,307.34573961960393 L 83.40742919443119,301.4492542546484 L 77.48413243704653,292.6134687676215 L 75.39303443255835,282.1835141662125 L 77.45248306083329,271.7472730355546 L 83.3489684248147,262.8935591445784 L 92.18475391281567,256.9702623874199 L 102.6147085132506,254.87916438270554 L 113.05094964390858,256.9386130109805 L 121.90466353488483,262.83509837496183 L 127.82796029301738,271.67088386318903 L 129.91905930723283,282.1008285151187 z"
+      style="fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-width:0;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
+      type="shape" />
+    <svg:path id="robot_2_direction" d="M102.56334443091075 281.79753611754575L100.0026819909985 307.0106282106203"
+      style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+      type="orientation" />
+  </svg:g>
+  <svg:g id="robot_3">
+    <svg:path id="robot_3_shape"
+      d="M 609.5029554511459,59.99666293177097 L 617.7450442710638,53.27173607101929 L 627.9332713164602,50.21284427988883 L 638.5165448233815,51.28563109097172 L 647.8836774811209,56.32680849464896 L 654.6085973238041,64.56889019164362 L 657.6674891149346,74.75711723704012 L 656.5947023032458,85.34039074316604 L 651.5535249001745,94.70752340170088 L 643.3114432025739,101.43244324358864 L 633.1232161577834,104.49133503551468 L 622.5399426510514,103.41854822303026 L 613.1728099931227,98.37737082075444 L 606.4478901512348,90.13528912315371 L 603.3889983593087,79.94706207836327 L 604.4617851711871,69.36378857083594 L 609.5029554511459,59.99666293177097 z"
+      style="fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-width:0;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
+      type="shape" />
+    <svg:path id="robot_3_direction" d="M630.3798478190595 77.67666516173335L648.4320744357633 59.889756515085196"
+      style="fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+      type="orientation" />
+  </svg:g>
+</svg>

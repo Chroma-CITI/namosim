@@ -6,7 +6,7 @@ from shapely import Polygon
 from typing_extensions import Self
 
 import namosim.utils.utils as utils
-from namosim.data_models import PoseModel
+from namosim.data_models import UID, PoseModel
 
 
 class Style:
@@ -54,7 +54,7 @@ class Entity:
         full_geometry_acquired: bool,
         style: Style,
         movability: str = "unknown",
-        uid: int = 0,
+        uid: UID = 0,
     ):
         if uid == 0:
             self.uid = Entity.last_id

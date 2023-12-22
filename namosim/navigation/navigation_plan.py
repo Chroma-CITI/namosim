@@ -1,11 +1,18 @@
 import copy
+import random
 import typing as t
 
 from typing_extensions import Self
 
 import namosim.display.ros2_publisher as ros2
+import namosim.display.ros2_publisher as rp
+import namosim.navigation.action_result as ar
+import namosim.navigation.basic_actions as ba
+import namosim.navigation.navigation_plan as nav_plan
 import namosim.utils.collision as collision
-from namosim.data_models import PoseModel
+import namosim.world.world as w
+import namosim.world.world as world
+from namosim.data_models import UID, PoseModel
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.conflict import (
     Conflict,
@@ -17,17 +24,16 @@ from namosim.navigation.navigation_path import (
     TransferPath,
     TransitPath,
 )
+from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.obstacle import Obstacle
-from namosim.world.robot import Robot
-from namosim.world.world import World
 
 
 class Plan:
     def __init__(
         self,
         *,
-        robot_uid: int,
+        robot_uid: UID,
         path_components: t.List[t.Union[TransitPath, TransferPath]] = [],
         goal: t.Optional[PoseModel] = None,
         plan_error: t.Optional[str] = None,
@@ -66,7 +72,7 @@ class Plan:
 
     def get_conflicts(
         self,
-        world: World,
+        world: "world.World",
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         rp: "ros2.RosPublisher",
         check_horizon: t.Optional[int] = None,
@@ -99,10 +105,10 @@ class Plan:
         )
         encompassing_circle_uid_to_robot_uid = {}
         max_uid = 10000  # TODO: find a better way compute this temporary uid
-        for other_robot in world.entities.values():
+        for other_robot in world.agents.values():
             # Inflate all other robots and their associated obstacles by the maximum translation at t+1 to prevent
             # SimultaneousSpaceAccess-type Conflicts
-            if isinstance(other_robot, Robot) and other_robot.uid != self.robot_uid:
+            if other_robot.uid != self.robot_uid:
                 center = other_robot.polygon.centroid
                 # robot_radius = (
                 #     center.hausdorff_distance(other_robot.polygon)
@@ -123,7 +129,7 @@ class Plan:
                         and obstacle.movability != "static"
                     ):
                         if obstacle.polygon.buffer(
-                            2.0 * inflated_grid_by_robot.inflation_radius,
+                            1.5 * inflated_grid_by_robot.inflation_radius,
                             join_style="mitre",
                         ).intersects(other_robot.polygon):
                             radius = min_radius_for_release
@@ -270,3 +276,164 @@ class Plan:
             self.is_evading()
             and self.path_components[self.component_index].is_fully_executed()
         )
+
+
+class Timer:
+    def __init__(
+        self, start_time: int = 0, duration: int = 0, is_running: bool = False
+    ):
+        self.start_time = start_time
+        self.duration = duration
+        self.is_running = is_running
+
+    def start_timer(self, start_time: int, duration: int):
+        self.start_time = start_time
+        self.duration = duration
+        self.is_running = True
+
+    def is_timer_over(self, current_time: int):
+        if current_time - self.start_time >= self.duration:
+            self.is_running = False
+            return True
+        else:
+            return False
+
+
+class DynamicPlan(Plan):
+    DEBUGGING_WAIT_TIME_GENERATOR = []
+
+    def __init__(self, robot_uid: UID):
+        super().__init__(robot_uid=robot_uid)
+        self.update_count = 0
+        """
+        The number of times the plan was updated
+        """
+
+        self.steps_with_replan_call = set()
+        """
+        The steps in which a replan occurred
+        """
+
+        self.current_conflicts = []
+        self.plan_history = {}
+        self.conflicts_history = {}
+        self.postponements_history = {}
+        self.unpostponements_history = []
+        self.forbidden_evasion_cells = set()
+        self.timer = Timer()
+
+    def was_last_step_success(
+        self, w_t: "w.World", last_action_result: ar.ActionResult
+    ):
+        # TODO Check if robot state (position and grab) are coherent with next step's preconditions
+        return isinstance(last_action_result, ar.ActionSuccess)
+
+    def get_conflicts(
+        self,
+        world: "w.World",
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        ros_publisher: "rp.RosPublisher",
+        check_horizon: int | None = None,
+        apply_strict_horizon: bool = False,
+        exit_early_for_any_conflict: bool = True,
+        exit_early_only_for_long_term_conflicts: bool = True,
+        robot_name: str = "",
+    ):
+        conflicts = super().get_conflicts(
+            world=world,
+            inflated_grid_by_robot=inflated_grid_by_robot,
+            check_horizon=check_horizon,
+            apply_strict_horizon=apply_strict_horizon,
+            exit_early_for_any_conflict=exit_early_for_any_conflict,
+            exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
+            rp=ros_publisher,
+            robot_name=robot_name,
+        )
+        self.current_conflicts += conflicts
+        return conflicts
+
+    def save_conflicts(self, step_count: int):
+        if self.current_conflicts:
+            if step_count in self.conflicts_history:
+                self.conflicts_history[step_count] += self.current_conflicts
+            else:
+                self.conflicts_history[step_count] = self.current_conflicts
+        self.current_conflicts = []
+
+    def has_tries_remaining(self, max_tries: int):
+        return self.update_count < max_tries
+
+    def can_even_be_found(self):
+        if (
+            self.plan_error
+            and self.plan_error == "start_or_goal_cell_in_static_obstacle_error"
+        ):
+            return False
+        return True
+
+    def new_postpone(
+        self,
+        t_min: int,
+        t_max: int,
+        step_count: int,
+        conflicts: t.List[Conflict],
+        simulation_log: t.List[utils.BasicLog],
+        robot_name: str,
+    ):
+        if self.timer.is_running:
+            if self.timer.is_timer_over(step_count):
+                simulation_log.append(
+                    utils.BasicLog(
+                        "Agent {}: Resetting plan because conflicts still exist after full postponement is over: {}.".format(
+                            robot_name, conflicts
+                        ),
+                        step_count,
+                    )
+                )
+                self.update_plan(
+                    nav_plan.Plan(robot_uid=self.robot_uid, path_components=[]),
+                    step_count,
+                )
+            else:
+                return ba.Wait()
+        else:
+            duration = random.randint(t_min, t_max)
+            simulation_log.append(
+                utils.BasicLog(
+                    "Agent {}: Starting postponement of current plan for {} steps because conflicts: {}.".format(
+                        robot_name, duration, conflicts
+                    ),
+                    step_count,
+                )
+            )
+            self.timer.start_timer(step_count, duration)
+            self.postponements_history[step_count] = duration
+            return ba.Wait()
+
+    # def postpone(self, t_min, t_max, step_count):
+    #     if self.DEBUGGING_WAIT_TIME_GENERATOR:
+    #         self.wait_counter = self.DEBUGGING_WAIT_TIME_GENERATOR.pop(0)
+    #     else:
+    #         self.wait_counter = random.randint(t_min, t_max)
+    #     self.wait_counter = t_max  # TODO - Reconsider the computation of the wait time
+    #     self.postponements_history[
+    #         step_count] = self.wait_counter
+
+    # def unpostpone(self, step_count):
+    #     self.wait_counter = 0
+    #     self.unpostponements_history.append(step_count)
+
+    def update_plan(self, plan: Plan, step_count: int):
+        if step_count in self.plan_history:
+            self.plan_history[step_count].append(plan)
+        else:
+            self.plan_history[step_count] = [plan]
+
+        self.path_components = plan.path_components
+        self.goal = plan.goal
+        self.robot_uid = plan.robot_uid
+        self.phys_cost = plan.phys_cost
+        self.social_cost = plan.social_cost
+        self.total_cost = plan.total_cost
+        self.plan_error = plan.plan_error
+        self.component_index = plan.component_index

@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 from shapely.geometry import Polygon
 
-from namosim.data_models import GridCellModel, GridCellSet, PoseModel
+from namosim.data_models import UID, GridCellModel, GridCellSet, PoseModel
 from namosim.utils import utils
 
 
@@ -114,7 +114,7 @@ def grid_parameters(polygons: t.Iterable[Polygon], res: float):
 class BinaryOccupancyGrid:
     def __init__(
         self,
-        polygons: t.Dict[int, Polygon],
+        polygons: t.Dict[UID, Polygon],
         res: float,
         neighborhood: t.Sequence[GridCellModel] = utils.CHESSBOARD_NEIGHBORHOOD,
         params: GridParams | None = None,
@@ -123,7 +123,7 @@ class BinaryOccupancyGrid:
         """_summary_
 
         :param polygons: a dictionary mapping entity uids to polygons
-        :type polygons: t.Dict[int, Polygon]
+        :type polygons: t.Dict[UID, Polygon]
         :param res: the grid resolution parameter
         :type res: float
         :param neighborhood: _description_, defaults to utils.CHESSBOARD_NEIGHBORHOOD
@@ -148,25 +148,32 @@ class BinaryOccupancyGrid:
 
         self.neighborhood = neighborhood
 
-        self.cells_sets: t.Dict[int, GridCellSet] = dict()
+        self.cells_sets: t.Dict[UID, GridCellSet] = dict()
         self.grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
 
         self.deactivated_entities_cells_sets = {}
 
         self.update(new_or_updated_polygons=polygons, fill=fill)
 
+    def get_bounds(self):
+        min_x = self.params.grid_pose[0]
+        min_y = self.params.grid_pose[1]
+        max_x = self.params.grid_pose[0] + self.params.r_width
+        max_y = self.params.grid_pose[1] + self.params.r_height
+        return (min_x, min_y, max_x, max_y)
+
     def update(
         self,
-        new_or_updated_polygons: t.Dict[int, Polygon] | None = None,
-        removed_polygons: t.Set[int] | None = None,
+        new_or_updated_polygons: t.Dict[UID, Polygon] | None = None,
+        removed_polygons: t.Set[UID] | None = None,
         fill: bool = True,
     ):
         """Updates the grid based on which polygons have been added, changed, or removed.
 
         :param new_or_updated_polygons: _description_, defaults to None
-        :type new_or_updated_polygons: t.Dict[int, Polygon] | None, optional
+        :type new_or_updated_polygons: t.Dict[UID, Polygon] | None, optional
         :param removed_polygons: _description_, defaults to None
-        :type removed_polygons: t.Dict[int, Polygon] | None, optional
+        :type removed_polygons: t.Dict[UID, Polygon] | None, optional
         :param fill: _description_, defaults to True
         :type fill: bool, optional
         :return: _description_
@@ -192,9 +199,9 @@ class BinaryOccupancyGrid:
 
     def cells_sets_update(
         self,
-        new_or_updated_cells_sets: t.Dict[int, GridCellSet] | None = None,
-        removed_entities: t.Set[int] | None = None,
-    ) -> t.Dict[int, GridCellSet]:
+        new_or_updated_cells_sets: t.Dict[UID, GridCellSet] | None = None,
+        removed_entities: t.Set[UID] | None = None,
+    ) -> t.Dict[UID, GridCellSet]:
         prev_cells_sets = {}
 
         if new_or_updated_cells_sets is not None:
@@ -225,7 +232,7 @@ class BinaryOccupancyGrid:
 
         return prev_cells_sets
 
-    def deactivate_entities(self, uids: t.Iterable[int]):
+    def deactivate_entities(self, uids: t.Iterable[UID]):
         for uid in uids:
             if (
                 uid not in self.deactivated_entities_cells_sets
@@ -236,7 +243,7 @@ class BinaryOccupancyGrid:
                     self.grid[cell[0]][cell[1]] -= 1
                 del self.cells_sets[uid]
 
-    def activate_entities(self, uids: t.Iterable[int]):
+    def activate_entities(self, uids: t.Iterable[UID]):
         for uid in uids:
             if uid in self.deactivated_entities_cells_sets:
                 self.cells_sets[uid] = self.deactivated_entities_cells_sets[uid]
@@ -252,26 +259,31 @@ class BinaryOccupancyGrid:
         for cell in cells:
             self.grid[cell[0]][cell[1]] -= 1
 
-    def cell_to_obstacle_id(self, cell: GridCellModel):
+    def cell_to_obstacle_ids(self, cell: GridCellModel) -> t.Set[UID]:
         """
         If cell is contained only by one obstacle o_i, returns o_i.
-        If contained by no obstacle, returns 0. If contained by more than one, returns -1.
+        If contained by no obstacle, returns None. If contained by more than one, returns -1.
         :param cell: cell coordinates (x, y)
         :type cell: tuple(int, int)
         :return: obstacle uid or 0 or -1
         :rtype: int
         """
         if self.grid[cell[0]][cell[1]] == 0:
-            return 0
-        elif self.grid[cell[0]][cell[1]] > 1:
-            return -1
-        else:
-            for uid, cell_set in self.cells_sets.items():
-                if cell in cell_set:
-                    return uid
+            return set()
+
+        result = set()
+        for uid, cell_set in self.cells_sets.items():
+            if cell in cell_set:
+                result.add(uid)
+
+        if len(result) == 0:
             raise RuntimeError(
                 "It should be impossible for an occupied cell of the grid to not be in any cells set."
             )
+
+        if len(result) > 1:
+            assert self.grid[cell[0]][cell[1]] > 1
+        return result
 
     def obstacles_uids_in_cell(self, cell: GridCellModel):
         return {uid for uid, cell_set in self.cells_sets.items() if cell in cell_set}
@@ -285,7 +297,7 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
 
     def __init__(
         self,
-        polygons: t.Dict[int, Polygon],
+        polygons: t.Dict[UID, Polygon],
         res: float,
         inflation_radius: float,
         neighborhood: t.Sequence[GridCellModel] = utils.CHESSBOARD_NEIGHBORHOOD,
@@ -297,8 +309,8 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
 
     def update(
         self,
-        new_or_updated_polygons: t.Dict[int, Polygon] | None = None,
-        removed_polygons: t.Set[int] | None = None,
+        new_or_updated_polygons: t.Dict[UID, Polygon] | None = None,
+        removed_polygons: t.Set[UID] | None = None,
         fill: bool = True,
     ):
         if new_or_updated_polygons:
@@ -315,4 +327,10 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
             )
 
     def to_image(self) -> Image.Image:
-        return Image.fromarray(self.grid > 0)
+        grid = np.flipud(self.grid)
+        grid = grid.astype(np.float32)
+        grid = grid - np.min(grid)
+        grid /= np.max(grid)
+        grid *= 255
+        grid = grid.astype(np.uint8)
+        return Image.fromarray(grid, "L")

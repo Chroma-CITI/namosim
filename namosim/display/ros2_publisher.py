@@ -35,7 +35,10 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as navigation_plan
-from namosim.data_models import GridCellModel, PoseModel
+import namosim.world.world as world
+from namosim.agents import agent
+from namosim.config import DEACTIVATE_RVIZ
+from namosim.data_models import UID, GridCellModel, PoseModel
 from namosim.display.conversions import (
     costmap_to_grid_map,
     geom_quat_from_yaw,
@@ -55,8 +58,6 @@ from namosim.world.binary_occupancy_grid import (
 )
 from namosim.world.entity import Entity
 from namosim.world.obstacle import Obstacle
-from namosim.world.robot import Robot
-from namosim.world.world import World
 
 
 class NamespaceCache:
@@ -146,7 +147,7 @@ class RosObserver:
         self._duration = 1.0 / self.rate
 
     def update(self, **kwargs: t.Any):
-        if not cfg.deactivate_gui and self.is_active:
+        if not DEACTIVATE_RVIZ and self.is_active:
             connections = self.get_subscription_count()
             if connections > 0:
                 elapsed_time = time.time() - self._last_time
@@ -172,7 +173,7 @@ class RosObserver:
         | OccupancyGrid
         | None = None,
     ):
-        if not cfg.deactivate_gui and reset_msg is not None:
+        if not DEACTIVATE_RVIZ and reset_msg is not None:
             self._publisher.publish(reset_msg)
 
 
@@ -196,7 +197,7 @@ class WorldObserver(RosObserver):
         current_world_draw_data = {
             entity.uid: {
                 "polygon": entity.polygon,
-                "type": "robot" if isinstance(entity, Robot) else entity.type_,
+                "type": "robot" if isinstance(entity, agent.Agent) else entity.type_,
                 "pose": entity.pose,
             }
             for entity in world.entities.values()
@@ -220,9 +221,9 @@ class WorldObserver(RosObserver):
 
     def world_to_marker_array(
         self,
-        world: World,
-        robot_uid: int | None = None,
-        entities_to_ignore: t.Set[int] | None = None,
+        world: "world.World",
+        robot_uid: UID | None = None,
+        entities_to_ignore: t.Set[UID] | None = None,
     ):
         if entities_to_ignore is None:
             entities_to_ignore = set()
@@ -231,7 +232,7 @@ class WorldObserver(RosObserver):
         for entity in world.entities.values():
             if entity.uid not in entities_to_ignore:
                 entity_color = ColorRGBA(**colors.hex_to_rgba(entity.style.fill))
-                if isinstance(entity, Robot):
+                if isinstance(entity, agent.Agent):
                     namespace = "/robot"
                 elif isinstance(entity, Obstacle):
                     namespace = "obstacles"
@@ -264,7 +265,7 @@ class WorldObserver(RosObserver):
         *,
         entity: Entity,
         namespace: str,
-        p_id: int,
+        p_id: UID,
         frame_id: str,
         color: ColorRGBA,
         border_color: ColorRGBA,
@@ -345,11 +346,11 @@ class CostmapObserver(RosObserver):
         world, robot_uid = kwargs["world"], kwargs["robot_uid"]
         return self.world_to_costmap(world, robot_uid)
 
-    def world_to_costmap(self, world: World, robot_uid: int | None = None):
+    def world_to_costmap(self, world: "world.World", robot_uid: UID | None = None):
         polygons = {
             uid: entity.polygon
             for uid, entity in world.entities.items()
-            if not isinstance(entity, Robot)
+            if not isinstance(entity, agent.Agent)
         }
         if robot_uid:
             robot_max_inflation_radius = utils.get_circumscribed_radius(
@@ -480,7 +481,7 @@ class GoalObserver(RosObserver):
         )
 
     def _convert(self, **kwargs: t.Any):
-        robot: Robot = kwargs["entity"]
+        robot: "agent.Agent" = kwargs["entity"]
 
         q_init, q_goal = kwargs["q_init"], kwargs["q_goal"]
 
@@ -499,7 +500,7 @@ class GoalObserver(RosObserver):
                         0,
                         cfg.main_frame_id,
                         color,
-                        cfg.fov_z_index,
+                        cfg.goal_z_index,
                         line_width=robot.min_inflation_radius / 4,
                     )
                 ]
@@ -573,7 +574,7 @@ class RosPublisher:  # noqa: F821
         agent_names: t.List[str],
         prefix_topics_with_node_name: bool = False,
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
 
         # HACK: Must necessarily be invoked in the init method of this singleton and not at module-level (rclpy bug...)
@@ -656,6 +657,14 @@ class RosPublisher:  # noqa: F821
             ] = self.ros_node.create_publisher(
                 MarkerArray, ns + cfg.conflicts_check_topic
             )
+            self.my_publishers[
+                ns + cfg.conflict_horizon_topic
+            ] = self.ros_node.create_publisher(
+                MarkerArray, ns + cfg.conflict_horizon_topic
+            )
+            self.my_publishers[
+                ns + cfg.swept_area_topic
+            ] = self.ros_node.create_publisher(MarkerArray, ns + cfg.swept_area_topic)
             # TODO: Last publisher to refactor, as it requires separating it into smaller meaningful units
             self.my_publishers[
                 ns + cfg.robot_sim_topic
@@ -705,7 +714,7 @@ class RosPublisher:  # noqa: F821
         return node_name
 
     def publish(self, topic: str, msg: t.Any):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         publisher = self.my_publishers[topic]
         connections = publisher.get_subscription_count()
@@ -714,15 +723,15 @@ class RosPublisher:  # noqa: F821
             publisher.publish(msg)
 
     def is_activated(self, topic: str = ""):
-        if cfg.deactivate_gui or (topic and topic not in self.my_publishers):
+        if DEACTIVATE_RVIZ or (topic and topic not in self.my_publishers):
             return False
-        elif not cfg.deactivate_gui and not topic:
+        elif not DEACTIVATE_RVIZ and not topic:
             return True
         return topic in self.my_publishers
 
     # region SIM WORLD
-    def publish_sim_world(self, world: World, robot_uid: int | None = None):
-        if cfg.deactivate_gui:
+    def publish_sim_world(self, world: "world.World", robot_uid: UID | None = None):
+        if DEACTIVATE_RVIZ:
             return
         self.observers[self.sim_knowledge_topic].update(
             world=world, robot_uid=robot_uid
@@ -731,15 +740,15 @@ class RosPublisher:  # noqa: F821
         world.discretization_data.d_height
 
     def cleanup_sim_world(self):
-        if not cfg.deactivate_gui:
+        if not DEACTIVATE_RVIZ:
             self.observers[self.sim_knowledge_topic].reset()
             self.observers[self.sim_costmap_topic].reset()
 
     # endregion
 
     # region ROBOT WORLD
-    def publish_robot_world(self, world: World, robot_uid: int):
-        if cfg.deactivate_gui:
+    def publish_robot_world(self, world: "world.World", robot_uid: UID):
+        if DEACTIVATE_RVIZ:
             return
         world_topic = (
             self.prefix
@@ -754,7 +763,7 @@ class RosPublisher:  # noqa: F821
         self.observers[costmap_topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_robot_world(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
 
         world_topic = self.prefix + "/" + ns + cfg.robot_knowledge_topic
@@ -767,8 +776,8 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region ROBOT SIM
-    def publish_robot_sim_world(self, world: World, robot_uid: int):
-        if cfg.deactivate_gui:
+    def publish_robot_sim_world(self, world: "world.World", robot_uid: UID):
+        if DEACTIVATE_RVIZ:
             return
         topic = (
             self.prefix
@@ -779,13 +788,13 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
     def cleanup_robot_sim_world(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + "/" + ns + cfg.robot_sim_world_topic
         self.observers[topic].reset()
 
-    def publish_robot_sim_costmap(self, world: World, robot_uid: int):
-        if cfg.deactivate_gui:
+    def publish_robot_sim_costmap(self, world: "world.World", robot_uid: UID):
+        if DEACTIVATE_RVIZ:
             return
         topic = (
             self.prefix
@@ -795,8 +804,8 @@ class RosPublisher:  # noqa: F821
         )
         self.observers[topic].update(world=world, robot_uid=robot_uid)
 
-    def cleanup_robot_sim_costmap(self, world: World, robot_uid: int):
-        if cfg.deactivate_gui:
+    def cleanup_robot_sim_costmap(self, world: "world.World", robot_uid: UID):
+        if DEACTIVATE_RVIZ:
             return
         topic = (
             self.prefix
@@ -812,7 +821,7 @@ class RosPublisher:  # noqa: F821
     def publish_social_grid_map(
         self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
@@ -832,7 +841,7 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_social_grid_map(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_social_gridmap_topic
@@ -847,7 +856,7 @@ class RosPublisher:  # noqa: F821
         inflated_grid_by_obstacle: BinaryInflatedOccupancyGrid,
         ns: str = "",
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
@@ -861,7 +870,7 @@ class RosPublisher:  # noqa: F821
         )
 
     def cleanup_combined_costmap(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_combined_gridmap_topic
@@ -876,7 +885,7 @@ class RosPublisher:  # noqa: F821
     def publish_connected_components_grid(
         self, costmap: npt.NDArray[np.float_], res: float, ns: str = ""
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_connected_components_topic
@@ -896,7 +905,7 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(costmap=costmap, res=res)
 
     def cleanup_connected_components_grid(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.test_connected_components_topic
@@ -1203,7 +1212,7 @@ class RosPublisher:  # noqa: F821
 
     # region Q MANIPS FOR OBS
     def publish_q_manips_for_obs(self, poses: t.List[PoseModel], ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.obs_manip_poses_topic
@@ -1213,7 +1222,7 @@ class RosPublisher:  # noqa: F821
         self.observers[topic].update(poses=poses)
 
     def cleanup_q_manips_for_obs(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (
             cfg.obs_manip_poses_topic
@@ -1225,16 +1234,21 @@ class RosPublisher:  # noqa: F821
     # endregion
 
     # region P_OPT
-    def publish_p_opt(self, plan: "navigation_plan.Plan", robot: Robot, ns: str = ""):
+    def publish_p_opt(
+        self,
+        plan: "navigation_plan.Plan",
+        robot: "agent.Agent",
+        ns: str = "",
+    ):
         """Publishes the optimal path to observers"""
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (cfg.plan_topic if not ns else "/" + ns + cfg.plan_topic)
         self.observers[topic].update(plan=plan, robot=robot)
 
     def cleanup_p_opt(self, ns: str = ""):
         """Clears the optimal path from observers"""
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         topic = self.prefix + (cfg.plan_topic if not ns else "/" + ns + cfg.plan_topic)
         self.observers[topic].reset()
@@ -1412,7 +1426,7 @@ class RosPublisher:  # noqa: F821
             )
 
     def cleanup_robot_sim(self, ns: str = ""):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         full_topic = cfg.robot_sim_topic if not ns else "/" + ns + cfg.robot_sim_topic
         if self.is_activated(full_topic):
@@ -1423,9 +1437,13 @@ class RosPublisher:  # noqa: F821
 
     # region GOAL
     def publish_goal(
-        self, q_init: PoseModel, q_goal: PoseModel, entity: Robot, ns: str = ""
+        self,
+        q_init: PoseModel,
+        q_goal: PoseModel,
+        entity: "agent.Agent",
+        ns: str = "",
     ):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
 
         topic = self.prefix + (
@@ -1453,7 +1471,7 @@ class RosPublisher:  # noqa: F821
                         pose=pose,
                         ns="",
                         p_id=0,
-                        z_index=cfg.fov_z_index,
+                        z_index=cfg.goal_z_index,
                         font_size=font_size,
                         frame_id=cfg.main_frame_id,
                         color=colors.black,
@@ -1471,7 +1489,7 @@ class RosPublisher:  # noqa: F821
                         pose=(0.0, 0.0, 0.0),
                         ns="",
                         p_id=0,
-                        z_index=cfg.fov_z_index,
+                        z_index=cfg.goal_z_index,
                         font_size=0.01,
                         frame_id=cfg.main_frame_id,
                         color=colors.black,
@@ -1487,23 +1505,18 @@ class RosPublisher:  # noqa: F821
         self,
         poses: t.List[PoseModel],
         start_index: int,
-        end_index: int,
         check_horizon: int,
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        ns: str,
+        robot_name: str,
     ):
-        full_topic = (
-            cfg.conflicts_check_topic
-            if not ns
-            else "/" + ns + cfg.conflicts_check_topic
-        )
+        if check_horizon <= 0:
+            return
+
+        full_topic = "/" + robot_name + cfg.conflict_horizon_topic
+
         if self.is_activated(full_topic):
             horizon_cells: t.Set[GridCellModel] = set()
-            for counter, index in enumerate(range(start_index, end_index)):
-                if counter >= check_horizon:
-                    break
-
-                pose = poses[index]
+            for pose in poses[start_index : start_index + check_horizon]:
                 cell = utils.real_to_grid(
                     pose[0],
                     pose[1],
@@ -1516,7 +1529,7 @@ class RosPublisher:  # noqa: F821
                 inflated_grid_by_robot.res,
                 inflated_grid_by_robot.grid_pose,
                 colors.flashy_green,
-                z_index=0.02,
+                z_index=cfg.horizon_markers_z_index,
                 ns="/transit_horizon_cells",
             )
             marker_array = MarkerArray(markers=[cube_list_marker])
@@ -1539,7 +1552,7 @@ class RosPublisher:  # noqa: F821
                 inflated_grid_by_robot.res,
                 inflated_grid_by_robot.grid_pose,
                 colors.flashy_red,
-                z_index=0.03,
+                z_index=cfg.conflicting_cells_z_index,
                 ns="/transit_conflicting_cells",
             )
             marker_array = MarkerArray(markers=[cube_list_marker])
@@ -1562,7 +1575,7 @@ class RosPublisher:  # noqa: F821
                 inflated_grid_by_robot.res,
                 inflated_grid_by_robot.grid_pose,
                 colors.flashy_cyan,
-                z_index=-0.16,
+                z_index=cfg.conflict_markers_z_index,
                 ns="/transit_conflicting_entities_cells",
             )
             marker_array = MarkerArray(markers=[cube_list_marker])
@@ -1573,45 +1586,53 @@ class RosPublisher:  # noqa: F821
         robot_csv_polygons: t.Dict[t.Tuple[int], GeometryCollection],
         obstacle_csv_polygons: t.Dict[t.Tuple[int], GeometryCollection],
         start_index: int,
-        end_index: int,
         check_horizon: int,
-        ns: str,
+        robot_name: str,
     ):
-        full_topic = (
-            cfg.conflicts_check_topic
-            if not ns
-            else "/" + ns + cfg.conflicts_check_topic
-        )
-        if self.is_activated(full_topic):
-            subspace = "/transfer_horizon_csv_polygons"
-            horizon_csv_polygons = []
-            for counter, index in enumerate(range(start_index, end_index)):
-                if counter > check_horizon:
-                    break
-                key = (index,)
-                if key in robot_csv_polygons:
-                    horizon_csv_polygons.append(robot_csv_polygons[key])
-                if key in obstacle_csv_polygons:
-                    horizon_csv_polygons.append(obstacle_csv_polygons[key])
-            markers = []
-            for p_id, polygon in enumerate(horizon_csv_polygons):
-                marker = polygon_to_triangle_list(
-                    polygon,
-                    subspace,
-                    p_id,
-                    frame_id=cfg.main_frame_id,
-                    color=colors.flashy_green,
-                    z_index=-0.06,
-                )
-                markers.append(marker)
-            marker_array = MarkerArray(markers=markers)
-            self.publish(full_topic, marker_array)
+        full_topic = "/" + robot_name + cfg.swept_area_topic
+
+        if not self.is_activated(full_topic):
+            return
+
+        horizon_csv_polygons = []
+        for i in range(
+            start_index, min(start_index + check_horizon, len(robot_csv_polygons))
+        ):
+            key = (i,)
+            if key in robot_csv_polygons:
+                horizon_csv_polygons.append(robot_csv_polygons[key])
+            if key in obstacle_csv_polygons:
+                horizon_csv_polygons.append(obstacle_csv_polygons[key])
+
+        markers = []
+        for p_id, polygon in enumerate(horizon_csv_polygons):
+            marker = polygon_to_triangle_list(
+                polygon=polygon,
+                namespace="/transfer_horizon_csv_polygons",
+                p_id=p_id,
+                frame_id=cfg.main_frame_id,
+                color=colors.flashy_green,
+                z_index=cfg.swept_area_z_index,
+            )
+            markers.append(marker)
+        marker_array = MarkerArray(markers=markers)
+        self.publish(full_topic, marker_array)
 
     def publish_transfer_conflicting_intersections(self):
         pass
 
     def publish_transfer_conflicting_convex_polygons(self):
         pass
+
+    def cleanup_swept_area(self, ns: str):
+        full_topic = "/" + ns + cfg.swept_area_topic
+        if self.is_activated(full_topic):
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
+
+    def cleanup_conflict_horizon(self, ns: str):
+        full_topic = "/" + ns + cfg.conflict_horizon_topic
+        if self.is_activated(full_topic):
+            self.publish(full_topic, self.make_delete_all_marker(cfg.main_frame_id))
 
     def cleanup_conflicts_checks(self, ns: str):
         full_topic = (
@@ -1626,7 +1647,7 @@ class RosPublisher:  # noqa: F821
 
     # region EXTRA COMBINED CLEANUP METHODS
     def cleanup_all(self):
-        if cfg.deactivate_gui:
+        if DEACTIVATE_RVIZ:
             return
         self.cleanup_sim_world()
         self.cleanup_message()
@@ -1639,6 +1660,8 @@ class RosPublisher:  # noqa: F821
             self.cleanup_social_grid_map(ns=ns)
             self.cleanup_combined_costmap(ns=ns)
             self.cleanup_conflicts_checks(ns=ns)
+            self.cleanup_swept_area(ns=ns)
+            self.cleanup_conflict_horizon(ns=ns)
 
     def init_header(self):
         return Header(stamp=self.ros_node.get_timestamp(), frame_id="map")
@@ -1662,7 +1685,7 @@ class RosPublisher:  # noqa: F821
                     frame_id=cfg.main_frame_id, stamp=self.ros_node.get_timestamp()
                 ),
                 color=color,
-                scale=Vector3(x=res, y=res, z=res),
+                scale=Vector3(x=res, y=res, z=1e-6),
                 points=[],
             )
         for cell in grid_cells:

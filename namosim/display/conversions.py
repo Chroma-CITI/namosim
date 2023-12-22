@@ -23,8 +23,8 @@ from visualization_msgs.msg import Marker, MarkerArray
 import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as nav_plan
-import namosim.world.robot as namosim_robot
-from namosim.data_models import PoseModel
+from namosim.agents import agent
+from namosim.data_models import UID, PoseModel
 from namosim.display import tf_replacement
 from namosim.navigation.path_type import PathType
 
@@ -35,7 +35,7 @@ def init_header(stamp: Time = Time()):
 
 def plan_to_markerarray(
     plan: "nav_plan.Plan",
-    robot: namosim_robot.Robot,
+    robot: agent.Agent,
     frame_id: str,
     stamp: Time = Time(),
 ):
@@ -80,7 +80,7 @@ def plan_to_markerarray(
 def real_path_to_linestrip(
     real_path: t.List[PoseModel],
     namespace: str,
-    p_id: int,
+    p_id: UID,
     frame_id: str,
     color: ColorRGBA,
     line_width: float,
@@ -111,7 +111,7 @@ def real_path_to_linestrip(
 def polygon_to_triangle_list(
     polygon: Polygon,
     namespace: str,
-    p_id: int,
+    p_id: UID,
     frame_id: str,
     color: ColorRGBA,
     z_index: float,
@@ -124,7 +124,7 @@ def polygon_to_triangle_list(
     :param namespace: rviz namespace
     :type namespace: str
     :param p_id: marker id
-    :type p_id: int
+    :type p_id: UID
     :param frame_id: rviz frame
     :type frame_id: str
     :param color: color of the rendered marker
@@ -164,7 +164,7 @@ def polygon_to_triangle_list(
 def polygon_to_line_strip(
     polygon: Polygon,
     namespace: str,
-    p_id: int,
+    p_id: UID,
     frame_id: str,
     color: ColorRGBA,
     z_index: float,
@@ -220,7 +220,7 @@ def string_to_text(
     string: str,
     coordinates: t.Tuple[float | int, float | int],
     namespace: str,
-    p_id: int,
+    p_id: UID,
     frame_id: str,
     color: ColorRGBA,
     z_index: float,
@@ -307,7 +307,7 @@ def poses_to_poses_array(poses: t.List[PoseModel], stamp: Time = Time()):
 def real_path_to_triangle_list(
     real_path: t.Sequence[t.Tuple[float, float, float] | t.Tuple[float, float]],
     namespace: str,
-    p_id: int,
+    p_id: UID,
     frame_id: str,
     color: ColorRGBA,
     line_width: float,
@@ -321,7 +321,7 @@ def real_path_to_triangle_list(
     :param namespace: the rviz namespace
     :type namespace: str
     :param p_id: _description_
-    :type p_id: int
+    :type p_id: UID
     :param frame_id: _description_
     :type frame_id: str
     :param color: _description_
@@ -348,7 +348,7 @@ def real_path_to_triangle_list(
     )
 
 
-def make_delete_marker(namespace: str, p_id: int, frame_id: str, stamp: Time = Time()):
+def make_delete_marker(namespace: str, p_id: UID, frame_id: str, stamp: Time = Time()):
     return Marker(
         ns=namespace,
         id=p_id,
