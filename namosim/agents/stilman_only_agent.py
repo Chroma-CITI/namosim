@@ -361,7 +361,7 @@ class StilmanOnlyAgent(Agent):
             ).visited
         )
 
-        if inflated_grid_by_robot_max.cell_to_obstacle_id(robot_cell) == -1:
+        if len(inflated_grid_by_robot_max.cell_to_obstacle_ids(robot_cell)) > 1:
             return nav_plan.Plan(
                 plan_error="start_cell_in_several_movable_obstacles_error",
                 robot_uid=self.uid,
@@ -631,8 +631,13 @@ class StilmanOnlyAgent(Agent):
             )
             return 0, 0
 
-        start_obstacle_uid = inflated_robot_grid.cell_to_obstacle_id(start_cell)
-        if start_obstacle_uid == -1 or start_obstacle_uid in forbidden_obstacles:
+        start_obstacles = inflated_robot_grid.cell_to_obstacle_ids(start_cell)
+        start_obs_id = list(start_obstacles)[0] if len(start_obstacles) > 0 else 0
+
+        if (
+            len(start_obstacles) > 1
+            or len(start_obstacles.intersection(forbidden_obstacles)) > 0
+        ):
             obstacle_names = {
                 self.world.entities[uid].name
                 for uid in inflated_robot_grid.obstacles_uids_in_cell(start_cell)
@@ -733,9 +738,7 @@ class StilmanOnlyAgent(Agent):
         def exit_condition(_current: RCHConfiguration, _goal: RCHConfiguration) -> bool:
             return _current.cell == _goal.cell
 
-        start = RCHConfiguration(
-            start_cell, start_obstacle_uid if start_obstacle_uid > 0 else 0, 0
-        )
+        start = RCHConfiguration(start_cell, start_obs_id, 0)
         goal = RCHConfiguration(
             goal_cell, 0, 0
         )  # Note the zeroes are never used, this line is just for coherence
@@ -795,24 +798,24 @@ class StilmanOnlyAgent(Agent):
                 # Note: This validation was added according to the description in the article about not allowing
                 # transitions between two different obstacles or to a cell with several obstacles, though it was not
                 # explicit in the pseudocode formulation in Stilman's thesis.
-                cur_cell_obs_uid = inflated_robot_grid.cell_to_obstacle_id(current.cell)
-                neighbor_cell_obs_uid = inflated_robot_grid.cell_to_obstacle_id(
+                cur_cell_obs = inflated_robot_grid.cell_to_obstacle_ids(current.cell)
+                neighbor_cell_obs = inflated_robot_grid.cell_to_obstacle_ids(
                     neighbor_cell
                 )
 
                 cur_and_neighbor_not_in_mult_obs = (
-                    cur_cell_obs_uid != -1 and neighbor_cell_obs_uid != -1
+                    len(cur_cell_obs) <= 1 and len(neighbor_cell_obs) <= 1
                 )
                 current_or_neighbor_in_free_space = (
-                    cur_cell_obs_uid == 0 or neighbor_cell_obs_uid == 0
+                    len(cur_cell_obs) == 0 or len(neighbor_cell_obs) == 0
                 )
                 transition_is_valid = (
                     cur_and_neighbor_not_in_mult_obs
                     and (
                         current_or_neighbor_in_free_space
-                        or cur_cell_obs_uid == neighbor_cell_obs_uid
+                        or cur_cell_obs == neighbor_cell_obs
                     )
-                    and neighbor_cell_obs_uid != current.first_obstacle_uid
+                    and current.first_obstacle_uid not in neighbor_cell_obs
                 )
                 if transition_is_valid:
                     neighbor = RCHConfiguration(
@@ -852,10 +855,10 @@ class StilmanOnlyAgent(Agent):
                             pass
 
                     else:
-                        neighbor_cell_obs_uid = inflated_robot_grid.cell_to_obstacle_id(
+                        neighbor_cell_obs = inflated_robot_grid.cell_to_obstacle_ids(
                             neighbor_cell
                         )
-                        if neighbor_cell_obs_uid == current.first_obstacle_uid:
+                        if current.first_obstacle_uid in neighbor_cell_obs:
                             neighbor = RCHConfiguration(
                                 neighbor_cell, current.first_obstacle_uid, 0
                             )
@@ -867,12 +870,13 @@ class StilmanOnlyAgent(Agent):
                         # If no obstacle has been traversed, we are still in the robot acc. space
                         neighbor = RCHConfiguration(neighbor_cell, 0, 0)
                     else:
-                        neighbor_cell_obstacle_uid = (
-                            inflated_robot_grid.cell_to_obstacle_id(neighbor_cell)
+                        neighbor_cell_obstacles = (
+                            inflated_robot_grid.cell_to_obstacle_ids(neighbor_cell)
                         )
-                        if neighbor_cell_obstacle_uid > 0:
+                        if len(neighbor_cell_obstacles) > 0:
+                            neighbor_obs_uid = list(neighbor_cell_obstacles)[0]
                             neighbor = RCHConfiguration(
-                                neighbor_cell, neighbor_cell_obstacle_uid, 0
+                                neighbor_cell, neighbor_obs_uid, 0
                             )
                         else:
                             # The neighbor is in multiple obstacles, which is forbidden
@@ -1146,7 +1150,7 @@ class StilmanOnlyAgent(Agent):
             inflated_grid_by_robot_max.grid_pose,
         )
         cell_in_manip_obs = (
-            inflated_grid_by_robot_max.cell_to_obstacle_id(robot_cell) == obstacle_uid
+            obstacle_uid in inflated_grid_by_robot_max.cell_to_obstacle_ids(robot_cell)
         )
 
         if cell_in_manip_obs:

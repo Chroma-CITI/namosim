@@ -129,7 +129,7 @@ class Plan:
                         and obstacle.movability != "static"
                     ):
                         if obstacle.polygon.buffer(
-                            2.0 * inflated_grid_by_robot.inflation_radius,
+                            1.5 * inflated_grid_by_robot.inflation_radius,
                             join_style="mitre",
                         ).intersects(other_robot.polygon):
                             radius = min_radius_for_release

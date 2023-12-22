@@ -101,7 +101,7 @@ def generate_alternative_scenarios(
     svg_init_config = NamosimConfigModel.from_xml(
         svg_data_init.getElementsByTagName("namo_config")[0].toxml()
     )
-
+    cell_size = 15.0
     conversion.set_all_id_attributes_as_ids(svg_data_init)
 
     base_agent = svg_init_config.agents[0]
@@ -171,12 +171,13 @@ def generate_alternative_scenarios(
     all_obstacles_grid = BinaryInflatedOccupancyGrid(
         all_polygons,
         svg_init_config.cell_size,
-        utils.get_circumscribed_radius(base_robot_polygon),
+        utils.get_circumscribed_radius(base_robot_polygon)
+        + 0.5 * svg_init_config.cell_size,
     )
     static_and_movable_grid = BinaryInflatedOccupancyGrid(
         static_and_movable_polygons,
-        svg_init_config.cell_size,
-        utils.get_circumscribed_radius(base_robot_polygon),
+        cell_size,
+        utils.get_circumscribed_radius(base_robot_polygon) + 0.5 * cell_size,
     )
 
     for c_scenario in range(nb_scenarios):
@@ -185,6 +186,7 @@ def generate_alternative_scenarios(
 
         # Create the NamoConfig
         namo_config = copy.deepcopy(svg_init_config)
+        namo_config.cell_size = cell_size
         namo_config.agents = []
 
         goals_poses_for_robots: t.List[t.List[PoseModel]] = []
@@ -213,7 +215,7 @@ def generate_alternative_scenarios(
                     "type": "stilman_2005_behavior",
                     "parameters": StilmanBehaviorParametersModel.model_validate(
                         {
-                            "robot_translation_unit_length": svg_init_config.cell_size,
+                            "robot_translation_unit_length": cell_size,
                             "use_social_cost": use_social_cost,
                             "manipulation_search_procedure": "DFS"
                             if use_social_cost
@@ -237,11 +239,11 @@ def generate_alternative_scenarios(
         )
 
         initial_robot_poses = sample_poses_uniform(
-            all_polygons,
+            static_and_movable_polygons,
             base_robot_polygon,
             base_robot_pose,
             nb_poses=nb_robots,
-            grid=all_obstacles_grid,
+            grid=static_and_movable_grid,
             no_collisions_between_poses=True,
         )
 
