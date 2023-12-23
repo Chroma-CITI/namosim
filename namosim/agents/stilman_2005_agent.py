@@ -389,19 +389,7 @@ class Stilman2005Agent(Agent):
         self._p_opt.save_conflicts(self._step_count)
 
         if isinstance(next_step.next_action, (ba.GoalSuccess, ba.GoalFailed)):
-            if self.is_holding_obstacle():
-                release_action = ba.Release(
-                    translation_vector=(-1.0 * self.release_distance, 0.0),
-                    entity_uid=self.world.entity_to_agent.inverse[self.uid],
-                )
-                return ThinkResult(
-                    next_action=release_action,
-                    did_replan=False,
-                    robot_name=self.name,
-                    has_conflicts=False,
-                )
-            else:
-                self._q_goal = None
+            self._q_goal = None
 
         return next_step
 
@@ -1036,7 +1024,7 @@ class Stilman2005Agent(Agent):
             robot_inflated_grid=inflated_grid_by_robot_max,
             robot_polygon=robot.polygon,
         )
-        if simple_path_to_goal:
+        if simple_path_to_goal and not self.is_holding_obstacle():
             # If the goal is in the same free space component as the robot in simulated w_t
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
             # TODO FIX COST COMPUTATION TO FIT SAME MODEL AS MANIP SEARCH !
@@ -1081,12 +1069,8 @@ class Stilman2005Agent(Agent):
 
         if static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
             raise Exception(
-                "goal_cell_in_static_obstacle_error",
+                "Goal cell collides with a static obstacle cell. This should never happen.",
             )
-            # return nav_plan.Plan(
-            #     plan_error="goal cell collides with static obstacle cell",
-            #     robot_uid=self.uid,
-            # )
 
         if static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0:
             # static_obs_inf_grid.update({self.uid: self.polygon})
@@ -1108,14 +1092,9 @@ class Stilman2005Agent(Agent):
             )
 
             if collisions:
-                raise Exception("test")
-                return nav_plan.Plan(
-                    plan_error="robot start in collision with static obstacle",
-                    robot_uid=self.uid,
+                raise Exception(
+                    "Robot start position is in collision with a static obstacle. This should never happen."
                 )
-
-        # if inflated_grid_by_robot_max.grid[goal_cell[0]][goal_cell[1]] > 1: Should not be necessary thanks to first check
-        #     return Plan(plan_error="goal_cell_in_more_than_one_movable_obstacle_error")
 
         forbidden_obstacles = {  # Dynamic obstacles are forbidden !
             uid
@@ -3791,8 +3770,8 @@ class Stilman2005Agent(Agent):
                     obstacle.pose,
                     other_entities_polygons,
                     other_entities_aabb_tree,
-                    100.0,
-                    1.0,
+                    trans_mult=self.trans_mult,
+                    rot_mult=self.rot_mult,
                 )
             )
             if not transit_configuration_after_release:
