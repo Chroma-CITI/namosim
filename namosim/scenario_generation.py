@@ -101,7 +101,7 @@ def generate_alternative_scenarios(
     svg_init_config = NamosimConfigModel.from_xml(
         svg_data_init.getElementsByTagName("namo_config")[0].toxml()
     )
-    cell_size = 15.0
+    cell_size = 10.0
     conversion.set_all_id_attributes_as_ids(svg_data_init)
 
     base_agent = svg_init_config.agents[0]

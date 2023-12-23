@@ -389,7 +389,19 @@ class Stilman2005Agent(Agent):
         self._p_opt.save_conflicts(self._step_count)
 
         if isinstance(next_step.next_action, (ba.GoalSuccess, ba.GoalFailed)):
-            self._q_goal = None
+            if self.is_holding_obstacle():
+                release_action = ba.Release(
+                    translation_vector=(-1.0 * self.release_distance, 0.0),
+                    entity_uid=self.world.entity_to_agent.inverse[self.uid],
+                )
+                return ThinkResult(
+                    next_action=release_action,
+                    did_replan=False,
+                    robot_name=self.name,
+                    has_conflicts=False,
+                )
+            else:
+                self._q_goal = None
 
         return next_step
 
@@ -698,6 +710,9 @@ class Stilman2005Agent(Agent):
                 robot_name=self.name,
                 has_conflicts=False,
             )
+
+        if self.is_holding_obstacle():
+            pass
 
         plan.steps_with_replan_call.add(step_count)
 
@@ -1058,23 +1073,46 @@ class Stilman2005Agent(Agent):
             ).visited
         )
 
-        if len(inflated_grid_by_robot_max.cell_to_obstacle_ids(robot_cell)) > 1:
-            return nav_plan.Plan(
-                plan_error="start_cell_in_several_movable_obstacles_error",
-                robot_uid=self.uid,
-            )
+        # if len(inflated_grid_by_robot_max.cell_to_obstacle_ids(robot_cell)) > 1:
+        #     return nav_plan.Plan(
+        #         plan_error="start_cell_in_several_movable_obstacles_error",
+        #         robot_uid=self.uid,
+        #     )
 
-        if (
-            static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0
-            or static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0
-        ):
+        if static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
+            raise Exception(
+                "goal_cell_in_static_obstacle_error",
+            )
+            # return nav_plan.Plan(
+            #     plan_error="goal cell collides with static obstacle cell",
+            #     robot_uid=self.uid,
+            # )
+
+        if static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0:
             # static_obs_inf_grid.update({self.uid: self.polygon})
             # static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] = 10
             # static_obs_inf_grid.to_image().save("static.png")
-            return nav_plan.Plan(
-                plan_error="start_or_goal_cell_in_static_obstacle_error",
-                robot_uid=self.uid,
+            static_entities_polygons = {
+                entity.uid: entity.polygon
+                for entity in w_t.entities.values()
+                if entity.movability == "static"
+            }
+            static_entities_aabb_tree = collision.polygons_to_aabb_tree(
+                static_entities_polygons
             )
+            collisions = collision.check_static_collision(
+                main_uid=self.uid,
+                polygon=self.polygon,
+                other_entities_polygons=static_entities_polygons,
+                aabb_tree=static_entities_aabb_tree,
+            )
+
+            if collisions:
+                raise Exception("test")
+                return nav_plan.Plan(
+                    plan_error="robot start in collision with static obstacle",
+                    robot_uid=self.uid,
+                )
 
         # if inflated_grid_by_robot_max.grid[goal_cell[0]][goal_cell[1]] > 1: Should not be necessary thanks to first check
         #     return Plan(plan_error="goal_cell_in_more_than_one_movable_obstacle_error")
@@ -3715,7 +3753,6 @@ class Stilman2005Agent(Agent):
         forbidden_evasion_cells: t.Set[GridCellModel],
         ros_publisher: "rp.RosPublisher",
         use_combined_cost: bool = False,
-        return_path: bool = True,
     ) -> t.Tuple[float, EvasionTransitPath | None]:
         """Computes an evasion path for a given robot"""
         if self._social_costmap is None:
@@ -3760,10 +3797,7 @@ class Stilman2005Agent(Agent):
             )
             if not transit_configuration_after_release:
                 # Could not release obstacle during manipulation because no valid transit pose could be found.
-                if return_path:
-                    return robot_start_social_cost, None
-                else:
-                    return robot_start_social_cost
+                return robot_start_social_cost, None
 
         # Compute shortest path to each cell of current component of robot
         robot_polygon = robot.polygon
@@ -3789,9 +3823,7 @@ class Stilman2005Agent(Agent):
 
         if not came_from:
             # If the robot was in an obstacle, no evasion is possible
-            if return_path:
-                return robot_start_social_cost, None
-            return robot_start_social_cost
+            return robot_start_social_cost, None
 
         accessible_cells = []
         social_cost = []
@@ -3846,9 +3878,6 @@ class Stilman2005Agent(Agent):
             #     ns=self.name,
             # )
             # ros_publisher.cleanup_grid_map(ns=self.name)
-
-        if not return_path:
-            return self._social_costmap[evasion_cell[0]][evasion_cell[1]]
 
         raw_cell_path = graph_search.reconstruct_path(came_from, evasion_cell)
         real_path = utils.grid_path_to_real_path(
@@ -4005,3 +4034,6 @@ class Stilman2005Agent(Agent):
             movable_whitelist=["box"],
             logger=self.logger,
         )
+
+    def is_holding_obstacle(self) -> bool:
+        return self.uid in self.world.entity_to_agent.inverse
