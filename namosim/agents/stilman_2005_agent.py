@@ -699,9 +699,6 @@ class Stilman2005Agent(Agent):
                 has_conflicts=False,
             )
 
-        if self.is_holding_obstacle():
-            pass
-
         plan.steps_with_replan_call.add(step_count)
 
         # I - Compute plan (ignoring dynamic obstacles) and set it to current plan
