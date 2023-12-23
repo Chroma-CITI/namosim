@@ -21,6 +21,8 @@ from namosim.world.binary_occupancy_grid import (
     BinaryOccupancyGrid,
 )
 
+CELL_SIZE = 10.0
+
 
 def reinit_svg(doc: minidom.Document) -> minidom.Document:
     """Clears an existing scenario file by removing all elements except walls and movables."""
@@ -101,7 +103,6 @@ def generate_alternative_scenarios(
     svg_init_config = NamosimConfigModel.from_xml(
         svg_data_init.getElementsByTagName("namo_config")[0].toxml()
     )
-    cell_size = 10.0
     conversion.set_all_id_attributes_as_ids(svg_data_init)
 
     base_agent = svg_init_config.agents[0]
@@ -170,14 +171,13 @@ def generate_alternative_scenarios(
     # for initial robot poses (can not be in any obstacles) and goals robot poses (can be in movable obstacles)
     all_obstacles_grid = BinaryInflatedOccupancyGrid(
         all_polygons,
-        svg_init_config.cell_size,
-        utils.get_circumscribed_radius(base_robot_polygon)
-        + 0.5 * svg_init_config.cell_size,
+        CELL_SIZE,
+        utils.get_circumscribed_radius(base_robot_polygon),
     )
     static_and_movable_grid = BinaryInflatedOccupancyGrid(
         static_and_movable_polygons,
-        cell_size,
-        utils.get_circumscribed_radius(base_robot_polygon) + 0.5 * cell_size,
+        CELL_SIZE,
+        utils.get_circumscribed_radius(base_robot_polygon),
     )
 
     for c_scenario in range(nb_scenarios):
@@ -186,7 +186,7 @@ def generate_alternative_scenarios(
 
         # Create the NamoConfig
         namo_config = copy.deepcopy(svg_init_config)
-        namo_config.cell_size = cell_size
+        namo_config.cell_size = CELL_SIZE
         namo_config.agents = []
 
         goals_poses_for_robots: t.List[t.List[PoseModel]] = []
@@ -215,7 +215,7 @@ def generate_alternative_scenarios(
                     "type": "stilman_2005_behavior",
                     "parameters": StilmanBehaviorParametersModel.model_validate(
                         {
-                            "robot_translation_unit_length": cell_size,
+                            "robot_translation_unit_length": CELL_SIZE,
                             "use_social_cost": use_social_cost,
                             "manipulation_search_procedure": "DFS"
                             if use_social_cost
