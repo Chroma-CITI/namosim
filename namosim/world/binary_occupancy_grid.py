@@ -91,11 +91,10 @@ class GridParams:
 
 
 def grid_parameters(polygons: t.Iterable[Polygon], res: float):
-    r_min_x, r_min_y, r_max_x, r_max_y = utils.map_bounds(polygons)
-    min_x, min_y = r_min_x, r_min_y
-    d_width = math.ceil(abs(r_max_x - r_min_x) / res)
-    d_height = math.ceil(abs(r_max_y - r_min_y) / res)
-    max_x, max_y = r_min_x + d_width * res, r_min_y + d_height * res
+    min_x, min_y, max_x, max_y = utils.map_bounds(polygons)
+    d_width = math.ceil(abs(max_x - min_x) / res)
+    d_height = math.ceil(abs(max_y - min_y) / res)
+    max_x, max_y = min_x + d_width * res, min_y + d_height * res
     real_width, real_height = d_width * res, d_height * res
     real_pose = min_x, min_y, 0.0
     aabb_polygon = Polygon(
