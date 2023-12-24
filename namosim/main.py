@@ -61,8 +61,8 @@ def gen_alt_scenarios(
     *,
     scenario: t.Annotated[str, typer.Option("--base-scenario")],
     out_dir: t.Annotated[str, typer.Option("--out-dir")],
-    n_robots: t.Annotated[int, typer.Option("--n-robots")] = 4,
-    goals_per_robot: t.Annotated[int, typer.Option("--goals-per-robot")] = 25,
+    n_robots: t.Annotated[int, typer.Option("--n-robots")] = 1,
+    goals_per_robot: t.Annotated[int, typer.Option("--goals-per-robot")] = 50,
     n_scenarios: t.Annotated[int, typer.Option("--n-scenarios")] = 1,
     use_social_cost: t.Annotated[bool, typer.Option("--use-social-cost")] = False,
 ):

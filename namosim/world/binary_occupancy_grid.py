@@ -92,10 +92,10 @@ class GridParams:
 
 def grid_parameters(polygons: t.Iterable[Polygon], res: float):
     r_min_x, r_min_y, r_max_x, r_max_y = utils.map_bounds(polygons)
-    min_x, min_y = math.floor(r_min_x / res) * res, math.floor(r_min_y / res) * res
-    max_x, max_y = math.ceil(r_max_x / res) * res, math.ceil(r_max_y / res) * res
-    d_width = abs(int(math.floor(r_min_x / res))) + abs(int(math.ceil(r_max_x / res)))
-    d_height = abs(int(math.floor(r_min_y / res))) + abs(int(math.ceil(r_max_y / res)))
+    min_x, min_y = r_min_x, r_min_y
+    d_width = math.ceil(abs(r_max_x - r_min_x) / res)
+    d_height = math.ceil(abs(r_max_y - r_min_y) / res)
+    max_x, max_y = r_min_x + d_width * res, r_min_y + d_height * res
     real_width, real_height = d_width * res, d_height * res
     real_pose = min_x, min_y, 0.0
     aabb_polygon = Polygon(
@@ -288,6 +288,12 @@ class BinaryOccupancyGrid:
     def obstacles_uids_in_cell(self, cell: GridCellModel):
         return {uid for uid, cell_set in self.cells_sets.items() if cell in cell_set}
 
+    def get_cell_center(self, cell: GridCellModel):
+        return (
+            self.params.grid_pose[0] + cell[0] * self.res + self.res / 2,
+            self.params.grid_pose[1] + cell[1] * self.res + self.res / 2,
+        )
+
 
 class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
     """
@@ -327,8 +333,10 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
             )
 
     def to_image(self) -> Image.Image:
-        grid = np.flipud(self.grid)
-        grid = grid.astype(np.float32)
+        # grid = np.flipud(self.grid)
+        grid = self.grid.astype(np.float32)
+        grid = np.rot90(grid)
+        grid[grid == -1] = 1
         grid = grid - np.min(grid)
         grid /= np.max(grid)
         grid *= 255
