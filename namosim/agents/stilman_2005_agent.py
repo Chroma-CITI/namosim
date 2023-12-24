@@ -216,6 +216,7 @@ class Stilman2005Agent(Agent):
                 or entity.movability == "static"
             )
         }
+
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
         self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
             static_obs_polygons,
@@ -223,6 +224,20 @@ class Stilman2005Agent(Agent):
             self.robot_max_inflation_radius,
             neighborhood=self.neighborhood,
         )
+        self.static_obs_inf_grid.to_image().save("static.png")
+
+        # check that goals are valid (i.e., not in static obstacles)
+        for pose in self._navigation_goals:
+            goal_cell = utils.real_to_grid(
+                pose[0],
+                pose[1],
+                self.static_obs_inf_grid.res,
+                self.static_obs_inf_grid.grid_pose,
+            )
+            if self.static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] != 0:
+                raise Exception(
+                    "Goal cell collides with static obstacle cell. This means the scenario file is invalid."
+                )
         self.static_obs_grid = BinaryOccupancyGrid(
             static_obs_polygons,
             self.world.discretization_data.res,

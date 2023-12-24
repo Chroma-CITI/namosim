@@ -91,7 +91,9 @@ def svg_pathd_to_shapely_geometry(
         raise RuntimeError("SVG path could not be converted to Shapely geometry.")
 
 
-def shapely_geometry_to_svg_pathd(shapely_geometry, scaling_value):
+def shapely_geometry_to_svg_pathd(
+    shapely_geometry: Polygon, scaling_value: float = 1.0
+):
     # Extract polygon coordinates
     if isinstance(shapely_geometry, Polygon):
         coords = np.array(shapely_geometry.exterior.coords)

@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 import random
 import typing as t
@@ -10,6 +11,7 @@ from namosim.data_models import (
     UID,
     AgentConfigModel,
     GoalConfigModel,
+    GridCellModel,
     NamosimConfigModel,
     PoseModel,
     StilmanBehaviorConfigModel,
@@ -20,8 +22,11 @@ from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
+from namosim.world.obstacle import Obstacle
+from namosim.world.world import World
 
 CELL_SIZE = 10.0
+random.seed(0)
 
 
 def reinit_svg(doc: minidom.Document) -> minidom.Document:
@@ -37,13 +42,22 @@ def sample_poses_uniform(
     obstacles_polygons: t.Dict[UID, Polygon],
     robot_polygon: Polygon,
     robot_pose: PoseModel,
+    grid: BinaryOccupancyGrid,
     nb_poses: int = 1,
-    grid: BinaryOccupancyGrid | None = None,
     no_collisions_between_poses: bool = False,
 ) -> t.List[PoseModel]:
     """Samples robot poses which do not collide with any of the provided obstacle polygons"""
     # Make AABB Tree from polygons
     aabb_tree = collision.polygons_to_aabb_tree(obstacles_polygons)
+
+    accessible_cells: t.Set[GridCellModel] = set()
+    for i in range(grid.d_width):
+        for j in range(grid.d_height):
+            if grid.grid[i][j] == 0:
+                accessible_cells.add((i, j))
+
+    if len(accessible_cells) == 0:
+        raise Exception("No accessible cells")
 
     # Compute map bounds
     map_min_x, map_min_y, map_max_x, map_max_y = utils.map_bounds(
@@ -54,17 +68,19 @@ def sample_poses_uniform(
     generated_polygons: t.List[Polygon] = []
 
     while len(generated_poses) < nb_poses:
+        rand_cell = random.choice(tuple(accessible_cells))
+        cell_center = grid.get_cell_center(rand_cell)
         rand_pose = (
-            random.uniform(map_min_x, map_max_x),
-            random.uniform(map_min_y, map_max_y),
+            cell_center[0],
+            cell_center[1],
             random.uniform(0.0, 360.0),
         )
-        if grid:
-            rand_cell = utils.real_to_grid(
-                rand_pose[0], rand_pose[1], grid.res, grid.grid_pose
-            )
-            if grid.grid[rand_cell[0]][rand_cell[1]] != 0:
-                continue
+
+        check_cell = utils.real_to_grid(
+            rand_pose[0], rand_pose[1], grid.res, grid.grid_pose
+        )
+        assert check_cell == rand_cell
+
         robot_polygon_at_rand_pose = utils.set_polygon_pose(
             robot_polygon, robot_pose, rand_pose
         )
@@ -85,7 +101,9 @@ def sample_poses_uniform(
         if not pose_collides:
             generated_poses.append(rand_pose)
             if no_collisions_between_poses:
+                accessible_cells.remove(rand_cell)
                 generated_polygons.append(robot_polygon_at_rand_pose)
+
     return generated_poses
 
 
@@ -133,9 +151,9 @@ def generate_alternative_scenarios(
         raise Exception("Failed to get base goal direction")
 
     # Convert svg_data paths into polygons
-    all_polygons = {}
-    static_polygons = {}
-    static_and_movable_polygons = {}
+    all_polygons: t.Dict[UID, Polygon] = {}
+    static_polygons: t.Dict[UID, Polygon] = {}
+    static_and_movable_polygons: t.Dict[UID, Polygon] = {}
 
     for path in svg_data_init.getElementsByTagNameNS("*", "path"):
         uid = path.getAttribute("id")
@@ -167,15 +185,34 @@ def generate_alternative_scenarios(
         utils.yaw_from_direction(base_robot_orientation_vector),
     )
 
+    base_goal_polygon = conversion.svg_pathd_to_shapely_geometry(
+        svg_base_goal_shape.getAttribute("d")
+    )
+    base_goal_orientation_polygon = conversion.svg_pathd_to_shapely_geometry(
+        svg_base_goal_direction.getAttribute("d")
+    )
+    base_goal_orientation_geom_coords = list(base_goal_orientation_polygon.coords)
+    base_goal_orientation_vector = (
+        base_goal_orientation_geom_coords[1][0]
+        - base_goal_orientation_geom_coords[0][0],
+        base_goal_orientation_geom_coords[1][1]
+        - base_goal_orientation_geom_coords[0][1],
+    )
+    base_goal_pose: PoseModel = (
+        base_goal_polygon.centroid.coords[0][0],
+        base_goal_polygon.centroid.coords[0][1],
+        utils.yaw_from_direction(base_goal_orientation_vector),
+    )
+
     # Do uniform sampling in coordinates that are within map bounds or load "_samples.json",
     # for initial robot poses (can not be in any obstacles) and goals robot poses (can be in movable obstacles)
-    all_obstacles_grid = BinaryInflatedOccupancyGrid(
-        all_polygons,
+    static_and_movable_grid = BinaryInflatedOccupancyGrid(
+        static_and_movable_polygons,
         CELL_SIZE,
         utils.get_circumscribed_radius(base_robot_polygon),
     )
-    static_and_movable_grid = BinaryInflatedOccupancyGrid(
-        static_and_movable_polygons,
+    static_grid = BinaryInflatedOccupancyGrid(
+        static_polygons,
         CELL_SIZE,
         utils.get_circumscribed_radius(base_robot_polygon),
     )
@@ -191,16 +228,29 @@ def generate_alternative_scenarios(
 
         goals_poses_for_robots: t.List[t.List[PoseModel]] = []
         for i in range(nb_robots):
-            goals_poses_for_robots.append(
-                sample_poses_uniform(
-                    static_and_movable_polygons,
-                    base_robot_polygon,
-                    base_robot_pose,
-                    nb_poses=nb_goals_per_robot,
-                    grid=static_and_movable_grid,
-                )
+            poses = sample_poses_uniform(
+                obstacles_polygons=static_polygons,
+                robot_polygon=base_goal_polygon,
+                robot_pose=base_goal_pose,
+                nb_poses=nb_goals_per_robot,
+                grid=static_grid,
             )
 
+            poses = sorted(poses, key=lambda x: x[0])
+            goals_poses_for_robots.append(poses)
+
+            for pose in poses:
+                goal_cell = utils.real_to_grid(
+                    pose[0],
+                    pose[1],
+                    static_grid.res,
+                    static_grid.grid_pose,
+                )
+                # static_and_movable_grid.update({self.uid: self.polygon})
+                if static_grid.grid[goal_cell[0]][goal_cell[1]] != 0:
+                    pass
+                # static_grid.grid[goal_cell[0]][goal_cell[1]] = 10
+        static_grid.to_image().save("static_gen.png")
         for i_robot in range(nb_robots):
             goals: t.List[GoalConfigModel] = []
             for i_goal in range(len(goals_poses_for_robots[i_robot])):
@@ -252,35 +302,38 @@ def generate_alternative_scenarios(
 
         # Create robot polygons at said poses in svg_data using svg styles of robot and goals and setting unique ids
         goals_group = conversion.add_group(svg_data, "goals")
+
         for i in range(nb_robots):
             robot_id = "robot_" + str(i)
             robot_group = conversion.add_group(svg_data, robot_id, is_layer=False)
             # Add robot shape
             conversion.add_shapely_geometry_to_svg(
-                utils.set_polygon_pose(
+                shapely_geometry=utils.set_polygon_pose(
                     base_robot_polygon, base_robot_pose, initial_robot_poses[i]
                 ),
-                robot_id + "_shape",
-                svg_base_robot_shape.getAttribute("style"),
-                svg_data,
-                robot_group,
+                uname=robot_id + "_shape",
+                style=svg_base_robot_shape.getAttribute("style"),
+                svg_data=svg_data,
+                svg_group=robot_group,
                 namo_type="shape",
             )
+
             # Add robot direction shape
+            robot_shape = utils.set_polygon_pose(
+                base_robot_orientation_polygon,
+                base_robot_pose,
+                initial_robot_poses[i],
+                rotation_center=(base_robot_pose[0], base_robot_pose[1]),
+            )
             conversion.add_shapely_geometry_to_svg(
-                utils.rotate_then_translate_polygon(
-                    base_robot_orientation_polygon,
-                    *utils.get_translation_and_rotation(
-                        base_robot_pose, initial_robot_poses[i]
-                    ),
-                    rotation_center=(base_robot_pose[0], base_robot_pose[1]),
-                ),
-                robot_id + "_direction",
-                svg_base_robot_direction.getAttribute("style"),
-                svg_data,
-                robot_group,
+                shapely_geometry=robot_shape,
+                uname=robot_id + "_direction",
+                style=svg_base_robot_direction.getAttribute("style"),
+                svg_data=svg_data,
+                svg_group=robot_group,
                 namo_type="orientation",
             )
+
             # Add robot goals
             robot_goals_layer = conversion.add_group(
                 svg_data, robot_id + "_goals", goals_group
@@ -292,27 +345,32 @@ def generate_alternative_scenarios(
                     svg_data, goal_id, robot_goals_layer, is_layer=False
                 )
                 # Add goal shape
+                goal_shape = utils.set_polygon_pose(
+                    base_goal_polygon,
+                    base_goal_pose,
+                    goal_pose,
+                    rotation_center=(base_goal_pose[0], base_goal_pose[1]),
+                )
                 conversion.add_shapely_geometry_to_svg(
-                    utils.set_polygon_pose(
-                        base_robot_polygon, base_robot_pose, goal_pose
-                    ),
-                    goal_id + "_shape",
-                    svg_base_goal_shape.getAttribute("style"),
-                    svg_data,
-                    goal_group,
+                    shapely_geometry=goal_shape,
+                    uname=goal_id + "_shape",
+                    style=svg_base_goal_shape.getAttribute("style"),
+                    svg_data=svg_data,
+                    svg_group=goal_group,
                     namo_type="shape",
                 )
                 # Add goal direction shape
                 conversion.add_shapely_geometry_to_svg(
-                    utils.rotate_then_translate_polygon(
-                        base_robot_orientation_polygon,
-                        *utils.get_translation_and_rotation(base_robot_pose, goal_pose),
-                        rotation_center=(base_robot_pose[0], base_robot_pose[1]),
+                    shapely_geometry=utils.set_polygon_pose(
+                        base_goal_orientation_polygon,
+                        base_goal_pose,
+                        goal_pose,
+                        rotation_center=(base_goal_pose[0], base_goal_pose[1]),
                     ),
-                    goal_id + "_direction",
-                    svg_base_goal_direction.getAttribute("style"),
-                    svg_data,
-                    goal_group,
+                    uname=goal_id + "_direction",
+                    style=svg_base_goal_direction.getAttribute("style"),
+                    svg_data=svg_data,
+                    svg_group=goal_group,
                     namo_type="orientation",
                 )
 
