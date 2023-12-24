@@ -1073,11 +1073,11 @@ class Stilman2005Agent(Agent):
             ).visited
         )
 
-        # if len(inflated_grid_by_robot_max.cell_to_obstacle_ids(robot_cell)) > 1:
-        #     return nav_plan.Plan(
-        #         plan_error="start_cell_in_several_movable_obstacles_error",
-        #         robot_uid=self.uid,
-        #     )
+        if len(inflated_grid_by_robot_max.cell_to_obstacle_ids(robot_cell)) > 1:
+            return nav_plan.Plan(
+                plan_error="start_cell_in_several_movable_obstacles_error",
+                robot_uid=self.uid,
+            )
 
         if static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
             raise Exception(
