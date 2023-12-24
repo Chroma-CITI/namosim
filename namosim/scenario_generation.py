@@ -1,5 +1,4 @@
 import copy
-import json
 import os
 import random
 import typing as t
@@ -22,8 +21,6 @@ from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
-from namosim.world.obstacle import Obstacle
-from namosim.world.world import World
 
 CELL_SIZE = 10.0
 random.seed(0)

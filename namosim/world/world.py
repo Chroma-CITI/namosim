@@ -1,5 +1,4 @@
 import copy
-import json
 import os
 import typing as t
 from xml.dom import minidom
