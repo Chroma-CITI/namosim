@@ -1036,7 +1036,7 @@ class Stilman2005Agent(Agent):
             robot_inflated_grid=inflated_grid_by_robot_max,
             robot_polygon=robot.polygon,
         )
-        if simple_path_to_goal and not self.is_holding_obstacle():
+        if simple_path_to_goal:
             # If the goal is in the same free space component as the robot in simulated w_t
             # Orig. condition in pseudo-code is : x^f in C^acc_R(W)
             # TODO FIX COST COMPUTATION TO FIT SAME MODEL AS MANIP SEARCH !
