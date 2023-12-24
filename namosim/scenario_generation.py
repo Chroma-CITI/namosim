@@ -22,7 +22,7 @@ from namosim.world.binary_occupancy_grid import (
     BinaryOccupancyGrid,
 )
 
-CELL_SIZE = 10.0
+CELL_SIZE = 15.0
 random.seed(0)
 
 
@@ -55,11 +55,6 @@ def sample_poses_uniform(
 
     if len(accessible_cells) == 0:
         raise Exception("No accessible cells")
-
-    # Compute map bounds
-    map_min_x, map_min_y, map_max_x, map_max_y = utils.map_bounds(
-        obstacles_polygons.values()
-    )
 
     generated_poses: t.List[PoseModel] = []
     generated_polygons: t.List[Polygon] = []
