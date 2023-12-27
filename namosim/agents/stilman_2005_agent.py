@@ -3711,7 +3711,7 @@ class Stilman2005Agent(Agent):
                 return main_robot_evasion_path
             elif main_robot_evasion_cell_social_cost == max_evasion_cell_social_cost:
                 ## tie breaking
-                if self.pose[0] > max_x_coord:
+                if self.pose[0] >= max_x_coord:
                     return main_robot_evasion_path
 
             return None  # Wait for others to evade

@@ -502,7 +502,7 @@ class World:
     def get_robot_conflict_radius(self, robot_id: UID):
         robot = self.agents[robot_id]
         center = robot.polygon.centroid
-        radius_for_move = robot.circumscribed_radius + 1.1 * self.config.cell_size
+        radius_for_move = robot.circumscribed_radius + 2 * self.config.cell_size
         radius_for_grab_or_release = radius_for_move + robot.grab_and_release_distance
 
         conflict_radius = radius_for_move
