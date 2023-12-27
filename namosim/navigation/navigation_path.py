@@ -750,7 +750,7 @@ class TransitPath:
 
         if robot_pose != poses[0]:
             raise Exception("Robot pose not equal to start pose")
-            
+
         if len(poses) == 1:
             return cls(
                 robot_path=Path(poses=poses, polygons=[robot_polygon]),
@@ -781,10 +781,10 @@ class TransitPath:
 
             if has_translation:
                 turn_towards_angle = utils.get_angle_to_turn(pose, next_pose)
-
-                current_angle = utils.add_angles(current_angle, turn_towards_angle)
-                actions.append(ba.Rotation(angle=turn_towards_angle))
-                updated_poses.append((pose[0], pose[1], current_angle))
+                if turn_towards_angle != 0:
+                    current_angle = utils.add_angles(current_angle, turn_towards_angle)
+                    actions.append(ba.Rotation(angle=turn_towards_angle))
+                    updated_poses.append((pose[0], pose[1], current_angle))
 
                 actions.append(
                     ba.Translation.from_absolute_translation_vector(
