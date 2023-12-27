@@ -509,13 +509,13 @@ class World:
 
         if self.is_holding_obstacle(robot_id):
             obstacle = self.entities[self.entity_to_agent.inverse[robot.uid]]
-            radius = (
+            conflict_radius = (
                 center.hausdorff_distance(obstacle.polygon)
                 + 1.1 * self.config.cell_size
             )
 
-            # Aaccount for possible release
-            radius = max(radius, radius_for_grab_or_release)
+            # Account for possible release
+            conflict_radius = max(conflict_radius, radius_for_grab_or_release)
         else:
             # Enlarge radius to account for possible grabs
             for uid, obstacle in self.entities.items():

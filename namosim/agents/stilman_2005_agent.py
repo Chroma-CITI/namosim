@@ -1286,6 +1286,9 @@ class Stilman2005Agent(Agent):
         path_has_traversed_first_disconnected_comp = current.first_component_uid != 0
         path_has_traversed_first_obstacle = current.first_obstacle_uid != 0
 
+        if (current.first_obstacle_uid, current.first_component_uid) in avoid_list:
+            return [], []
+
         # Filter out cells that are not in the map, and in static obstacles
         candidate_neighbor_cells = utils.get_neighbors_no_coll(
             current.cell,
