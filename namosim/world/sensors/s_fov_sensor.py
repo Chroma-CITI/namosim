@@ -27,6 +27,7 @@ class SFOVSensor(CircularSectorSensor):
                     type_=entity.type_,
                     uid=entity_uid,
                     style=entity.style,
+                    movability=entity.movability,
                 )
         return entities_in_fov
 
