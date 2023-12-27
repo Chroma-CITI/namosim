@@ -1102,9 +1102,10 @@ class Stilman2005Agent(Agent):
             ros_publisher=ros_publisher,
             neighborhood=neighborhood,
         )
-        avoid_list.add((o_1, c_1))
 
         while o_1 != 0:
+            avoid_list.add((o_1, c_1))
+
             self.logger.append(
                 utils.BasicLog(
                     "Agent {}: select_connect: selected entity {} for manipulation search to reach component {}.".format(
