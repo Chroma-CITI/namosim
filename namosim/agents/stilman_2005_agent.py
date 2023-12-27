@@ -1102,7 +1102,7 @@ class Stilman2005Agent(Agent):
             ros_publisher=ros_publisher,
             neighborhood=neighborhood,
         )
-        avoid_list.add((o_1, c_1))
+
         while o_1 != 0:
             self.logger.append(
                 utils.BasicLog(
@@ -1431,6 +1431,11 @@ class Stilman2005Agent(Agent):
         ros_publisher: "rp.RosPublisher",
         neighborhood: t.Sequence[GridCellModel] = utils.TAXI_NEIGHBORHOOD,
     ):
+        """Performs an A* search from the start cell to the goal cell, allowing
+        only certain types of transitions between cells, as decscribed in Benoit
+        Renault's papers and thesis. The search returns the IDs of the first obstacle
+        and component encountered on the path to the goal.
+        """
         if static_obs_grid.grid[start_cell[0]][start_cell[1]] > 0:
             obstacle_names = {
                 self.world.entities[uid].name
