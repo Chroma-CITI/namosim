@@ -51,7 +51,7 @@ from namosim.world.binary_occupancy_grid import (
     BinaryInflatedOccupancyGrid,
     BinaryOccupancyGrid,
 )
-from namosim.world.entity import Style
+from namosim.world.entity import Movability, Style
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 
@@ -194,7 +194,7 @@ class Stilman2005Agent(Agent):
 
         # Initialize movability status of obstacles
         for entity in self.world.entities.values():
-            if entity.movability != "static":
+            if entity.movability != Movability.STATIC:
                 entity.movability = self.deduce_movability(entity.type_)
 
         self.action_space_reduction = (
@@ -205,11 +205,7 @@ class Stilman2005Agent(Agent):
         static_obs_polygons = {
             uid: entity.polygon
             for uid, entity in self.world.entities.items()
-            if (
-                isinstance(entity, Obstacle)
-                and entity.movability == "unmovable"
-                or entity.movability == "static"
-            )
+            if (isinstance(entity, Obstacle) and entity.movability == Movability.STATIC)
         }
 
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
@@ -972,7 +968,6 @@ class Stilman2005Agent(Agent):
         prev_list: set[int] = set(),
         neighborhood: t.Sequence[GridCellModel] = utils.CHESSBOARD_NEIGHBORHOOD,
         action_space_reduction: str = "only_r_acc_then_c_1_x",
-        avoid_list: t.Set[t.Tuple[UID, UID]] | None = None,
     ):
         """
         High Level Planner _select_connect (SC).
@@ -988,10 +983,7 @@ class Stilman2005Agent(Agent):
         robot = w_t.entities[self.uid]
         r_t = robot.pose
 
-        if avoid_list is None:
-            avoid_list = set()
-        else:
-            avoid_list = avoid_list.copy()
+        avoid_list: t.Set[t.Tuple[UID, UID]] = set()
 
         robot_cell = utils.real_to_grid(
             r_t[0], r_t[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose
@@ -1049,11 +1041,24 @@ class Stilman2005Agent(Agent):
                 robot_uid=self.uid,
             )
 
-        if len(inflated_grid_by_robot_max.cell_to_obstacle_ids(goal_cell)) > 1:
+        goal_cell_obstacles = inflated_grid_by_robot_max.cell_to_obstacle_ids(goal_cell)
+
+        if len(goal_cell_obstacles) > 1:
             return nav_plan.Plan(
                 plan_error="goal_cell_in_several_movable_obstacles_error",
                 robot_uid=self.uid,
             )
+
+        if len(goal_cell_obstacles) == 1:
+            obs_id = list(goal_cell_obstacles)[0]
+            if (
+                obs_id != self.uid
+                and w_t.entities[obs_id].movability != Movability.MOVABLE
+            ):
+                return nav_plan.Plan(
+                    plan_error="goal_cell_occupied_by_unmovable_obstacle",
+                    robot_uid=self.uid,
+                )
 
         if static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
             raise Exception(
@@ -1067,7 +1072,7 @@ class Stilman2005Agent(Agent):
             static_entities_polygons = {
                 entity.uid: entity.polygon
                 for entity in w_t.entities.values()
-                if entity.movability == "static"
+                if entity.movability == Movability.STATIC
             }
             static_entities_aabb_tree = collision.polygons_to_aabb_tree(
                 static_entities_polygons
@@ -1106,8 +1111,6 @@ class Stilman2005Agent(Agent):
         )
 
         while o_1 != 0:
-            avoid_list.add((o_1, c_1))
-
             self.logger.append(
                 utils.BasicLog(
                     "Agent {}: select_connect: selected entity {} for manipulation search to reach component {}.".format(
@@ -1208,7 +1211,6 @@ class Stilman2005Agent(Agent):
                     prev_list=(prev_list if c_1 == 0 else prev_list.union({c_1})),
                     neighborhood=neighborhood,
                     action_space_reduction=action_space_reduction,
-                    avoid_list=avoid_list,
                 )
                 inflated_grid_by_robot_max.cells_sets_update(prev_cells_sets)
                 if not future_plan.plan_error:
@@ -1242,6 +1244,8 @@ class Stilman2005Agent(Agent):
                     )
                 )
                 break
+
+            avoid_list.add((o_1, c_1))
 
             o_1, c_1 = self.rch(
                 start_cell=robot_cell,
