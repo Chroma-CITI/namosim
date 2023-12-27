@@ -99,6 +99,11 @@ class Agent(Entity):
         self.goal_to_plans: t.Dict[PoseModel, "navp.Plan"] = OrderedDict()
         self.is_initialized = False
 
+        self.grab_and_release_distance = 0.5 * self.circumscribed_radius
+        """The robot will move backwards by this amount when it releases an object. The robot
+        must be within this distance from a movable obstacle to grab it.
+        """
+
     def init(self, world: "w.World") -> None:
         self.__world = copy.deepcopy(world)
         self.is_initialized = True

@@ -496,6 +496,42 @@ class World:
             self.discretization_data.height,
         )
 
+    def is_holding_obstacle(self, agent_id: UID) -> bool:
+        return agent_id in self.entity_to_agent.inverse
+
+    def get_robot_conflict_radius(self, robot_id: UID):
+        robot = self.agents[robot_id]
+        center = robot.polygon.centroid
+        radius_for_move = robot.circumscribed_radius + 1.1 * self.config.cell_size
+        radius_for_grab_or_release = radius_for_move + robot.grab_and_release_distance
+
+        conflict_radius = radius_for_move
+
+        if self.is_holding_obstacle(robot_id):
+            obstacle = self.entities[self.entity_to_agent.inverse[robot.uid]]
+            radius = (
+                center.hausdorff_distance(obstacle.polygon)
+                + 1.1 * self.config.cell_size
+            )
+
+            # Aaccount for possible release
+            radius = max(radius, radius_for_grab_or_release)
+        else:
+            # Enlarge radius to account for possible grabs
+            for uid, obstacle in self.entities.items():
+                if (
+                    isinstance(obstacle, Obstacle)
+                    and uid not in self.entity_to_agent
+                    and obstacle.movability == "movable"
+                ):
+                    if obstacle.polygon.buffer(
+                        robot.grab_and_release_distance,
+                        join_style="mitre",
+                    ).intersects(robot.polygon):
+                        conflict_radius = radius_for_grab_or_release
+                        break
+        return conflict_radius
+
 
 def get_orientation(geom: (Polygon | LineString)) -> float:
     orientation_geom: t.List[t.List[float]] = list(geom.coords)  # type: ignore
