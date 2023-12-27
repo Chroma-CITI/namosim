@@ -989,9 +989,9 @@ class Stilman2005Agent(Agent):
         r_t = robot.pose
 
         if avoid_list is None:
-            avoid_list: t.Set[GridCellModel] = set()
+            avoid_list = set()
         else:
-            avoid_list = copy.deepcopy(avoid_list)
+            avoid_list = avoid_list.copy()
 
         robot_cell = utils.real_to_grid(
             r_t[0], r_t[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose
