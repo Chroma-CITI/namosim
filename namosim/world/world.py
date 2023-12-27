@@ -15,7 +15,7 @@ import namosim.utils.utils as utils
 from namosim.data_models import UID, NamosimConfigModel, PoseModel
 from namosim.display import conversions
 from namosim.world.discretization_data import DiscretizationData
-from namosim.world.entity import Entity, Style
+from namosim.world.entity import Entity, Movability, Style
 from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
@@ -146,7 +146,7 @@ class World:
                     polygon=polygon,
                     pose=pose,
                     style=style,
-                    movability="movable",
+                    movability=Movability.MOVABLE,
                     full_geometry_acquired=True,
                 )
                 world.add_entity(movable_box)
@@ -164,7 +164,7 @@ class World:
                     polygon=polygon,
                     pose=pose,
                     style=style,
-                    movability="static",
+                    movability=Movability.STATIC,
                     full_geometry_acquired=True,
                 )
                 world.add_entity(wall)
@@ -327,14 +327,11 @@ class World:
             for geometry_name in current_geometries_names:
                 entity = self.entities[current_geometries_names_to_ids[geometry_name]]
                 if isinstance(entity, Obstacle):
-                    if (
-                        entity.movability == "static"
-                        or entity.movability == "unmovable"
-                    ):
+                    if entity.movability in [Movability.STATIC, Movability.UNMOVABLE]:
                         style = conversion.FIXED_ENTITY_STYLE
-                    elif entity.movability == "movable":
+                    elif entity.movability == Movability.MOVABLE:
                         style = conversion.MOVABLE_ENTITY_STYLE
-                    elif entity.movability == "unknown":
+                    elif entity.movability == Movability.UNKNOWN:
                         style = conversion.UNKNOWN_ENTITY_STYLE
                     else:
                         raise NotImplementedError(
@@ -522,7 +519,7 @@ class World:
                 if (
                     isinstance(obstacle, Obstacle)
                     and uid not in self.entity_to_agent
-                    and obstacle.movability == "movable"
+                    and obstacle.movability == Movability.MOVABLE
                 ):
                     if obstacle.polygon.buffer(
                         robot.grab_and_release_distance,

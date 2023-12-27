@@ -26,6 +26,7 @@ from namosim.navigation.navigation_path import (
 )
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
+from namosim.world.entity import Movability
 
 
 class Plan:
@@ -90,7 +91,7 @@ class Plan:
         other_entities_polygons = {
             uid: e.polygon
             for uid, e in world.entities.items()
-            if uid != self.robot_uid and e.movability != "static"
+            if uid != self.robot_uid and e.movability != Movability.STATIC
         }
         other_entities_aabb_tree = collision.polygons_to_aabb_tree(
             other_entities_polygons

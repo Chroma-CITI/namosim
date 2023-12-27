@@ -2,6 +2,7 @@ import os
 
 import utils
 
+from namosim.world.entity import Movability
 from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
 
@@ -15,7 +16,7 @@ def concave_to_convex_obstacles(world_json_path):
         if (
             entity.polygon is not convex_polygons[0]
             and isinstance(entity, Obstacle)
-            and entity.movability == "static"
+            and entity.movability == Movability.STATIC
         ):
             for counter, polygon in enumerate(convex_polygons):
                 center = polygon.centroid.coords[0]
