@@ -119,12 +119,12 @@ class ExperimentsTests(unittest.TestCase):
         print(f"Execution time: {elapsed_time} seconds")
         assert True
 
-    def test_intersections_2_robots_50_goals_namo_generated(self):
+    def test_intersections_generated(self):
         config.DISPLAY_WINDOW = True
         sim = Simulator(
             simulation_file_path=os.path.join(
                 self.scenarios_folder,
-                "intersections/generated/4_robots_50_goals_snamo/00.svg",
+                "intersections/generated/2_robots_50_goals_snamo/01.svg",
             )
         )
         sim.run()

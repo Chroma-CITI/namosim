@@ -5,7 +5,7 @@ from shapely.geometry import Polygon
 
 import namosim.navigation.basic_actions as ba
 from namosim.navigation.navigation_path import TransitPath
-from namosim.world.entity import Style
+from namosim.world.entity import Movability, Style
 from namosim.world.obstacle import Obstacle
 
 
@@ -18,6 +18,7 @@ class TransitPathFromPoses(unittest.TestCase):
             full_geometry_acquired=True,
             type_="box",
             style=Style(),
+            movability=Movability.MOVABLE,
         )
 
     def test_from_poses(self):
