@@ -1102,6 +1102,7 @@ class Stilman2005Agent(Agent):
             ros_publisher=ros_publisher,
             neighborhood=neighborhood,
         )
+        avoid_list.add((o_1, c_1))
 
         while o_1 != 0:
             self.logger.append(
@@ -1238,8 +1239,6 @@ class Stilman2005Agent(Agent):
                     )
                 )
                 break
-
-            avoid_list.add((o_1, c_1))
 
             o_1, c_1 = self.rch(
                 start_cell=robot_cell,
