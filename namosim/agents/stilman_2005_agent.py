@@ -989,7 +989,9 @@ class Stilman2005Agent(Agent):
         r_t = robot.pose
 
         if avoid_list is None:
-            avoid_list: t.Set[GridCellModel] = set()
+            avoid_list = set()
+        else:
+            avoid_list = avoid_list.copy()
 
         robot_cell = utils.real_to_grid(
             r_t[0], r_t[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose
@@ -1104,6 +1106,8 @@ class Stilman2005Agent(Agent):
         )
 
         while o_1 != 0:
+            avoid_list.add((o_1, c_1))
+
             self.logger.append(
                 utils.BasicLog(
                     "Agent {}: select_connect: selected entity {} for manipulation search to reach component {}.".format(
@@ -1238,8 +1242,6 @@ class Stilman2005Agent(Agent):
                     )
                 )
                 break
-
-            avoid_list.add((o_1, c_1))
 
             o_1, c_1 = self.rch(
                 start_cell=robot_cell,
