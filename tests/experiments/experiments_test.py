@@ -36,6 +36,15 @@ class ExperimentsTests(unittest.TestCase):
         sim.run()
         assert True
 
+    def test_overlapping_movables(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "multi_robot/overlapping_movables.svg"
+            )
+        )
+        sim.run()
+        assert True
+
     def test_evasion(self):
         sim = Simulator(
             simulation_file_path=os.path.join(
@@ -115,7 +124,7 @@ class ExperimentsTests(unittest.TestCase):
         sim = Simulator(
             simulation_file_path=os.path.join(
                 self.scenarios_folder,
-                "intersections/generated/2_robots_50_goals_namo/07.svg",
+                "intersections/generated/2_robots_50_goals_snamo/06.svg",
             )
         )
         sim.run()
