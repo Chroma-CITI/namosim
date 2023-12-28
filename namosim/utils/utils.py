@@ -634,7 +634,7 @@ def yaw_from_direction(
     if radians:
         return yaw
     else:
-        return math.degrees(yaw)
+        return math.degrees(yaw) % 360
 
 
 def direction_from_yaw(yaw, radians=False):
