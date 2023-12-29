@@ -12,7 +12,7 @@ from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import UID, PoseModel
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
-from namosim.world.entity import Style
+from namosim.world.entity import Movability, Style
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 
@@ -64,11 +64,7 @@ class NavigationOnlyAgent(Agent):
         static_obs_polygons = {
             uid: entity.polygon
             for uid, entity in self.world.entities.items()
-            if (
-                isinstance(entity, Obstacle)
-                and entity.movability == "unmovable"
-                or entity.movability == "static"
-            )
+            if (isinstance(entity, Obstacle) or entity.movability == Movability.STATIC)
         }
         self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
             polygons=static_obs_polygons,

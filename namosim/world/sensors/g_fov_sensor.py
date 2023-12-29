@@ -5,7 +5,7 @@ from shapely.ops import cascaded_union
 
 import namosim.world.world as world
 from namosim.data_models import PoseModel
-from namosim.world.entity import Style
+from namosim.world.entity import Movability, Style
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.circular_sector_sensor import CircularSectorSensor
 
@@ -52,6 +52,7 @@ class GFOVSensor(CircularSectorSensor):
                         ],
                         full_geometry_acquired=full_geometry_acquired,
                         type_="unknown",
+                        movability=Movability.UNKNOWN,
                         uid=entity_uid,
                         style=Style(),
                     )
