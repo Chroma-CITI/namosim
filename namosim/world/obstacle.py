@@ -3,7 +3,7 @@ import copy
 from shapely import Polygon
 
 from namosim.data_models import UID, PoseModel
-from namosim.world.entity import Entity, Style
+from namosim.world.entity import Entity, Movability, Style
 
 
 class Obstacle(Entity):
@@ -14,8 +14,8 @@ class Obstacle(Entity):
         pose: PoseModel,
         full_geometry_acquired: bool,
         type_: str,
+        movability: Movability,
         style: Style,
-        movability: str = "unknown",
         uid: UID = 0,
     ):
         Entity.__init__(
@@ -268,6 +268,7 @@ class Obstacle(Entity):
             type_=self.type_,
             uid=self.uid,
             style=self.style,
+            movability=self.movability,
         )
 
     def get_type(self):

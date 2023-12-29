@@ -1,12 +1,20 @@
 import copy
 import re
 import typing as t
+from enum import Enum
 
 from shapely import Polygon
 from typing_extensions import Self
 
 import namosim.utils.utils as utils
 from namosim.data_models import UID, PoseModel
+
+
+class Movability(Enum):
+    UNKNOWN = 1
+    MOVABLE = 2
+    STATIC = 3
+    UNMOVABLE = 4
 
 
 class Style:
@@ -53,7 +61,7 @@ class Entity:
         pose: PoseModel,
         full_geometry_acquired: bool,
         style: Style,
-        movability: str = "unknown",
+        movability: Movability = Movability.UNKNOWN,
         uid: UID = 0,
     ):
         if uid == 0:
@@ -66,7 +74,7 @@ class Entity:
         self.pose = pose
         self.full_geometry_acquired = full_geometry_acquired
         self.is_being_manipulated = False
-        self.movability = movability  # Either "unknown", "static", "fixed" or "movable"
+        self.movability = movability
         self.style = style
         self.type_ = type_
         self.circumscribed_radius = utils.get_circumscribed_radius(polygon=polygon)
