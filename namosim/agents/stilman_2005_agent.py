@@ -73,6 +73,7 @@ class Stilman2005Agent(Agent):
         movable_whitelist: t.List[str],
         style: Style,
         logger: utils.CustomLogger,
+        cell_size: float,
         uid: UID = 0,
     ):
         super().__init__(
@@ -89,9 +90,9 @@ class Stilman2005Agent(Agent):
             movable_whitelist=movable_whitelist,
             style=style,
             logger=logger,
+            cell_size=cell_size,
             uid=uid,
         )
-
         self.params = params
         self._p_opt: "nav_plan.DynamicPlan"
 
@@ -138,7 +139,7 @@ class Stilman2005Agent(Agent):
         self.activate_grids_logging = params.activate_grids_logging
         self._social_costmap: npt.NDArray[t.Any] | None = None
         self.is_first_transfer_step = False
-        self.check_horizon = 10
+        self.check_horizon = 20
         self.angular_tolerance = 0.1
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
@@ -189,8 +190,8 @@ class Stilman2005Agent(Agent):
     def init(self, world: "w.World"):
         super().init(world)
         self.trans_mult = 100.0
-        self.rot_mult = 1.0
-        self.position_tolerance = self.world.discretization_data.res / 2.0
+        self.rot_mult = 100.0
+        self.position_tolerance = self.world.discretization_data.res / 5.0
 
         # Initialize movability status of obstacles
         for entity in self.world.entities.values():
@@ -1702,7 +1703,7 @@ class Stilman2005Agent(Agent):
         inflated_grid_by_obstacle = BinaryInflatedOccupancyGrid(
             other_entities_polygons,
             res,
-            obstacle_min_inflation_radius - utils.SQRT_OF_2 * res,
+            max(obstacle_min_inflation_radius - utils.SQRT_OF_2 * res, 0.0),
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
             params=inflated_grid_by_robot_max.params,
         )
@@ -1746,11 +1747,14 @@ class Stilman2005Agent(Agent):
             #     transfer_end_configuration.robot.polygon, transfer_end_configuration.obstacle.polygon,
             #     "/target", ns=self.name
             # )
+            if transfer_end_configuration is None:
+                raise Exception("Manip path found but transfer end config is None")
+
             raw_path: t.List[
                 RobotObstacleConfiguration
             ] = graph_search.reconstruct_path(came_from, transfer_end_configuration)  # type: ignore
 
-            prev_transit_end_configuration: RCHConfiguration = (
+            prev_transit_end_configuration: RobotConfiguration | None = (
                 transfer_start_to_prev_transit_end[raw_path[0]]
             )
             next_transit_start_configuration = (
@@ -1767,6 +1771,12 @@ class Stilman2005Agent(Agent):
                     rot_mult,
                 )
             )
+
+            if next_transit_start_configuration is None:
+                raise Exception(
+                    "Manip path found but failed to find next transit start config"
+                )
+
             tho_m_phys_cost = gscore[transfer_end_configuration] + self.g(
                 transfer_end_configuration.robot.floating_point_pose,
                 next_transit_start_configuration.floating_point_pose,
@@ -1900,7 +1910,7 @@ class Stilman2005Agent(Agent):
         inflated_grid_by_obstacle = BinaryInflatedOccupancyGrid(
             other_entities_polygons,
             res,
-            obstacle_min_inflation_radius - utils.SQRT_OF_2 * res,
+            max(obstacle_min_inflation_radius - utils.SQRT_OF_2 * res, 0.0),
             neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
             params=inflated_grid_by_robot_max.params,
         )
@@ -2161,7 +2171,7 @@ class Stilman2005Agent(Agent):
         obstacle_can_intrude_c_1_x=True,
     ):
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
-            return self.get_neighbors(
+            return self.get_manip_search_neighbors(
                 _current,
                 _gscore,
                 _close_set,
@@ -2255,7 +2265,7 @@ class Stilman2005Agent(Agent):
         obstacle_can_intrude_c_1_x: bool = True,
     ):
         def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
-            neighbors, tentative_g_scores = self.get_neighbors(
+            neighbors, tentative_g_scores = self.get_manip_search_neighbors(
                 _current,
                 _gscore,
                 _close_set,
@@ -2418,6 +2428,11 @@ class Stilman2005Agent(Agent):
             obstacle_uid in inflated_grid_by_robot_max.cell_to_obstacle_ids(robot_cell)
         )
 
+        transfer_start_configs_to_cost: t.Dict[RobotObstacleConfiguration, float] = {}
+        transfer_start_to_prev_transit_end: t.Dict[
+            RobotObstacleConfiguration, RobotConfiguration | None
+        ] = {}
+
         if robot_cell_in_manip_obs:
             # If we are in the case where the robot starts from within the inflation of the manipulated obstacle,
             # exit early with only the start transfer configuration
@@ -2467,8 +2482,6 @@ class Stilman2005Agent(Agent):
             )
         }
 
-        transfer_start_configs_to_cost = {}
-        transfer_start_to_prev_transit_end = {}
         for manip_pose_id, (transfer_start_pose, transit_end_pose) in enumerate(
             transfer_start_to_transit_end_robot_pose.items()
         ):
@@ -2861,16 +2874,16 @@ class Stilman2005Agent(Agent):
 
     def get_next_transit_start_configuration(
         self,
-        grid,
-        robot_pose,
-        robot_polygon,
-        robot_uid,
-        obstacle_uid,
-        obstacle_pose,
-        other_entities_polygons,
-        other_entities_aabb_tree,
-        trans_mult,
-        rot_mult,
+        grid: BinaryInflatedOccupancyGrid,
+        robot_pose: PoseModel,
+        robot_polygon: Polygon,
+        robot_uid: UID,
+        obstacle_uid: UID,
+        obstacle_pose: PoseModel,
+        other_entities_polygons: t.Dict[UID, Polygon],
+        other_entities_aabb_tree: AABBTree,
+        trans_mult: float,
+        rot_mult: float,
     ):
         release_action = ba.Release(
             translation_vector=(-1.0 * self.grab_and_release_distance, 0.0),
@@ -3031,6 +3044,13 @@ class Stilman2005Agent(Agent):
                 check_diag_neighbors=False,
             )
 
+            cell_is_clear = True
+            if cell_in_c_1 == goal_cell:
+                # make sure goal cell is clear
+                cell_is_clear = (
+                    inflated_grid_by_robot_max.grid[cell_in_c_1[0]][cell_in_c_1[1]] == 0
+                )
+
             inflated_grid_by_robot_max.cells_sets_update(
                 new_or_updated_cells_sets=previous_cells_sets
             )
@@ -3039,7 +3059,7 @@ class Stilman2005Agent(Agent):
             skipped_global_opening_check = False
 
             return (
-                has_new_global_opening,
+                has_new_global_opening and cell_is_clear,
                 has_new_local_opening,
                 skipped_global_opening_check,
             )
@@ -3051,7 +3071,7 @@ class Stilman2005Agent(Agent):
                 skipped_global_opening_check,
             )
 
-    def get_neighbors(
+    def get_manip_search_neighbors(
         self,
         current_configuration: RobotObstacleConfiguration,
         gscore,
@@ -3905,7 +3925,7 @@ class Stilman2005Agent(Agent):
 
     def get_transfer_path_from_config(
         self,
-        prev_transit_end_configuration: RobotConfiguration,
+        prev_transit_end_configuration: RobotConfiguration | None,
         next_transit_start_configuration: RobotConfiguration,
         transfer_configurations: t.List[RobotObstacleConfiguration],
         obstacle_uid: UID,
@@ -3923,7 +3943,13 @@ class Stilman2005Agent(Agent):
             for configuration in transfer_configurations
             if configuration.action
         ]
+
         grab_action: ba.Grab = actions[0] if prev_transit_end_configuration else None  # type: ignore
+
+        if not isinstance(next_transit_start_configuration.action, ba.Release):
+            raise Exception(
+                "The next transit start configuration after a transfer should start with a release action"
+            )
         release_action: ba.Release = next_transit_start_configuration.action
         actions.append(release_action)
 
@@ -4015,5 +4041,6 @@ class Stilman2005Agent(Agent):
             push_only_list=[],
             force_pushes_only=False,
             movable_whitelist=["box"],
+            cell_size=self.cell_size,
             logger=self.logger,
         )

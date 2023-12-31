@@ -52,6 +52,7 @@ class Agent(Entity):
         force_pushes_only: bool,
         movable_whitelist: t.List[str],
         style: Style,
+        cell_size: float,
         movability: Movability = Movability.UNKNOWN,
         logger: utils.CustomLogger,
         uid: UID = 0,
@@ -98,10 +99,15 @@ class Agent(Entity):
 
         self.goal_to_plans: t.Dict[PoseModel, "navp.Plan"] = OrderedDict()
         self.is_initialized = False
-
-        self.grab_and_release_distance = 0.5 * self.circumscribed_radius
+        self.cell_size = cell_size
+        self.grab_and_release_distance = max(
+            utils.SQRT_OF_2 * cell_size + 1e-6,
+            0.5 * self.circumscribed_radius,
+        )
         """The robot will move backwards by this amount when it releases an object. The robot
         must be within this distance from a movable obstacle to grab it.
+        This distance must be larger than the cell size otherwise the robot
+        may still be colliding when it releases an obstacle.
         """
 
     def init(self, world: "w.World") -> None:
@@ -207,6 +213,7 @@ class Agent(Entity):
             phys_cost = 0.0
             for a, b in zip(real_path, real_path[1:]):
                 phys_cost += g(a, b)
+
             return TransitPath.from_poses(
                 real_path, robot_polygon, robot_pose, phys_cost
             )

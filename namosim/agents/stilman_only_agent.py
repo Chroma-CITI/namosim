@@ -59,6 +59,7 @@ class StilmanOnlyAgent(Agent):
         movable_whitelist: t.List[str],
         style: Style,
         logger: utils.CustomLogger,
+        cell_size: float,
         uid: UID = 0,
     ):
         Agent.__init__(
@@ -76,6 +77,7 @@ class StilmanOnlyAgent(Agent):
             movable_whitelist=movable_whitelist,
             style=style,
             logger=logger,
+            cell_size=cell_size,
             uid=uid,
         )
         self.params = params
@@ -2129,5 +2131,6 @@ class StilmanOnlyAgent(Agent):
             push_only_list=[],
             force_pushes_only=False,
             movable_whitelist=["box"],
+            cell_size=self.cell_size,
             logger=self.logger,
         )

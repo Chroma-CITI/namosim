@@ -605,8 +605,8 @@ def csv_simulate_simple_kinematics(
     }
     aabb_tree = polygons_to_aabb_tree(other_polygons)
     if apply:
-        new_polygons = {}
-        new_poses = {}
+        new_polygons: t.Dict[UID, Polygon] = {}
+        new_poses: t.Dict[UID, PoseModel] = {}
     for agent_uid, action in agent_uid_to_next_action.items():
         agent = world.entities[agent_uid]
         agent_action = convert_action(action, agent.pose)
@@ -647,7 +647,9 @@ def csv_simulate_simple_kinematics(
         if apply:
             new_polygons[agent_uid] = agent_polygon_after
             if isinstance(action, ba.Translation):
-                new_poses[agent_uid] = action.predict_pose(agent.pose, agent.pose[2])
+                new_pose = action.predict_pose(agent.pose, agent.pose[2])
+                assert new_pose != agent.pose
+                new_poses[agent_uid] = new_pose
             else:
                 new_poses[agent_uid] = action.predict_pose(
                     agent.pose, (agent.pose[0], agent.pose[1])
@@ -751,6 +753,4 @@ def csv_simulate_simple_kinematics(
                             new_polygons[agent_uid],
                         )
 
-    return collides_with
-    return collides_with
     return collides_with
