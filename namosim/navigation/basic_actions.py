@@ -84,6 +84,9 @@ class Translation(BasicAction):
         )
         self.translation_linestring = LineString([(0.0, 0.0), self.translation_vector])
 
+    def __str__(self):
+        return f"Translation(dist={self.translation_length})"
+
     @classmethod
     def from_absolute_translation_vector(
         cls, absolute_translation_vector: t.Tuple[float, float]
@@ -163,7 +166,6 @@ class Grab(Translation):
 class Release(Translation):
     def __init__(self, translation_vector: t.Tuple[float, float], entity_uid: UID):
         Translation.__init__(self, translation_vector)
-        self.entity_uid = entity_uid
         self.entity_uid = entity_uid
 
     def __str__(self):

@@ -9,7 +9,6 @@ import time
 import tkinter as tk
 import traceback
 import typing as t
-from queue import Queue
 
 import cairosvg
 import jsonpickle
@@ -335,7 +334,7 @@ class Simulator:
             # Think loop: get each agent to think about their next step
             think_durations = {}
             # actions = {}
-            with timeout(20 * 60):
+            with timeout(10 * 60):
                 actions = self.think(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,
@@ -912,17 +911,6 @@ class Simulator:
             else:
                 self.ros_publisher.cleanup_robot_world(ns=behavior.name)
 
-    def _agent_think(
-        self,
-        agent_uid: UID,
-        behavior: Agent,
-        results: Queue[t.Tuple[UID, float, ThinkResult]],
-    ):
-        think_start = time.time()
-        think_result = behavior.think(ros_publisher=self.ros_publisher)
-        think_duration = time.time() - think_start
-        results.put((agent_uid, think_duration, think_result))
-
     def process_think_results(
         self,
         results: t.Iterable[t.Tuple[UID, float, ThinkResult]],
@@ -999,7 +987,9 @@ class Simulator:
                 self.publish_robot_goal(agent_uid=agent_uid)
 
                 think_start = time.time()
+                pose_before = behavior.pose
                 think_result = behavior.think(ros_publisher=self.ros_publisher)
+                pose_after = behavior.pose
                 think_duration = time.time() - think_start
                 results.append((agent_uid, think_duration, think_result))
 
