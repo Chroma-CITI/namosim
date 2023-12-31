@@ -14,6 +14,7 @@ import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
 from namosim.data_models import UID, NamosimConfigModel, PoseModel
 from namosim.display import conversions
+from namosim.utils import collision
 from namosim.world.discretization_data import DiscretizationData
 from namosim.world.entity import Entity, Movability, Style
 from namosim.world.goal import Goal
@@ -248,6 +249,7 @@ class World:
                     push_only_list=[],
                     force_pushes_only=False,
                     movable_whitelist=["box"],
+                    cell_size=config.cell_size,
                     logger=logger,
                 )
             elif agent.behavior.type == "navigation_only_behavior":
@@ -263,6 +265,7 @@ class World:
                     push_only_list=[],
                     force_pushes_only=False,
                     movable_whitelist=["box"],
+                    cell_size=config.cell_size,
                     logger=logger,
                 )
             elif agent.behavior.type == "stilman_only_behavior":
@@ -279,6 +282,7 @@ class World:
                     push_only_list=[],
                     force_pushes_only=False,
                     movable_whitelist=["box"],
+                    cell_size=config.cell_size,
                     logger=logger,
                 )
             else:
@@ -499,9 +503,7 @@ class World:
     def get_robot_conflict_radius(self, robot_id: UID):
         robot = self.agents[robot_id]
         center = robot.polygon.centroid
-        radius_for_move = (
-            robot.circumscribed_radius + np.sqrt(2) * self.config.cell_size
-        )
+        radius_for_move = robot.circumscribed_radius + 2 * self.config.cell_size
         radius_for_grab_or_release = radius_for_move + robot.grab_and_release_distance
 
         conflict_radius = radius_for_move
@@ -509,8 +511,7 @@ class World:
         if self.is_holding_obstacle(robot_id):
             obstacle = self.entities[self.entity_to_agent.inverse[robot.uid]]
             conflict_radius = (
-                center.hausdorff_distance(obstacle.polygon)
-                + 1.1 * self.config.cell_size
+                center.hausdorff_distance(obstacle.polygon) + 2 * self.config.cell_size
             )
 
             # Account for possible release
@@ -530,6 +531,17 @@ class World:
                         conflict_radius = radius_for_grab_or_release
                         break
         return conflict_radius
+
+    def get_polygon_collisions(self, uid: UID, others: t.Iterable[UID]) -> t.Any:
+        other_polygons = {uid: self.entities[uid].polygon for uid in others}
+        others_aabb_tree = collision.polygons_to_aabb_tree(other_polygons)
+        collisions = collision.check_static_collision(
+            main_uid=uid,
+            polygon=self.entities[uid].polygon,
+            other_entities_polygons=other_polygons,
+            aabb_tree=others_aabb_tree,
+        )
+        return collisions
 
 
 def get_orientation(geom: (Polygon | LineString)) -> float:

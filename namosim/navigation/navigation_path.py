@@ -1,4 +1,3 @@
-import math
 import typing as t
 
 from aabbtree import AABBTree
@@ -763,11 +762,6 @@ class TransitPath:
         actions: t.List[ba.BasicAction] = []
         updated_poses = [poses[0]]
 
-        for p in poses:
-            for e in p:
-                if math.isnan(e):
-                    pass
-
         for pose, next_pose in zip(poses, poses[1:]):
             has_translation = not all(
                 [
@@ -893,6 +887,7 @@ class TransitPath:
                 colliding_obstacles = inflated_grid_by_robot.obstacles_uids_in_cell(
                     cell
                 )
+
                 for uid in colliding_obstacles:
                     if uid in encompassing_circles_uids:
                         if counter == 0 and has_first_action:
@@ -991,6 +986,11 @@ class TransitPath:
                                 )
                                 return conflicts
                     else:
+                        # check for polygon-level collisions
+                        # collisions = world.get_polygon_collisions(robot_uid, {uid})
+                        # if len(collisions) == 0:
+                        #     continue
+
                         conflicts.append(RobotObstacleConflict(uid))
                         conflicting_cells.add(cell)
                         conflicting_entities_cells.update(
@@ -1058,5 +1058,4 @@ class EvasionTransitPath(TransitPath):
             self.release_executed = True
             return self.transit_configuration_after_release.action
         else:
-            return TransitPath.pop_next_action(self)
             return TransitPath.pop_next_action(self)
