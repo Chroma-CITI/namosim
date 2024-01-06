@@ -821,17 +821,17 @@ class TransitPath:
 
     def get_conflicts(
         self,
-        robot_uid,
-        world,
-        inflated_grid_by_robot,
-        encompassing_circle_uid_to_robot_uid,
-        has_first_action,
-        shared_horizon=None,
-        apply_strict_horizon=False,
-        exit_early_for_any_conflict=False,
-        exit_early_only_for_long_term_conflicts=True,
+        robot_uid: UID,
+        world: "world.World",
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        encompassing_circle_uid_to_robot_uid: t.Dict[UID, UID],
+        has_first_action: bool,
+        shared_horizon: int | None = None,
+        apply_strict_horizon: bool = False,
+        exit_early_for_any_conflict: bool = False,
+        exit_early_only_for_long_term_conflicts: bool = True,
         rp: t.Optional["ros2.RosPublisher"] = None,
-        robot_name="",
+        robot_name: str = "",
     ):
         if not self.actions:
             return []
