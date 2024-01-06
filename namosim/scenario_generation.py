@@ -41,7 +41,7 @@ def sample_poses_uniform(
     robot_pose: PoseModel,
     grid: BinaryOccupancyGrid,
     nb_poses: int = 1,
-    no_collisions_between_poses: bool = False,
+    min_distance_between: float = 0.0,
 ) -> t.List[PoseModel]:
     """Samples robot poses which do not collide with any of the provided obstacle polygons"""
     # Make AABB Tree from polygons
@@ -78,21 +78,28 @@ def sample_poses_uniform(
         )
         robot_aabb_at_rand_pose = collision.polygon_to_aabb(robot_polygon_at_rand_pose)
         potential_collision_uids = aabb_tree.overlap_values(robot_aabb_at_rand_pose)
-        pose_collides = False
+
+        pose_invalid = False
+
+        # Invalidate pose if it intersects with an obstacle
         for uid in potential_collision_uids:
             if obstacles_polygons[uid].intersects(robot_polygon_at_rand_pose):
-                pose_collides = True
+                pose_invalid = True
                 break
 
-        if no_collisions_between_poses:
-            for polygon in generated_polygons:
-                if polygon.intersects(robot_polygon_at_rand_pose):
-                    pose_collides = True
-                    break
+        min_dist_to_others = float("inf")
 
-        if not pose_collides:
+        for polygon in generated_polygons:
+            d = polygon.distance(robot_polygon_at_rand_pose)
+            min_dist_to_others = min(min_dist_to_others, d)
+
+        # Invalidate pose if too close to other pose
+        if min_dist_to_others < min_distance_between:
+            pose_invalid = True
+
+        if not pose_invalid:
             generated_poses.append(rand_pose)
-            if no_collisions_between_poses:
+            if min_distance_between > 0:
                 accessible_cells.remove(rand_cell)
                 generated_polygons.append(robot_polygon_at_rand_pose)
 
@@ -281,17 +288,15 @@ def generate_alternative_scenarios(
             minidom.parseString(namo_config.to_xml()).documentElement
         )
 
+        robot_radius = utils.get_circumscribed_radius(base_robot_polygon)
         initial_robot_poses = sample_poses_uniform(
-            static_and_movable_polygons,
-            base_robot_polygon,
-            base_robot_pose,
+            obstacles_polygons=static_and_movable_polygons,
+            robot_polygon=base_robot_polygon,
+            robot_pose=base_robot_pose,
             nb_poses=nb_robots,
             grid=static_and_movable_grid,
-            no_collisions_between_poses=True,
+            min_distance_between=robot_radius + utils.SQRT_OF_2 * CELL_SIZE + 1e-6,
         )
-
-        # Save sampled coordinates in same folder as svg_filepath with same filename - ".svg" + "_samples.json"
-        # TODO
 
         # Create robot polygons at said poses in svg_data using svg styles of robot and goals and setting unique ids
         goals_group = conversion.add_group(svg_data, "goals")
