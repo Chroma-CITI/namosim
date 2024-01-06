@@ -349,7 +349,7 @@ def check_static_collision(
     polygon: Polygon,
     other_entities_polygons: t.Dict[UID, Polygon],
     aabb_tree: AABBTree,
-    ignored_uids: t.Iterable[int] | None = None,
+    ignored_uids: t.Iterable[UID] | None = None,
     break_at_first: bool = True,
     save_intersections: bool = False,
 ):
@@ -373,7 +373,7 @@ def check_static_collision(
         return {}
     else:
         collides_with: t.Dict[UID, t.Set[UID]] = {}
-        intersections: t.Dict[t.Tuple[int, int], Polygon] = {}
+        intersections: t.Dict[t.Tuple[UID, UID], Polygon] = {}
 
         for uid in potential_collision_uids:
             if polygon.intersects(other_entities_polygons[uid]):

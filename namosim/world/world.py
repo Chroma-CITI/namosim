@@ -503,15 +503,20 @@ class World:
     def get_robot_conflict_radius(self, robot_id: UID):
         robot = self.agents[robot_id]
         center = robot.polygon.centroid
-        radius_for_move = robot.circumscribed_radius + 2 * self.config.cell_size
-        radius_for_grab_or_release = radius_for_move + robot.grab_and_release_distance
+        radius_for_move = (
+            robot.circumscribed_radius + utils.SQRT_OF_2 * self.config.cell_size
+        )
+        radius_for_grab_or_release = (
+            robot.circumscribed_radius + robot.grab_and_release_distance
+        )
 
         conflict_radius = radius_for_move
 
         if self.is_holding_obstacle(robot_id):
             obstacle = self.entities[self.entity_to_agent.inverse[robot.uid]]
             conflict_radius = (
-                center.hausdorff_distance(obstacle.polygon) + 2 * self.config.cell_size
+                center.hausdorff_distance(obstacle.polygon)
+                + utils.SQRT_OF_2 * self.config.cell_size
             )
 
             # Account for possible release
