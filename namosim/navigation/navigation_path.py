@@ -1,4 +1,3 @@
-import math
 import typing as t
 
 from aabbtree import AABBTree
@@ -750,7 +749,7 @@ class TransitPath:
 
         if robot_pose != poses[0]:
             raise Exception("Robot pose not equal to start pose")
-            
+
         if len(poses) == 1:
             return cls(
                 robot_path=Path(poses=poses, polygons=[robot_polygon]),
@@ -762,11 +761,6 @@ class TransitPath:
 
         actions: t.List[ba.BasicAction] = []
         updated_poses = [poses[0]]
-
-        for p in poses:
-            for e in p:
-                if math.isnan(e):
-                    pass
 
         for pose, next_pose in zip(poses, poses[1:]):
             has_translation = not all(
@@ -781,10 +775,10 @@ class TransitPath:
 
             if has_translation:
                 turn_towards_angle = utils.get_angle_to_turn(pose, next_pose)
-
-                current_angle = utils.add_angles(current_angle, turn_towards_angle)
-                actions.append(ba.Rotation(angle=turn_towards_angle))
-                updated_poses.append((pose[0], pose[1], current_angle))
+                if turn_towards_angle != 0:
+                    current_angle = utils.add_angles(current_angle, turn_towards_angle)
+                    actions.append(ba.Rotation(angle=turn_towards_angle))
+                    updated_poses.append((pose[0], pose[1], current_angle))
 
                 actions.append(
                     ba.Translation.from_absolute_translation_vector(
@@ -827,17 +821,17 @@ class TransitPath:
 
     def get_conflicts(
         self,
-        robot_uid,
-        world,
-        inflated_grid_by_robot,
-        encompassing_circle_uid_to_robot_uid,
-        has_first_action,
-        shared_horizon=None,
-        apply_strict_horizon=False,
-        exit_early_for_any_conflict=False,
-        exit_early_only_for_long_term_conflicts=True,
+        robot_uid: UID,
+        world: "world.World",
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        encompassing_circle_uid_to_robot_uid: t.Dict[UID, UID],
+        has_first_action: bool,
+        shared_horizon: int | None = None,
+        apply_strict_horizon: bool = False,
+        exit_early_for_any_conflict: bool = False,
+        exit_early_only_for_long_term_conflicts: bool = True,
         rp: t.Optional["ros2.RosPublisher"] = None,
-        robot_name="",
+        robot_name: str = "",
     ):
         if not self.actions:
             return []
@@ -893,6 +887,7 @@ class TransitPath:
                 colliding_obstacles = inflated_grid_by_robot.obstacles_uids_in_cell(
                     cell
                 )
+
                 for uid in colliding_obstacles:
                     if uid in encompassing_circles_uids:
                         if counter == 0 and has_first_action:
@@ -991,6 +986,11 @@ class TransitPath:
                                 )
                                 return conflicts
                     else:
+                        # check for polygon-level collisions
+                        # collisions = world.get_polygon_collisions(robot_uid, {uid})
+                        # if len(collisions) == 0:
+                        #     continue
+
                         conflicts.append(RobotObstacleConflict(uid))
                         conflicting_cells.add(cell)
                         conflicting_entities_cells.update(
@@ -1058,5 +1058,4 @@ class EvasionTransitPath(TransitPath):
             self.release_executed = True
             return self.transit_configuration_after_release.action
         else:
-            return TransitPath.pop_next_action(self)
             return TransitPath.pop_next_action(self)
