@@ -12,7 +12,7 @@ from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import UID, PoseModel
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
-from namosim.world.entity import Style
+from namosim.world.entity import Movability, Style
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 
@@ -33,6 +33,7 @@ class NavigationOnlyAgent(Agent):
         movable_whitelist: t.List[str],
         style: Style,
         logger: utils.CustomLogger,
+        cell_size: float,
         uid: UID = 0,
     ):
         Agent.__init__(
@@ -50,6 +51,7 @@ class NavigationOnlyAgent(Agent):
             movable_whitelist=movable_whitelist,
             style=style,
             logger=logger,
+            cell_size=cell_size,
             uid=uid,
         )
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
@@ -64,11 +66,7 @@ class NavigationOnlyAgent(Agent):
         static_obs_polygons = {
             uid: entity.polygon
             for uid, entity in self.world.entities.items()
-            if (
-                isinstance(entity, Obstacle)
-                and entity.movability == "unmovable"
-                or entity.movability == "static"
-            )
+            if (isinstance(entity, Obstacle) or entity.movability == Movability.STATIC)
         }
         self.static_obs_inf_grid = BinaryInflatedOccupancyGrid(
             polygons=static_obs_polygons,
@@ -162,5 +160,6 @@ class NavigationOnlyAgent(Agent):
             push_only_list=[],
             force_pushes_only=False,
             movable_whitelist=["box"],
+            cell_size=self.cell_size,
             logger=self.logger,
         )

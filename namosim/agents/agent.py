@@ -16,7 +16,7 @@ from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.navigation_path import TransitPath
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
-from namosim.world.entity import Entity, Style
+from namosim.world.entity import Entity, Movability, Style
 from namosim.world.sensors.g_fov_sensor import GFOVSensor
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.world.sensors.s_fov_sensor import SFOVSensor
@@ -52,7 +52,8 @@ class Agent(Entity):
         force_pushes_only: bool,
         movable_whitelist: t.List[str],
         style: Style,
-        movability: str = "unknown",
+        cell_size: float,
+        movability: Movability = Movability.UNKNOWN,
         logger: utils.CustomLogger,
         uid: UID = 0,
     ):
@@ -98,6 +99,16 @@ class Agent(Entity):
 
         self.goal_to_plans: t.Dict[PoseModel, "navp.Plan"] = OrderedDict()
         self.is_initialized = False
+        self.cell_size = cell_size
+        self.grab_and_release_distance = max(
+            utils.SQRT_OF_2 * cell_size + 1e-6,
+            0.5 * self.circumscribed_radius,
+        )
+        """The robot will move backwards by this amount when it releases an object. The robot
+        must be within this distance from a movable obstacle to grab it.
+        This distance must be larger than the cell size otherwise the robot
+        may still be colliding when it releases an obstacle.
+        """
 
     def init(self, world: "w.World") -> None:
         self.__world = copy.deepcopy(world)
@@ -202,6 +213,7 @@ class Agent(Entity):
             phys_cost = 0.0
             for a, b in zip(real_path, real_path[1:]):
                 phys_cost += g(a, b)
+
             return TransitPath.from_poses(
                 real_path, robot_polygon, robot_pose, phys_cost
             )
@@ -229,13 +241,13 @@ class Agent(Entity):
 
     def deduce_movability(self, obstacle_type: str):
         if obstacle_type == "unknown" or obstacle_type == "robot":
-            return "unknown"
+            return Movability.UNKNOWN
         if obstacle_type == "movable":
-            return "movable"
+            return Movability.MOVABLE
         elif obstacle_type in self.movable_whitelist:
-            return "movable"
+            return Movability.MOVABLE
         else:
-            return "unmovable"
+            return Movability.STATIC
 
     def deduce_push_only(self, obstacle_type: str):
         if self.force_pushes_only or obstacle_type in self.push_only_list:

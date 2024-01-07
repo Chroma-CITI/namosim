@@ -14,8 +14,9 @@ import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
 from namosim.data_models import UID, NamosimConfigModel, PoseModel
 from namosim.display import conversions
+from namosim.utils import collision
 from namosim.world.discretization_data import DiscretizationData
-from namosim.world.entity import Entity, Style
+from namosim.world.entity import Entity, Movability, Style
 from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
@@ -146,7 +147,7 @@ class World:
                     polygon=polygon,
                     pose=pose,
                     style=style,
-                    movability="movable",
+                    movability=Movability.MOVABLE,
                     full_geometry_acquired=True,
                 )
                 world.add_entity(movable_box)
@@ -164,7 +165,7 @@ class World:
                     polygon=polygon,
                     pose=pose,
                     style=style,
-                    movability="static",
+                    movability=Movability.STATIC,
                     full_geometry_acquired=True,
                 )
                 world.add_entity(wall)
@@ -248,6 +249,7 @@ class World:
                     push_only_list=[],
                     force_pushes_only=False,
                     movable_whitelist=["box"],
+                    cell_size=config.cell_size,
                     logger=logger,
                 )
             elif agent.behavior.type == "navigation_only_behavior":
@@ -263,6 +265,7 @@ class World:
                     push_only_list=[],
                     force_pushes_only=False,
                     movable_whitelist=["box"],
+                    cell_size=config.cell_size,
                     logger=logger,
                 )
             elif agent.behavior.type == "stilman_only_behavior":
@@ -279,6 +282,7 @@ class World:
                     push_only_list=[],
                     force_pushes_only=False,
                     movable_whitelist=["box"],
+                    cell_size=config.cell_size,
                     logger=logger,
                 )
             else:
@@ -327,14 +331,11 @@ class World:
             for geometry_name in current_geometries_names:
                 entity = self.entities[current_geometries_names_to_ids[geometry_name]]
                 if isinstance(entity, Obstacle):
-                    if (
-                        entity.movability == "static"
-                        or entity.movability == "unmovable"
-                    ):
+                    if entity.movability in [Movability.STATIC, Movability.UNMOVABLE]:
                         style = conversion.FIXED_ENTITY_STYLE
-                    elif entity.movability == "movable":
+                    elif entity.movability == Movability.MOVABLE:
                         style = conversion.MOVABLE_ENTITY_STYLE
-                    elif entity.movability == "unknown":
+                    elif entity.movability == Movability.UNKNOWN:
                         style = conversion.UNKNOWN_ENTITY_STYLE
                     else:
                         raise NotImplementedError(
@@ -495,6 +496,57 @@ class World:
             self.discretization_data.width,
             self.discretization_data.height,
         )
+
+    def is_holding_obstacle(self, agent_id: UID) -> bool:
+        return agent_id in self.entity_to_agent.inverse
+
+    def get_robot_conflict_radius(self, robot_id: UID):
+        robot = self.agents[robot_id]
+        center = robot.polygon.centroid
+        radius_for_move = (
+            robot.circumscribed_radius + utils.SQRT_OF_2 * self.config.cell_size
+        )
+        radius_for_grab_or_release = (
+            robot.circumscribed_radius + robot.grab_and_release_distance
+        )
+
+        conflict_radius = radius_for_move
+
+        if self.is_holding_obstacle(robot_id):
+            obstacle = self.entities[self.entity_to_agent.inverse[robot.uid]]
+            conflict_radius = (
+                center.hausdorff_distance(obstacle.polygon)
+                + utils.SQRT_OF_2 * self.config.cell_size
+            )
+
+            # Account for possible release
+            conflict_radius = max(conflict_radius, radius_for_grab_or_release)
+        else:
+            # Enlarge radius to account for possible grabs
+            for uid, obstacle in self.entities.items():
+                if (
+                    isinstance(obstacle, Obstacle)
+                    and uid not in self.entity_to_agent
+                    and obstacle.movability == Movability.MOVABLE
+                ):
+                    if obstacle.polygon.buffer(
+                        robot.grab_and_release_distance,
+                        join_style="mitre",
+                    ).intersects(robot.polygon):
+                        conflict_radius = radius_for_grab_or_release
+                        break
+        return conflict_radius
+
+    def get_polygon_collisions(self, uid: UID, others: t.Iterable[UID]) -> t.Any:
+        other_polygons = {uid: self.entities[uid].polygon for uid in others}
+        others_aabb_tree = collision.polygons_to_aabb_tree(other_polygons)
+        collisions = collision.check_static_collision(
+            main_uid=uid,
+            polygon=self.entities[uid].polygon,
+            other_entities_polygons=other_polygons,
+            aabb_tree=others_aabb_tree,
+        )
+        return collisions
 
 
 def get_orientation(geom: (Polygon | LineString)) -> float:
