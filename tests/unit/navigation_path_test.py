@@ -5,7 +5,7 @@ from shapely.geometry import Polygon
 
 import namosim.navigation.basic_actions as ba
 from namosim.navigation.navigation_path import TransitPath
-from namosim.world.entity import Style
+from namosim.world.entity import Movability, Style
 from namosim.world.obstacle import Obstacle
 
 
@@ -18,6 +18,7 @@ class TransitPathFromPoses(unittest.TestCase):
             full_geometry_acquired=True,
             type_="box",
             style=Style(),
+            movability=Movability.MOVABLE,
         )
 
     def test_from_poses(self):
@@ -87,6 +88,33 @@ class TransitPathFromPoses(unittest.TestCase):
 
         path = TransitPath.from_poses(
             robot_pose=robot_pose, robot_polygon=robot_polygon, poses=poses
+        )
+
+        # Apply the actions and make sure they take us to the goal pose
+        pose = robot_pose
+        for action in path.actions:
+            if isinstance(action, ba.Translation):
+                pose = action.predict_pose(pose, pose[2])
+            elif isinstance(action, ba.Rotation):
+                pose = action.predict_pose(pose, pose[:2])
+
+        assert np.allclose(poses[-1], pose, rtol=1e-6)
+
+    def test_bug_case_2(self):
+        robot_pose = (-202.5176508239593, 342.66973604540215, 60.0)
+        poses = [
+            (-202.5176508239593, 342.66973604540215, 60.0),
+            (-202.5176508239593, 342.66973604540215, 8.455055627136348),
+            (-182.49998499999998, 345.64534499999996, 8.455055627136348),
+            (-182.49998499999998, 345.64534499999996, 180.0),
+            (-182.499985, 345.64534499999996, 180.0),
+            (-182.499985, 345.64534499999996, 127.37593160586596),
+        ]
+
+        path = TransitPath.from_poses(
+            robot_pose=robot_pose,
+            robot_polygon=Polygon([(0, 0, 0), (0, 1, 0), (1, 1, 0), (0, 0, 0)]),
+            poses=poses,
         )
 
         # Apply the actions and make sure they take us to the goal pose

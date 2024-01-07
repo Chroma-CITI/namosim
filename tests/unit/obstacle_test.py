@@ -3,7 +3,7 @@ import unittest
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon
 
-from namosim.world.entity import Style
+from namosim.world.entity import Movability, Style
 from namosim.world.obstacle import Obstacle
 
 
@@ -16,6 +16,7 @@ class ObstacleTest(unittest.TestCase):
             full_geometry_acquired=True,
             type_="box",
             style=Style(),
+            movability=Movability.MOVABLE,
         )
 
     def test_polygon_by_visualization(self):

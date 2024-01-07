@@ -26,7 +26,7 @@ from namosim.navigation.navigation_path import (
 )
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
-from namosim.world.obstacle import Obstacle
+from namosim.world.entity import Movability
 
 
 class Plan:
@@ -91,7 +91,7 @@ class Plan:
         other_entities_polygons = {
             uid: e.polygon
             for uid, e in world.entities.items()
-            if uid != self.robot_uid and e.movability != "static"
+            if uid != self.robot_uid and e.movability != Movability.STATIC
         }
         other_entities_aabb_tree = collision.polygons_to_aabb_tree(
             other_entities_polygons
@@ -109,45 +109,11 @@ class Plan:
             # Inflate all other robots and their associated obstacles by the maximum translation at t+1 to prevent
             # SimultaneousSpaceAccess-type Conflicts
             if other_robot.uid != self.robot_uid:
-                center = other_robot.polygon.centroid
-                # robot_radius = (
-                #     center.hausdorff_distance(other_robot.polygon)
-                #     + 1.1 * inflated_grid_by_robot.res
-                # )
-                robot_radius = other_robot.circumscribed_radius
-                radius = robot_radius
-                min_radius_for_release = (
-                    robot_radius
-                    + inflated_grid_by_robot.inflation_radius
-                    + 1.5 * inflated_grid_by_robot.res
-                )
-                # Enlarge radius to account for possible grabs
-                for uid, obstacle in world.entities.items():
-                    if (
-                        isinstance(obstacle, Obstacle)
-                        and uid not in world.entity_to_agent
-                        and obstacle.movability != "static"
-                    ):
-                        if obstacle.polygon.buffer(
-                            1.5 * inflated_grid_by_robot.inflation_radius,
-                            join_style="mitre",
-                        ).intersects(other_robot.polygon):
-                            radius = min_radius_for_release
-                            break
-                if other_robot.uid in world.entity_to_agent.inverse:
-                    obstacle = world.entities[
-                        world.entity_to_agent.inverse[other_robot.uid]
-                    ]
-                    radius = max(
-                        radius,
-                        center.hausdorff_distance(obstacle.polygon)
-                        + 1.1 * inflated_grid_by_robot.res,
-                    )
-                    if radius < min_radius_for_release:
-                        # Enlarge radius to account for possible releases
-                        radius = min_radius_for_release
+                other_robot_center = other_robot.polygon.centroid
+                radius = world.get_robot_conflict_radius(other_robot.uid)
+
                 # TODO Get inflation from largest robot
-                encompassing_circle = center.buffer(radius)
+                encompassing_circle = other_robot_center.buffer(radius)
                 temp_uid = (
                     max(
                         max_uid,
