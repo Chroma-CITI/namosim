@@ -36,6 +36,15 @@ class ExperimentsTests(unittest.TestCase):
         sim.run()
         assert True
 
+    def test_overlapping_movables(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "multi_robot/overlapping_movables.svg"
+            )
+        )
+        sim.run()
+        assert True
+
     def test_evasion(self):
         sim = Simulator(
             simulation_file_path=os.path.join(
@@ -110,12 +119,12 @@ class ExperimentsTests(unittest.TestCase):
         print(f"Execution time: {elapsed_time} seconds")
         assert True
 
-    def test_intersections_2_robots_50_goals_namo_generated(self):
+    def test_intersections_generated(self):
         config.DISPLAY_WINDOW = True
         sim = Simulator(
             simulation_file_path=os.path.join(
                 self.scenarios_folder,
-                "intersections/generated/2_robots_50_goals_namo/07.svg",
+                "intersections/generated/4_robots_50_goals_snamo/00.svg",
             )
         )
         sim.run()
