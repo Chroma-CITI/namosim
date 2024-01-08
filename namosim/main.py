@@ -1,4 +1,6 @@
+import glob
 import json
+import os
 import typing as t
 
 import typer
@@ -34,25 +36,48 @@ def visualize_results(results_file: str, avg: bool = False):
 @app.command()
 def compare_results(
     *,
-    results_a: t.Annotated[str, typer.Option("--results-a")],
-    results_b: t.Annotated[str, typer.Option("--results-b")],
-    title_a: t.Annotated[str, typer.Option("--title-a")],
-    title_b: t.Annotated[str, typer.Option("--title-b")],
+    result_dirs_str: t.Annotated[
+        str, typer.Option("--result-dirs", help="A comma-separated list of result dirs")
+    ],
+    titles_str: t.Annotated[
+        str,
+        typer.Option(
+            "--titles", help="A comma-separated list of titles for each result dir"
+        ),
+    ],
 ):
-    with open(results_a) as f:
-        data = json.load(f)
-        report_a = SimulationReport.model_validate(data["report"]).get_agent_average()
-
-    with open(results_b) as f:
-        data = json.load(f)
-        report_b = SimulationReport.model_validate(data["report"]).get_agent_average()
-
-    if not report_a or not report_b:
-        raise Exception("Failed to load results")
-
     combined = SimulationReport()
-    combined.agent_stats[title_a] = report_a.agent_stats["avg"]
-    combined.agent_stats[title_b] = report_b.agent_stats["avg"]
+
+    result_dirs: t.List[str] = [x.strip() for x in result_dirs_str.split(",")]
+    titles: t.List[str] = [x.strip() for x in titles_str.split(",")]
+
+    for dir, title in zip(result_dirs, titles):
+        report = SimulationReport()
+        result_files = glob.glob(os.path.join(dir, "**/stats.json"))
+
+        n_skipped = 0
+        for result_file in result_files:
+            result_file_dir = os.path.dirname(result_file)
+            print(result_file_dir)
+            exceptions = glob.glob(os.path.join(result_file_dir, "./exceptions.json"))
+            if len(exceptions) != 0:
+                print(
+                    f"Skipping file {result_file} because exceptions where raised during the simulation"
+                )
+                n_skipped += 1
+                continue
+            with open(result_file) as f:
+                data = json.load(f)
+            report = report.sum(SimulationReport.model_validate(data["report"]))
+            if not report:
+                raise Exception("Failed to load results")
+
+        report = report.divide_by(len(result_files) - n_skipped)
+
+        avg = report.get_avg_over_agents()
+        if avg:
+            combined.agent_stats[title] = avg.agent_stats["avg"]
+
     combined.plot()
 
 
