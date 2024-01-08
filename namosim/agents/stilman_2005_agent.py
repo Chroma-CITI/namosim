@@ -216,7 +216,6 @@ class Stilman2005Agent(Agent):
             self.robot_max_inflation_radius,
             neighborhood=self.neighborhood,
         )
-        self.static_obs_inf_grid.to_image().save("static.png")
 
         # check that goals are valid (i.e., not in static obstacles)
         for pose in self._navigation_goals:
@@ -746,19 +745,7 @@ class Stilman2005Agent(Agent):
                     step_count,
                 )
             )
-            # robot_cell = utils.real_to_grid(
-            #     self.pose[0],
-            #     self.pose[1],
-            #     static_obs_inf_grid.res,
-            #     static_obs_inf_grid.grid_pose,
-            # )
-            # goal_cell = utils.real_to_grid(
-            #     goal[0], goal[1], static_obs_inf_grid.res, static_obs_inf_grid.grid_pose
-            # )
-            # static_obs_inf_grid.update({self.uid: self.polygon})
-            # static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] = 10
-            # static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] = 10
-            # static_obs_inf_grid.to_image().save("static.png")
+
             return ThinkResult(
                 next_action=ba.GoalFailed(goal),
                 did_replan=True,
@@ -1072,9 +1059,6 @@ class Stilman2005Agent(Agent):
             )
 
         if static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0:
-            # static_obs_inf_grid.update({self.uid: self.polygon})
-            # static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] = 10
-            # static_obs_inf_grid.to_image().save("static.png")
             static_entities_polygons = {
                 entity.uid: entity.polygon
                 for entity in w_t.entities.values()
