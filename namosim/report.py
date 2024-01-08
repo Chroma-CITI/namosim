@@ -1,7 +1,8 @@
+import copy
 import typing as t
 
 import matplotlib.pyplot as plt
-import numpy as np
+from matplotlib.gridspec import GridSpec
 from pydantic import BaseModel
 
 import namosim.navigation.action_result as ar
@@ -80,7 +81,7 @@ class SimulationReport(BaseModel):
     def to_json_data(self):
         return self.model_dump()
 
-    def get_agent_average(self) -> t.Optional["SimulationReport"]:
+    def get_avg_over_agents(self) -> t.Optional["SimulationReport"]:
         avg = AgentStats(agent_id="avg")
         N = len(self.agent_stats)
         if N == 0:
@@ -98,107 +99,119 @@ class SimulationReport(BaseModel):
 
         return SimulationReport(agent_stats={"avg": avg})
 
+    def sum(self, other: "SimulationReport") -> "SimulationReport":
+        result = copy.deepcopy(self)
+
+        for agent_id, stats in other.agent_stats.items():
+            if agent_id not in result.agent_stats:
+                result.agent_stats[agent_id] = stats
+            else:
+                result.agent_stats[agent_id].n_goals_failed += stats.n_goals_failed
+                result.agent_stats[
+                    agent_id
+                ].n_goals_completed += stats.n_goals_completed
+                result.agent_stats[agent_id].n_actions_failed += stats.n_actions_failed
+                result.agent_stats[
+                    agent_id
+                ].n_actions_completed += stats.n_actions_completed
+                result.agent_stats[
+                    agent_id
+                ].distance_traveled += stats.distance_traveled
+                result.agent_stats[agent_id].degrees_rotated += stats.degrees_rotated
+                result.agent_stats[
+                    agent_id
+                ].transfer_distance_traveled += stats.transfer_distance_traveled
+                result.agent_stats[
+                    agent_id
+                ].transfer_degrees_rotated += stats.transfer_degrees_rotated
+
+        return result
+
+    def divide_by(self, divisor: float) -> "SimulationReport":
+        result = copy.deepcopy(self)
+
+        for stats in result.agent_stats.values():
+            stats.n_goals_failed /= divisor
+            stats.n_goals_completed /= divisor
+            stats.n_actions_failed /= divisor
+            stats.n_actions_completed /= divisor
+            stats.distance_traveled /= divisor
+            stats.degrees_rotated /= divisor
+            stats.transfer_distance_traveled /= divisor
+            stats.transfer_degrees_rotated /= divisor
+
+        return result
+
     def plot(self):
-        goal_attributes = (
-            "Goals Completed",
-            "Goals Failed",
-        )
-        action_attributes = (
-            "Actions Completed",
-            "Actions Failed",
-        )
-        rotation_attributes = (
-            "Total Rotation",
-            "Transfer Rotation",
-        )
-        distance_attributes = (
-            "Total Distance",
-            "Transfer Distance",
-        )
-        agent_goals = {agent_id: [] for agent_id in self.agent_stats.keys()}
-        agent_actions = {agent_id: [] for agent_id in self.agent_stats.keys()}
-        agent_rotations = {agent_id: [] for agent_id in self.agent_stats.keys()}
-        agent_distance = {agent_id: [] for agent_id in self.agent_stats.keys()}
+        groups = list(self.agent_stats.keys())
+        agent_goals = {"Goals Completed": []}
+        agent_rotations = {"Total": [], "Transfer": []}
+        agent_translations = {"Total": [], "Transfer": []}
 
-        for agent_id, stats in self.agent_stats.items():
-            agent_goals[agent_id].append(stats.n_goals_completed)
-            agent_goals[agent_id].append(stats.n_goals_failed)
-            agent_actions[agent_id].append(stats.n_actions_completed)
-            agent_actions[agent_id].append(stats.n_actions_failed)
-            agent_rotations[agent_id].append(stats.degrees_rotated)
-            agent_rotations[agent_id].append(stats.transfer_degrees_rotated)
-            agent_distance[agent_id].append(stats.distance_traveled)
-            agent_distance[agent_id].append(stats.transfer_distance_traveled)
-        x = np.arange(len(goal_attributes))  # the label locations
+        for stats in self.agent_stats.values():
+            agent_goals["Goals Completed"].append(stats.n_goals_completed)
+            agent_rotations["Total"].append(stats.degrees_rotated)
+            agent_rotations["Transfer"].append(stats.transfer_degrees_rotated)
+            agent_translations["Total"].append(stats.distance_traveled)
+            agent_translations["Transfer"].append(stats.transfer_distance_traveled)
+
         width = 0.2  # the width of the bars
-        multiplier = 0
 
-        _fig, ((ax_goals, ax_actions), (ax_rotations, ax_distance)) = plt.subplots(
-            2, 2, layout="constrained"
+        fig = plt.figure(constrained_layout=True)
+        gs = GridSpec(3, 2, figure=fig)
+
+        # create sub plots as grid
+        ax_goals = fig.add_subplot(gs[0, :])
+        ax_distance = fig.add_subplot(gs[1, 0])
+        ax_transfer_distance = fig.add_subplot(gs[1, 1])
+        ax_rotations = fig.add_subplot(gs[2, 0])
+        ax_transfer_rotations = fig.add_subplot(gs[2, 1])
+
+        ax_goals.grid()
+        ax_goals.bar(
+            x=groups,
+            height=agent_goals["Goals Completed"],
+            width=width,
+            align="center",
         )
-
-        for agent_id, values in agent_goals.items():
-            offset = (width + 0.05) * multiplier - 0.025
-            rects = ax_goals.bar(
-                x + offset, values, width, label=agent_id, align="edge"
-            )
-            ax_goals.bar_label(rects, padding=3)
-            multiplier += 1
-
-        multiplier = 0
-        for agent_id, values in agent_actions.items():
-            offset = (width + 0.05) * multiplier - 0.025
-            rects = ax_actions.bar(
-                x + offset, values, width, label=agent_id, align="edge"
-            )
-            ax_actions.bar_label(rects, padding=3)
-            multiplier += 1
-
-        multiplier = 0
-        for agent_id, values in agent_rotations.items():
-            offset = (width + 0.05) * multiplier - 0.025
-            rects = ax_rotations.bar(
-                x + offset, values, width, label=agent_id, align="edge"
-            )
-            ax_rotations.bar_label(rects, padding=3)
-            multiplier += 1
-
-        multiplier = 0
-        for agent_id, values in agent_distance.items():
-            offset = (width + 0.05) * multiplier - 0.025
-            rects = ax_distance.bar(
-                x + offset, values, width, label=agent_id, align="edge"
-            )
-            ax_distance.bar_label(rects, padding=3)
-            multiplier += 1
-
-        # Add some text for labels, title and custom x-axis tick labels, etc.
-        ax_goals.set_title("Goals")
-        ax_goals.set_xticks(x + width, goal_attributes)
-        ax_goals.legend(loc="upper center", ncols=3)
-
-        ax_actions.set_title("Actions")
-        ax_actions.set_xticks(x + width, action_attributes)
-        ax_actions.legend(loc="upper center", ncols=3)
-
-        ax_rotations.set_ylabel("Degrees")
-        ax_rotations.set_title("Rotations")
-        ax_rotations.set_xticks(x + width, rotation_attributes)
-        ax_rotations.legend(loc="upper center", ncols=3)
-
-        ax_distance.set_title("Distances")
-        ax_distance.set_xticks(x + width, distance_attributes)
-        ax_distance.legend(loc="upper center", ncols=3)
-
+        ax_goals.set_title("Avg Goals Completed")
         ax_goals.margins(y=1)
-        ax_actions.margins(y=1)
+
+        ax_rotations.grid()
+        ax_rotations.bar(groups, agent_rotations["Total"], width=width, align="center")
+        ax_rotations.set_ylabel("Degrees")
+        ax_rotations.set_title("Avg Transit Rotation")
+        ax_rotations.legend(loc="upper center", ncols=3)
         ax_rotations.margins(y=1)
+
+        ax_transfer_rotations.grid()
+        ax_rotations.set_ylabel("Degrees")
+        ax_transfer_rotations.bar(
+            groups, agent_rotations["Transfer"], width=width, align="center"
+        )
+        ax_transfer_rotations.set_title("Avg Transfer Rotation")
+
+        ax_distance.grid()
+        ax_distance.bar(
+            groups, agent_translations["Total"], width=width, align="center"
+        )
+        ax_distance.set_title("Avg Transit Distance")
+        ax_distance.legend(loc="upper center", ncols=3)
         ax_distance.margins(y=1)
+
+        ax_transfer_distance.grid()
+        ax_transfer_distance.bar(
+            groups,
+            agent_translations["Transfer"],
+            width=width,
+            align="center",
+        )
+        ax_transfer_distance.set_title("Avg Transfer Distance")
 
         plt.show()
         plt.close("all")
 
     def plot_agent_avg(self):
-        avg = self.get_agent_average()
+        avg = self.get_avg_over_agents()
         if avg:
             avg.plot()
