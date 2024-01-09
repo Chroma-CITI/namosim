@@ -10,6 +10,7 @@ from namosim.data_models import UID, PoseModel
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
+    Conflict,
     RobotObstacleConflict,
     RobotRobotConflict,
     SimultaneousSpaceAccess,
@@ -117,21 +118,17 @@ class TransferPath:
         other_entities_with_encompassing_circles_aabb_tree: AABBTree,
         encompassing_circle_uid_to_robot_uid: t.Dict[UID, int],
         previously_moved_entities_uids: t.Set[UID],
+        check_horizon: int,
         has_first_action: bool,
-        shared_horizon: int | None = None,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
         rp: t.Optional["ros2.RosPublisher"] = None,
         robot_name: str = "",
-    ):
-        # if rp:
-        #     rp.cleanup_swept_area(ns=robot_name)
+    ) -> t.List[Conflict]:
+        assert robot_uid not in inflated_grid_by_robot.cells_sets
 
-        if shared_horizon is None:
-            # If no horizon is given, check all unexecuted actions
-            shared_horizon = len(self.actions) - self.action_index
-        elif shared_horizon <= 0 and apply_strict_horizon:
+        if check_horizon <= 0 and apply_strict_horizon:
             return []
 
         conflicts = []
@@ -145,21 +142,23 @@ class TransferPath:
                 robot_csv_polygons=self.robot_path.csv_polygons or {},
                 obstacle_csv_polygons=self.obstacle_path.csv_polygons or {},
                 start_index=self.action_index,
-                check_horizon=shared_horizon,
+                check_horizon=check_horizon,
                 robot_name=robot_name,
             )
 
+        assert len(self.actions) + 1 == len(self.robot_path.poses)
+
         # Check conflicts for all actions within horizon (Robot-Robot) and beyond (other conflicts)
-        for counter, index in enumerate(
-            range(
-                self.action_index,
-                len(self.actions),
+        for look_ahead_index, (action, robot_pose_prior_to_action) in enumerate(
+            zip(
+                self.actions[self.action_index :],
+                self.robot_path.poses[self.action_index :],
             )
         ):
-            if apply_strict_horizon and counter > shared_horizon:
+            if apply_strict_horizon and look_ahead_index >= check_horizon:
                 break
 
-            if counter == 0 and has_first_action:
+            if look_ahead_index < check_horizon:
                 # If the first action in the path is the first action in the check horizon,
                 # we also check for simultaneous conflilcts types at t+1
                 collision_polygons = other_entities_polygons_with_encompassing_circles
@@ -168,20 +167,29 @@ class TransferPath:
                 collision_polygons = other_entities_polygons
                 collision_aabb_tree = other_entities_aabb_tree
 
-            action = self.actions[index]
-
             if action is self.grab_action:
                 ## Grab actions should only occur at start of transfer path
-                assert counter == 0
+                assert self.action_index == 0
 
                 # Check that obstacle is at the expected pose (except if it supposed to be moved before that)
                 current_obstacle_pose = world.entities[self.obstacle_uid].pose
                 obstacle_at_start_pose = self.obstacle_path.is_start_pose(
                     current_obstacle_pose
                 )
-                if (
-                    not obstacle_at_start_pose
-                    or self.obstacle_uid in world.entity_to_agent
+
+                already_grabbed_by_current_robot = (
+                    world.entity_to_agent.get(self.obstacle_uid) == robot_uid
+                )
+
+                if already_grabbed_by_current_robot:
+                    ## This happens when the plan has two consecutive transfer paths back-to-back.
+                    break
+
+                # If the obstacle is no longer where the agent thought it would be, or if it is held by a DIFFERENT agent,
+                # we have a stolen object conflict.
+                if not obstacle_at_start_pose or (
+                    self.obstacle_uid in world.entity_to_agent
+                    and world.entity_to_agent[self.obstacle_uid] != robot_uid
                 ):
                     if self.obstacle_uid in world.entity_to_agent:
                         conflicts.append(
@@ -197,7 +205,7 @@ class TransferPath:
                     if exit_early_for_any_conflict:
                         return conflicts
 
-                if counter == 0 and has_first_action:
+                if look_ahead_index < check_horizon and has_first_action:
                     # If the first action in the path is the first action in the check horizon,
                     # and is a grab action, we also check the possibility of SimultaneousGrab conflicts t+1
                     radius = 2.0 * inflated_grid_by_robot.res
@@ -257,7 +265,7 @@ class TransferPath:
                 if robot_uid in collides_with:
                     for uid in collides_with[robot_uid]:
                         if uid in encompassing_circle_uid_to_robot_uid:
-                            if counter == 0 and has_first_action:
+                            if look_ahead_index < check_horizon and has_first_action:
                                 other_robot_uid = encompassing_circle_uid_to_robot_uid[
                                     uid
                                 ]
@@ -270,7 +278,7 @@ class TransferPath:
                                 conflicts.append(
                                     SimultaneousSpaceAccess(
                                         robot_uid=robot_uid,
-                                        robot_pose=self.robot_path.poses[0],
+                                        robot_pose=robot_pose_prior_to_action,
                                         other_robot_uid=other_robot_uid,
                                         other_robot_pose=world.entities[
                                             other_robot_uid
@@ -295,11 +303,11 @@ class TransferPath:
                             isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
-                            if counter <= shared_horizon:
+                            if look_ahead_index < check_horizon:
                                 conflicts.append(
                                     RobotRobotConflict(
                                         robot_uid=robot_uid,
-                                        robot_pose=self.robot_path.poses[0],
+                                        robot_pose=robot_pose_prior_to_action,
                                         other_robot_uid=uid
                                         if isinstance(
                                             world.entities[uid],
@@ -371,7 +379,7 @@ class TransferPath:
                 if robot_uid in collides_with:
                     for uid in collides_with[robot_uid]:
                         if uid in encompassing_circle_uid_to_robot_uid:
-                            if counter == 0 and has_first_action:
+                            if look_ahead_index < check_horizon and has_first_action:
                                 other_robot_uid = encompassing_circle_uid_to_robot_uid[
                                     uid
                                 ]
@@ -407,7 +415,7 @@ class TransferPath:
                             isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
-                            if counter <= shared_horizon:
+                            if look_ahead_index < check_horizon:
                                 conflicts.append(
                                     RobotRobotConflict(
                                         robot_uid=robot_uid,
@@ -460,11 +468,13 @@ class TransferPath:
                 ) = collision.csv_check_collisions(
                     main_uid=robot_uid,
                     other_polygons=collision_polygons,
-                    polygon_sequence=self.robot_path.polygons[index : index + 2],
+                    polygon_sequence=self.robot_path.polygons[
+                        self.action_index + look_ahead_index : self.action_index
+                        + look_ahead_index
+                        + 2
+                    ],
                     action_sequence=[
-                        collision.convert_action(
-                            self.actions[index], self.robot_path.poses[index]
-                        )
+                        collision.convert_action(action, robot_pose_prior_to_action)
                     ],
                     bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
@@ -475,7 +485,7 @@ class TransferPath:
                 if robot_uid in collides_with:
                     for uid in collides_with[robot_uid]:
                         if uid in encompassing_circle_uid_to_robot_uid:
-                            if counter == 0 and has_first_action:
+                            if look_ahead_index < check_horizon and has_first_action:
                                 other_robot_uid = encompassing_circle_uid_to_robot_uid[
                                     uid
                                 ]
@@ -488,7 +498,7 @@ class TransferPath:
                                 conflicts.append(
                                     SimultaneousSpaceAccess(
                                         robot_uid=robot_uid,
-                                        robot_pose=self.robot_path.poses[index],
+                                        robot_pose=robot_pose_prior_to_action,
                                         other_robot_uid=other_robot_uid,
                                         other_robot_pose=world.entities[
                                             other_robot_uid
@@ -496,7 +506,7 @@ class TransferPath:
                                         colliding_uids=(robot_uid, other_robot_uid),
                                         robot_transfered_obstacle_uid=self.obstacle_uid,
                                         robot_transfered_obstacle_pose=self.obstacle_path.poses[
-                                            index
+                                            self.action_index + look_ahead_index
                                         ],
                                         other_robot_transfered_obstacle_uid=None
                                         if other_robot_transfered_obstacle is None
@@ -513,11 +523,11 @@ class TransferPath:
                             isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
-                            if counter <= shared_horizon:
+                            if look_ahead_index < check_horizon:
                                 conflicts.append(
                                     RobotRobotConflict(
                                         robot_uid=robot_uid,
-                                        robot_pose=self.robot_path.poses[index],
+                                        robot_pose=robot_pose_prior_to_action,
                                         other_robot_uid=uid
                                         if isinstance(
                                             world.entities[uid],
@@ -535,7 +545,7 @@ class TransferPath:
                                         colliding_uids=(robot_uid, uid),
                                         robot_transfered_obstacle_uid=self.obstacle_uid,
                                         robot_transfered_obstacle_pose=self.obstacle_path.poses[
-                                            index
+                                            self.action_index + look_ahead_index
                                         ],
                                         other_robot_transfered_obstacle_uid=uid
                                         if uid in world.entity_to_agent
@@ -556,6 +566,7 @@ class TransferPath:
                                 or exit_early_only_for_long_term_conflicts
                             ):
                                 return conflicts
+
                 (
                     _,
                     collides_with,
@@ -566,10 +577,17 @@ class TransferPath:
                 ) = collision.csv_check_collisions(
                     main_uid=self.obstacle_uid,
                     other_polygons=collision_polygons,
-                    polygon_sequence=self.obstacle_path.polygons[index : index + 2],
+                    polygon_sequence=self.obstacle_path.polygons[
+                        self.action_index + look_ahead_index : self.action_index
+                        + look_ahead_index
+                        + 2
+                    ],
                     action_sequence=[
                         collision.convert_action(
-                            self.actions[index], self.obstacle_path.poses[index]
+                            action,
+                            self.obstacle_path.poses[
+                                self.action_index + look_ahead_index
+                            ],
                         )
                     ],
                     bb_type="minimum_rotated_rectangle",
@@ -581,7 +599,7 @@ class TransferPath:
                 if self.obstacle_uid in collides_with:
                     for uid in collides_with[self.obstacle_uid]:
                         if uid in encompassing_circle_uid_to_robot_uid:
-                            if counter == 0 and has_first_action:
+                            if look_ahead_index < check_horizon and has_first_action:
                                 other_robot_uid = encompassing_circle_uid_to_robot_uid[
                                     uid
                                 ]
@@ -594,7 +612,9 @@ class TransferPath:
                                 conflicts.append(
                                     SimultaneousSpaceAccess(
                                         robot_uid=robot_uid,
-                                        robot_pose=self.robot_path.poses[index],
+                                        robot_pose=self.robot_path.poses[
+                                            self.action_index + look_ahead_index
+                                        ],
                                         other_robot_uid=other_robot_uid,
                                         other_robot_pose=world.entities[
                                             other_robot_uid
@@ -605,7 +625,7 @@ class TransferPath:
                                         ),
                                         robot_transfered_obstacle_uid=self.obstacle_uid,
                                         robot_transfered_obstacle_pose=self.obstacle_path.poses[
-                                            index
+                                            self.action_index + look_ahead_index
                                         ],
                                         other_robot_transfered_obstacle_uid=None
                                         if other_robot_transfered_obstacle is None
@@ -621,11 +641,13 @@ class TransferPath:
                             isinstance(world.entities[uid], agent.Agent)
                             or uid in world.entity_to_agent
                         ):
-                            if counter <= shared_horizon:
+                            if look_ahead_index < check_horizon:
                                 conflicts.append(
                                     RobotRobotConflict(
                                         robot_uid=robot_uid,
-                                        robot_pose=self.robot_path.poses[index],
+                                        robot_pose=self.robot_path.poses[
+                                            self.action_index + look_ahead_index
+                                        ],
                                         other_robot_uid=uid
                                         if isinstance(
                                             world.entities[uid],
@@ -643,7 +665,7 @@ class TransferPath:
                                         colliding_uids=(self.obstacle_uid, uid),
                                         robot_transfered_obstacle_uid=self.obstacle_uid,
                                         robot_transfered_obstacle_pose=self.obstacle_path.poses[
-                                            index
+                                            self.action_index + look_ahead_index
                                         ],
                                         other_robot_transfered_obstacle_uid=uid
                                         if uid in world.entity_to_agent
@@ -825,21 +847,19 @@ class TransitPath:
         world: "world.World",
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         encompassing_circle_uid_to_robot_uid: t.Dict[UID, UID],
+        check_horizon: int,
         has_first_action: bool,
-        shared_horizon: int | None = None,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
         rp: t.Optional["ros2.RosPublisher"] = None,
         robot_name: str = "",
-    ):
+    ) -> t.List[Conflict]:
+        assert robot_uid not in inflated_grid_by_robot.cells_sets
         if not self.actions:
             return []
 
-        if shared_horizon is None:
-            # If no horizon is given, check all unexecuted actions
-            shared_horizon = len(self.actions) + 1 - self.action_index
-        elif shared_horizon <= 0 and apply_strict_horizon:
+        if check_horizon <= 0 and apply_strict_horizon:
             return []
 
         conflicts = []
@@ -851,7 +871,7 @@ class TransitPath:
             rp.publish_transit_horizon_cells(
                 poses=self.robot_path.poses,
                 start_index=self.action_index,
-                check_horizon=shared_horizon,
+                check_horizon=check_horizon,
                 inflated_grid_by_robot=inflated_grid_by_robot,
                 robot_name=robot_name,
             )
@@ -859,23 +879,21 @@ class TransitPath:
         # Check for RobotRobot conflicts within horizon, and RobotObstacle conflicts even beyond
         conflicting_cells = set()
         conflicting_entities_cells = set()
-        for counter, index in enumerate(
-            range(self.action_index, len(self.actions) + 1)
-        ):
-            if index < len(self.actions) and isinstance(self.actions[index], ba.Wait):
+        for look_ahead_index, action in enumerate(self.actions[self.action_index :]):
+            if isinstance(action, ba.Wait):
                 continue
 
-            if apply_strict_horizon and counter > shared_horizon:
+            if apply_strict_horizon and look_ahead_index >= check_horizon:
                 break
 
-            if counter == 0 and has_first_action:
+            if look_ahead_index < check_horizon and has_first_action:
                 # If the first action in the path is the first action in the check horizon,
                 # we also check for simultaneous conflilcts types at t+1
                 inflated_grid_by_robot.activate_entities(encompassing_circles_uids)
             else:
                 inflated_grid_by_robot.deactivate_entities(encompassing_circles_uids)
 
-            pose = self.robot_path.poses[index]
+            pose = self.robot_path.poses[self.action_index + look_ahead_index]
             cell = utils.real_to_grid(
                 pose[0],
                 pose[1],
@@ -890,7 +908,7 @@ class TransitPath:
 
                 for uid in colliding_obstacles:
                     if uid in encompassing_circles_uids:
-                        if counter == 0 and has_first_action:
+                        if look_ahead_index < check_horizon and has_first_action:
                             other_robot_uid = encompassing_circle_uid_to_robot_uid[uid]
                             other_robot_transfered_obstacle = world.entities.get(
                                 world.entity_to_agent.inverse.get(
@@ -901,7 +919,7 @@ class TransitPath:
                             conflicts.append(
                                 SimultaneousSpaceAccess(
                                     robot_uid=robot_uid,
-                                    robot_pose=self.robot_path.poses[index],
+                                    robot_pose=pose,
                                     other_robot_uid=other_robot_uid,
                                     other_robot_pose=world.entities[
                                         other_robot_uid
@@ -933,21 +951,21 @@ class TransitPath:
                                     robot_name,
                                 )
                                 return conflicts
-                    elif (
-                        isinstance(world.entities[uid], agent.Agent)
-                        or uid in world.entity_to_agent
+                    elif isinstance(world.entities[uid], agent.Agent) or (
+                        uid in world.entity_to_agent
+                        # ignore collisions with the obstacle the robot is currently holding
+                        and world.entity_to_agent.get(uid) != robot_uid
                     ):
-                        if counter <= shared_horizon:
+                        other_robot_uid = uid
+                        if uid in world.entity_to_agent:
+                            other_robot_uid = world.entity_to_agent[uid]
+
+                        if look_ahead_index < check_horizon:
                             conflicts.append(
                                 RobotRobotConflict(
                                     robot_uid=robot_uid,
-                                    robot_pose=self.robot_path.poses[index],
-                                    other_robot_uid=uid
-                                    if isinstance(
-                                        world.entities[uid],
-                                        agent.Agent,
-                                    )
-                                    else world.entity_to_agent[uid],
+                                    robot_pose=pose,
+                                    other_robot_uid=other_robot_uid,
                                     other_robot_pose=world.entities[uid].pose
                                     if isinstance(
                                         world.entities[uid],

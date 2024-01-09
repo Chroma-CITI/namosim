@@ -6,37 +6,12 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /Grid1
         - /namosim1
-        - /namosim1/Simulation1
         - /namosim1/robot_01
-        - /namosim1/robot_01/conflicts_check1/Namespaces1
-        - /namosim1/robot_01/goal1/Topic1
-        - /namosim1/robot_01/goal1/Namespaces1
-        - /namosim1/robot_01/knowledge1
-        - /namosim1/robot_01/knowledge1/Namespaces1
-        - /namosim1/robot_01/multi_a_star1
-        - /namosim1/robot_01/sim1/Namespaces1
-        - /namosim1/robot_01/stilman_rch1
-        - /namosim1/robot_01/stilman_rch1/close_set1
-        - /namosim1/robot_01/test1
-        - /namosim1/robot_01/test1/combined_gridmap1/Topic1
-        - /namosim1/robot_01/costmap1
-        - /namosim1/robot_01/costmap1/Status1
-        - /namosim1/robot_11/a_star1/close_set_cells1
-        - /namosim1/robot_11/a_star1/open_heap_cells1
-        - /namosim1/robot_11/a_star1/open_heap_cells_array1
-        - /namosim1/robot_11/a_star1/path_grid_cells1
-        - /namosim1/robot_11/a_star1/path_grid_cells_array1
+        - /namosim1/robot_11
         - /namosim1/robot_11/conflicts_check1
-        - /namosim1/robot_11/goal1
-        - /namosim1/robot_11/multi_a_star1/close_set1
-        - /namosim1/robot_11/multi_a_star1/open_heap1
-        - /namosim1/robot_11/sim1
-        - /namosim1/robot_11/stilman_rch1
-        - /namosim1/robot_11/stilman_rch1/close_set1
-        - /namosim1/Grid1/Offset1
-        - /namosim1/robot_21/conflicts_check1
-        - /namosim1/robot_21/conflicts_check1/Namespaces1
+        - /namosim1/robot_11/conflict_horizon1
       Splitter Ratio: 0.6906474828720093
     Tree Height: 1070
   - Class: rviz_common/Selection
@@ -60,6 +35,24 @@ Panels:
 Visualization Manager:
   Class: ""
   Displays:
+    - Alpha: 0.5
+      Cell Size: 5
+      Class: rviz_default_plugins/Grid
+      Color: 160; 160; 164
+      Enabled: false
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: false
     - Class: rviz_common/Group
       Displays:
         - Class: rviz_common/Group
@@ -199,7 +192,7 @@ Visualization Manager:
               Enabled: true
               Name: swept_area
               Namespaces:
-                {}
+                /transfer_horizon_csv_polygons: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -287,6 +280,10 @@ Visualization Manager:
                 /manip_search/current/robot/polygon: true
                 /manip_search/current/robot/pose: true
                 /manip_search_neighbors: true
+                /rch_came_from: true
+                /rch_close_set: true
+                /rch_current_cell: true
+                /rch_current_cell_neighbors: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -529,13 +526,14 @@ Visualization Manager:
                     Reliability Policy: Reliable
                     Value: /robot_1/a_star/path_grid_cells_array
                   Value: true
-              Enabled: false
+              Enabled: true
               Name: a_star
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
               Name: conflicts_check
               Namespaces:
-                {}
+                /transit_conflicting_cells: true
+                /transit_conflicting_entities_cells: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -545,9 +543,21 @@ Visualization Manager:
               Value: true
             - Class: rviz_default_plugins/MarkerArray
               Enabled: true
+              Name: conflict_horizon
+              Namespaces:
+                /transit_horizon_cells: true
+              Topic:
+                Depth: 5
+                Durability Policy: Volatile
+                History Policy: Keep Last
+                Reliability Policy: Reliable
+                Value: /robot_1/conflict_horizon
+              Value: true
+            - Class: rviz_default_plugins/MarkerArray
+              Enabled: true
               Name: goal
               Namespaces:
-                {}
+                /polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -559,7 +569,8 @@ Visualization Manager:
               Enabled: true
               Name: knowledge
               Namespaces:
-                {}
+                /robot/polygon: true
+                obstacles/polygon: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -600,7 +611,8 @@ Visualization Manager:
               Enabled: true
               Name: plan
               Namespaces:
-                {}
+                /end_obstacles: true
+                /plan: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -612,7 +624,20 @@ Visualization Manager:
               Enabled: true
               Name: sim
               Namespaces:
-                {}
+                /blocking_areas/init: true
+                /blocking_areas/target: true
+                /diameter_inflated_polygon/init: true
+                /diameter_inflated_polygon/target: true
+                /manip_search/close_set: true
+                /manip_search/current/obstacle/polygon: true
+                /manip_search/current/obstacle/pose: true
+                /manip_search/current/robot/polygon: true
+                /manip_search/current/robot/pose: true
+                /manip_search_neighbors: true
+                /rch_came_from: true
+                /rch_close_set: true
+                /rch_current_cell: true
+                /rch_current_cell_neighbors: true
               Topic:
                 Depth: 5
                 Durability Policy: Volatile
@@ -787,26 +812,8 @@ Visualization Manager:
                 Value: /robot_0/robot_sim/costmap_updates
               Use Timestamp: false
               Value: false
-          Enabled: false
+          Enabled: true
           Name: robot_1
-        - Alpha: 0.5
-          Cell Size: 5
-          Class: rviz_default_plugins/Grid
-          Color: 160; 160; 164
-          Enabled: false
-          Line Style:
-            Line Width: 0.029999999329447746
-            Value: Lines
-          Name: Grid
-          Normal Cell Count: 0
-          Offset:
-            X: 0
-            Y: 0
-            Z: 0
-          Plane: XY
-          Plane Cell Count: 10
-          Reference Frame: <Fixed Frame>
-          Value: false
         - Class: rviz_common/Group
           Displays:
             - Class: rviz_default_plugins/MarkerArray
@@ -1038,7 +1045,7 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Angle: 0
+      Angle: 0.004999999888241291
       Class: rviz_default_plugins/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
