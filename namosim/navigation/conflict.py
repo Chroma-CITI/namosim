@@ -29,6 +29,8 @@ class RobotRobotConflict(Conflict):
         at_grab: bool = False,
         at_release: bool = False,
     ):
+        if robot_uid == other_robot_uid:
+            raise Exception("Invalid robot-robot conflict - robot ids are identical")
         self.robot_uid = robot_uid
         self.robot_pose = utils.real_pose_to_fixed_precision_pose(
             robot_pose, 100.0, 1.0

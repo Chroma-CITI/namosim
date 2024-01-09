@@ -139,7 +139,7 @@ class Stilman2005Agent(Agent):
         self.activate_grids_logging = params.activate_grids_logging
         self._social_costmap: npt.NDArray[t.Any] | None = None
         self.is_first_transfer_step = False
-        self.check_horizon = 20
+        self.check_horizon = 10
         self.angular_tolerance = 0.1
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
@@ -427,6 +427,8 @@ class Stilman2005Agent(Agent):
         action_space_reduction: str,
         ros_publisher: "rp.RosPublisher",
     ) -> ThinkResult:
+        assert robot_uid not in inflated_grid_by_robot.cells_sets
+
         # If current robot pose is close enough to goal, return Success
         if self.is_goal_reached(w_t.entities[robot_uid].pose, goal, pos_tol, ang_tol):
             return ThinkResult(
@@ -573,6 +575,9 @@ class Stilman2005Agent(Agent):
                     )
                     plan.forbidden_evasion_cells.update(set(robot_cells))
                     plan.update_count += 1
+
+                    assert robot_uid not in inflated_grid_by_robot.cells_sets
+
                     evasion_path = self.compute_evasion(
                         inflated_grid_by_robot=inflated_grid_by_robot,
                         w_t=w_t,
@@ -581,6 +586,9 @@ class Stilman2005Agent(Agent):
                         forbidden_evasion_cells=plan.forbidden_evasion_cells,
                         ros_publisher=ros_publisher,
                     )
+
+                    assert robot_uid not in inflated_grid_by_robot.cells_sets
+
                     if evasion_path:
                         self.logger.append(
                             utils.BasicLog(
@@ -3629,6 +3637,9 @@ class Stilman2005Agent(Agent):
                 for potential_deadlock in potential_deadlocks
                 if isinstance(potential_deadlock, RobotRobotConflict)
             }
+
+            assert main_robot_uid not in other_robots_uids
+
             inflated_grid_by_robot.update(
                 new_or_updated_polygons={main_robot_uid: main_robot.polygon}
             )
