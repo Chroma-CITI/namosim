@@ -471,7 +471,7 @@ class TransferPath:
                 if robot_uid in collides_with:
                     for uid in collides_with[robot_uid]:
                         if uid in encompassing_circle_uid_to_robot_uid:
-                            if look_ahead_index < check_horizon:
+                            if look_ahead_index < check_horizon and has_first_action:
                                 other_robot_uid = encompassing_circle_uid_to_robot_uid[
                                     uid
                                 ]
@@ -584,7 +584,7 @@ class TransferPath:
                 if self.obstacle_uid in collides_with:
                     for uid in collides_with[self.obstacle_uid]:
                         if uid in encompassing_circle_uid_to_robot_uid:
-                            if look_ahead_index < check_horizon:
+                            if look_ahead_index < check_horizon and has_first_action:
                                 other_robot_uid = encompassing_circle_uid_to_robot_uid[
                                     uid
                                 ]
