@@ -139,7 +139,7 @@ class Stilman2005Agent(Agent):
         self.activate_grids_logging = params.activate_grids_logging
         self._social_costmap: npt.NDArray[t.Any] | None = None
         self.is_first_transfer_step = False
-        self.check_horizon = 20
+        self.check_horizon = 10
         self.angular_tolerance = 0.1
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
