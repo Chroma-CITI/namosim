@@ -75,14 +75,13 @@ class Plan:
         world: "world.World",
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         rp: "ros2.RosPublisher",
-        check_horizon: t.Optional[int] = None,
+        check_horizon: int = 0,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
         robot_name: str = "",
     ) -> t.List[Conflict]:
         # Check validity of each component
-        shared_horizon = check_horizon
         previously_moved_entities_uids = set()
         remaining_components = self.path_components[self.component_index :]
         conflicts = []
@@ -136,24 +135,20 @@ class Plan:
                     new_or_updated_polygons={temp_uid: encompassing_circle}
                 )
 
-        for counter, path in enumerate(remaining_components):
-            has_first_action = counter == 0
-            if (
-                shared_horizon is None
-                or not apply_strict_horizon
-                or (apply_strict_horizon and shared_horizon > 0)
-            ):
+        for i, path in enumerate(remaining_components):
+            if check_horizon > 0 or apply_strict_horizon is False:
+                has_first_action = i == 0
                 if isinstance(path, TransitPath):
                     conflicts += path.get_conflicts(
-                        self.robot_uid,
-                        world,
-                        inflated_grid_by_robot,
-                        encompassing_circle_uid_to_robot_uid,
-                        has_first_action,
-                        shared_horizon,
-                        apply_strict_horizon,
-                        exit_early_for_any_conflict,
-                        exit_early_only_for_long_term_conflicts,
+                        robot_uid=self.robot_uid,
+                        world=world,
+                        inflated_grid_by_robot=inflated_grid_by_robot,
+                        encompassing_circle_uid_to_robot_uid=encompassing_circle_uid_to_robot_uid,
+                        check_horizon=check_horizon,
+                        has_first_action=has_first_action,
+                        apply_strict_horizon=apply_strict_horizon,
+                        exit_early_for_any_conflict=exit_early_for_any_conflict,
+                        exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
                         rp=rp,
                         robot_name=robot_name,
                     )
@@ -169,7 +164,7 @@ class Plan:
                         encompassing_circle_uid_to_robot_uid=encompassing_circle_uid_to_robot_uid,
                         previously_moved_entities_uids=previously_moved_entities_uids,
                         has_first_action=has_first_action,
-                        shared_horizon=shared_horizon,
+                        check_horizon=check_horizon,
                         apply_strict_horizon=apply_strict_horizon,
                         exit_early_for_any_conflict=exit_early_for_any_conflict,
                         exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
@@ -201,15 +196,12 @@ class Plan:
                     if is_there_long_term_conflict:
                         break
 
-                if shared_horizon:
-                    shared_horizon = max(
-                        0, shared_horizon - path.get_remaining_length()
-                    )
+                if check_horizon:
+                    check_horizon = max(0, check_horizon - path.get_remaining_length())
             else:
                 break
 
         # Reactivate entities that had been deactivated during checks
-        # inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
         inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
         inflated_grid_by_robot.update(
             removed_polygons=set(encompassing_circle_uid_to_robot_uid.keys())
