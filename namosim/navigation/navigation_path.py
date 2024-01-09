@@ -566,6 +566,7 @@ class TransferPath:
                                 or exit_early_only_for_long_term_conflicts
                             ):
                                 return conflicts
+
                 (
                     _,
                     collides_with,
@@ -950,21 +951,21 @@ class TransitPath:
                                     robot_name,
                                 )
                                 return conflicts
-                    elif (
-                        isinstance(world.entities[uid], agent.Agent)
-                        or uid in world.entity_to_agent
+                    elif isinstance(world.entities[uid], agent.Agent) or (
+                        uid in world.entity_to_agent
+                        # ignore collisions with the obstacle the robot is currently holding
+                        and world.entity_to_agent.get(uid) != robot_uid
                     ):
+                        other_robot_uid = uid
+                        if uid in world.entity_to_agent:
+                            other_robot_uid = world.entity_to_agent[uid]
+
                         if look_ahead_index < check_horizon:
                             conflicts.append(
                                 RobotRobotConflict(
                                     robot_uid=robot_uid,
                                     robot_pose=pose,
-                                    other_robot_uid=uid
-                                    if isinstance(
-                                        world.entities[uid],
-                                        agent.Agent,
-                                    )
-                                    else world.entity_to_agent[uid],
+                                    other_robot_uid=other_robot_uid,
                                     other_robot_pose=world.entities[uid].pose
                                     if isinstance(
                                         world.entities[uid],

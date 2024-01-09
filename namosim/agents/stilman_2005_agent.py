@@ -427,6 +427,8 @@ class Stilman2005Agent(Agent):
         action_space_reduction: str,
         ros_publisher: "rp.RosPublisher",
     ) -> ThinkResult:
+        assert robot_uid not in inflated_grid_by_robot.cells_sets
+
         # If current robot pose is close enough to goal, return Success
         if self.is_goal_reached(w_t.entities[robot_uid].pose, goal, pos_tol, ang_tol):
             return ThinkResult(
