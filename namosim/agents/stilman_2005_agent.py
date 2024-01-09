@@ -573,6 +573,9 @@ class Stilman2005Agent(Agent):
                     )
                     plan.forbidden_evasion_cells.update(set(robot_cells))
                     plan.update_count += 1
+
+                    assert robot_uid not in inflated_grid_by_robot.cells_sets
+
                     evasion_path = self.compute_evasion(
                         inflated_grid_by_robot=inflated_grid_by_robot,
                         w_t=w_t,
@@ -581,6 +584,9 @@ class Stilman2005Agent(Agent):
                         forbidden_evasion_cells=plan.forbidden_evasion_cells,
                         ros_publisher=ros_publisher,
                     )
+
+                    assert robot_uid not in inflated_grid_by_robot.cells_sets
+
                     if evasion_path:
                         self.logger.append(
                             utils.BasicLog(
@@ -3629,6 +3635,9 @@ class Stilman2005Agent(Agent):
                 for potential_deadlock in potential_deadlocks
                 if isinstance(potential_deadlock, RobotRobotConflict)
             }
+
+            assert main_robot_uid not in other_robots_uids
+
             inflated_grid_by_robot.update(
                 new_or_updated_polygons={main_robot_uid: main_robot.polygon}
             )

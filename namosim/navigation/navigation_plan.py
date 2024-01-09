@@ -72,6 +72,7 @@ class Plan:
 
     def get_conflicts(
         self,
+        *,
         world: "world.World",
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         rp: "ros2.RosPublisher",
@@ -105,35 +106,37 @@ class Plan:
         encompassing_circle_uid_to_robot_uid = {}
         max_uid = 10000  # TODO: find a better way compute this temporary uid
         for other_robot in world.agents.values():
+            if other_robot.uid == self.robot_uid:
+                continue
+
             # Inflate all other robots and their associated obstacles by the maximum translation at t+1 to prevent
             # SimultaneousSpaceAccess-type Conflicts
-            if other_robot.uid != self.robot_uid:
-                other_robot_center = other_robot.polygon.centroid
-                radius = world.get_robot_conflict_radius(other_robot.uid)
+            other_robot_center = other_robot.polygon.centroid
+            radius = world.get_robot_conflict_radius(other_robot.uid)
 
-                # TODO Get inflation from largest robot
-                encompassing_circle = other_robot_center.buffer(radius)
-                temp_uid = (
+            # TODO Get inflation from largest robot
+            encompassing_circle = other_robot_center.buffer(radius)
+            temp_uid = (
+                max(
+                    max_uid,
                     max(
-                        max_uid,
-                        max(
-                            [0]
-                            if not encompassing_circle_uid_to_robot_uid
-                            else encompassing_circle_uid_to_robot_uid.keys()
-                        ),
-                    )
-                    + 1
+                        [0]
+                        if not encompassing_circle_uid_to_robot_uid
+                        else encompassing_circle_uid_to_robot_uid.keys()
+                    ),
                 )
-                other_entities_polygons_with_encompassing_circles[
-                    temp_uid
-                ] = encompassing_circle
-                other_entities_with_encompassing_circles_aabb_tree.add(
-                    collision.polygon_to_aabb(encompassing_circle), temp_uid
-                )
-                encompassing_circle_uid_to_robot_uid[temp_uid] = other_robot.uid
-                inflated_grid_by_robot.update(
-                    new_or_updated_polygons={temp_uid: encompassing_circle}
-                )
+                + 1
+            )
+            other_entities_polygons_with_encompassing_circles[
+                temp_uid
+            ] = encompassing_circle
+            other_entities_with_encompassing_circles_aabb_tree.add(
+                collision.polygon_to_aabb(encompassing_circle), temp_uid
+            )
+            encompassing_circle_uid_to_robot_uid[temp_uid] = other_robot.uid
+            inflated_grid_by_robot.update(
+                new_or_updated_polygons={temp_uid: encompassing_circle}
+            )
 
         for i, path in enumerate(remaining_components):
             if check_horizon > 0 or apply_strict_horizon is False:
@@ -178,7 +181,6 @@ class Plan:
                     # - or if another path component needs to move them (check_start_pose)
                     previously_moved_entities_uids.add(path.obstacle_uid)
 
-                    # inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
                     inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
 
                 if exit_early_for_any_conflict and conflicts:
@@ -291,7 +293,7 @@ class DynamicPlan(Plan):
         world: "w.World",
         inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         ros_publisher: "rp.RosPublisher",
-        check_horizon: int | None = None,
+        check_horizon: int,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = True,
         exit_early_only_for_long_term_conflicts: bool = True,
