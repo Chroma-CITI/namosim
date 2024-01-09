@@ -10,6 +10,7 @@ from namosim.data_models import UID, PoseModel
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
+    Conflict,
     RobotObstacleConflict,
     RobotRobotConflict,
     SimultaneousSpaceAccess,
@@ -124,7 +125,9 @@ class TransferPath:
         exit_early_only_for_long_term_conflicts: bool = True,
         rp: t.Optional["ros2.RosPublisher"] = None,
         robot_name: str = "",
-    ):
+    ) -> t.List[Conflict]:
+        assert robot_uid not in inflated_grid_by_robot.cells_sets
+
         if check_horizon <= 0 and apply_strict_horizon:
             return []
 
@@ -173,9 +176,20 @@ class TransferPath:
                 obstacle_at_start_pose = self.obstacle_path.is_start_pose(
                     current_obstacle_pose
                 )
-                if (
-                    not obstacle_at_start_pose
-                    or self.obstacle_uid in world.entity_to_agent
+
+                already_grabbed_by_current_robot = (
+                    world.entity_to_agent.get(self.obstacle_uid) == robot_uid
+                )
+
+                if already_grabbed_by_current_robot:
+                    ## This happens when the plan has two consecutive transfer paths back-to-back.
+                    break
+
+                # If the obstacle is no longer where the agent thought it would be, or if it is held by a DIFFERENT agent,
+                # we have a stolen object conflict.
+                if not obstacle_at_start_pose or (
+                    self.obstacle_uid in world.entity_to_agent
+                    and world.entity_to_agent[self.obstacle_uid] != robot_uid
                 ):
                     if self.obstacle_uid in world.entity_to_agent:
                         conflicts.append(
@@ -839,7 +853,8 @@ class TransitPath:
         exit_early_only_for_long_term_conflicts: bool = True,
         rp: t.Optional["ros2.RosPublisher"] = None,
         robot_name: str = "",
-    ):
+    ) -> t.List[Conflict]:
+        assert robot_uid not in inflated_grid_by_robot.cells_sets
         if not self.actions:
             return []
 
