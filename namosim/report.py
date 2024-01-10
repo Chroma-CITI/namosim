@@ -148,6 +148,11 @@ class SimulationReport(BaseModel):
         agent_rotations = {"Total": [], "Transfer": []}
         agent_translations = {"Total": [], "Transfer": []}
 
+        agent_stats_ls = list(self.agent_stats.values())
+        total_goals = (
+            agent_stats_ls[0].n_goals_completed + agent_stats_ls[0].n_goals_failed
+        )
+
         for stats in self.agent_stats.values():
             agent_goals["Goals Completed"].append(stats.n_goals_completed)
             agent_rotations["Total"].append(stats.degrees_rotated)
@@ -174,7 +179,7 @@ class SimulationReport(BaseModel):
             width=width,
             align="center",
         )
-        ax_goals.set_title("Avg Goals Completed")
+        ax_goals.set_title(f"Avg Goals Completed Out of {int(total_goals)}")
         ax_goals.margins(y=1)
 
         ax_rotations.grid()
