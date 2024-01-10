@@ -873,6 +873,7 @@ class Stilman2005Agent(Agent):
                         action_space_reduction=action_space_reduction,
                         ros_publisher=ros_publisher,
                     )
+
                     # Reset the inflated grid's state
                     for conflicting_uid, prev_polygon in polygons_tmp.items():
                         inflated_grid_by_robot.update({conflicting_uid: prev_polygon})
@@ -903,14 +904,20 @@ class Stilman2005Agent(Agent):
                         )
                     else:
                         plan.update_plan(p, step_count)
-                        conflicts = plan.get_conflicts(
-                            world=w_t,
-                            inflated_grid_by_robot=inflated_grid_by_robot,
-                            check_horizon=fov,
-                            ros_publisher=ros_publisher,
-                            robot_name=self.name,
+                        new_conflicts = set(
+                            plan.get_conflicts(
+                                world=w_t,
+                                inflated_grid_by_robot=inflated_grid_by_robot,
+                                check_horizon=fov,
+                                ros_publisher=ros_publisher,
+                                robot_name=self.name,
+                            )
                         )
-                        if conflicts:
+                        for conflict in conflicts:
+                            if conflict in new_conflicts:
+                                new_conflicts.remove(conflict)
+
+                        if new_conflicts:
                             self.logger.append(
                                 utils.BasicLog(
                                     "Agent {}: Postponing for {} steps, a new plan has been computed avoiding the "
