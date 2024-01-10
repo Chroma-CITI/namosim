@@ -987,9 +987,7 @@ class Simulator:
                 self.publish_robot_goal(agent_uid=agent_uid)
 
                 think_start = time.time()
-                pose_before = behavior.pose
                 think_result = behavior.think(ros_publisher=self.ros_publisher)
-                pose_after = behavior.pose
                 think_duration = time.time() - think_start
                 results.append((agent_uid, think_duration, think_result))
 
