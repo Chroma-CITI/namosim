@@ -155,10 +155,18 @@ class SimulationReport(BaseModel):
 
         for stats in self.agent_stats.values():
             agent_goals["Goals Completed"].append(stats.n_goals_completed)
-            agent_rotations["Total"].append(stats.degrees_rotated)
-            agent_rotations["Transfer"].append(stats.transfer_degrees_rotated)
-            agent_translations["Total"].append(stats.distance_traveled)
-            agent_translations["Transfer"].append(stats.transfer_distance_traveled)
+            agent_rotations["Total"].append(
+                stats.degrees_rotated / stats.n_goals_completed
+            )
+            agent_rotations["Transfer"].append(
+                stats.transfer_degrees_rotated / stats.n_goals_completed
+            )
+            agent_translations["Total"].append(
+                stats.distance_traveled / stats.n_goals_completed
+            )
+            agent_translations["Transfer"].append(
+                stats.transfer_distance_traveled / stats.n_goals_completed
+            )
 
         width = 0.2  # the width of the bars
 
@@ -172,6 +180,7 @@ class SimulationReport(BaseModel):
         ax_rotations = fig.add_subplot(gs[2, 0])
         ax_transfer_rotations = fig.add_subplot(gs[2, 1])
 
+        ax_goals.set_title(f"Avg Goals Completed Out of {int(total_goals)}")
         ax_goals.grid()
         ax_goals.bar(
             x=groups,
@@ -179,31 +188,31 @@ class SimulationReport(BaseModel):
             width=width,
             align="center",
         )
-        ax_goals.set_title(f"Avg Goals Completed Out of {int(total_goals)}")
         ax_goals.margins(y=1)
 
+        ax_rotations.set_title("Avg Total Rotation / Avg Goals Completed")
         ax_rotations.grid()
         ax_rotations.bar(groups, agent_rotations["Total"], width=width, align="center")
         ax_rotations.set_ylabel("Degrees")
-        ax_rotations.set_title("Avg Transit Rotation")
         ax_rotations.legend(loc="upper center", ncols=3)
         ax_rotations.margins(y=1)
 
+        ax_transfer_rotations.set_title("Avg Transfer Rotation / Avg Goals Completed")
         ax_transfer_rotations.grid()
         ax_rotations.set_ylabel("Degrees")
         ax_transfer_rotations.bar(
             groups, agent_rotations["Transfer"], width=width, align="center"
         )
-        ax_transfer_rotations.set_title("Avg Transfer Rotation")
 
+        ax_distance.set_title("Avg Total Distance / Avg Goals Completed")
         ax_distance.grid()
         ax_distance.bar(
             groups, agent_translations["Total"], width=width, align="center"
         )
-        ax_distance.set_title("Avg Transit Distance")
         ax_distance.legend(loc="upper center", ncols=3)
         ax_distance.margins(y=1)
 
+        ax_transfer_distance.set_title("Avg Transfer Distance / Avg Goals Completed")
         ax_transfer_distance.grid()
         ax_transfer_distance.bar(
             groups,
@@ -211,7 +220,6 @@ class SimulationReport(BaseModel):
             width=width,
             align="center",
         )
-        ax_transfer_distance.set_title("Avg Transfer Distance")
 
         plt.show()
         plt.close("all")
