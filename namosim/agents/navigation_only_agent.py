@@ -10,6 +10,7 @@ import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.world as w
 from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import UID, PoseModel
+from namosim.input import Input
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 from namosim.world.entity import Movability, Style
@@ -82,7 +83,9 @@ class NavigationOnlyAgent(Agent):
             params=self.static_obs_inf_grid.params,
         )
 
-    def think(self, ros_publisher: "rp.RosPublisher"):
+    def think(
+        self, ros_publisher: "rp.RosPublisher", input: t.Optional[Input] = None
+    ) -> ThinkResult:
         if self._q_goal is None:
             if self._navigation_goals:
                 self._q_goal = self._navigation_goals.pop(0)
