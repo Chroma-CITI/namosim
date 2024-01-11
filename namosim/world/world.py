@@ -500,7 +500,7 @@ class World:
     def is_holding_obstacle(self, agent_id: UID) -> bool:
         return agent_id in self.entity_to_agent.inverse
 
-    def get_robot_conflict_radius(self, robot_id: UID):
+    def get_robot_conflict_radius(self, robot_id: UID, obstacle_id: UID | None = None):
         robot = self.agents[robot_id]
         center = robot.polygon.centroid
         radius_for_move = (
@@ -513,7 +513,10 @@ class World:
         conflict_radius = radius_for_move
 
         if self.is_holding_obstacle(robot_id):
-            obstacle = self.entities[self.entity_to_agent.inverse[robot.uid]]
+            obstacle_id = self.entity_to_agent.inverse[robot.uid]
+
+        if obstacle_id is not None:
+            obstacle = self.entities[obstacle_id]
             conflict_radius = (
                 center.hausdorff_distance(obstacle.polygon)
                 + utils.SQRT_OF_2 * self.config.cell_size

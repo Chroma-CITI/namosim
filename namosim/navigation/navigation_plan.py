@@ -112,7 +112,11 @@ class Plan:
             # Inflate all other robots and their associated obstacles by the maximum translation at t+1 to prevent
             # SimultaneousSpaceAccess-type Conflicts
             other_robot_center = other_robot.polygon.centroid
-            radius = world.get_robot_conflict_radius(other_robot.uid)
+            radius = (
+                world.get_robot_conflict_radius(other_robot.uid)
+                # Enlarge radius so that conflict is detected before the robot enters another robot's conflict radius, after which a dealock may occur
+                + utils.SQRT_OF_2 * world.config.cell_size
+            )
 
             # TODO Get inflation from largest robot
             encompassing_circle = other_robot_center.buffer(radius)
