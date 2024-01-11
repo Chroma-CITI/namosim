@@ -567,6 +567,13 @@ class World:
         )
         return collisions
 
+    def get_movable_obstacles(self) -> t.List[Entity]:
+        result = []
+        for e in self.entities.values():
+            if e.movability == Movability.MOVABLE:
+                result.append(e)
+        return result
+
 
 def get_orientation(geom: (Polygon | LineString)) -> float:
     orientation_geom: t.List[t.List[float]] = list(geom.coords)  # type: ignore
