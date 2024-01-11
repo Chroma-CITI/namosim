@@ -11,6 +11,7 @@ import namosim.navigation.navigation_plan as navp
 import namosim.world.world as w
 from namosim.algorithms import graph_search
 from namosim.data_models import UID, PoseModel
+from namosim.input import Input
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import BasicAction
 from namosim.navigation.navigation_path import TransitPath
@@ -126,7 +127,9 @@ class Agent(Entity):
         self._step_count = step_count
 
     @abc.abstractmethod
-    def think(self, ros_publisher: "rp.RosPublisher") -> ThinkResult:
+    def think(
+        self, ros_publisher: "rp.RosPublisher", input: t.Optional[Input] = None
+    ) -> ThinkResult:
         raise NotImplementedError
 
     @property

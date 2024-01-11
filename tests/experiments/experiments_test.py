@@ -166,6 +166,15 @@ class ExperimentsTests(unittest.TestCase):
         print(f"Execution time: {elapsed_time} seconds")
         assert True
 
+    def test_teleop(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder,
+                "teleop.svg",
+            )
+        )
+        sim.run()
+
 
 if __name__ == "__main__":
     unittest.main()
