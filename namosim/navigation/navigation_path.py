@@ -1,5 +1,6 @@
 import typing as t
 
+import numpy as np
 from aabbtree import AABBTree
 from shapely import GeometryCollection, Polygon
 
@@ -131,6 +132,7 @@ class TransferPath:
         if check_horizon <= 0 and apply_strict_horizon:
             return []
 
+        robot = t.cast(agent.Agent, world.entities[robot_uid])
         conflicts = []
 
         collision_polygons = other_entities_polygons
@@ -158,7 +160,7 @@ class TransferPath:
             if apply_strict_horizon and look_ahead_index >= check_horizon:
                 break
 
-            if look_ahead_index < check_horizon:
+            if look_ahead_index < check_horizon and has_first_action:
                 # If the first action in the path is the first action in the check horizon,
                 # we also check for simultaneous conflilcts types at t+1
                 collision_polygons = other_entities_polygons_with_encompassing_circles
@@ -205,18 +207,70 @@ class TransferPath:
                     if exit_early_for_any_conflict:
                         return conflicts
 
+                # Check for SimultaneousSpace conflict that might result from the grab, since a grab instantly expands the robot's conflict radius.
+                if look_ahead_index < check_horizon:
+                    radius = world.get_robot_conflict_radius(
+                        robot_uid, self.obstacle_uid
+                    )
+                    grab_zone = robot.polygon.centroid.buffer(
+                        radius, join_style="mitre"
+                    )
+                    collides_with = collision.check_static_collision(
+                        robot_uid,
+                        grab_zone,
+                        collision_polygons,
+                        collision_aabb_tree,
+                        ignored_uids={self.obstacle_uid},
+                        break_at_first=False,
+                        save_intersections=False,
+                    )
+                    if robot_uid in collides_with:
+                        for uid in collides_with[robot_uid]:
+                            if uid in encompassing_circle_uid_to_robot_uid:
+                                uid = encompassing_circle_uid_to_robot_uid[uid]
+                            assert uid != robot_uid
+                            if isinstance(
+                                world.entities[uid],
+                                agent.Agent,
+                            ):
+                                other_robot_transfered_obstacle = world.entities.get(
+                                    world.entity_to_agent.inverse.get(uid, None),
+                                    None,
+                                )
+                                conflicts.append(
+                                    SimultaneousSpaceAccess(
+                                        robot_uid=robot_uid,
+                                        robot_pose=robot_pose_prior_to_action,
+                                        other_robot_uid=uid,
+                                        other_robot_pose=world.entities[uid].pose,
+                                        colliding_uids=(robot_uid, uid),
+                                        robot_transfered_obstacle_uid=self.obstacle_uid,
+                                        robot_transfered_obstacle_pose=world.entities[
+                                            self.obstacle_uid
+                                        ].pose,
+                                        other_robot_transfered_obstacle_uid=None
+                                        if other_robot_transfered_obstacle is None
+                                        else other_robot_transfered_obstacle.uid,
+                                        other_robot_transfered_obstacle_pose=None
+                                        if other_robot_transfered_obstacle is None
+                                        else other_robot_transfered_obstacle.pose,
+                                        at_grab=True,
+                                    )
+                                )
+                                if exit_early_for_any_conflict:
+                                    return conflicts
+
+                # Check for ConcurrentGrabConflict if the first action in the path is the first action in the check horizon,
                 if look_ahead_index < check_horizon and has_first_action:
-                    # If the first action in the path is the first action in the check horizon,
-                    # and is a grab action, we also check the possibility of SimultaneousGrab conflicts t+1
-                    radius = 2.0 * inflated_grid_by_robot.res
+                    radius = robot.grab_and_release_distance
                     grab_zone = world.entities[self.obstacle_uid].polygon.buffer(
                         radius, join_style="mitre"
                     )
                     collides_with = collision.check_static_collision(
                         self.obstacle_uid,
                         grab_zone,
-                        other_entities_polygons,
-                        other_entities_aabb_tree,
+                        collision_polygons,
+                        collision_aabb_tree,
                         ignored_uids={self.obstacle_uid},
                         break_at_first=False,
                         save_intersections=False,
@@ -797,7 +851,7 @@ class TransitPath:
 
             if has_translation:
                 turn_towards_angle = utils.get_angle_to_turn(pose, next_pose)
-                if turn_towards_angle != 0:
+                if np.abs(turn_towards_angle) > 1e-6:
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
                     updated_poses.append((pose[0], pose[1], current_angle))
