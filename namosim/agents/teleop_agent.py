@@ -68,9 +68,13 @@ class TeleopAgent(Agent):
         elif input.key_pressed == "Down":
             next_action = ba.Translation((-self.cell_size, 0))
         elif input.key_pressed == "Left":
-            next_action = ba.Rotation(-30)
-        elif input.key_pressed == "Right":
             next_action = ba.Rotation(30)
+        elif input.key_pressed == "Right":
+            next_action = ba.Rotation(-30)
+        elif input.key_pressed == "g":
+            next_action = self._grab()
+        elif input.key_pressed == "r":
+            next_action = self._release()
 
         return ThinkResult(
             next_action=next_action,
@@ -78,3 +82,17 @@ class TeleopAgent(Agent):
             robot_name=self.name,
             has_conflicts=False,
         )
+
+    def _grab(self) -> ba.Grab | None:
+        movables = self.world.get_movable_obstacles()
+        for m in movables:
+            d = m.polygon.distance(self.polygon)
+            if d < self.circumscribed_radius:
+                return ba.Grab((d, 0), m.uid)
+
+    def _release(self) -> ba.Release | None:
+        if self.world.is_holding_obstacle(self.uid):
+            return ba.Release(
+                (-self.grab_and_release_distance, 0),
+                self.world.entity_to_agent.inverse[self.uid],
+            )
