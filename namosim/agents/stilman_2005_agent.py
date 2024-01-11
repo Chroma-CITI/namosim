@@ -33,6 +33,7 @@ from namosim.data_models import (
     PoseModel,
     StilmanBehaviorParametersModel,
 )
+from namosim.input import Input
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
     Conflict,
@@ -347,7 +348,9 @@ class Stilman2005Agent(Agent):
             removed_polygons=self._removed_uids,
         )
 
-    def think(self, ros_publisher: "rp.RosPublisher") -> ThinkResult:
+    def think(
+        self, ros_publisher: "rp.RosPublisher", input: t.Optional[Input] = None
+    ) -> ThinkResult:
         if not self.is_initialized:
             raise Exception("Not initialized")
 
