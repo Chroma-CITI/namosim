@@ -33,6 +33,10 @@ class NavigationOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["navigation_only_behavior"] = attr()
 
 
+class TeleopehaviorConfigModel(BaseBehaviorConfigModel):
+    type: t.Literal["teleop_behavior"] = attr()
+
+
 class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     alpha_for_obstacle_choice_heur: float = attr(default=0.5)
     basic_rotation_moment: float = attr(default=2.0)
@@ -72,6 +76,7 @@ class AgentConfigModel(BaseXmlModel, tag="agent_config"):
         StilmanOnlyBehaviorConfigModel,
         WuLevihnBehaviorConfigModel,
         NavigationOnlyBehaviorConfigModel,
+        TeleopehaviorConfigModel,
         StilmanBehaviorConfigModel,
     ] = element(tag="behavior")
 

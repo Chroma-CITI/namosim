@@ -285,6 +285,22 @@ class World:
                     cell_size=config.cell_size,
                     logger=logger,
                 )
+            elif agent.behavior.type == "teleop_behavior":
+                new_robot = agts.TeleopAgent(
+                    navigation_goals=goal_poses,
+                    logs_dir=logs_dir,
+                    full_geometry_acquired=True,
+                    name=agent.agent_id,
+                    polygon=robot_polygon,
+                    style=Style.from_string(robot_style),
+                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    sensors=[OmniscientSensor()],
+                    push_only_list=[],
+                    force_pushes_only=False,
+                    movable_whitelist=["box"],
+                    cell_size=config.cell_size,
+                    logger=logger,
+                )
             else:
                 raise NotImplementedError(
                     "You tried to associate entity '{agent_name}' with a behavior named"
@@ -550,6 +566,13 @@ class World:
             aabb_tree=others_aabb_tree,
         )
         return collisions
+
+    def get_movable_obstacles(self) -> t.List[Entity]:
+        result = []
+        for e in self.entities.values():
+            if e.movability == Movability.MOVABLE:
+                result.append(e)
+        return result
 
 
 def get_orientation(geom: (Polygon | LineString)) -> float:

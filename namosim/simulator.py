@@ -1,3 +1,4 @@
+import atexit
 import copy
 import io
 import json
@@ -22,6 +23,7 @@ import namosim.navigation.basic_actions as ba
 from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import UID, PoseModel
 from namosim.exceptions import timeout
+from namosim.input import Input
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
     RobotObstacleConflict,
@@ -37,6 +39,7 @@ from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
 
 sys.setrecursionlimit(10000)
+os.system("xset r off")
 
 
 class SimulationStepResult:
@@ -151,14 +154,13 @@ class Simulator:
     ):
         self.window: tk.Tk | None = None
         self.background: tk.Label | None = None
-
         if config.DISPLAY_WINDOW:
             self.window = tk.Tk()
             self.window.title("NAMOSIM")
             self.window.resizable(True, True)
             self.background = tk.Label(self.window)
             self.background.pack()
-
+        self.teleop_input = Input()
         simulation_file_abs_path = os.path.abspath(simulation_file_path)
 
         self.simulation_filename = os.path.splitext(
@@ -364,6 +366,8 @@ class Simulator:
         except Exception as e:
             self.end_simulation(step_count=step_count, err=e)
 
+        # self.teleop_input.clear()
+
         return (active_agents, trace_polygons, step_count + 1)
 
     def update_report(self, action_results: t.Dict[UID, ar.ActionResult]):
@@ -534,12 +538,13 @@ class Simulator:
     ):
         if self.window is None:
             raise Exception("No window")
+        self.window.bind("<KeyPress>", self._on_key_press)
+        self.window.bind("<KeyRelease>", self._on_key_release)
         self._window_step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
             step_count=0,
         )
-        self.window.bind("<KeyPress>", self._on_key_press)
         self.window.mainloop()
 
     def _on_key_press(self, event: t.Any):
@@ -549,6 +554,13 @@ class Simulator:
         elif event.keysym == "space":
             self._paused = False
             self._step = True
+
+        if event.keysym:
+            self.teleop_input.handle_key_press(event.keysym)
+
+    def _on_key_release(self, event: t.Any):
+        if event.keysym == self.teleop_input.key_pressed:
+            self.teleop_input.handle_key_release(event.keysym)
 
     def _window_step(
         self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
@@ -564,7 +576,7 @@ class Simulator:
         self.render_window()
 
         self.window.after(
-            1, self._window_step, active_agents, trace_polygons, step_count
+            15, self._window_step, active_agents, trace_polygons, step_count
         )
 
     def _create_robot_world_from_sim_world(self):
@@ -987,7 +999,9 @@ class Simulator:
                 self.publish_robot_goal(agent_uid=agent_uid)
 
                 think_start = time.time()
-                think_result = behavior.think(ros_publisher=self.ros_publisher)
+                think_result = behavior.think(
+                    ros_publisher=self.ros_publisher, input=self.teleop_input
+                )
                 think_duration = time.time() - think_start
                 results.append((agent_uid, think_duration, think_result))
 
@@ -1167,3 +1181,11 @@ class Simulator:
                     robot=behavior,
                     ns=behavior.name,
                 )
+
+
+def before_exit():
+    os.system("xset r on")
+
+
+# Register the function to be called before exit
+atexit.register(before_exit)
