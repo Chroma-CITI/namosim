@@ -1,5 +1,6 @@
 import typing as t
 
+import numpy as np
 from aabbtree import AABBTree
 from shapely import GeometryCollection, Polygon
 
@@ -850,7 +851,7 @@ class TransitPath:
 
             if has_translation:
                 turn_towards_angle = utils.get_angle_to_turn(pose, next_pose)
-                if turn_towards_angle != 0:
+                if np.abs(turn_towards_angle) > 1e-6:
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
                     updated_poses.append((pose[0], pose[1], current_angle))
