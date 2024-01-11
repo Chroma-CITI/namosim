@@ -1,5 +1,6 @@
 import typing as t
 
+import numpy as np
 from shapely import Polygon
 
 import namosim.display.ros2_publisher as rp
@@ -69,12 +70,16 @@ class TeleopAgent(Agent):
             next_action = ba.Translation((-self.cell_size, 0))
         elif input.key_pressed == "Left":
             next_action = ba.Rotation(30)
+            input.clear()
         elif input.key_pressed == "Right":
             next_action = ba.Rotation(-30)
+            input.clear()
         elif input.key_pressed == "g":
             next_action = self._grab()
+            input.clear()
         elif input.key_pressed == "r":
             next_action = self._release()
+            input.clear()
 
         return ThinkResult(
             next_action=next_action,
@@ -87,8 +92,15 @@ class TeleopAgent(Agent):
         movables = self.world.get_movable_obstacles()
         for m in movables:
             d = m.polygon.distance(self.polygon)
-            if d < self.circumscribed_radius:
-                return ba.Grab((d, 0), m.uid)
+
+            if d > self.circumscribed_radius:
+                continue
+
+            angle = utils.get_angle_to_turn(self.pose, m.pose)
+            if np.abs(angle) > 10:
+                continue
+
+            return ba.Grab((d, 0), m.uid)
 
     def _release(self) -> ba.Release | None:
         if self.world.is_holding_obstacle(self.uid):

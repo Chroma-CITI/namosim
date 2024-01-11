@@ -124,7 +124,7 @@ class ExperimentsTests(unittest.TestCase):
         sim = Simulator(
             simulation_file_path=os.path.join(
                 self.scenarios_folder,
-                "intersections/generated/2_robots_50_goals_snamo/01.svg",
+                "intersections/generated/2_robots_50_goals_snamo/08.svg",
             )
         )
         sim.run()
@@ -174,6 +174,7 @@ class ExperimentsTests(unittest.TestCase):
             )
         )
         sim.run()
+        assert True
 
 
 if __name__ == "__main__":

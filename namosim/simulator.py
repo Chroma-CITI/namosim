@@ -1,3 +1,4 @@
+import atexit
 import copy
 import io
 import json
@@ -38,6 +39,7 @@ from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
 
 sys.setrecursionlimit(10000)
+os.system("xset r off")
 
 
 class SimulationStepResult:
@@ -364,7 +366,7 @@ class Simulator:
         except Exception as e:
             self.end_simulation(step_count=step_count, err=e)
 
-        self.teleop_input.clear()
+        # self.teleop_input.clear()
 
         return (active_agents, trace_polygons, step_count + 1)
 
@@ -536,12 +538,13 @@ class Simulator:
     ):
         if self.window is None:
             raise Exception("No window")
+        self.window.bind("<KeyPress>", self._on_key_press)
+        self.window.bind("<KeyRelease>", self._on_key_release)
         self._window_step(
             active_agents=active_agents,
             trace_polygons=trace_polygons,
             step_count=0,
         )
-        self.window.bind("<KeyPress>", self._on_key_press)
         self.window.mainloop()
 
     def _on_key_press(self, event: t.Any):
@@ -553,7 +556,11 @@ class Simulator:
             self._step = True
 
         if event.keysym:
-            self.teleop_input.update_key_pressed(event.keysym)
+            self.teleop_input.handle_key_press(event.keysym)
+
+    def _on_key_release(self, event: t.Any):
+        if event.keysym == self.teleop_input.key_pressed:
+            self.teleop_input.handle_key_release(event.keysym)
 
     def _window_step(
         self, active_agents: set[UID], trace_polygons: t.List[Polygon], step_count: int
@@ -569,7 +576,7 @@ class Simulator:
         self.render_window()
 
         self.window.after(
-            1, self._window_step, active_agents, trace_polygons, step_count
+            15, self._window_step, active_agents, trace_polygons, step_count
         )
 
     def _create_robot_world_from_sim_world(self):
@@ -1174,3 +1181,11 @@ class Simulator:
                     robot=behavior,
                     ns=behavior.name,
                 )
+
+
+def before_exit():
+    os.system("xset r on")
+
+
+# Register the function to be called before exit
+atexit.register(before_exit)
