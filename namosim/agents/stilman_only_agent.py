@@ -27,6 +27,7 @@ from namosim.data_models import (
     PoseModel,
     StilmanOnlyParametersModel,
 )
+from namosim.input import Input
 from namosim.navigation.navigation_path import Path, TransferPath, TransitPath
 from namosim.utils import collision, connectivity, utils
 from namosim.world.binary_occupancy_grid import (
@@ -159,7 +160,9 @@ class StilmanOnlyAgent(Agent):
         # TODO Make sure static and generalist grid share same width and height (occurs naturally if map borders are static, but not otherwise)
         self.inflated_grid_by_robot.deactivate_entities({self.uid})
 
-    def think(self, ros_publisher: "rp.RosPublisher"):
+    def think(
+        self, ros_publisher: "rp.RosPublisher", input: t.Optional[Input] = None
+    ) -> ThinkResult:
         if not self.is_initialized:
             raise Exception("Not initialized")
 
