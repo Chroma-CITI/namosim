@@ -26,13 +26,16 @@ from namosim.world.sensors.s_fov_sensor import SFOVSensor
 class ThinkResult:
     def __init__(
         self,
+        *,
         next_action: BasicAction | None,
         did_replan: bool,
+        did_postpone: bool = False,
         robot_name: str,
         has_conflicts: bool,
     ) -> None:
         self.next_action = next_action
         self.did_replan = did_replan
+        self.did_postpone = did_postpone
         self.robot_name = robot_name
         self.has_conflicts = has_conflicts
 
