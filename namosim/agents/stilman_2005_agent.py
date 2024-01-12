@@ -530,7 +530,7 @@ class Stilman2005Agent(Agent):
             elif self.params.resolve_conflicts is False:
                 self.logger.append(
                     utils.BasicLog(
-                        "Agent {}: Failing goal because conflicts where detected and conflict-resolution is disabled.".format(
+                        "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
                             self.name
                         ),
                         step_count,
@@ -654,7 +654,7 @@ class Stilman2005Agent(Agent):
                 else:
                     self.logger.append(
                         utils.BasicLog(
-                            "Agent {}: Failing goal because deadlocks where detected and deadlock-resolution is disabled or unavailable.".format(
+                            "Agent {}: Failing goal because deadlocks where detected and resolve-deadlocks is disabled or unavailable.".format(
                                 self.name
                             ),
                             step_count,
