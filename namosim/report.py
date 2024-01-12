@@ -213,6 +213,7 @@ class SimulationReport(BaseModel):
             align="center",
         )
         ax_goals.margins(y=1)
+        ax_goals.tick_params(axis="x", rotation=45)
 
         ax_rotations.set_title("Avg Total Rotation / Avg Goals Completed")
         ax_rotations.grid()
