@@ -245,8 +245,7 @@ class Simulator:
             self.sense(active_agents, step_count, sense_durations)
 
             # Think loop: get each agent to think about their next step
-
-            with timeout(60 * 60):
+            with timeout(5 * 60):
                 actions, think_results, think_durations = self.think(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,
@@ -275,8 +274,6 @@ class Simulator:
             self.ros_publisher.publish_sim_world(self.ref_world)
         except Exception as e:
             self.end_simulation(step_count=step_count, err=e)
-
-        # self.teleop_input.clear()
 
         return (active_agents, trace_polygons, step_count + 1)
 
