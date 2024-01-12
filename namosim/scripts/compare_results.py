@@ -56,12 +56,10 @@ def main():
             avg = report.get_avg_over_agents()
 
             if avg:
+                assert avg.agent_stats["avg"].n_goals == 50
                 goal_success_rates[alg][i] = avg.agent_stats[
                     "avg"
-                ].n_goals_completed / (
-                    avg.agent_stats["avg"].n_goals_completed
-                    + avg.agent_stats["avg"].n_goals_failed
-                )
+                ].n_goals_completed / (avg.agent_stats["avg"].n_goals)
 
     fig = plt.figure(constrained_layout=True)
     gs = GridSpec(1, 1, figure=fig)

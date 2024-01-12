@@ -22,6 +22,10 @@ class AgentStats(BaseModel):
     """The svg id attribute of the agent
     """
 
+    n_goals: float = 0
+    """The total number of navigation goals for the agent.
+    """
+
     n_goals_failed: float = 0
     """The number of goals the agent failed to complete.
     """

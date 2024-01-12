@@ -209,6 +209,8 @@ class Simulator:
         self.exception: t.Union[Exception, None] = None
 
         self.report = SimulationReport()
+        for agent in self.ref_world.agents.values():
+            self.report.agent_stats[agent.name].n_goals = agent.num_navigation_goals
 
         # keyboard actions
         self._paused = False

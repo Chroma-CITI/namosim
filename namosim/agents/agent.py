@@ -85,6 +85,12 @@ class Agent(Entity):
         self.logger = logger
         self.__world: t.Optional["w.World"] = None
         self._navigation_goals = navigation_goals
+
+        self.num_navigation_goals = len(navigation_goals)
+        """
+        The number of navigation goals the agent started with
+        """
+
         self.logs_dir = logs_dir
 
         self.__last_action_result: ActionResult | None = None
