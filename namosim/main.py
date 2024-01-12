@@ -90,6 +90,12 @@ def gen_alt_scenarios(
     goals_per_robot: t.Annotated[int, typer.Option("--goals-per-robot")] = 50,
     n_scenarios: t.Annotated[int, typer.Option("--n-scenarios")] = 1,
     use_social_cost: t.Annotated[bool, typer.Option("--use-social-cost")] = False,
+    no_resolve_deadlocks: t.Annotated[
+        bool, typer.Option("--no-resolve-deadlocks")
+    ] = False,
+    no_resolve_conflicts: t.Annotated[
+        bool, typer.Option("--no-resolve-conflicts")
+    ] = False,
 ):
     generate_alternative_scenarios(
         base_svg_filepath=scenario,
@@ -97,6 +103,8 @@ def gen_alt_scenarios(
         nb_goals_per_robot=goals_per_robot,
         nb_scenarios=n_scenarios,
         use_social_cost=use_social_cost,
+        resolve_deadlocks=not no_resolve_deadlocks,
+        resolve_conflicts=not no_resolve_conflicts,
         out_dir=out_dir,
     )
 

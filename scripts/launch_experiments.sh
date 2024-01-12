@@ -10,7 +10,7 @@ export NAMO_DEACTIVATE_RVIZ=TRUE
 for n_robots in $(seq 1 20); do
   echo "Starting simulations for ${n_robots} robots."
 
-  variants=("namo", "snamo")
+  variants=("namo_ncr" "namo" "snamo" "snamo_ndr")
   for alg in "${variants[@]}"; do
 
     index=0
