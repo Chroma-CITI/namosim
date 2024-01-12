@@ -15,11 +15,12 @@ from namosim.report import SimulationReport
 def main():
     goal_success_rates: t.Dict[str, t.Dict[int, float]] = {}
 
-    max_robots = 4
+    max_robots = 10
     algs = {
         "namo": "NAMO",
         "namo_ncr": "NAMO w/o Conflict Resolution",
         "snamo": "SNAMO",
+        "snamo_ncr": "SNAMO w/o Conflict Resolution",
         "snamo_ndr": "SNAMO w/o Deadlock Resolution",
     }
     for alg in algs.keys():
