@@ -113,6 +113,8 @@ def generate_alternative_scenarios(
     nb_goals_per_robot: int,
     nb_scenarios: int,
     use_social_cost: bool = True,
+    resolve_conflicts: bool = True,
+    resolve_deadlocks: bool = True,
 ):
     """Randomly generates alternative versions of a given scenario with a given number of robots and goals."""
     # Load SVGs
@@ -270,6 +272,8 @@ def generate_alternative_scenarios(
                             "manipulation_search_procedure": "DFS"
                             if use_social_cost
                             else "BFS",
+                            "resolve_deadlocks": resolve_deadlocks,
+                            "resolve_conflicts": resolve_conflicts,
                         }
                     ),
                 }
@@ -373,9 +377,23 @@ def generate_alternative_scenarios(
                 )
 
         # Create SVG file from modified data
+        new_scenario_basedir = f"{nb_robots}_robots_{nb_goals_per_robot}_goals"
+        if use_social_cost is False and resolve_conflicts is False:
+            new_scenario_basedir += "_namo_ncr"
+        elif use_social_cost is False:
+            new_scenario_basedir += "_namo"
+        elif use_social_cost is True and resolve_deadlocks is False:
+            new_scenario_basedir += "_snamo_ndr"
+        elif (
+            use_social_cost is True
+            and resolve_deadlocks is True
+            and resolve_conflicts is True
+        ):
+            new_scenario_basedir += "_snamo"
+
         new_scenario_path = os.path.join(
             out_dir,
-            f"{nb_robots}_robots_{nb_goals_per_robot}_goals_{'snamo' if use_social_cost else 'namo'}",
+            new_scenario_basedir,
             f"{scenario_id}.svg",
         )
 
