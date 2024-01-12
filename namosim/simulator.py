@@ -24,7 +24,7 @@ from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import UID, PoseModel
 from namosim.exceptions import timeout
 from namosim.input import Input
-from namosim.report import SimulationReport, WorldStepReport
+from namosim.report import AgentStats, SimulationReport, WorldStepReport
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
@@ -209,6 +209,10 @@ class Simulator:
         self.exception: t.Union[Exception, None] = None
 
         self.report = SimulationReport()
+        for agent in self.ref_world.agents.values():
+            self.report.agent_stats[agent.name] = AgentStats(
+                agent_id=agent.name, n_goals=agent.num_navigation_goals
+            )
 
         # keyboard actions
         self._paused = False
@@ -245,8 +249,7 @@ class Simulator:
             self.sense(active_agents, step_count, sense_durations)
 
             # Think loop: get each agent to think about their next step
-
-            with timeout(60 * 60):
+            with timeout(5 * 60):
                 actions, think_results, think_durations = self.think(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,
@@ -275,8 +278,6 @@ class Simulator:
             self.ros_publisher.publish_sim_world(self.ref_world)
         except Exception as e:
             self.end_simulation(step_count=step_count, err=e)
-
-        # self.teleop_input.clear()
 
         return (active_agents, trace_polygons, step_count + 1)
 
