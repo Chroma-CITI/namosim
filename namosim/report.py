@@ -9,6 +9,14 @@ import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 
 
+class WorldStepReport(BaseModel):
+    nb_components: float = 0
+    biggest_component_size: float = 0
+    free_space_size: float = 0
+    fragmentation: float = 0
+    absolute_social_cost: float = 0
+
+
 class AgentStats(BaseModel):
     agent_id: str
     """The svg id attribute of the agent
@@ -46,6 +54,18 @@ class AgentStats(BaseModel):
     """Total distance the agent rotated while carrying an obstacle
     """
 
+    postponements: float = 0.0
+    """The number of times the robot postponed its current plan
+    """
+
+    replans: float = 0.0
+    """The number of times the robot computed a plan
+    """
+
+    planning_time: float = 0.0
+    """The total amount of time the robot spent in planning
+    """
+
     def update(self, action_result: ar.ActionResult):
         if not isinstance(action_result, ar.ActionSuccess):
             self.n_actions_failed += 1
@@ -72,7 +92,11 @@ class AgentStats(BaseModel):
 class SimulationReport(BaseModel):
     agent_stats: t.Dict[str, AgentStats] = {}
 
-    def update(self, agent_id: str, action_result: ar.ActionResult):
+    world_steps: t.List[WorldStepReport] = []
+    """A list of world statistics for each step of the simulation
+    """
+
+    def update_for_step(self, agent_id: str, action_result: ar.ActionResult):
         if agent_id not in self.agent_stats:
             self.agent_stats[agent_id] = AgentStats(agent_id=agent_id)
 

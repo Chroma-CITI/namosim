@@ -647,6 +647,7 @@ class Stilman2005Agent(Agent):
                                 self.logger,
                                 self.name,
                             ),
+                            did_postpone=True,
                             did_replan=False,
                             robot_name=self.name,
                             has_conflicts=True,
@@ -677,6 +678,7 @@ class Stilman2005Agent(Agent):
                         self.logger,
                         self.name,
                     ),
+                    did_postpone=True,
                     did_replan=False,
                     robot_name=self.name,
                     has_conflicts=True,
@@ -932,6 +934,7 @@ class Stilman2005Agent(Agent):
                                 self.logger,
                                 self.name,
                             ),
+                            did_postpone=True,
                             did_replan=True,
                             robot_name=self.name,
                             has_conflicts=True,
@@ -962,7 +965,7 @@ class Stilman2005Agent(Agent):
                                 )
                             )
                             return ThinkResult(
-                                plan.new_postpone(
+                                next_action=plan.new_postpone(
                                     t_min,
                                     t_max,
                                     step_count,
@@ -971,6 +974,7 @@ class Stilman2005Agent(Agent):
                                     self.name,
                                 ),
                                 did_replan=True,
+                                did_postpone=True,
                                 robot_name=self.name,
                                 has_conflicts=True,
                             )
