@@ -52,6 +52,8 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     robot_translation_unit_length: float = attr()
     solution_interval_bound_percentage: float = attr(default=0.01)
     use_social_cost: bool = attr(default=True)
+    resolve_conflicts: bool = attr(default=True)
+    resolve_deadlocks: bool = attr(default=True)
 
 
 class StilmanBehaviorConfigModel(BaseBehaviorConfigModel):

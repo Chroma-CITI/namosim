@@ -527,12 +527,36 @@ class Stilman2005Agent(Agent):
                     robot_name=self.name,
                     has_conflicts=False,
                 )  # Normal case, don't log
-
-            if self.use_social_cost:
-                potential_deadlocks = self.potential_deadlocks(
-                    conflicts, plan, step_count
+            elif self.params.resolve_conflicts is False:
+                self.logger.append(
+                    utils.BasicLog(
+                        "Agent {}: Failing goal because conflicts where detected and conflict-resolution is disabled.".format(
+                            self.name
+                        ),
+                        step_count,
+                    )
                 )
-                if potential_deadlocks:
+                return ThinkResult(
+                    next_action=ba.GoalFailed(goal),
+                    did_replan=False,
+                    robot_name=self.name,
+                    has_conflicts=True,
+                )
+
+            # Detect and resolve deadlocks
+            potential_deadlocks = self.potential_deadlocks(conflicts, plan, step_count)
+
+            if potential_deadlocks:
+                self.logger.append(
+                    utils.BasicLog(
+                        "Agent {}: Potential deadlocks detected: {}.".format(
+                            self.name, potential_deadlocks
+                        ),
+                        step_count,
+                    )
+                )
+
+                if self.use_social_cost and self.params.resolve_deadlocks:
                     if plan.timer.is_running and not plan.timer.is_timer_over(
                         step_count
                     ):
@@ -542,15 +566,6 @@ class Stilman2005Agent(Agent):
                             robot_name=self.name,
                             has_conflicts=True,
                         )
-
-                    self.logger.append(
-                        utils.BasicLog(
-                            "Agent {}: Potential deadlocks detected: {}.".format(
-                                self.name, potential_deadlocks
-                            ),
-                            step_count,
-                        )
-                    )
 
                     if not plan.has_tries_remaining(try_max):
                         self.logger.append(
@@ -636,6 +651,22 @@ class Stilman2005Agent(Agent):
                             robot_name=self.name,
                             has_conflicts=True,
                         )
+                else:
+                    self.logger.append(
+                        utils.BasicLog(
+                            "Agent {}: Failing goal because deadlocks where detected and deadlock-resolution is disabled or unavailable.".format(
+                                self.name
+                            ),
+                            step_count,
+                        )
+                    )
+                    return ThinkResult(
+                        next_action=ba.GoalFailed(goal),
+                        did_replan=False,
+                        robot_name=self.name,
+                        has_conflicts=True,
+                    )
+
             if not self.must_replan_now(conflicts):
                 return ThinkResult(
                     next_action=plan.new_postpone(
