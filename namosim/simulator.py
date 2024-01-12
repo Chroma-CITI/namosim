@@ -24,16 +24,7 @@ from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import UID, PoseModel
 from namosim.exceptions import timeout
 from namosim.input import Input
-from namosim.navigation.conflict import (
-    ConcurrentGrabConflict,
-    RobotObstacleConflict,
-    RobotRobotConflict,
-    SimultaneousSpaceAccess,
-    StealingMovableConflict,
-    StolenMovableConflict,
-)
-from namosim.navigation.navigation_plan import DynamicPlan
-from namosim.report import SimulationReport
+from namosim.report import SimulationReport, WorldStepReport
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
@@ -49,95 +40,15 @@ class SimulationStepResult:
         think_durations: t.Dict[UID, float],
         act_duration: float,
         action_results: t.Dict[UID, ar.ActionResult],
+        think_results: t.Dict[UID, ThinkResult],
         step_index: int,
     ):
         self.sense_durations = sense_durations
         self.think_durations = think_durations
         self.act_duration = act_duration
         self.action_results = action_results
+        self.think_results = think_results
         self.step_index = step_index
-
-
-class AgentStepStats:
-    def __init__(
-        self,
-        transit_path_length: float = 0.0,
-        transfer_path_length: float = 0.0,
-        path_length: float = 0.0,
-        nb_transfers: int = 0,
-        nb_successful_goals: int = 0,
-        nb_failed_goals: int = 0,
-        nb_goals: int = 0,
-        nb_conflicts: int = 0,
-        nb_robot_robot_conflicts: int = 0,
-        nb_robot_obstacle_conflicts: int = 0,
-        nb_stolen_movable_conflicts: int = 0,
-        nb_stealing_movable_conflicts: int = 0,
-        nb_concurrent_grab_conflicts: int = 0,
-        nb_simultaneous_space_access_conflicts: int = 0,
-        nb_wait_steps: int = 0,
-        nb_transit_steps: int = 0,
-        nb_transfer_steps: int = 0,
-        nb_steps: int = 0,
-        nb_of_postponements: int = 0,
-        nb_of_unpostponements: int = 0,
-        nb_of_plan_computations: int = 0,
-        sense_time: float = 0.0,
-        think_time: float = 0.0,
-    ):
-        self.transit_path_length = transit_path_length
-        self.transfer_path_length = transfer_path_length
-        self.path_length = path_length
-        self.nb_transfers = nb_transfers
-        self.nb_successful_goals = nb_successful_goals
-        self.nb_failed_goals = nb_failed_goals
-        self.nb_goals = nb_goals
-        self.nb_conflicts = nb_conflicts
-        self.nb_robot_robot_conflicts = nb_robot_robot_conflicts
-        self.nb_robot_obstacle_conflicts = nb_robot_obstacle_conflicts
-        self.nb_stolen_movable_conflicts = nb_stolen_movable_conflicts
-        self.nb_stealing_movable_conflicts = nb_stealing_movable_conflicts
-        self.nb_concurrent_grab_conflicts = nb_concurrent_grab_conflicts
-        self.nb_simultaneous_space_access_conflicts = (
-            nb_simultaneous_space_access_conflicts
-        )
-        self.nb_wait_steps = nb_wait_steps
-        self.nb_transit_steps = nb_transit_steps
-        self.nb_transfer_steps = nb_transfer_steps
-        self.nb_steps = nb_steps
-        self.nb_of_postponements = nb_of_postponements
-        self.nb_of_unpostponements = nb_of_unpostponements
-        self.nb_of_plan_computations = nb_of_plan_computations
-        self.sense_time = sense_time
-        self.think_time = think_time
-
-
-class WorldStepStats:
-    def __init__(
-        self,
-        nb_components: int = 0,
-        biggest_component_size: int = 0,
-        free_space_size: int = 0,
-        fragmentation: float = 0.0,
-        absolute_social_cost: float = 0.0,
-    ):
-        self.nb_components = nb_components
-        self.biggest_component_size = biggest_component_size
-        self.free_space_size = free_space_size
-        self.fragmentation = fragmentation
-        self.absolute_social_cost = absolute_social_cost
-
-
-class StepStats:
-    def __init__(
-        self,
-        world_stats: t.Optional[WorldStepStats] = None,
-        agents_stats: t.Optional[t.Dict[str, AgentStepStats]] = None,
-        act_time: float = 0.0,
-    ):
-        self.world_stats = world_stats or WorldStepStats()
-        self.agents_stats = agents_stats or {}
-        self.act_time = act_time
 
 
 class Simulator:
@@ -205,7 +116,7 @@ class Simulator:
         self.save_init_world_state = True
         self.save_intermediate_world_states = False
         self.save_end_world_state = True
-        self.save_stats = True
+        self.save_report = True
         self.save_history = False
         self.save_logs = True
         self.pickle_saved_data = False
@@ -334,14 +245,12 @@ class Simulator:
             self.sense(active_agents, step_count, sense_durations)
 
             # Think loop: get each agent to think about their next step
-            think_durations = {}
-            # actions = {}
+
             with timeout(60 * 60):
-                actions = self.think(
+                actions, think_results, think_durations = self.think(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,
                     step_count=step_count,
-                    think_durations=think_durations,
                 )
 
             # Act loops: Verify that each action is doable individually and together, if so, execute them
@@ -349,17 +258,18 @@ class Simulator:
             action_results = self.act(actions, step_count)
             act_duration = time.time() - act_start
 
-            self.update_report(action_results=action_results)
-
-            self.history.append(
-                SimulationStepResult(
-                    sense_durations,
-                    think_durations,
-                    act_duration,
-                    action_results,
-                    step_count,
-                )
+            sim_step_result = SimulationStepResult(
+                sense_durations,
+                think_durations,
+                act_duration,
+                action_results,
+                think_results,
+                step_count,
             )
+            self.history.append(sim_step_result)
+
+            if self.save_report:
+                self.update_report(sim_step_result)
 
             # Once the simulation reference world has been modified, display the modification
             self.ros_publisher.publish_sim_world(self.ref_world)
@@ -370,10 +280,26 @@ class Simulator:
 
         return (active_agents, trace_polygons, step_count + 1)
 
-    def update_report(self, action_results: t.Dict[UID, ar.ActionResult]):
-        for uid, action_result in action_results.items():
+    def update_report(self, sim_step_result: SimulationStepResult):
+        for uid, action_result in sim_step_result.action_results.items():
             agent_id = self.ref_world.entities[uid].name
-            self.report.update(agent_id=agent_id, action_result=action_result)
+            self.report.update_for_step(agent_id=agent_id, action_result=action_result)
+            self.report.agent_stats[
+                agent_id
+            ].planning_time += sim_step_result.think_durations[uid]
+            if sim_step_result.think_results[uid].did_replan:
+                self.report.agent_stats[agent_id].replans += 1
+            if sim_step_result.think_results[uid].did_postpone:
+                self.report.agent_stats[agent_id].postponements += 1
+
+        world_stats = self.get_next_world_step_report(
+            self.ref_world,
+            sim_step_result,
+            prev=self.report.world_steps[-1]
+            if len(self.report.world_steps) > 0
+            else None,
+        )
+        self.report.world_steps.append(world_stats)
 
     def end_simulation(self, step_count: int, err: Exception | None = None):
         self.run_active = False
@@ -490,13 +416,15 @@ class Simulator:
                 utils.BasicLog("Saved simulation final state.", step_count)
             )
 
-        # - Save stats
-        if self.save_stats:
-            stats = self.create_simulation_report()
-            stats_filepath = os.path.join(self.logs_dir, "stats")
-            self.save(stats, stats_filepath)
+        # - Save report
+        if self.save_report:
+            report = self.create_simulation_report()
+            report_path = os.path.join(self.logs_dir, "report")
+            self.save(report, report_path)
             self.simulation_log.append(
-                utils.BasicLog("Saved stats at: {}".format(stats_filepath), step_count)
+                utils.BasicLog(
+                    "Saved simulation report at: {}".format(report_path), step_count
+                )
             )
 
         # - Save simulation history
@@ -595,222 +523,75 @@ class Simulator:
         )
 
     def create_simulation_report(self):
-        all_movable_types = set()
-        for entity in self.init_ref_world.entities.values():
-            if isinstance(entity, Agent):
-                all_movable_types.update(set(entity.movable_whitelist))
+        report = {"report": self.report.to_json_data()}
+        return report
 
-        all_movables_uids = {
-            entity_uid
-            for entity_uid, entity in self.init_ref_world.entities.items()
-            if isinstance(entity, Obstacle) and entity.type_ in all_movable_types
-        }
-
-        (
-            init_nb_cc,
-            init_biggest_cc_size,
-            init_all_cc_sum_size,
-            init_frag_percentage,
-        ) = stats_utils.get_connectivity_stats(
-            self.init_ref_world,
-            self.human_inflation_radius,
-            [
-                uid
-                for uid, entity in self.init_ref_world.entities.items()
-                if isinstance(entity, Agent)
-            ],
-            ros_publisher=self.ros_publisher,
-        )
-        init_abs_social_cost = stats_utils.get_social_costs_stats(
-            self.init_ref_world,
-            tuple(all_movables_uids),
-            ros_publisher=self.ros_publisher,
-        )
-
-        replay_world = copy.deepcopy(self.init_ref_world)
-        stats = [
-            StepStats(
-                world_stats=WorldStepStats(
-                    init_nb_cc,
-                    init_biggest_cc_size,
-                    init_all_cc_sum_size,
-                    init_frag_percentage,
-                    init_abs_social_cost,
-                ),
-                agents_stats={
-                    replay_world.entities[uid].name: AgentStepStats()
-                    for uid in self.ref_world.agents.keys()
-                },
-                act_time=0.0,
-            )
-        ]
-        prev_agent_poses = {
-            uid: replay_world.entities[uid].pose for uid in self.ref_world.agents.keys()
-        }
-        for sim_step_result in self.history:
-            # Only repeat successful actions when replaying the simulation
-            successful_actions: t.Dict[UID, ba.BasicAction] = {
-                uid: action_result.action
-                for uid, action_result in sim_step_result.action_results.items()
-                if (
-                    isinstance(action_result, ar.ActionSuccess)
-                    and isinstance(
-                        action_result.action,
-                        (ba.Rotation, ba.Translation, ba.Grab, ba.Release),
-                    )
+    def get_next_world_step_report(
+        self,
+        world: World,
+        sim_step_result: SimulationStepResult,
+        prev: WorldStepReport | None,
+    ) -> WorldStepReport:
+        successful_actions: t.Dict[UID, ba.BasicAction] = {
+            uid: action_result.action
+            for uid, action_result in sim_step_result.action_results.items()
+            if (
+                isinstance(action_result, ar.ActionSuccess)
+                and isinstance(
+                    action_result.action,
+                    (ba.Rotation, ba.Translation, ba.Grab, ba.Release),
                 )
-            }
-
-            collision.csv_simulate_simple_kinematics(
-                world=replay_world,
-                agent_uid_to_next_action=successful_actions,
-                apply=True,
-                ignore_collisions=True,
             )
-            for agent_uid, action in successful_actions.items():
-                if isinstance(action, ba.Grab):
-                    replay_world.entity_to_agent[action.entity_uid] = agent_uid
-                if isinstance(action, ba.Release):
-                    del replay_world.entity_to_agent[action.entity_uid]
+        }
 
-            # Compute world state stats ignoring all dynamic obstacles (robots and grabbed obstacles, typically)
-            # Only when a release action happens, otherwise preserve previous stats
-            if any(
+        if (
+            any(
                 [
                     isinstance(action, ba.Release)
                     for action in successful_actions.values()
                 ]
-            ):
-                (
-                    end_nb_cc,
-                    end_biggest_cc_size,
-                    end_all_cc_sum_size,
-                    end_frag,
-                ) = stats_utils.get_connectivity_stats(
-                    replay_world,
-                    self.human_inflation_radius,
-                    [
-                        uid
-                        for uid, entity in replay_world.entities.items()
-                        if isinstance(entity, Agent)
-                        or uid in replay_world.entity_to_agent.keys()
-                    ],
-                    ros_publisher=self.ros_publisher,
-                )
-                end_abs_social_cost = stats_utils.get_social_costs_stats(
-                    replay_world,
-                    all_movables_uids.difference(
-                        set(replay_world.entity_to_agent.keys())
-                    ),
-                    ros_publisher=self.ros_publisher,
-                )
-                world_stats = WorldStepStats(
-                    end_nb_cc,
-                    end_biggest_cc_size,
-                    end_all_cc_sum_size,
-                    end_frag,
-                    end_abs_social_cost,
-                )
-            else:
-                world_stats = stats[-1].world_stats
+            )
+            or not prev
+        ):
+            return self.compute_world_step_report(world)
 
-            # Compute agents stats
-            prev_agents_stats = stats[-1].agents_stats
-            agents_stats = copy.deepcopy(prev_agents_stats)
-            for name, agent_stats in agents_stats.items():
-                uid = replay_world.get_entity_uid_from_name(name)
+        return prev
 
-                if uid not in sim_step_result.action_results:
-                    continue
-
-                step_distance = utils.euclidean_distance(
-                    prev_agent_poses[uid], replay_world.entities[uid].pose
-                )
-                if uid in replay_world.entity_to_agent.inverse:
-                    agent_stats.transfer_path_length += step_distance
-                else:
-                    agent_stats.transit_path_length += step_distance
-                agent_stats.path_length += step_distance
-
-                robot_action_result = sim_step_result.action_results[uid]
-                robot_action = robot_action_result.action
-
-                if isinstance(robot_action_result, ar.ActionSuccess):
-                    if isinstance(robot_action, ba.Grab):
-                        agent_stats.nb_transfers += 1
-                        agent_stats.nb_transfer_steps += 1
-                        agent_stats.nb_steps += 1
-                    elif isinstance(robot_action, ba.Wait):
-                        agent_stats.nb_wait_steps += 1
-                        agent_stats.nb_steps += 1
-                    elif isinstance(robot_action, ba.GoalSuccess):
-                        agent_stats.nb_goals += 1
-                        agent_stats.nb_successful_goals += 1
-                    elif isinstance(robot_action, ba.GoalFailed):
-                        agent_stats.nb_goals += 1
-                        agent_stats.nb_failed_goals += 1
-                    elif isinstance(
-                        robot_action, (ba.Translation, ba.Rotation, ba.Release)
-                    ):
-                        agent_stats.nb_steps += 1
-                        if uid in replay_world.entity_to_agent.inverse:
-                            agent_stats.nb_transfer_steps += 1
-                        else:
-                            agent_stats.nb_transit_steps += 1
-
-                # TODO Find a way to ditch the self.saved_goals variable
-                if not isinstance(robot_action, (ba.GoalResult, ba.GoalsFinished)):
-                    current_goal = self.saved_goals[replay_world.entities[uid].name][
-                        agent_stats.nb_goals
-                    ]
-                    current_plan = self.ref_world.agents[uid].goal_to_plans[
-                        current_goal
-                    ]
-
-                    step_index = sim_step_result.step_index
-
-                    if isinstance(current_plan, DynamicPlan):
-                        if step_index in current_plan.conflicts_history:
-                            conflict = current_plan.conflicts_history[step_index]
-                            agent_stats.nb_conflicts += 1
-                            if isinstance(conflict, RobotRobotConflict):
-                                agent_stats.nb_robot_robot_conflicts += 1
-                            elif isinstance(conflict, RobotObstacleConflict):
-                                agent_stats.nb_robot_obstacle_conflicts += 1
-                            elif isinstance(conflict, StolenMovableConflict):
-                                agent_stats.nb_stolen_movable_conflicts += 1
-                            elif isinstance(conflict, StealingMovableConflict):
-                                agent_stats.nb_stealing_movable_conflicts += 1
-                            elif isinstance(conflict, ConcurrentGrabConflict):
-                                agent_stats.nb_concurrent_grab_conflicts += 1
-                            elif isinstance(conflict, SimultaneousSpaceAccess):
-                                agent_stats.nb_simultaneous_space_access_conflicts += 1
-
-                        if step_index in current_plan.postponements_history:
-                            agent_stats.nb_of_postponements += 1
-
-                        if step_index in current_plan.unpostponements_history:
-                            agent_stats.nb_of_unpostponements += 1
-
-                        if step_index in current_plan.steps_with_replan_call:
-                            agent_stats.nb_of_plan_computations += 1
-
-                agent_stats.sense_time += sim_step_result.sense_durations[uid]
-                agent_stats.think_time += sim_step_result.think_durations[uid]
-
-            # Update act_time
-            act_time = stats[-1].act_time + sim_step_result.act_duration
-
-            stats.append(StepStats(world_stats, agents_stats, act_time))
-
-            prev_agent_poses = {
-                uid: replay_world.entities[uid].pose
-                for uid in self.ref_world.agents.keys()
-            }
-
-        report = {"stats": stats, "report": self.report.to_json_data()}
-
-        return report
+    def compute_world_step_report(
+        self,
+        world: World,
+    ) -> WorldStepReport:
+        all_movables_uids = [x.uid for x in world.get_movable_obstacles()]
+        (
+            nb_components,
+            biggest_component_size,
+            free_space_size,
+            fragmentation,
+        ) = stats_utils.get_connectivity_stats(
+            world,
+            self.human_inflation_radius,
+            set(
+                [
+                    uid
+                    for uid, entity in world.entities.items()
+                    if isinstance(entity, Agent) or uid in world.entity_to_agent.keys()
+                ]
+            ),
+            ros_publisher=self.ros_publisher,
+        )
+        end_abs_social_cost = stats_utils.get_social_costs_stats(
+            world,
+            set(all_movables_uids),
+            ros_publisher=self.ros_publisher,
+        )
+        world_stats = WorldStepReport(
+            nb_components=nb_components,
+            biggest_component_size=biggest_component_size,
+            free_space_size=free_space_size,
+            fragmentation=fragmentation,
+            absolute_social_cost=end_abs_social_cost,
+        )
+        return world_stats
 
     def initialize_agents_goals(
         self,
@@ -925,17 +706,14 @@ class Simulator:
 
     def process_think_results(
         self,
-        results: t.Iterable[t.Tuple[UID, float, ThinkResult]],
-        think_durations: t.Dict[UID, float],
+        results: t.Dict[UID, ThinkResult],
         active_agents: t.Set[UID],
         trace_polygons: t.List[Polygon],
         step_count: int,
     ) -> t.Dict[UID, ba.BasicAction]:
         """Process the results of each agent's think step. Updates the set of activate agents and the dictionary of think durations."""
         agent_uid_to_next_action: t.Dict[UID, ba.BasicAction] = {}
-        for agent_uid, think_duration, think_result in results:
-            think_durations[agent_uid] = think_duration
-
+        for agent_uid, think_result in results.items():
             if think_result.has_conflicts is False:
                 self.ros_publisher.cleanup_conflicts_checks(ns=think_result.robot_name)
 
@@ -990,10 +768,11 @@ class Simulator:
         self,
         active_agents: t.Set[UID],
         step_count: int,
-        think_durations: t.Dict[UID, float],
         trace_polygons: t.List[Polygon],
     ):
-        results: t.List[t.Tuple[UID, float, ThinkResult]] = []
+        think_results: t.Dict[UID, ThinkResult] = {}
+        think_durations: t.Dict[UID, float] = {}
+
         for agent_uid, behavior in self.ref_world.agents.items():
             if agent_uid in active_agents:
                 self.publish_robot_goal(agent_uid=agent_uid)
@@ -1003,19 +782,22 @@ class Simulator:
                     ros_publisher=self.ros_publisher, input=self.teleop_input
                 )
                 think_duration = time.time() - think_start
-                results.append((agent_uid, think_duration, think_result))
+
+                think_results[agent_uid] = think_result
+                think_durations[agent_uid] = think_duration
 
                 self.publish_robot_plan(
                     agent_uid=agent_uid, did_replan=think_result.did_replan
                 )
 
-        return self.process_think_results(
-            results=results,
-            think_durations=think_durations,
+        actions = self.process_think_results(
+            results=think_results,
             step_count=step_count,
             active_agents=active_agents,
             trace_polygons=trace_polygons,
         )
+
+        return actions, think_results, think_durations
 
     def act(
         self,
