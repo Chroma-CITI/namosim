@@ -818,6 +818,21 @@ class Stilman2005Agent(Agent):
                     robot_name=self.name,
                     has_conflicts=False,
                 )
+            elif self.params.resolve_conflicts is False:
+                self.logger.append(
+                    utils.BasicLog(
+                        "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
+                            self.name
+                        ),
+                        step_count,
+                    )
+                )
+                return ThinkResult(
+                    next_action=ba.GoalFailed(goal),
+                    did_replan=True,
+                    robot_name=self.name,
+                    has_conflicts=True,
+                )
             else:
                 self.logger.append(
                     utils.BasicLog(
