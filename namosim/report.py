@@ -22,7 +22,7 @@ class AgentStats(BaseModel):
     """The svg id attribute of the agent
     """
 
-    n_goals: float = 0
+    n_goals: float
     """The total number of navigation goals for the agent.
     """
 
@@ -102,7 +102,7 @@ class SimulationReport(BaseModel):
 
     def update_for_step(self, agent_id: str, action_result: ar.ActionResult):
         if agent_id not in self.agent_stats:
-            self.agent_stats[agent_id] = AgentStats(agent_id=agent_id)
+            raise Exception(f"Agent ${agent_id} not found in report")
 
         self.agent_stats[agent_id].update(action_result=action_result)
 
@@ -110,7 +110,7 @@ class SimulationReport(BaseModel):
         return self.model_dump()
 
     def get_avg_over_agents(self) -> t.Optional["SimulationReport"]:
-        avg = AgentStats(agent_id="avg")
+        avg = AgentStats(agent_id="avg", n_goals=0)
         N = len(self.agent_stats)
         if N == 0:
             return
@@ -124,6 +124,10 @@ class SimulationReport(BaseModel):
             avg.degrees_rotated += stats.degrees_rotated / N
             avg.transfer_distance_traveled += stats.transfer_distance_traveled / N
             avg.transfer_degrees_rotated += stats.transfer_degrees_rotated / N
+            avg.n_goals += stats.n_goals / N
+            avg.postponements += stats.postponements / N
+            avg.replans += stats.replans / N
+            avg.planning_time += stats.planning_time / N
 
         return SimulationReport(agent_stats={"avg": avg})
 

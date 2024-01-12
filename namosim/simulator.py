@@ -24,7 +24,7 @@ from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import UID, PoseModel
 from namosim.exceptions import timeout
 from namosim.input import Input
-from namosim.report import SimulationReport, WorldStepReport
+from namosim.report import AgentStats, SimulationReport, WorldStepReport
 from namosim.utils import collision, conversion, stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
@@ -210,7 +210,9 @@ class Simulator:
 
         self.report = SimulationReport()
         for agent in self.ref_world.agents.values():
-            self.report.agent_stats[agent.name].n_goals = agent.num_navigation_goals
+            self.report.agent_stats[agent.name] = AgentStats(
+                agent_id=agent.name, n_goals=agent.num_navigation_goals
+            )
 
         # keyboard actions
         self._paused = False
