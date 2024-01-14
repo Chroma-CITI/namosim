@@ -7,6 +7,7 @@ import os
 import typing as t
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.gridspec import GridSpec
 
 from namosim.report import SimulationReport
@@ -31,7 +32,7 @@ def main():
             dir = f"namo_logs/intersections/{i}_robots_50_goals_{alg}"
 
             report = SimulationReport()
-            result_files = glob.glob(os.path.join(dir, "**/stats.json"))
+            result_files = glob.glob(os.path.join(dir, "**/report.json"))
 
             n_skipped = 0
             for result_file in result_files:
@@ -57,7 +58,8 @@ def main():
             avg = report.get_avg_over_agents()
 
             if avg:
-                assert avg.agent_stats["avg"].n_goals == 50
+                print(avg.agent_stats["avg"].n_goals)
+                assert np.isclose(avg.agent_stats["avg"].n_goals, 50)
                 goal_success_rates[alg][i] = avg.agent_stats[
                     "avg"
                 ].n_goals_completed / (avg.agent_stats["avg"].n_goals)
