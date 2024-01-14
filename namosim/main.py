@@ -53,7 +53,7 @@ def compare_results(
 
     for dir, title in zip(result_dirs, titles):
         report = SimulationReport()
-        result_files = glob.glob(os.path.join(dir, "**/stats.json"))
+        result_files = glob.glob(os.path.join(dir, "**/report.json"))
 
         n_skipped = 0
         for result_file in result_files:

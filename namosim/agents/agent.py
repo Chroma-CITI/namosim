@@ -1,10 +1,8 @@
 import abc
-import copy
 import typing as t
 from collections import OrderedDict
 
 from shapely import Polygon
-from typing_extensions import Self
 
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.navigation_plan as navp
@@ -121,7 +119,7 @@ class Agent(Entity):
         """
 
     def init(self, world: "w.World") -> None:
-        self.__world = copy.deepcopy(world)
+        self.__world = world.light_copy([])
         self.is_initialized = True
 
     def sense(
@@ -280,6 +278,3 @@ class Agent(Entity):
         for sensor in self.sensors:
             json_data["sensors"].append(sensor.to_json())
         return json_data
-
-    def light_copy(self) -> Self:
-        raise NotImplementedError()
