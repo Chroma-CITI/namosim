@@ -82,7 +82,7 @@ class Entity:
     def within(self, other_entity: Self) -> bool:
         return self.polygon.within(other_entity.polygon)
 
-    def light_copy(self):
+    def copy(self):
         return Entity(
             name=self.name,
             type_=self.type_,

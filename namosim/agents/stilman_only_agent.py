@@ -2119,7 +2119,7 @@ class StilmanOnlyAgent(Agent):
             logs_dir=self.logs_dir,
         )
 
-    def light_copy(self) -> Self:
+    def copy(self) -> Self:
         return StilmanOnlyAgent(
             uid=self.uid,
             navigation_goals=copy.deepcopy(self._navigation_goals),

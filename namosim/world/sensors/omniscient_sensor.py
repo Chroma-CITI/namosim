@@ -16,7 +16,7 @@ class OmniscientSensor:
             target_world.entities.keys()
         )
         for uid in uids_to_add:
-            target_world.add_entity(reference_world.entities[uid].light_copy())
+            target_world.add_entity(reference_world.entities[uid].copy())
 
         # Update
         uids_to_potentially_update = set(reference_world.entities.keys()).intersection(
