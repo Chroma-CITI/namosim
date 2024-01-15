@@ -459,30 +459,6 @@ class World:
             )
         )
 
-    def copy(self):
-        entity_to_agent: bidict[UID, UID] = bidict()
-        for e, a in self.entity_to_agent.items():
-            entity_to_agent[e] = a
-        entities = {}
-        agents = {}
-        for uid, e in self.entities.items():
-            e = copy.deepcopy(e)
-            entities[uid] = e
-            if isinstance(e, agts.Agent):
-                agents[uid] = e
-
-        return World(
-            config=self.config,
-            entities=entities,
-            agents=agents,
-            entity_to_agent=entity_to_agent,
-            discretization_data=copy.deepcopy(self.discretization_data),
-            goals=copy.deepcopy(self.goals),
-            init_geometry_filename=self.init_geometry_filename,
-            init_geometry_file=self.init_geometry_file,
-            logger=self.logger,
-        )
-
     def light_copy(self, ignored_entities: t.Iterable[UID]):
         entity_to_agent: bidict[UID, UID] = bidict()
         for e, a in self.entity_to_agent.items():

@@ -135,7 +135,7 @@ class Agent(Entity):
             style=copy.deepcopy(self.style),
             cell_size=copy.deepcopy(self.cell_size),
             movability=self.movability,
-            logger=copy.deepcopy(self.logger),
+            logger=self.logger,
             uid=self.uid,
         )
 
