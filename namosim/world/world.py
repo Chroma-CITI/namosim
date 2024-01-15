@@ -494,7 +494,7 @@ class World:
             if uid in ignored_entities:
                 continue
 
-            e = e.light_copy()
+            e = e.copy()
             entities[uid] = e
             if isinstance(e, agts.Agent):
                 agents[uid] = e
