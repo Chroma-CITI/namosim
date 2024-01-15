@@ -928,7 +928,7 @@ class StilmanOnlyAgent(Agent):
         obstacle_can_intrude_c_1_x: bool = True,
     ) -> t.Tuple["w.World", TransferPath | None]:
         # Initialize manip search simulation world and some shortcut variables
-        w_t_plus_2 = copy.deepcopy(w_t)
+        w_t_plus_2 = w_t.light_copy([])
 
         ros_publisher.publish_robot_sim_world(w_t_plus_2, self.uid)
 
@@ -967,7 +967,7 @@ class StilmanOnlyAgent(Agent):
         )
         obstacle_min_inflation_radius = utils.get_inscribed_radius(obstacle_polygon)
 
-        inf_robot, inf_obstacle = copy.deepcopy(robot), copy.deepcopy(obstacle)
+        inf_robot, inf_obstacle = robot.copy(), obstacle.copy()
         inf_robot.polygon, inf_obstacle.polygon = (
             robot.polygon.buffer(res, join_style="mitre"),
             obstacle.polygon.buffer(res, join_style="mitre"),
@@ -1535,8 +1535,8 @@ class StilmanOnlyAgent(Agent):
             1.0 if not is_transfer else self.transfer_coefficient
         )
 
-    @staticmethod
     def get_next_transit_start_configuration(
+        self,
         grid: BinaryInflatedOccupancyGrid,
         robot_pose: PoseModel,
         robot_polygon: Polygon,
@@ -1549,7 +1549,7 @@ class StilmanOnlyAgent(Agent):
         rot_mult: float,
     ):
         release_action = ba.Release(
-            translation_vector=(-1.0 * (grid.inflation_radius + 1.5 * grid.res), 0.0),
+            translation_vector=(-self.grab_and_release_distance, 0.0),
             entity_uid=obstacle_uid,
         )
         new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
