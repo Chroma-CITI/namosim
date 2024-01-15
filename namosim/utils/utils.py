@@ -904,7 +904,7 @@ def rotate_then_translate_polygon(
     )
 
 
-def polygon_collides_with_entities(polygon, entities, aabb_tree=None):
+def polygon_collides_with_entities(polygon: Polygon, entities, aabb_tree=None):
     for entity in entities:
         if entity.polygon.intersects(polygon):
             return True
@@ -1097,8 +1097,8 @@ def are_points_on_opposite_sides(ax, ay, bx, by, x1, y1, x2, y2):
 
 
 def sample_poses_at_middle_of_inflated_sides(
-    polygon, dist_from_sides, close_to_zero_atol=1e-06
-):
+    polygon: Polygon, dist_from_sides: float, close_to_zero_atol: float = 1e-06
+) -> t.List[PoseModel]:
     """
     Computes and returns the manipulation poses that are at a distance dist_from_border from the sides,
     and facing their middle.
@@ -1147,8 +1147,13 @@ def sample_poses_at_middle_of_inflated_sides(
 
 
 def generate_random_polygon(
-    ctr_x, ctr_y, ave_radius, irregularity, spikeyness, num_verts
-):
+    ctr_x: float,
+    ctr_y: float,
+    ave_radius: float,
+    irregularity: float,
+    spikeyness: float,
+    num_verts: int,
+) -> t.List[t.Tuple[float, float]]:
     """
     Random polygon generator copied from Stackoverflow user Mike Ounsworth:
     https://stackoverflow.com/questions/8997099/algorithm-to-generate-random-2d-polygon
@@ -1206,7 +1211,7 @@ def generate_random_polygon(
     return points
 
 
-def polygon_to_subgrid_polygon_and_parameters(polygon, res, grid_pose):
+def polygon_to_subgrid_polygon_and_parameters(polygon: Polygon, res, grid_pose):
     # Compute real min point and max point of projected polygon grid-axis-aligned bounding box
     min_x, min_y, max_x, max_y = polygon.bounds
 
@@ -1266,7 +1271,9 @@ def same_side(line_p1, dx, dy, a, b, c, d):
     return a_term * b_term >= 0.0 and a_term * c_term >= 0.0 and a_term * d_term >= 0.0
 
 
-def accurate_rasterize_to_cells(projected_polygon, d_width, d_height, res, fill=True):
+def accurate_rasterize_to_cells(
+    projected_polygon: Polygon, d_width, d_height, res, fill=True
+):
     projected_poly_coords = list(projected_polygon.exterior.coords)
     cells = set()
     # subgrid = np.zeros((d_width, d_height), dtype=np.uint8)  # DEBUG
@@ -1385,7 +1392,9 @@ def accurate_rasterize_to_cells(projected_polygon, d_width, d_height, res, fill=
     return cells
 
 
-def accurate_rasterize_to_subgrid(projected_polygon, d_width, d_height, res, fill=True):
+def accurate_rasterize_to_subgrid(
+    projected_polygon: Polygon, d_width, d_height, res, fill=True
+):
     subgrid = np.zeros((d_width, d_height), dtype=np.uint8)
     cells = accurate_rasterize_to_cells(projected_polygon, d_width, d_height, res)
     for cell in cells:

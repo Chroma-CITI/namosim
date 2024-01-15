@@ -259,7 +259,7 @@ class Obstacle(Entity):
     #     else:
     #         return None
 
-    def light_copy(self, copy_polygon: bool = True):
+    def copy(self, copy_polygon: bool = True):
         return Obstacle(
             name=self.name,
             polygon=None if not copy_polygon else copy.deepcopy(self.polygon),

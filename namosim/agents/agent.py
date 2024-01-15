@@ -1,4 +1,5 @@
 import abc
+import copy
 import typing as t
 from collections import OrderedDict
 
@@ -117,6 +118,26 @@ class Agent(Entity):
         This distance must be larger than the cell size otherwise the robot
         may still be colliding when it releases an obstacle.
         """
+
+    def copy(self) -> "Agent":
+        return Agent(
+            behavior_type=self.behavior_type,
+            navigation_goals=copy.deepcopy(self._navigation_goals),
+            logs_dir=self.logs_dir,
+            name=self.name,
+            full_geometry_acquired=self.full_geometry_acquired,
+            polygon=copy.deepcopy(self.polygon),
+            pose=self.pose,
+            sensors=copy.deepcopy(self.sensors),
+            push_only_list=copy.deepcopy(self.push_only_list),
+            force_pushes_only=self.force_pushes_only,
+            movable_whitelist=copy.deepcopy(self.movable_whitelist),
+            style=copy.deepcopy(self.style),
+            cell_size=copy.deepcopy(self.cell_size),
+            movability=self.movability,
+            logger=copy.deepcopy(self.logger),
+            uid=self.uid,
+        )
 
     def init(self, world: "w.World") -> None:
         self.__world = world.light_copy([])
