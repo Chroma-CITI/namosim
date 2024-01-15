@@ -382,7 +382,11 @@ def generate_alternative_scenarios(
             new_scenario_basedir += "_namo_ncr"
         elif use_social_cost is False:
             new_scenario_basedir += "_namo"
-        elif use_social_cost is True and resolve_deadlocks is False:
+        elif (
+            use_social_cost is True
+            and resolve_conflicts is True
+            and resolve_deadlocks is False
+        ):
             new_scenario_basedir += "_snamo_ndr"
         elif (
             use_social_cost is True
@@ -390,6 +394,12 @@ def generate_alternative_scenarios(
             and resolve_conflicts is True
         ):
             new_scenario_basedir += "_snamo"
+        elif (
+            use_social_cost is True
+            and resolve_deadlocks is False
+            and resolve_conflicts is False
+        ):
+            new_scenario_basedir += "_snamo_ncr"
 
         new_scenario_path = os.path.join(
             out_dir,

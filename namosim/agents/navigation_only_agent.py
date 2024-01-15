@@ -149,7 +149,7 @@ class NavigationOnlyAgent(Agent):
             has_conflicts=False,
         )
 
-    def light_copy(self) -> Self:
+    def copy(self) -> Self:
         return NavigationOnlyAgent(
             uid=self.uid,
             navigation_goals=copy.deepcopy(self._navigation_goals),
