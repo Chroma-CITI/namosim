@@ -533,14 +533,20 @@ class Simulator:
         sim_step_result: SimulationStepResult,
         prev: WorldStepReport | None,
     ) -> WorldStepReport:
-        successful_actions: t.Dict[UID, ba.BasicAction] = {
+        successful_actions: t.Dict[UID, ba.Action] = {
             uid: action_result.action
             for uid, action_result in sim_step_result.action_results.items()
             if (
                 isinstance(action_result, ar.ActionSuccess)
                 and isinstance(
                     action_result.action,
-                    (ba.Rotation, ba.Translation, ba.Grab, ba.Release),
+                    (
+                        ba.Rotation,
+                        ba.Advance,
+                        ba.AbsoluteTranslation,
+                        ba.Grab,
+                        ba.Release,
+                    ),
                 )
             )
         }
@@ -630,7 +636,7 @@ class Simulator:
     def save_world_snapshot(
         self,
         agent_uid: UID,
-        action: ba.BasicAction,
+        action: ba.RelativeAction,
         trace_polygons: t.List[Polygon],
         step_count: int,
     ):
@@ -711,9 +717,9 @@ class Simulator:
         active_agents: t.Set[UID],
         trace_polygons: t.List[Polygon],
         step_count: int,
-    ) -> t.Dict[UID, ba.BasicAction]:
+    ) -> t.Dict[UID, ba.Action]:
         """Process the results of each agent's think step. Updates the set of activate agents and the dictionary of think durations."""
-        agent_uid_to_next_action: t.Dict[UID, ba.BasicAction] = {}
+        agent_uid_to_next_action: t.Dict[UID, ba.Action] = {}
         for agent_uid, think_result in results.items():
             if think_result.has_conflicts is False:
                 self.ros_publisher.cleanup_conflicts_checks(ns=think_result.robot_name)
@@ -802,7 +808,7 @@ class Simulator:
 
     def act(
         self,
-        agent_uid_to_next_action: t.Dict[UID, ba.BasicAction],
+        agent_uid_to_next_action: t.Dict[UID, ba.Action],
         step_count: int,
         ignore_collisions: bool = True,
     ) -> t.Dict[UID, ar.ActionResult]:
@@ -810,10 +816,10 @@ class Simulator:
         Processes agent actions and produce the actions results
         """
         # Only Grab and Release actions require further checks, and Wait actions are necessarily valid
-        to_check: t.Dict[UID, ba.BasicAction] = {
+        to_check: t.Dict[UID, ba.Action] = {
             uid: a
             for uid, a in agent_uid_to_next_action.items()
-            if isinstance(a, (ba.Translation, ba.Rotation))
+            if isinstance(a, (ba.Advance, ba.AbsoluteTranslation, ba.Rotation))
             and not isinstance(a, (ba.Grab, ba.Release))
         }
         action_results: t.Dict[UID, ar.ActionResult] = {

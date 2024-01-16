@@ -50,7 +50,7 @@ class RobotConfiguration(BaseConfiguration):
         polygon: Polygon,
         cell_in_grid: t.Tuple[int, int],
         fixed_precision_pose: FixedPrecisionPoseModel,
-        action: ba.BasicAction | None = None,
+        action: ba.Action | None = None,
         csv_polygon: Polygon | None = None,
     ):
         self.floating_point_pose = floating_point_pose
@@ -87,7 +87,7 @@ class RobotObstacleConfiguration(BaseConfiguration):
         obstacle_polygon: Polygon,
         obstacle_cell_in_grid: GridCellModel,
         obstacle_fixed_precision_pose: FixedPrecisionPoseModel,
-        action: ba.BasicAction | None = None,
+        action: ba.Action | None = None,
         manip_pose_id: int | None = None,
         robot_csv_polygon: Polygon | None = None,
         obstacle_csv_polygon: Polygon | None = None,
