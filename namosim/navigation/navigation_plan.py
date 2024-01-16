@@ -13,7 +13,7 @@ import namosim.utils.collision as collision
 import namosim.world.world as w
 import namosim.world.world as world
 from namosim.data_models import UID, PoseModel
-from namosim.navigation.basic_actions import BasicAction
+from namosim.navigation.basic_actions import Action
 from namosim.navigation.conflict import (
     Conflict,
     RobotObstacleConflict,
@@ -215,7 +215,7 @@ class Plan:
 
         return conflicts
 
-    def pop_next_action(self) -> BasicAction:
+    def pop_next_action(self) -> Action:
         """
         Get the next plan step to execute
         :return: the action object to be executed if there is one, None if the plan is empty

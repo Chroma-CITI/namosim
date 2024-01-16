@@ -114,7 +114,6 @@ class Stilman2005Agent(Agent):
             self.translation_unit_cost / self.translation_unit_length
         )
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
-        self.absolute_translations = True
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
 
         # - S-NAMO parameters
@@ -145,24 +144,6 @@ class Stilman2005Agent(Agent):
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
         self.replan_count = 20
-        self.goal_to_plans = OrderedDict()
-
-        if self.robot_base_drive_type == "differential":  # pyright: ignore[reportUnnecessaryComparison]
-            self._trans_vectors = np.array(
-                [
-                    (self.translation_unit_length, 0.0),
-                    (-self.translation_unit_length, 0.0),
-                ]
-            )
-        elif self.robot_base_drive_type == "holonomic":
-            self._trans_vectors = np.array(
-                [
-                    (self.translation_unit_length, 0.0),
-                    (-self.translation_unit_length, 0.0),
-                    (0.0, self.translation_unit_length),
-                    (0.0, -self.translation_unit_length),
-                ]
-            )
 
         if self.forbid_rotations:
             self._rot_angles = np.array([])
@@ -173,20 +154,21 @@ class Stilman2005Agent(Agent):
         self._all_rot_angles = self.rotation_unit_angle * np.array(
             range(1, 360 // int(self.rotation_unit_angle))
         )
-        self._nb_possible_angles = len(self._all_rot_angles)
 
-        if self.absolute_translations:
-            self._new_actions = []
-            for trans_vector in self._trans_vectors:
-                self._new_actions.append(ba.AbsoluteTranslation(trans_vector))
-            for rot_angle in self._rot_angles:
-                self._new_actions.append(ba.Rotation(rot_angle))
-        else:
-            self._new_actions = []
-            for trans_vector in self._trans_vectors:
-                self._new_actions.append(ba.Translation(trans_vector))
-            for rot_angle in self._rot_angles:
-                self._new_actions.append(ba.Rotation(rot_angle))
+        if self.robot_base_drive_type == "differential":  # pyright: ignore[reportUnnecessaryComparison]
+            self._transfer_movement_actions: t.List[ba.Action] = [
+                ba.Advance(distance=self.translation_unit_length),
+                ba.Advance(distance=-self.translation_unit_length),
+            ]
+        elif self.robot_base_drive_type == "holonomic":
+            self._transfer_movement_actions: t.List[ba.Action] = [
+                ba.AbsoluteTranslation((self.translation_unit_length, 0.0)),
+                ba.AbsoluteTranslation((-self.translation_unit_length, 0.0)),
+                ba.AbsoluteTranslation((0.0, self.translation_unit_length)),
+                ba.AbsoluteTranslation((0.0, -self.translation_unit_length)),
+            ]
+        for rot_angle in self._rot_angles:
+            self._transfer_movement_actions.append(ba.Rotation(rot_angle))
 
     def init(self, world: "w.World"):
         super().init(world)
@@ -2540,9 +2522,8 @@ class Stilman2005Agent(Agent):
             )
 
             grab_action = ba.Grab(
-                translation_vector=(
-                    utils.euclidean_distance(transfer_start_pose, transit_end_pose),
-                    0.0,
+                distance=utils.euclidean_distance(
+                    transfer_start_pose, transit_end_pose
                 ),
                 entity_uid=obstacle_uid,
             )
@@ -2564,9 +2545,7 @@ class Stilman2005Agent(Agent):
                     prev_transit_end_robot_polygon,
                     transfer_start_robot_polygon,
                 ],
-                action_sequence=[
-                    collision.convert_action(grab_action, transit_end_pose)
-                ],
+                action_sequence=[grab_action.to_absolute(transit_end_pose)],
                 bb_type="minimum_rotated_rectangle",
                 aabb_tree=other_entities_aabb_tree,
             )
@@ -2927,7 +2906,7 @@ class Stilman2005Agent(Agent):
         rot_mult: float,
     ):
         release_action = ba.Release(
-            translation_vector=(-1.0 * self.grab_and_release_distance, 0.0),
+            distance=-1.0 * self.grab_and_release_distance,
             entity_uid=obstacle_uid,
         )
         robot_pose = (robot_pose[0], robot_pose[1], robot_pose[2])
@@ -2962,7 +2941,7 @@ class Stilman2005Agent(Agent):
             main_uid=robot_uid,
             other_polygons=other_entities_polygons,
             polygon_sequence=[robot_polygon, new_robot_polygon],
-            action_sequence=[collision.convert_action(release_action, robot_pose)],
+            action_sequence=[release_action.to_absolute(robot_pose)],
             bb_type="minimum_rotated_rectangle",
             aabb_tree=other_entities_aabb_tree,
         )
@@ -3133,9 +3112,9 @@ class Stilman2005Agent(Agent):
         """
         # TODO Add debug display option for intersections, be it on grid(s) or in between polygons
         neighbors: t.List[RobotObstacleConfiguration] = []
-        tentative_g_scores = []
+        tentative_g_scores: t.List[float] = []
 
-        for action in self._new_actions:
+        for action in self._transfer_movement_actions:
             if isinstance(action, ba.Rotation):
                 neighbor_action_opposes_prev_action = (
                     isinstance(current_configuration.action, ba.Rotation)
@@ -3154,14 +3133,20 @@ class Stilman2005Agent(Agent):
                 new_obstacle_pose = action.predict_pose(
                     current_configuration.obstacle.floating_point_pose, robot_center
                 )
+                new_robot_polygon = action.apply(
+                    current_configuration.robot.polygon,
+                    current_configuration.robot.floating_point_pose,
+                )
+                new_obstacle_polygon = action.apply(
+                    current_configuration.obstacle.polygon,
+                    current_configuration.robot.floating_point_pose,
+                )
                 extra_g_cost = self.rotation_unit_cost
-            elif isinstance(action, ba.Translation):
-                neighbor_action_opposes_prev_action = (
-                    isinstance(current_configuration.action, ba.Translation)
-                    and action.translation_vector[0]
-                    == -1.0 * current_configuration.action.translation_vector[0]
-                    and action.translation_vector[1]
-                    == -1.0 * current_configuration.action.translation_vector[1]
+            elif isinstance(action, ba.Advance):
+                neighbor_action_opposes_prev_action = isinstance(
+                    current_configuration.action, ba.Advance
+                ) and np.sign(action.distance) != np.sign(
+                    current_configuration.action.distance
                 )
                 if neighbor_action_opposes_prev_action:
                     continue
@@ -3174,10 +3159,40 @@ class Stilman2005Agent(Agent):
                     current_configuration.obstacle.floating_point_pose,
                     current_configuration.robot.floating_point_pose[2],
                 )
+                new_robot_polygon = action.apply(
+                    current_configuration.robot.polygon,
+                    current_configuration.robot.floating_point_pose,
+                )
+                new_obstacle_polygon = action.apply(
+                    current_configuration.obstacle.polygon,
+                    current_configuration.robot.floating_point_pose,
+                )
+                extra_g_cost = self.translation_unit_cost
+            elif isinstance(action, ba.AbsoluteTranslation):
+                neighbor_action_opposes_prev_action = (
+                    isinstance(current_configuration.action, ba.AbsoluteTranslation)
+                    and action.v[0] == -1.0 * current_configuration.action.v[0]
+                    and action.v[1] == -1.0 * current_configuration.action.v[1]
+                )
+                if neighbor_action_opposes_prev_action:
+                    continue
+
+                new_robot_pose = action.predict_pose(
+                    current_configuration.robot.floating_point_pose,
+                )
+                new_obstacle_pose = action.predict_pose(
+                    current_configuration.obstacle.floating_point_pose,
+                )
+                new_robot_polygon = action.apply(
+                    current_configuration.robot.polygon,
+                )
+                new_obstacle_polygon = action.apply(
+                    current_configuration.obstacle.polygon,
+                )
                 extra_g_cost = self.translation_unit_cost
             else:
                 raise TypeError(
-                    "action must either be of type NewRotation or NewTranslation"
+                    "action must either be of type Rotation, Advance, or AbsoluteTranslation"
                 )
 
             # First, check whether the new configuration is in close set, if it is, ignore it
@@ -3240,20 +3255,9 @@ class Stilman2005Agent(Agent):
             ):
                 continue
 
-            # Continue at static polygon level, check if still in map
-            new_robot_polygon = action.apply(
-                current_configuration.robot.polygon,
-                current_configuration.robot.floating_point_pose,
-            )
-
             # Check if robot is still within map bounds
             if not new_robot_polygon.within(inflated_grid_by_robot.aabb_polygon):
                 continue
-
-            new_obstacle_polygon = action.apply(
-                current_configuration.obstacle.polygon,
-                current_configuration.robot.floating_point_pose,
-            )
 
             # Check if obstacle is still within map bounds
             if not new_obstacle_polygon.within(inflated_grid_by_obstacle.aabb_polygon):
@@ -3275,8 +3279,10 @@ class Stilman2005Agent(Agent):
                     new_robot_polygon,
                 ],
                 action_sequence=[
-                    collision.convert_action(
-                        action, current_configuration.robot.floating_point_pose
+                    action
+                    if isinstance(action, ba.AbsoluteAction)
+                    else action.to_absolute(
+                        current_configuration.robot.floating_point_pose
                     )
                 ],
                 bb_type="minimum_rotated_rectangle",
@@ -3300,8 +3306,8 @@ class Stilman2005Agent(Agent):
                     new_obstacle_polygon,
                 ],
                 action_sequence=[
-                    collision.convert_action(
-                        action, current_configuration.obstacle.floating_point_pose
+                    action.to_absolute(
+                        current_configuration.obstacle.floating_point_pose
                     )
                 ],
                 bb_type="minimum_rotated_rectangle",

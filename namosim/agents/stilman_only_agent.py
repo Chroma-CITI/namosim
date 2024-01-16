@@ -103,23 +103,17 @@ class StilmanOnlyAgent(Agent):
         self.rot_mult = 1.0
 
         # holonomic
-        self._trans_vectors = np.array(
-            [
-                (self.translation_unit_length, 0.0),
-                (-self.translation_unit_length, 0.0),
-                (0.0, self.translation_unit_length),
-                (0.0, -self.translation_unit_length),
-            ]
-        )
         self._rot_angles = np.array(
             [self.rotation_unit_angle, -self.rotation_unit_angle]
         )
-
-        self._new_actions = []
-        for trans_vector in self._trans_vectors:
-            self._new_actions.append(ba.AbsoluteTranslation(trans_vector))
+        self._transfer_movement_actions: t.List[ba.Action] = [
+            ba.AbsoluteTranslation((self.translation_unit_length, 0.0)),
+            ba.AbsoluteTranslation((-self.translation_unit_length, 0.0)),
+            ba.AbsoluteTranslation((0.0, self.translation_unit_length)),
+            ba.AbsoluteTranslation((0.0, -self.translation_unit_length)),
+        ]
         for rot_angle in self._rot_angles:
-            self._new_actions.append(ba.Rotation(rot_angle))
+            self._transfer_movement_actions.append(ba.Rotation(rot_angle))
 
     def init(self, world: "w.World"):
         super().init(world)
@@ -1223,9 +1217,8 @@ class StilmanOnlyAgent(Agent):
             )
 
             grab_action = ba.Grab(
-                translation_vector=(
-                    utils.euclidean_distance(transfer_start_pose, transit_end_pose),
-                    0.0,
+                distance=utils.euclidean_distance(
+                    transfer_start_pose, transit_end_pose
                 ),
                 entity_uid=obstacle_uid,
             )
@@ -1247,9 +1240,7 @@ class StilmanOnlyAgent(Agent):
                     prev_transit_end_robot_polygon,
                     transfer_start_robot_polygon,
                 ],
-                action_sequence=[
-                    collision.convert_action(grab_action, transit_end_pose)
-                ],
+                action_sequence=[grab_action.to_absolute(transit_end_pose)],
                 bb_type="minimum_rotated_rectangle",
                 aabb_tree=other_entities_aabb_tree,
             )
@@ -1341,7 +1332,6 @@ class StilmanOnlyAgent(Agent):
                 _open_queue,
                 _came_from,
                 start,
-                inflated_grid_by_robot_min,
                 inflated_grid_by_robot_max,
                 inflated_grid_by_obstacle,
                 r_acc_cells,
@@ -1549,7 +1539,7 @@ class StilmanOnlyAgent(Agent):
         rot_mult: float,
     ):
         release_action = ba.Release(
-            translation_vector=(-self.grab_and_release_distance, 0.0),
+            distance=-1.0 * self.grab_and_release_distance,
             entity_uid=obstacle_uid,
         )
         new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
@@ -1584,7 +1574,7 @@ class StilmanOnlyAgent(Agent):
             main_uid=robot_uid,
             other_polygons=other_entities_polygons,
             polygon_sequence=[robot_polygon, new_robot_polygon],
-            action_sequence=[collision.convert_action(release_action, robot_pose)],
+            action_sequence=[release_action.to_absolute(robot_pose)],
             bb_type="minimum_rotated_rectangle",
             aabb_tree=other_entities_aabb_tree,
         )
@@ -1709,12 +1699,13 @@ class StilmanOnlyAgent(Agent):
         self,
         current_configuration: RobotObstacleConfiguration,
         gscore: t.Dict[RobotObstacleConfiguration, float],
-        visited: t.Set[t.Tuple[t.Tuple[int, int, int], t.Tuple[int, int, int]]],
-        open_queue: graph_search.PriorityQueue,
-        came_from: t.Dict[RobotObstacleConfiguration, RobotObstacleConfiguration],
+        close_set: t.Set[RobotObstacleConfiguration],
+        open_queue: t.List[RobotObstacleConfiguration],
+        came_from: t.Dict[
+            RobotObstacleConfiguration, RobotObstacleConfiguration | None
+        ],
         start: t.Dict[RobotObstacleConfiguration, float],
-        inflated_grid_by_robot_min: BinaryInflatedOccupancyGrid,
-        inflated_grid_by_robot_max: BinaryInflatedOccupancyGrid,
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
         inflated_grid_by_obstacle: BinaryInflatedOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
         ccs_data: connectivity.CCSData,
@@ -1727,15 +1718,15 @@ class StilmanOnlyAgent(Agent):
         ros_publisher: "rp.RosPublisher",
         obstacle_can_intrude_r_acc: bool = True,
         obstacle_can_intrude_c_1_x: bool = True,
-    ) -> t.List[RobotObstacleConfiguration]:
+    ):
         """
         Creates list of neighbors that are not in close set, do not collide dynamically nor statically
         """
         # TODO Add debug display option for intersections, be it on grid(s) or in between polygons
         neighbors: t.List[RobotObstacleConfiguration] = []
-        tentative_g_scores = []
+        tentative_g_scores: t.List[float] = []
 
-        for action in self._new_actions:
+        for action in self._transfer_movement_actions:
             if isinstance(action, ba.Rotation):
                 neighbor_action_opposes_prev_action = (
                     isinstance(current_configuration.action, ba.Rotation)
@@ -1754,14 +1745,20 @@ class StilmanOnlyAgent(Agent):
                 new_obstacle_pose = action.predict_pose(
                     current_configuration.obstacle.floating_point_pose, robot_center
                 )
+                new_robot_polygon = action.apply(
+                    current_configuration.robot.polygon,
+                    current_configuration.robot.floating_point_pose,
+                )
+                new_obstacle_polygon = action.apply(
+                    current_configuration.obstacle.polygon,
+                    current_configuration.robot.floating_point_pose,
+                )
                 extra_g_cost = self.rotation_unit_cost
-            elif isinstance(action, ba.Translation):
-                neighbor_action_opposes_prev_action = (
-                    isinstance(current_configuration.action, ba.Translation)
-                    and action.translation_vector[0]
-                    == -1.0 * current_configuration.action.translation_vector[0]
-                    and action.translation_vector[1]
-                    == -1.0 * current_configuration.action.translation_vector[1]
+            elif isinstance(action, ba.Advance):
+                neighbor_action_opposes_prev_action = isinstance(
+                    current_configuration.action, ba.Advance
+                ) and np.sign(action.distance) != np.sign(
+                    current_configuration.action.distance
                 )
                 if neighbor_action_opposes_prev_action:
                     continue
@@ -1774,10 +1771,40 @@ class StilmanOnlyAgent(Agent):
                     current_configuration.obstacle.floating_point_pose,
                     current_configuration.robot.floating_point_pose[2],
                 )
+                new_robot_polygon = action.apply(
+                    current_configuration.robot.polygon,
+                    current_configuration.robot.floating_point_pose,
+                )
+                new_obstacle_polygon = action.apply(
+                    current_configuration.obstacle.polygon,
+                    current_configuration.robot.floating_point_pose,
+                )
+                extra_g_cost = self.translation_unit_cost
+            elif isinstance(action, ba.AbsoluteTranslation):
+                neighbor_action_opposes_prev_action = (
+                    isinstance(current_configuration.action, ba.AbsoluteTranslation)
+                    and action.v[0] == -1.0 * current_configuration.action.v[0]
+                    and action.v[1] == -1.0 * current_configuration.action.v[1]
+                )
+                if neighbor_action_opposes_prev_action:
+                    continue
+
+                new_robot_pose = action.predict_pose(
+                    current_configuration.robot.floating_point_pose,
+                )
+                new_obstacle_pose = action.predict_pose(
+                    current_configuration.obstacle.floating_point_pose,
+                )
+                new_robot_polygon = action.apply(
+                    current_configuration.robot.polygon,
+                )
+                new_obstacle_polygon = action.apply(
+                    current_configuration.obstacle.polygon,
+                )
                 extra_g_cost = self.translation_unit_cost
             else:
                 raise TypeError(
-                    "action must either be of type NewRotation or NewTranslation"
+                    "action must either be of type Rotation, Advance, or AbsoluteTranslation"
                 )
 
             # First, check whether the new configuration is in close set, if it is, ignore it
@@ -1788,15 +1815,21 @@ class StilmanOnlyAgent(Agent):
                 new_obstacle_pose, trans_mult, rot_mult
             )
 
-            if (robot_fixed_precision_pose, obstacle_fixed_precision_pose) in visited:
+            if (
+                t.cast(
+                    RobotObstacleConfiguration,
+                    (robot_fixed_precision_pose, obstacle_fixed_precision_pose),
+                )
+                in close_set
+            ):
                 continue
 
             # Then check for collisions, starting at a grid level
             robot_cell_in_grid = utils.real_to_grid(
                 new_robot_pose[0],
                 new_robot_pose[1],
-                inflated_grid_by_robot_min.res,
-                inflated_grid_by_robot_min.grid_pose,
+                inflated_grid_by_robot.res,
+                inflated_grid_by_robot.grid_pose,
             )
             obstacle_cell_in_grid = utils.real_to_grid(
                 new_obstacle_pose[0],
@@ -1808,8 +1841,8 @@ class StilmanOnlyAgent(Agent):
             is_no_longer_in_grid = not (
                 utils.is_in_matrix(
                     robot_cell_in_grid,
-                    inflated_grid_by_robot_min.d_width,
-                    inflated_grid_by_robot_min.d_height,
+                    inflated_grid_by_robot.d_width,
+                    inflated_grid_by_robot.d_height,
                 )
                 and utils.is_in_matrix(
                     obstacle_cell_in_grid,
@@ -1820,7 +1853,7 @@ class StilmanOnlyAgent(Agent):
             if is_no_longer_in_grid:
                 continue
             if (
-                inflated_grid_by_robot_min.grid[robot_cell_in_grid[0]][
+                inflated_grid_by_robot.grid[robot_cell_in_grid[0]][
                     robot_cell_in_grid[1]
                 ]
                 != 0
@@ -1834,20 +1867,9 @@ class StilmanOnlyAgent(Agent):
             ):
                 continue
 
-            # Continue at static polygon level, check if still in map
-            new_robot_polygon = action.apply(
-                current_configuration.robot.polygon,
-                current_configuration.robot.floating_point_pose,
-            )
-
             # Check if robot is still within map bounds
-            if not new_robot_polygon.within(inflated_grid_by_robot_min.aabb_polygon):
+            if not new_robot_polygon.within(inflated_grid_by_robot.aabb_polygon):
                 continue
-
-            new_obstacle_polygon = action.apply(
-                current_configuration.obstacle.polygon,
-                current_configuration.robot.floating_point_pose,
-            )
 
             # Check if obstacle is still within map bounds
             if not new_obstacle_polygon.within(inflated_grid_by_obstacle.aabb_polygon):
@@ -1860,7 +1882,7 @@ class StilmanOnlyAgent(Agent):
                 _,
                 robot_csv_polygons,
                 _,
-                _,
+                _robot_bb_vertices,
             ) = collision.csv_check_collisions(
                 main_uid=robot_uid,
                 other_polygons=other_entities_polygons,
@@ -1869,9 +1891,7 @@ class StilmanOnlyAgent(Agent):
                     new_robot_polygon,
                 ],
                 action_sequence=[
-                    collision.convert_action(
-                        action, current_configuration.robot.floating_point_pose
-                    )
+                    action.to_absolute(current_configuration.robot.floating_point_pose)
                 ],
                 bb_type="minimum_rotated_rectangle",
                 aabb_tree=other_entities_aabb_tree,
@@ -1885,7 +1905,7 @@ class StilmanOnlyAgent(Agent):
                 _,
                 obstacle_csv_polygons,
                 _,
-                _,
+                _obstacle_bb_vertices,
             ) = collision.csv_check_collisions(
                 main_uid=obstacle_uid,
                 other_polygons=other_entities_polygons,
@@ -1894,8 +1914,8 @@ class StilmanOnlyAgent(Agent):
                     new_obstacle_polygon,
                 ],
                 action_sequence=[
-                    collision.convert_action(
-                        action, current_configuration.obstacle.floating_point_pose
+                    action.to_absolute(
+                        current_configuration.obstacle.floating_point_pose
                     )
                 ],
                 bb_type="minimum_rotated_rectangle",
@@ -1907,13 +1927,16 @@ class StilmanOnlyAgent(Agent):
             # If option is activated, check that obstacle intruded the appropriate component(s)
             intrudes = self.polygon_intrudes_components(
                 new_obstacle_polygon,
-                inflated_grid_by_robot_max,
+                inflated_grid_by_robot,
                 r_acc_cells,
                 ccs_data,
                 obstacle_can_intrude_r_acc,
                 obstacle_can_intrude_c_1_x,
             )
             if intrudes:
+                continue
+
+            if len(inflated_grid_by_robot.cell_to_obstacle_ids(robot_cell_in_grid)) > 0:
                 continue
 
             # If we are here, then this newly computed neighbor configuration is valid and we must save it
@@ -1946,7 +1969,7 @@ class StilmanOnlyAgent(Agent):
             obstacle_polygon=current_configuration.obstacle.polygon,
             obstacle_pose=current_configuration.obstacle.floating_point_pose,
             line_width=self.min_inflation_radius / 4,
-            res=inflated_grid_by_robot_min.res,
+            res=inflated_grid_by_robot.res,
             neighbor_poses=[n.robot.floating_point_pose for n in neighbors],
             ns=self.name,
         )

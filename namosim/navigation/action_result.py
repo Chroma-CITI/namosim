@@ -1,18 +1,18 @@
 import typing as t
 
 from namosim.data_models import UID, PoseModel
-from namosim.navigation.basic_actions import BasicAction
+from namosim.navigation.basic_actions import Action
 
 
 class ActionResult:
-    def __init__(self, action: BasicAction | None = None):
+    def __init__(self, action: Action | None = None):
         self.action = action
 
 
 class ActionSuccess(ActionResult):
     def __init__(
         self,
-        action: BasicAction | None = None,
+        action: Action | None = None,
         robot_pose: PoseModel | None = None,
         is_transfer: bool = False,
         obstacle_uid: t.Optional[UID] = None,
@@ -27,7 +27,7 @@ class ActionSuccess(ActionResult):
 
 
 class ActionFailure(ActionResult):
-    def __init__(self, action: BasicAction):
+    def __init__(self, action: Action):
         super().__init__(action)
 
     def __str__(self) -> str:
@@ -35,7 +35,7 @@ class ActionFailure(ActionResult):
 
 
 class ManipulationFailure(ActionFailure):
-    def __init__(self, action: BasicAction, manipulated_obstacle_uid: UID):
+    def __init__(self, action: Action, manipulated_obstacle_uid: UID):
         super().__init__(action)
         self.manipulated_obstacle_uid = manipulated_obstacle_uid
 
@@ -46,7 +46,7 @@ class ManipulationFailure(ActionFailure):
 
 
 class UnmanipulableFailure(ManipulationFailure):
-    def __init__(self, action: BasicAction, manipulated_obstacle_uid: UID):
+    def __init__(self, action: Action, manipulated_obstacle_uid: UID):
         super().__init__(action, manipulated_obstacle_uid)
 
     def __str__(self):
@@ -56,7 +56,7 @@ class UnmanipulableFailure(ManipulationFailure):
 
 
 class AlreadyGrabbedFailure(ActionFailure):
-    def __init__(self, action: BasicAction, other_agent_uid: UID):
+    def __init__(self, action: Action, other_agent_uid: UID):
         super().__init__(action)
         self.other_agent_uid = other_agent_uid
 
@@ -69,7 +69,7 @@ class AlreadyGrabbedFailure(ActionFailure):
 
 
 class NotGrabbedFailure(ActionFailure):
-    def __init__(self, action: BasicAction):
+    def __init__(self, action: Action):
         super().__init__(action)
 
     def __str__(self) -> str:
@@ -77,7 +77,7 @@ class NotGrabbedFailure(ActionFailure):
 
 
 class GrabbedByOtherFailure(ActionFailure):
-    def __init__(self, action: BasicAction, other_agent_uid: UID):
+    def __init__(self, action: Action, other_agent_uid: UID):
         super().__init__(action)
         self.other_agent_uid = other_agent_uid
 
@@ -90,7 +90,7 @@ class GrabbedByOtherFailure(ActionFailure):
 
 
 class GrabMoreThanOneFailure(ActionFailure):
-    def __init__(self, action: BasicAction):
+    def __init__(self, action: Action):
         super().__init__(action)
 
     def __str__(self):
@@ -98,7 +98,7 @@ class GrabMoreThanOneFailure(ActionFailure):
 
 
 class SimultaneousGrabFailure(ActionFailure):
-    def __init__(self, action: BasicAction, other_agents_uids: t.Iterable[int]):
+    def __init__(self, action: Action, other_agents_uids: t.Iterable[int]):
         super().__init__(action)
         self.other_agents_uids = other_agents_uids
 
@@ -109,7 +109,7 @@ class SimultaneousGrabFailure(ActionFailure):
 
 
 class DynamicCollisionFailure(ActionFailure):
-    def __init__(self, action: BasicAction, colliding_entities_uids: t.Iterable[int]):
+    def __init__(self, action: Action, colliding_entities_uids: t.Iterable[int]):
         super().__init__(action)
         self.colliding_entities_uids = colliding_entities_uids
 
