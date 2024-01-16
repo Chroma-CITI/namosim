@@ -7,6 +7,7 @@ from shapely import GeometryCollection, Polygon
 import namosim.agents.agent as agent
 import namosim.display.ros2_publisher as ros2
 import namosim.world.world as world
+from namosim.agents.stilman_configurations import RobotConfiguration
 from namosim.data_models import UID, PoseModel
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
@@ -72,7 +73,7 @@ class TransferPath:
         self,
         robot_path: Path,
         obstacle_path: Path,
-        actions: t.List[ba.BasicAction],
+        actions: t.List[ba.Action],
         grab_action: ba.Grab,
         release_action: ba.Release,
         obstacle_uid: UID,
@@ -305,9 +306,7 @@ class TransferPath:
                         self.robot_path.polygons[1],
                     ],
                     action_sequence=[
-                        collision.convert_action(
-                            self.grab_action, self.robot_path.poses[0]
-                        )
+                        self.grab_action.to_absolute(self.robot_path.poses[0])
                     ],
                     bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
@@ -420,9 +419,7 @@ class TransferPath:
                         self.robot_path.polygons[-1],
                     ],
                     action_sequence=[
-                        collision.convert_action(
-                            self.release_action, robot_before_release_pose
-                        )
+                        self.release_action.to_absolute(robot_before_release_pose)
                     ],
                     bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
@@ -527,9 +524,7 @@ class TransferPath:
                         + look_ahead_index
                         + 2
                     ],
-                    action_sequence=[
-                        collision.convert_action(action, robot_pose_prior_to_action)
-                    ],
+                    action_sequence=[action.to_absolute(robot_pose_prior_to_action)],
                     bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
                     ignored_entities=previously_moved_entities_uids.union(
@@ -637,8 +632,7 @@ class TransferPath:
                         + 2
                     ],
                     action_sequence=[
-                        collision.convert_action(
-                            action,
+                        action.to_absolute(
                             self.obstacle_path.poses[
                                 self.action_index + look_ahead_index
                             ],
@@ -761,7 +755,7 @@ class TransitPath:
     def __init__(
         self,
         robot_path: Path,
-        actions: t.List[ba.BasicAction],
+        actions: t.List[ba.RelativeAction],
         phys_cost: float | None = None,
         social_cost: float = 0.0,
         weight: float = 1.0,
@@ -835,7 +829,7 @@ class TransitPath:
                 weight=weight,
             )
 
-        actions: t.List[ba.BasicAction] = []
+        actions: t.List[ba.RelativeAction] = []
         updated_poses = [poses[0]]
 
         for pose, next_pose in zip(poses, poses[1:]):
@@ -856,11 +850,7 @@ class TransitPath:
                     actions.append(ba.Rotation(angle=turn_towards_angle))
                     updated_poses.append((pose[0], pose[1], current_angle))
 
-                actions.append(
-                    ba.Translation.from_absolute_translation_vector(
-                        utils.get_translation(pose, next_pose)
-                    )
-                )
+                actions.append(ba.Advance(utils.euclidean_distance(pose, next_pose)))
                 updated_poses.append((next_pose[0], next_pose[1], current_angle))
 
             has_rotation = not utils.angle_is_close(
@@ -1104,7 +1094,12 @@ class TransitPath:
 
 class EvasionTransitPath(TransitPath):
     def __init__(
-        self, robot_path, actions, phys_cost=None, social_cost=0.0, weight=1.0
+        self,
+        robot_path: Path,
+        actions: t.List[ba.RelativeAction],
+        phys_cost: float | None = None,
+        social_cost: float = 0.0,
+        weight: float = 1.0,
     ):
         TransitPath.__init__(self, robot_path, actions, phys_cost, social_cost, weight)
         self.evasion_goal_pose = (
@@ -1113,13 +1108,13 @@ class EvasionTransitPath(TransitPath):
         self.transit_configuration_after_release = None
         self.release_executed = False
 
-    def set_wait(self, nb_wait_steps):
+    def set_wait(self, nb_wait_steps: int):
         for i in range(nb_wait_steps):
             self.actions.append(ba.Wait())
             self.robot_path.poses.append(self.robot_path.poses[-1])
 
     def set_transit_configuration_after_release(
-        self, transit_configuration_after_release
+        self, transit_configuration_after_release: RobotConfiguration
     ):
         # TODO Fix this hack for better management of this non-mandatory first release action
         self.transit_configuration_after_release = transit_configuration_after_release
