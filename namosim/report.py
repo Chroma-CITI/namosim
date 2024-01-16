@@ -2,6 +2,7 @@ import copy
 import typing as t
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.gridspec import GridSpec
 from pydantic import BaseModel
 
@@ -83,10 +84,14 @@ class AgentStats(BaseModel):
             self.n_goals_failed += 1
         elif isinstance(action, ba.GoalSuccess):
             self.n_goals_completed += 1
-        elif isinstance(action, ba.Translation):
-            self.distance_traveled += float(action.translation_length)
+        elif isinstance(action, ba.Advance):
+            self.distance_traveled += np.abs(action.distance)
             if action_result.is_transfer:
-                self.transfer_distance_traveled += float(action.translation_length)
+                self.transfer_distance_traveled += np.abs(action.distance)
+        elif isinstance(action, ba.AbsoluteTranslation):
+            self.distance_traveled += np.abs(action.length)
+            if action_result.is_transfer:
+                self.transfer_distance_traveled += np.abs(action.length)
         elif isinstance(action, ba.Rotation):
             self.degrees_rotated += abs(float(action.angle))
             if action_result.is_transfer:

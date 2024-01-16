@@ -12,7 +12,7 @@ from namosim.algorithms import graph_search
 from namosim.data_models import UID, PoseModel
 from namosim.input import Input
 from namosim.navigation.action_result import ActionResult
-from namosim.navigation.basic_actions import BasicAction
+from namosim.navigation.basic_actions import Action
 from namosim.navigation.navigation_path import TransitPath
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
@@ -26,7 +26,7 @@ class ThinkResult:
     def __init__(
         self,
         *,
-        next_action: BasicAction | None,
+        next_action: Action | None,
         did_replan: bool,
         did_postpone: bool = False,
         robot_name: str,
@@ -106,7 +106,7 @@ class Agent(Entity):
 
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
 
-        self.goal_to_plans: t.Dict[PoseModel, "navp.Plan"] = OrderedDict()
+        self.goal_to_plans: OrderedDict[PoseModel, "navp.Plan"] = OrderedDict()
         self.is_initialized = False
         self.cell_size = cell_size
         self.grab_and_release_distance = max(

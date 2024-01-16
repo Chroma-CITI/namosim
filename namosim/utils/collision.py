@@ -2,7 +2,6 @@ import math
 import typing as t
 
 import matplotlib.pyplot as plt
-import shapely.affinity as affinity
 from aabbtree import AABB, AABBTree
 from shapely import Polygon
 from shapely.geometry import MultiPoint, Point
@@ -11,53 +10,6 @@ import namosim.navigation.basic_actions as ba
 import namosim.world.world as w
 from namosim.data_models import UID, PoseModel
 from namosim.utils import utils
-
-
-class Action:
-    def __init__(self):
-        pass
-
-    def apply(self, polygon: Polygon) -> Polygon:
-        raise NotImplementedError()
-
-
-class Rotation(Action):
-    def __init__(self, angle: float, center: t.Tuple[float, float]):
-        Action.__init__(self)
-        self.angle = angle
-        self.center = center
-
-    def apply(self, polygon: Polygon) -> Polygon:
-        return affinity.rotate(
-            geom=polygon,
-            angle=self.angle,
-            origin=self.center,  # type: ignore
-            use_radians=False,
-        )
-
-
-class Translation(Action):
-    def __init__(self, translation_vector: t.Tuple[float, float]):
-        Action.__init__(self)
-        self.translation_vector = translation_vector
-
-    def apply(self, polygon: Polygon) -> Polygon:
-        return affinity.translate(
-            geom=polygon,
-            xoff=self.translation_vector[0],
-            yoff=self.translation_vector[1],
-            zoff=0.0,
-        )
-
-
-def convert_action(action: ba.BasicAction, robot_pose: PoseModel) -> Action:
-    # TODO Deprecate this and the specific actions by changing the API of the following functions
-    if isinstance(action, ba.Translation):
-        translation_vector = action.compute_translation_vector(robot_pose[2])
-        return Translation(translation_vector)
-    elif isinstance(action, ba.Rotation):
-        return Rotation(action.angle, (robot_pose[0], robot_pose[1]))
-    raise Exception("Unable to convert action")
 
 
 def bounds(points: t.Iterable[t.Tuple[float, float]]):
@@ -277,7 +229,7 @@ def arc_bounding_box(
 
 
 def bounding_boxes_vertices(
-    action_sequence: t.List[Action],
+    action_sequence: t.List[ba.AbsoluteAction],
     polygon_sequence: t.List[Polygon],
     bb_type: str = "minimum_rotated_rectangle",
 ) -> t.List[t.List[t.Tuple[float, float]]]:
@@ -298,12 +250,12 @@ def bounding_boxes_vertices(
         init_poly_coords = list(polygon_sequence[index].exterior.coords)
         end_poly_coords = list(polygon_sequence[index + 1].exterior.coords)
         action_bb_vertices = []
-        if isinstance(action, Translation):
+        if isinstance(action, ba.AbsoluteTranslation):
             for coord in init_poly_coords:
                 action_bb_vertices.append(coord)
             for coord in end_poly_coords:
                 action_bb_vertices.append(coord)
-        elif isinstance(action, Rotation):
+        elif isinstance(action, ba.AbsoluteRotation):
             for point_a, point_b in zip(init_poly_coords, end_poly_coords):
                 bb = arc_bounding_box(
                     point_a=point_a,
@@ -315,7 +267,9 @@ def bounding_boxes_vertices(
                 for coord in bb:
                     action_bb_vertices.append(coord)
         else:
-            raise TypeError("Actions must be pure Translation or Rotation.")
+            raise TypeError(
+                "Actions must be pure AbsoluteRotation or AbsoluteTranslation."
+            )
         bb_vertices.append(action_bb_vertices)
     return bb_vertices
 
@@ -425,7 +379,7 @@ def csv_check_collisions(
     main_uid: UID,
     other_polygons: t.Dict[UID, Polygon],
     polygon_sequence: t.List[Polygon],
-    action_sequence: t.List[Action],
+    action_sequence: t.List[ba.AbsoluteAction],
     id_sequence: t.List[int] | None = None,
     bb_type: str = "minimum_rotated_rectangle",
     aabb_tree: AABBTree | None = None,
@@ -582,7 +536,7 @@ def csv_check_collisions(
 
 def csv_simulate_simple_kinematics(
     world: "w.World",
-    agent_uid_to_next_action: t.Dict[UID, ba.BasicAction],
+    agent_uid_to_next_action: t.Dict[UID, ba.Action],
     apply: bool = False,
     bb_type: str = "minimum_rotated_rectangle",
     ignore_collisions: bool = False,
@@ -609,8 +563,8 @@ def csv_simulate_simple_kinematics(
         new_poses: t.Dict[UID, PoseModel] = {}
     for agent_uid, action in agent_uid_to_next_action.items():
         agent = world.entities[agent_uid]
-        agent_action = convert_action(action, agent.pose)
-        agent_polygon_after = action.apply(agent.polygon, agent.pose)
+        agent_action = action.to_absolute(agent.pose)
+        agent_polygon_after = agent_action.apply(agent.polygon)
         agent_csv = csv_from_bb_vertices(
             bounding_boxes_vertices(
                 [agent_action], [agent.polygon, agent_polygon_after], bb_type=bb_type
@@ -644,24 +598,31 @@ def csv_simulate_simple_kinematics(
                 else:
                     agent_collides_with = {}
             merge_collides_with(collides_with, agent_collides_with)
+
         if apply:
-            new_polygons[agent_uid] = agent_polygon_after
-            if isinstance(action, ba.Translation):
+            if isinstance(action, ba.Advance):
                 new_pose = action.predict_pose(agent.pose, agent.pose[2])
-                assert new_pose != agent.pose
-                new_poses[agent_uid] = new_pose
-            else:
-                new_poses[agent_uid] = action.predict_pose(
+            elif isinstance(action, ba.Rotation):
+                new_pose = action.predict_pose(
                     agent.pose, (agent.pose[0], agent.pose[1])
                 )
+            elif isinstance(action, (ba.AbsoluteAction)):
+                new_pose = action.predict_pose(agent.pose)
+            else:
+                raise Exception("Unexpected action type")
+            assert new_pose != agent.pose
+
+            new_poses[agent_uid] = new_pose
+            new_polygons[agent_uid] = agent_polygon_after
+
         if (
             not isinstance(action, (ba.Release, ba.Grab))
             and agent_uid in world.entity_to_agent.inverse
         ):
             obs_uid = world.entity_to_agent.inverse[agent_uid]
             obs = world.entities[obs_uid]
-            obs_action = convert_action(action, agent.pose)
-            obs_polygon_after = action.apply(obs.polygon, agent.pose)
+            obs_action: ba.AbsoluteAction = action.to_absolute(agent.pose)
+            obs_polygon_after = obs_action.apply(obs.polygon)
             obs_csv = csv_from_bb_vertices(
                 bounding_boxes_vertices(
                     [obs_action], [obs.polygon, obs_polygon_after], bb_type=bb_type
@@ -672,14 +633,21 @@ def csv_simulate_simple_kinematics(
                 obs_uid, obs_csv, other_polygons, aabb_tree
             )
             merge_collides_with(collides_with, obs_collides_with)
+
             if apply:
-                new_polygons[obs_uid] = obs_polygon_after
-                if isinstance(action, ba.Translation):
-                    new_poses[obs_uid] = action.predict_pose(obs.pose, agent.pose[2])
-                else:
-                    new_poses[obs_uid] = action.predict_pose(
+                if isinstance(action, ba.Advance):
+                    new_pose = action.predict_pose(obs.pose, agent.pose[2])
+                elif isinstance(action, ba.Rotation):
+                    new_pose = action.predict_pose(
                         obs.pose, (agent.pose[0], agent.pose[1])
                     )
+                elif isinstance(action, (ba.AbsoluteAction)):
+                    new_pose = action.predict_pose(obs.pose)
+                else:
+                    raise Exception("Unexpected action type")
+
+                new_poses[obs_uid] = new_pose
+                new_polygons[obs_uid] = obs_polygon_after
 
     # Check that no CSV intersects with another CSV
     checked_uids = set()

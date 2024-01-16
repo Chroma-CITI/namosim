@@ -65,9 +65,9 @@ class TeleopAgent(Agent):
         if input is None:
             next_action = ba.Wait()
         elif input.key_pressed == "Up":
-            next_action = ba.Translation((self.cell_size, 0))
+            next_action = ba.Advance(distance=self.cell_size)
         elif input.key_pressed == "Down":
-            next_action = ba.Translation((-self.cell_size, 0))
+            next_action = ba.Advance(distance=-self.cell_size)
         elif input.key_pressed == "Left":
             next_action = ba.Rotation(30)
             input.clear()
@@ -100,11 +100,11 @@ class TeleopAgent(Agent):
             if np.abs(angle) > 10:
                 continue
 
-            return ba.Grab((d, 0), m.uid)
+            return ba.Grab(d, m.uid)
 
     def _release(self) -> ba.Release | None:
         if self.world.is_holding_obstacle(self.uid):
             return ba.Release(
-                (-self.grab_and_release_distance, 0),
+                -self.grab_and_release_distance,
                 self.world.entity_to_agent.inverse[self.uid],
             )

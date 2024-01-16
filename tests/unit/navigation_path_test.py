@@ -34,11 +34,11 @@ class TransitPathFromPoses(unittest.TestCase):
         )
         assert len(path.actions) == 3
         assert isinstance(path.actions[0], ba.Rotation)
-        assert isinstance(path.actions[1], ba.Translation)
+        assert isinstance(path.actions[1], ba.Advance)
         assert isinstance(path.actions[2], ba.Rotation)
         pose = robot_pose
         for action in path.actions:
-            if isinstance(action, ba.Translation):
+            if isinstance(action, ba.Advance):
                 pose = action.predict_pose(pose, pose[2])
             elif isinstance(action, ba.Rotation):
                 pose = action.predict_pose(pose, pose[:2])
@@ -93,7 +93,7 @@ class TransitPathFromPoses(unittest.TestCase):
         # Apply the actions and make sure they take us to the goal pose
         pose = robot_pose
         for action in path.actions:
-            if isinstance(action, ba.Translation):
+            if isinstance(action, ba.Advance):
                 pose = action.predict_pose(pose, pose[2])
             elif isinstance(action, ba.Rotation):
                 pose = action.predict_pose(pose, pose[:2])
@@ -120,7 +120,7 @@ class TransitPathFromPoses(unittest.TestCase):
         # Apply the actions and make sure they take us to the goal pose
         pose = robot_pose
         for action in path.actions:
-            if isinstance(action, ba.Translation):
+            if isinstance(action, ba.Advance):
                 pose = action.predict_pose(pose, pose[2])
             elif isinstance(action, ba.Rotation):
                 pose = action.predict_pose(pose, pose[:2])
