@@ -452,192 +452,104 @@ class Stilman2005Agent(Agent):
                 action_space_reduction,
                 ros_publisher=ros_publisher,
             )
-        else:
-            if plan.is_evasion_over():
-                self.logger.append(
-                    utils.BasicLog(
-                        "Agent {}: Finished evasion sequence, replanning.".format(
-                            self.name
-                        ),
-                        step_count,
-                    )
-                )
-                return self.replan(
-                    w_t,
-                    static_obs_inf_grid,
-                    inflated_grid_by_robot,
-                    robot_uid,
-                    goal,
-                    plan,
-                    fov,
-                    try_max,
-                    t_min,
-                    t_max,
-                    pos_tol,
-                    ang_tol,
-                    neighborhood,
+        if plan.is_evasion_over():
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Finished evasion sequence, replanning.".format(
+                        self.name
+                    ),
                     step_count,
-                    trans_mult,
-                    rot_mult,
-                    action_space_reduction,
-                    ros_publisher=ros_publisher,
                 )
-
-            conflicts = plan.get_conflicts(
-                world=w_t,
-                inflated_grid_by_robot=inflated_grid_by_robot,
-                check_horizon=fov,
-                ros_publisher=ros_publisher,
-                robot_name=self.name,
-                exit_early_for_any_conflict=True,
             )
-            if not conflicts:
-                if plan.timer.is_running and plan.timer.is_timer_over(step_count):
-                    self.logger.append(
-                        utils.BasicLog(
-                            "Agent {}: No more conflicts, unpostponing current plan.".format(
-                                self.name
-                            ),
-                            step_count,
-                        )
-                    )
-                    plan.timer.is_running = False
-                    plan.unpostponements_history.append(step_count)
-                return ThinkResult(
-                    next_action=plan.pop_next_action(),
-                    did_replan=False,
-                    robot_name=self.name,
-                    has_conflicts=False,
-                )  # Normal case, don't log
-            elif self.params.resolve_conflicts is False:
+            return self.replan(
+                w_t,
+                static_obs_inf_grid,
+                inflated_grid_by_robot,
+                robot_uid,
+                goal,
+                plan,
+                fov,
+                try_max,
+                t_min,
+                t_max,
+                pos_tol,
+                ang_tol,
+                neighborhood,
+                step_count,
+                trans_mult,
+                rot_mult,
+                action_space_reduction,
+                ros_publisher=ros_publisher,
+            )
+
+        conflicts = plan.get_conflicts(
+            world=w_t,
+            inflated_grid_by_robot=inflated_grid_by_robot,
+            check_horizon=fov,
+            ros_publisher=ros_publisher,
+            robot_name=self.name,
+            exit_early_for_any_conflict=True,
+        )
+        if not conflicts:
+            if plan.timer.is_running and plan.timer.is_timer_over(step_count):
                 self.logger.append(
                     utils.BasicLog(
-                        "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
+                        "Agent {}: No more conflicts, unpostponing current plan.".format(
                             self.name
                         ),
                         step_count,
                     )
                 )
-                return ThinkResult(
-                    next_action=ba.GoalFailed(goal),
-                    did_replan=False,
-                    robot_name=self.name,
-                    has_conflicts=True,
+                plan.timer.is_running = False
+                plan.unpostponements_history.append(step_count)
+            return ThinkResult(
+                next_action=plan.pop_next_action(),
+                did_replan=False,
+                robot_name=self.name,
+                has_conflicts=False,
+            )  # Normal case, don't log
+        if self.params.resolve_conflicts is False:
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
+                        self.name
+                    ),
+                    step_count,
                 )
+            )
+            return ThinkResult(
+                next_action=ba.GoalFailed(goal),
+                did_replan=False,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
 
-            # Detect and resolve deadlocks
-            potential_deadlocks = self.potential_deadlocks(conflicts, plan, step_count)
+        # Detect and resolve deadlocks
+        potential_deadlocks = self.potential_deadlocks(conflicts, plan, step_count)
 
-            if potential_deadlocks:
-                self.logger.append(
-                    utils.BasicLog(
-                        "Agent {}: Potential deadlocks detected: {}.".format(
-                            self.name, potential_deadlocks
-                        ),
-                        step_count,
-                    )
+        if potential_deadlocks:
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Potential deadlocks detected: {}.".format(
+                        self.name, potential_deadlocks
+                    ),
+                    step_count,
                 )
+            )
 
-                if self.use_social_cost and self.params.resolve_deadlocks:
-                    if plan.timer.is_running and not plan.timer.is_timer_over(
-                        step_count
-                    ):
-                        return ThinkResult(
-                            next_action=ba.Wait(),
-                            did_replan=False,
-                            robot_name=self.name,
-                            has_conflicts=True,
-                        )
-
-                    if not plan.has_tries_remaining(try_max):
-                        self.logger.append(
-                            utils.BasicLog(
-                                "Agent {}: Failing goal, no tries remaining to plan an evasion.".format(
-                                    self.name
-                                ),
-                                step_count,
-                            )
-                        )
-                        return ThinkResult(
-                            next_action=ba.GoalFailed(goal),
-                            did_replan=False,
-                            robot_name=self.name,
-                            has_conflicts=True,
-                        )
-
-                    robot_cells = utils.accurate_rasterize_in_grid(
-                        w_t.entities[robot_uid].polygon,
-                        inflated_grid_by_robot.res,
-                        inflated_grid_by_robot.grid_pose,
-                        inflated_grid_by_robot.d_width,
-                        inflated_grid_by_robot.d_height,
-                        fill=True,
-                    )
-                    plan.forbidden_evasion_cells.update(set(robot_cells))
-                    plan.update_count += 1
-
-                    assert robot_uid not in inflated_grid_by_robot.cells_sets
-
-                    evasion_path = self.compute_evasion(
-                        inflated_grid_by_robot=inflated_grid_by_robot,
-                        w_t=w_t,
-                        main_robot_uid=robot_uid,
-                        potential_deadlocks=potential_deadlocks,
-                        forbidden_evasion_cells=plan.forbidden_evasion_cells,
-                        ros_publisher=ros_publisher,
+            if self.use_social_cost and self.params.resolve_deadlocks:
+                if plan.timer.is_running and not plan.timer.is_timer_over(step_count):
+                    return ThinkResult(
+                        next_action=ba.Wait(),
+                        did_replan=False,
+                        robot_name=self.name,
+                        has_conflicts=True,
                     )
 
-                    assert robot_uid not in inflated_grid_by_robot.cells_sets
-
-                    if evasion_path:
-                        self.logger.append(
-                            utils.BasicLog(
-                                "Agent {}: Executing evasion path.".format(self.name),
-                                step_count,
-                            )
-                        )
-                        plan.update_plan(
-                            nav_plan.Plan(
-                                robot_uid=self.uid,
-                                path_components=[evasion_path],
-                                goal=goal,
-                            ),
-                            step_count,
-                        )
-                        next_action = plan.pop_next_action()
-                        return ThinkResult(
-                            next_action=next_action,
-                            did_replan=True,
-                            robot_name=self.name,
-                            has_conflicts=True,
-                        )
-                    else:
-                        self.logger.append(
-                            utils.BasicLog(
-                                "Agent {}: I can not or should not evade, postponing...".format(
-                                    self.name,
-                                ),
-                                step_count,
-                            )
-                        )
-                        return ThinkResult(
-                            next_action=plan.new_postpone(
-                                t_min,
-                                t_max,
-                                step_count,
-                                conflicts,
-                                self.logger,
-                                self.name,
-                            ),
-                            did_postpone=True,
-                            did_replan=False,
-                            robot_name=self.name,
-                            has_conflicts=True,
-                        )
-                else:
+                if not plan.has_tries_remaining(try_max):
                     self.logger.append(
                         utils.BasicLog(
-                            "Agent {}: Failing goal because deadlocks where detected and resolve-deadlocks is disabled or unavailable.".format(
+                            "Agent {}: Failing goal, no tries remaining to plan an evasion.".format(
                                 self.name
                             ),
                             step_count,
@@ -650,7 +562,60 @@ class Stilman2005Agent(Agent):
                         has_conflicts=True,
                     )
 
-            if not self.must_replan_now(conflicts):
+                robot_cells = utils.accurate_rasterize_in_grid(
+                    w_t.entities[robot_uid].polygon,
+                    inflated_grid_by_robot.res,
+                    inflated_grid_by_robot.grid_pose,
+                    inflated_grid_by_robot.d_width,
+                    inflated_grid_by_robot.d_height,
+                    fill=True,
+                )
+                plan.forbidden_evasion_cells.update(set(robot_cells))
+                plan.update_count += 1
+
+                assert robot_uid not in inflated_grid_by_robot.cells_sets
+
+                evasion_path = self.compute_evasion(
+                    inflated_grid_by_robot=inflated_grid_by_robot,
+                    w_t=w_t,
+                    main_robot_uid=robot_uid,
+                    potential_deadlocks=potential_deadlocks,
+                    forbidden_evasion_cells=plan.forbidden_evasion_cells,
+                    ros_publisher=ros_publisher,
+                )
+
+                assert robot_uid not in inflated_grid_by_robot.cells_sets
+
+                if evasion_path:
+                    self.logger.append(
+                        utils.BasicLog(
+                            "Agent {}: Executing evasion path.".format(self.name),
+                            step_count,
+                        )
+                    )
+                    plan.update_plan(
+                        nav_plan.Plan(
+                            robot_uid=self.uid,
+                            path_components=[evasion_path],
+                            goal=goal,
+                        ),
+                        step_count,
+                    )
+                    next_action = plan.pop_next_action()
+                    return ThinkResult(
+                        next_action=next_action,
+                        did_replan=True,
+                        robot_name=self.name,
+                        has_conflicts=True,
+                    )
+                self.logger.append(
+                    utils.BasicLog(
+                        "Agent {}: I can not or should not evade, postponing...".format(
+                            self.name,
+                        ),
+                        step_count,
+                    )
+                )
                 return ThinkResult(
                     next_action=plan.new_postpone(
                         t_min,
@@ -665,35 +630,65 @@ class Stilman2005Agent(Agent):
                     robot_name=self.name,
                     has_conflicts=True,
                 )
-            else:
-                self.logger.append(
-                    utils.BasicLog(
-                        "Agent {}: Detected conflicts require immediate replanning. Conflicts: {}".format(
-                            self.name, conflicts
-                        ),
-                        step_count,
-                    )
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Failing goal because deadlocks where detected and resolve-deadlocks is disabled or unavailable.".format(
+                        self.name
+                    ),
+                    step_count,
                 )
-                return self.replan(
-                    w_t,
-                    static_obs_inf_grid,
-                    inflated_grid_by_robot,
-                    robot_uid,
-                    goal,
-                    plan,
-                    fov,
-                    try_max,
+            )
+            return ThinkResult(
+                next_action=ba.GoalFailed(goal),
+                did_replan=False,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
+
+        if not self.must_replan_now(conflicts):
+            return ThinkResult(
+                next_action=plan.new_postpone(
                     t_min,
                     t_max,
-                    pos_tol,
-                    ang_tol,
-                    neighborhood,
                     step_count,
-                    trans_mult,
-                    rot_mult,
-                    action_space_reduction,
-                    ros_publisher=ros_publisher,
-                )
+                    conflicts,
+                    self.logger,
+                    self.name,
+                ),
+                did_postpone=True,
+                did_replan=False,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
+
+        self.logger.append(
+            utils.BasicLog(
+                "Agent {}: Detected conflicts require immediate replanning. Conflicts: {}".format(
+                    self.name, conflicts
+                ),
+                step_count,
+            )
+        )
+        return self.replan(
+            w_t,
+            static_obs_inf_grid,
+            inflated_grid_by_robot,
+            robot_uid,
+            goal,
+            plan,
+            fov,
+            try_max,
+            t_min,
+            t_max,
+            pos_tol,
+            ang_tol,
+            neighborhood,
+            step_count,
+            trans_mult,
+            rot_mult,
+            action_space_reduction,
+            ros_publisher=ros_publisher,
+        )
 
     def replan(
         self,
@@ -779,221 +774,215 @@ class Stilman2005Agent(Agent):
                 robot_name=self.name,
                 has_conflicts=False,
             )
-        else:
-            conflicts = plan.get_conflicts(
+
+        conflicts = plan.get_conflicts(
+            world=w_t,
+            inflated_grid_by_robot=inflated_grid_by_robot,
+            check_horizon=fov,
+            ros_publisher=ros_publisher,
+            robot_name=self.name,
+        )
+        if not conflicts:
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Found a pure NAMO plan without conflicts with dynamic obstacles, "
+                    "executing its first step...".format(self.name),
+                    step_count,
+                )
+            )
+            return ThinkResult(
+                next_action=plan.pop_next_action(),
+                did_replan=True,
+                robot_name=self.name,
+                has_conflicts=False,
+            )
+
+        if self.params.resolve_conflicts is False:
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
+                        self.name
+                    ),
+                    step_count,
+                )
+            )
+            return ThinkResult(
+                next_action=ba.GoalFailed(goal),
+                did_replan=True,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
+
+        self.logger.append(
+            utils.BasicLog(
+                "Agent {}: A new plan has been computed ignoring dynamic "
+                "obstacles but has conflicts with them: {}".format(
+                    self.name, conflicts
+                ),
+                step_count,
+            )
+        )
+
+        if not (plan.has_tries_remaining(max_tries) and plan.can_even_be_found()):
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Failing goal, no tries remaining to plan after conflicts "
+                    "were found with the plan ignoring dynamic obstacles.".format(
+                        self.name,
+                    ),
+                    step_count,
+                )
+            )
+            return ThinkResult(
+                next_action=ba.GoalFailed(goal),
+                did_replan=True,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
+
+        # II - Compute plan (with conflicting dynamic obstacles as static)
+        # Get uids of conflicting robots and associated
+        conflicting_robots_uids = {
+            conflict.other_robot_uid
+            for conflict in conflicts
+            if isinstance(conflict, RobotRobotConflict)
+        }
+        conflicting_transfered_obstacles_uids = {
+            w_t.entity_to_agent.inverse[uid]
+            for uid in conflicting_robots_uids
+            if uid in w_t.entity_to_agent.inverse
+        }
+        # Make a world copy without dynamic entities again, but with the conflicting robots
+        new_dynamic_entities = dynamic_entities.difference(
+            conflicting_robots_uids
+        ).difference(conflicting_transfered_obstacles_uids)
+        new_w_t_no_dyn = w_t.light_copy(ignored_entities=new_dynamic_entities)
+        for conflict in conflicts:
+            if (
+                isinstance(conflict, ConcurrentGrabConflict)
+                and conflict.obstacle_uid not in new_w_t_no_dyn.entity_to_agent
+            ):
+                new_w_t_no_dyn.entity_to_agent[
+                    conflict.obstacle_uid
+                ] = conflict.other_robot_uid
+        inflated_grid_by_robot.deactivate_entities(new_dynamic_entities)
+        # Iterate over each conflicting robot uid, and change its polygon to an encompassing circle
+        # encounting for all likely states at at t+1
+        polygons_tmp = {}
+        for conflicting_robot_uid in conflicting_robots_uids:
+            assert conflicting_robot_uid != self.uid
+
+            conflicting_robot = new_w_t_no_dyn.agents[conflicting_robot_uid]
+            conflict_radius = new_w_t_no_dyn.get_robot_conflict_radius(
+                conflicting_robot_uid
+            )
+            center = conflicting_robot.polygon.centroid
+
+            # TODO Get inflation from largest robot
+            encompassing_circle = center.buffer(conflict_radius)
+            polygons_tmp[conflicting_robot_uid] = conflicting_robot.polygon
+            conflicting_robot.polygon = encompassing_circle
+            inflated_grid_by_robot.update(
+                {conflicting_robot_uid: conflicting_robot.polygon}
+            )
+        # Plan using this modified version of the world
+        plan.update_count += 1
+        p = self.select_connect(
+            w_t=new_w_t_no_dyn,
+            static_obs_inf_grid=static_obs_inf_grid,
+            inflated_grid_by_robot=inflated_grid_by_robot,
+            r_f=goal,
+            trans_mult=trans_mult,
+            rot_mult=rot_mult,
+            neighborhood=neighborhood,
+            action_space_reduction=action_space_reduction,
+            ros_publisher=ros_publisher,
+            prev_list=set(),
+        )
+
+        # Reset the inflated grid's state
+        for conflicting_uid, prev_polygon in polygons_tmp.items():
+            inflated_grid_by_robot.update({conflicting_uid: prev_polygon})
+        inflated_grid_by_robot.activate_entities(new_dynamic_entities)
+
+        if p.is_empty():
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Postponing for {} steps, could not find a plan avoiding the conflicting "
+                    "dynamic obstacles of the pure NAMO plan.".format(self.name, t_max),
+                    step_count,
+                )
+            )
+            return ThinkResult(
+                next_action=plan.new_postpone(
+                    t_min,
+                    t_max,
+                    step_count,
+                    conflicts,
+                    self.logger,
+                    self.name,
+                ),
+                did_postpone=True,
+                did_replan=True,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
+
+        plan.update_plan(p, step_count)
+        new_conflicts = set(
+            plan.get_conflicts(
                 world=w_t,
                 inflated_grid_by_robot=inflated_grid_by_robot,
                 check_horizon=fov,
                 ros_publisher=ros_publisher,
                 robot_name=self.name,
             )
-            if not conflicts:
-                self.logger.append(
-                    utils.BasicLog(
-                        "Agent {}: Found a pure NAMO plan without conflicts with dynamic obstacles, "
-                        "executing its first step...".format(self.name),
-                        step_count,
-                    )
+        )
+        for conflict in conflicts:
+            if conflict in new_conflicts:
+                new_conflicts.remove(conflict)
+
+        if new_conflicts:
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Postponing for {} steps, a new plan has been computed avoiding the "
+                    "conflicting dynamic obstacles of the pure NAMO plan, but has other conflicts: {}".format(
+                        self.name, t_max, conflicts
+                    ),
+                    step_count,
                 )
-                return ThinkResult(
-                    next_action=plan.pop_next_action(),
-                    did_replan=True,
-                    robot_name=self.name,
-                    has_conflicts=False,
-                )
-            elif self.params.resolve_conflicts is False:
-                self.logger.append(
-                    utils.BasicLog(
-                        "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
-                            self.name
-                        ),
-                        step_count,
-                    )
-                )
-                return ThinkResult(
-                    next_action=ba.GoalFailed(goal),
-                    did_replan=True,
-                    robot_name=self.name,
-                    has_conflicts=True,
-                )
-            else:
-                self.logger.append(
-                    utils.BasicLog(
-                        "Agent {}: A new plan has been computed ignoring dynamic "
-                        "obstacles but has conflicts with them: {}".format(
-                            self.name, conflicts
-                        ),
-                        step_count,
-                    )
-                )
+            )
+            return ThinkResult(
+                next_action=plan.new_postpone(
+                    t_min,
+                    t_max,
+                    step_count,
+                    conflicts,
+                    self.logger,
+                    self.name,
+                ),
+                did_replan=True,
+                did_postpone=True,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
 
-                if not (
-                    plan.has_tries_remaining(max_tries) and plan.can_even_be_found()
-                ):
-                    self.logger.append(
-                        utils.BasicLog(
-                            "Agent {}: Failing goal, no tries remaining to plan after conflicts "
-                            "were found with the plan ignoring dynamic obstacles.".format(
-                                self.name,
-                            ),
-                            step_count,
-                        )
-                    )
-                    return ThinkResult(
-                        next_action=ba.GoalFailed(goal),
-                        did_replan=True,
-                        robot_name=self.name,
-                        has_conflicts=True,
-                    )
-                else:
-                    # II - Compute plan (with conflicting dynamic obstacles as static)
-                    # Get uids of conflicting robots and associated
-                    conflicting_robots_uids = {
-                        conflict.other_robot_uid
-                        for conflict in conflicts
-                        if isinstance(conflict, RobotRobotConflict)
-                    }
-                    conflicting_transfered_obstacles_uids = {
-                        w_t.entity_to_agent.inverse[uid]
-                        for uid in conflicting_robots_uids
-                        if uid in w_t.entity_to_agent.inverse
-                    }
-                    # Make a world copy without dynamic entities again, but with the conflicting robots
-                    new_dynamic_entities = dynamic_entities.difference(
-                        conflicting_robots_uids
-                    ).difference(conflicting_transfered_obstacles_uids)
-                    new_w_t_no_dyn = w_t.light_copy(
-                        ignored_entities=new_dynamic_entities
-                    )
-                    for conflict in conflicts:
-                        if (
-                            isinstance(conflict, ConcurrentGrabConflict)
-                            and conflict.obstacle_uid
-                            not in new_w_t_no_dyn.entity_to_agent
-                        ):
-                            new_w_t_no_dyn.entity_to_agent[
-                                conflict.obstacle_uid
-                            ] = conflict.other_robot_uid
-                    inflated_grid_by_robot.deactivate_entities(new_dynamic_entities)
-                    # Iterate over each conflicting robot uid, and change its polygon to an encompassing circle
-                    # encounting for all likely states at at t+1
-                    polygons_tmp = {}
-                    for conflicting_robot_uid in conflicting_robots_uids:
-                        assert conflicting_robot_uid != self.uid
+        self.logger.append(
+            utils.BasicLog(
+                "Agent {}: Found a new plan that does not have conflicts with the dynamic obstacles "
+                "conflicting with the pure NAMO plan, executing its first step...".format(
+                    self.name
+                ),
+                step_count,
+            )
+        )
 
-                        conflicting_robot = new_w_t_no_dyn.agents[conflicting_robot_uid]
-                        conflict_radius = new_w_t_no_dyn.get_robot_conflict_radius(
-                            conflicting_robot_uid
-                        )
-                        center = conflicting_robot.polygon.centroid
-
-                        # TODO Get inflation from largest robot
-                        encompassing_circle = center.buffer(conflict_radius)
-                        polygons_tmp[conflicting_robot_uid] = conflicting_robot.polygon
-                        conflicting_robot.polygon = encompassing_circle
-                        inflated_grid_by_robot.update(
-                            {conflicting_robot_uid: conflicting_robot.polygon}
-                        )
-                    # Plan using this modified version of the world
-                    plan.update_count += 1
-                    p = self.select_connect(
-                        w_t=new_w_t_no_dyn,
-                        static_obs_inf_grid=static_obs_inf_grid,
-                        inflated_grid_by_robot=inflated_grid_by_robot,
-                        r_f=goal,
-                        trans_mult=trans_mult,
-                        rot_mult=rot_mult,
-                        neighborhood=neighborhood,
-                        action_space_reduction=action_space_reduction,
-                        ros_publisher=ros_publisher,
-                        prev_list=set(),
-                    )
-
-                    # Reset the inflated grid's state
-                    for conflicting_uid, prev_polygon in polygons_tmp.items():
-                        inflated_grid_by_robot.update({conflicting_uid: prev_polygon})
-                    inflated_grid_by_robot.activate_entities(new_dynamic_entities)
-
-                    if p.is_empty():
-                        self.logger.append(
-                            utils.BasicLog(
-                                "Agent {}: Postponing for {} steps, could not find a plan avoiding the conflicting "
-                                "dynamic obstacles of the pure NAMO plan.".format(
-                                    self.name, t_max
-                                ),
-                                step_count,
-                            )
-                        )
-                        return ThinkResult(
-                            next_action=plan.new_postpone(
-                                t_min,
-                                t_max,
-                                step_count,
-                                conflicts,
-                                self.logger,
-                                self.name,
-                            ),
-                            did_postpone=True,
-                            did_replan=True,
-                            robot_name=self.name,
-                            has_conflicts=True,
-                        )
-                    else:
-                        plan.update_plan(p, step_count)
-                        new_conflicts = set(
-                            plan.get_conflicts(
-                                world=w_t,
-                                inflated_grid_by_robot=inflated_grid_by_robot,
-                                check_horizon=fov,
-                                ros_publisher=ros_publisher,
-                                robot_name=self.name,
-                            )
-                        )
-                        for conflict in conflicts:
-                            if conflict in new_conflicts:
-                                new_conflicts.remove(conflict)
-
-                        if new_conflicts:
-                            self.logger.append(
-                                utils.BasicLog(
-                                    "Agent {}: Postponing for {} steps, a new plan has been computed avoiding the "
-                                    "conflicting dynamic obstacles of the pure NAMO plan, but has other conflicts: {}".format(
-                                        self.name, t_max, conflicts
-                                    ),
-                                    step_count,
-                                )
-                            )
-                            return ThinkResult(
-                                next_action=plan.new_postpone(
-                                    t_min,
-                                    t_max,
-                                    step_count,
-                                    conflicts,
-                                    self.logger,
-                                    self.name,
-                                ),
-                                did_replan=True,
-                                did_postpone=True,
-                                robot_name=self.name,
-                                has_conflicts=True,
-                            )
-                        else:
-                            self.logger.append(
-                                utils.BasicLog(
-                                    "Agent {}: Found a new plan that does not have conflicts with the dynamic obstacles "
-                                    "conflicting with the pure NAMO plan, executing its first step...".format(
-                                        self.name
-                                    ),
-                                    step_count,
-                                )
-                            )
-
-                            return ThinkResult(
-                                next_action=plan.pop_next_action(),
-                                did_replan=True,
-                                robot_name=self.name,
-                                has_conflicts=False,
-                            )
+        return ThinkResult(
+            next_action=plan.pop_next_action(),
+            did_replan=True,
+            robot_name=self.name,
+            has_conflicts=False,
+        )
 
     def select_connect(
         self,
@@ -1638,8 +1627,8 @@ class Stilman2005Agent(Agent):
                     "Rch found a path where no obstacle needed to be traversed."
                 )
             return end_config.first_obstacle_uid, end_config.first_component_uid
-        else:
-            return 0, 0
+
+        return 0, 0
 
     def manip_search(
         self,
@@ -2959,8 +2948,8 @@ class Stilman2005Agent(Agent):
                 csv_polygon=csv_polygons[(0,)],
             )
             return next_transit_start_configuration
-        else:
-            return None
+
+        return None
 
     def is_there_opening_to_c_1(
         self,
@@ -3075,13 +3064,13 @@ class Stilman2005Agent(Agent):
                 has_new_local_opening,
                 skipped_global_opening_check,
             )
-        else:
-            has_new_global_opening, skipped_global_opening_check = False, True
-            return (
-                has_new_global_opening,
-                has_new_local_opening,
-                skipped_global_opening_check,
-            )
+
+        has_new_global_opening, skipped_global_opening_check = False, True
+        return (
+            has_new_global_opening,
+            has_new_local_opening,
+            skipped_global_opening_check,
+        )
 
     def get_manip_search_neighbors(
         self,
@@ -3379,7 +3368,8 @@ class Stilman2005Agent(Agent):
     ):
         if obstacle_can_intrude_r_acc and obstacle_can_intrude_c_1_x:
             return False
-        elif obstacle_can_intrude_r_acc and not obstacle_can_intrude_c_1_x:
+
+        if obstacle_can_intrude_r_acc and not obstacle_can_intrude_c_1_x:
             new_obstacle_exterior_cells = utils.accurate_rasterize_in_grid(
                 new_obstacle_polygon.buffer(inflated_grid_by_robot.inflation_radius),
                 inflated_grid_by_robot.res,
@@ -3418,7 +3408,7 @@ class Stilman2005Agent(Agent):
     ):
         if obstacle_can_intrude_r_acc and obstacle_can_intrude_c_1_x:
             return False
-        elif obstacle_can_intrude_r_acc and not obstacle_can_intrude_c_1_x:
+        if obstacle_can_intrude_r_acc and not obstacle_can_intrude_c_1_x:
             if ccs_data.grid[cell[0]][cell[1]] > 0 and cell not in r_acc_cells:
                 return True
         elif not obstacle_can_intrude_r_acc and obstacle_can_intrude_c_1_x:
@@ -3723,87 +3713,85 @@ class Stilman2005Agent(Agent):
 
         if not main_robot_evasion_path:
             return None
-        else:
-            # If this robot is able to evade, it must check if it should by comparing its evasion path with the one of
-            # other robots.
-            other_robots_uids = {
-                potential_deadlock.other_robot_uid
-                for potential_deadlock in potential_deadlocks
-                if isinstance(potential_deadlock, RobotRobotConflict)
-            }
 
-            assert main_robot_uid not in other_robots_uids
+        # If this robot is able to evade, it must check if it should by comparing its evasion path with the one of
+        # other robots.
+        other_robots_uids = {
+            potential_deadlock.other_robot_uid
+            for potential_deadlock in potential_deadlocks
+            if isinstance(potential_deadlock, RobotRobotConflict)
+        }
 
-            inflated_grid_by_robot.update(
-                new_or_updated_polygons={main_robot_uid: main_robot.polygon}
+        assert main_robot_uid not in other_robots_uids
+
+        inflated_grid_by_robot.update(
+            new_or_updated_polygons={main_robot_uid: main_robot.polygon}
+        )
+
+        max_evasion_cell_social_cost = main_robot_evasion_cell_social_cost
+        other_robot_evasion_path_max_duration = 0
+
+        max_x_coord = float("-inf")
+
+        for robot_uid in other_robots_uids:
+            # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
+            #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
+            other_robot = t.cast(Agent, w_t.entities[robot_uid])
+            max_x_coord = max(max_x_coord, other_robot.pose[0])
+
+            inflated_grid_by_robot.deactivate_entities({robot_uid})
+            inflated_grid_by_robot.activate_entities({main_robot_uid})
+            (
+                other_robot_evasion_cell_social_cost,
+                _other_robot_evasion_path,
+            ) = self.compute_evasion_for_one(
+                w_t=w_t,
+                inflated_grid_by_robot=inflated_grid_by_robot,
+                robot=other_robot,
+                forbidden_evasion_cells=set(),
+                use_combined_cost=use_combined_cost,
+                ros_publisher=ros_publisher,
+            )
+            inflated_grid_by_robot.deactivate_entities({main_robot_uid})
+
+            other_robot_exchange_real_path = graph_search.real_to_grid_search_a_star(
+                other_robot.pose, main_robot.pose, inflated_grid_by_robot
             )
 
-            max_evasion_cell_social_cost = main_robot_evasion_cell_social_cost
-            other_robot_evasion_path_max_duration = 0
+            inflated_grid_by_robot.activate_entities({robot_uid})
 
-            max_x_coord = float("-inf")
+            other_robot_exchange_path = TransitPath.from_poses(
+                other_robot_exchange_real_path,
+                other_robot.polygon,
+                other_robot.pose,
+            )
 
-            for robot_uid in other_robots_uids:
-                # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
-                #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
-                other_robot = t.cast(Agent, w_t.entities[robot_uid])
-                max_x_coord = max(max_x_coord, other_robot.pose[0])
-
-                inflated_grid_by_robot.deactivate_entities({robot_uid})
-                inflated_grid_by_robot.activate_entities({main_robot_uid})
+            max_evasion_cell_social_cost = max(
+                max_evasion_cell_social_cost, other_robot_evasion_cell_social_cost
+            )
+            other_robot_evasion_path_max_duration = max(
+                other_robot_evasion_path_max_duration,
                 (
-                    other_robot_evasion_cell_social_cost,
-                    _other_robot_evasion_path,
-                ) = self.compute_evasion_for_one(
-                    w_t=w_t,
-                    inflated_grid_by_robot=inflated_grid_by_robot,
-                    robot=other_robot,
-                    forbidden_evasion_cells=set(),
-                    use_combined_cost=use_combined_cost,
-                    ros_publisher=ros_publisher,
+                    0
+                    if main_robot_evasion_path is None
+                    else len(main_robot_evasion_path.actions)
                 )
-                inflated_grid_by_robot.deactivate_entities({main_robot_uid})
+                + (
+                    0
+                    if other_robot_exchange_path is None
+                    else len(other_robot_exchange_path.actions)
+                ),
+            )
 
-                other_robot_exchange_real_path = (
-                    graph_search.real_to_grid_search_a_star(
-                        other_robot.pose, main_robot.pose, inflated_grid_by_robot
-                    )
-                )
-
-                inflated_grid_by_robot.activate_entities({robot_uid})
-
-                other_robot_exchange_path = TransitPath.from_poses(
-                    other_robot_exchange_real_path,
-                    other_robot.polygon,
-                    other_robot.pose,
-                )
-
-                max_evasion_cell_social_cost = max(
-                    max_evasion_cell_social_cost, other_robot_evasion_cell_social_cost
-                )
-                other_robot_evasion_path_max_duration = max(
-                    other_robot_evasion_path_max_duration,
-                    (
-                        0
-                        if main_robot_evasion_path is None
-                        else len(main_robot_evasion_path.actions)
-                    )
-                    + (
-                        0
-                        if other_robot_exchange_path is None
-                        else len(other_robot_exchange_path.actions)
-                    ),
-                )
-
-            main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
-            if main_robot_evasion_cell_social_cost < max_evasion_cell_social_cost:
+        main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
+        if main_robot_evasion_cell_social_cost < max_evasion_cell_social_cost:
+            return main_robot_evasion_path
+        if main_robot_evasion_cell_social_cost == max_evasion_cell_social_cost:
+            ## tie breaking
+            if self.pose[0] >= max_x_coord:
                 return main_robot_evasion_path
-            elif main_robot_evasion_cell_social_cost == max_evasion_cell_social_cost:
-                ## tie breaking
-                if self.pose[0] >= max_x_coord:
-                    return main_robot_evasion_path
 
-            return None  # Wait for others to evade
+        return None  # Wait for others to evade
 
     def compute_evasion_for_one(
         self,

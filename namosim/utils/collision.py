@@ -73,7 +73,7 @@ def arc_bounding_box(
     if -1.0e-15 < rot_angle < 1.0e-15:
         # It means that there is no movement, return only A
         return [point_a]
-    elif -180.0 <= rot_angle <= 180.0:
+    if -180.0 <= rot_angle <= 180.0:
         # If the arc is less than a half circle
 
         # Compute middle point C
@@ -110,7 +110,7 @@ def arc_bounding_box(
                         2.0 * point_c[1] - point_d[1],
                     )
             return [point_a, point_b, point_d, point_e]
-        elif bb_type == "aabbox":
+        if bb_type == "aabbox":
             # The aabb corners are simply the bounds of points A, B and C.
             minx, miny, maxx, maxy = bounds([point_a, point_b, point_c])
             return [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]
@@ -157,11 +157,11 @@ def arc_bounding_box(
             bb_points_y = [point_d[1], point_e[1], point_e[1], point_d[1]]
             if bb_type == "minimum_rotated_rectangle":
                 return list(zip(bb_points_x, bb_points_y))
-            elif bb_type == "aabbox":
+            if bb_type == "aabbox":
                 minx, miny, maxx, maxy = bounds(list(zip(bb_points_x, bb_points_y)))
                 return [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]
-            else:
-                raise Exception("Invalid bb_type arg")
+
+            raise Exception("Invalid bb_type arg")
         else:
             # If the ray passing through C is not horizontal (GENERAL CASE)
 
@@ -214,7 +214,7 @@ def arc_bounding_box(
             ]
             if bb_type == "minimum_rotated_rectangle":
                 return list(zip(bb_points_x, bb_points_y))
-            elif bb_type == "aabbox":
+            if bb_type == "aabbox":
                 minx, miny, maxx, maxy = bounds(list(zip(bb_points_x, bb_points_y)))
                 return [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]
     else:
@@ -322,36 +322,35 @@ def check_static_collision(
                         (main_uid, uid): intersection,
                         (uid, main_uid): intersection,
                     }
-                else:
-                    return {main_uid: {uid}, uid: {main_uid}}
+
+                return {main_uid: {uid}, uid: {main_uid}}
         return {}
-    else:
-        collides_with: t.Dict[UID, t.Set[UID]] = {}
-        intersections: t.Dict[t.Tuple[UID, UID], Polygon] = {}
 
-        for uid in potential_collision_uids:
-            if polygon.intersects(other_entities_polygons[uid]):
-                if save_intersections:
-                    intersection: Polygon = polygon.intersection(
-                        other_entities_polygons[uid]
-                    )
-                    intersections[(main_uid, uid)] = intersection
-                    intersections[(uid, main_uid)] = intersection
+    collides_with: t.Dict[UID, t.Set[UID]] = {}
+    intersections: t.Dict[t.Tuple[UID, UID], Polygon] = {}
 
-                if main_uid in collides_with:
-                    collides_with[main_uid].add(uid)
-                else:
-                    collides_with[main_uid] = {uid}
+    for uid in potential_collision_uids:
+        if polygon.intersects(other_entities_polygons[uid]):
+            if save_intersections:
+                intersection: Polygon = polygon.intersection(
+                    other_entities_polygons[uid]
+                )
+                intersections[(main_uid, uid)] = intersection
+                intersections[(uid, main_uid)] = intersection
 
-                if uid in collides_with:
-                    collides_with[uid].add(main_uid)
-                else:
-                    collides_with[uid] = {main_uid}
+            if main_uid in collides_with:
+                collides_with[main_uid].add(uid)
+            else:
+                collides_with[main_uid] = {uid}
 
-        if save_intersections:
-            return collides_with, intersections
-        else:
-            return collides_with
+            if uid in collides_with:
+                collides_with[uid].add(main_uid)
+            else:
+                collides_with[uid] = {main_uid}
+
+    if save_intersections:
+        return collides_with, intersections
+    return collides_with
 
 
 def merge_collides_with(
@@ -521,17 +520,16 @@ def csv_check_collisions(
                 intersections,
                 bb_vertices,
             )
-        else:
-            return (
-                True,
-                collides_with,
-                aabb_tree,
-                csv_polygons,
-                intersections,
-                bb_vertices,
-            )
-    else:
-        return False, collides_with, aabb_tree, csv_polygons, intersections, bb_vertices
+        return (
+            True,
+            collides_with,
+            aabb_tree,
+            csv_polygons,
+            intersections,
+            bb_vertices,
+        )
+
+    return False, collides_with, aabb_tree, csv_polygons, intersections, bb_vertices
 
 
 def csv_simulate_simple_kinematics(

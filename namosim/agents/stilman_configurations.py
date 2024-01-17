@@ -29,14 +29,13 @@ class RCHConfiguration(BaseConfiguration):
     def __eq__(self, other: object):
         if isinstance(other, tuple):
             return self.cell == other
-        elif isinstance(other, RCHConfiguration):
+        if isinstance(other, RCHConfiguration):
             return (
                 self.cell == other.cell
                 and self.first_obstacle_uid == other.first_obstacle_uid
                 and self.first_component_uid == other.first_component_uid
             )
-        else:
-            raise Exception("Invalid comparison")
+        raise Exception("Invalid comparison")
 
     def __hash__(self):
         return hash((self.cell, self.first_obstacle_uid, self.first_component_uid))
@@ -64,12 +63,11 @@ class RobotConfiguration(BaseConfiguration):
     def __eq__(self, other: object) -> bool:
         if isinstance(other, graph_search.HeapNode):
             return self.fixed_precision_pose == other.element.fixed_precision_pose
-        elif isinstance(other, tuple):
+        if isinstance(other, tuple):
             return self.fixed_precision_pose == other
-        elif isinstance(other, RobotConfiguration):
+        if isinstance(other, RobotConfiguration):
             return self.fixed_precision_pose == other.fixed_precision_pose
-        else:
-            raise Exception("Invalid comparison")
+        raise Exception("Invalid comparison")
 
     def __hash__(self):
         return hash(self.fixed_precision_pose)
@@ -119,19 +117,19 @@ class RobotObstacleConfiguration(BaseConfiguration):
                 and self.obstacle.fixed_precision_pose
                 == other.element.obstacle.fixed_precision_pose
             )
-        elif isinstance(other, tuple):
+        if isinstance(other, tuple):
             return (
                 self.robot.fixed_precision_pose == other[0]
                 and self.obstacle.fixed_precision_pose == other[1]
             )
-        elif isinstance(other, RobotObstacleConfiguration):
+        if isinstance(other, RobotObstacleConfiguration):
             return (
                 self.robot.fixed_precision_pose == other.robot.fixed_precision_pose
                 and self.obstacle.fixed_precision_pose
                 == other.obstacle.fixed_precision_pose
             )
-        else:
-            raise Exception("Invalid comparison")
+
+        raise Exception("Invalid comparison")
 
     def __hash__(self):
         return hash(

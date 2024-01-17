@@ -187,10 +187,8 @@ def relative_change(
 ):
     if init_value == end_value:
         return 0.0
-    else:
-        if init_value == 0.0:
-            return 1.0
-        else:
-            return (float(end_value) / float(init_value) - 1.0) * (
-                100.0 if return_percentage else 1.0
-            )
+    if init_value == 0.0:
+        return 1.0
+    return (float(end_value) / float(init_value) - 1.0) * (
+        100.0 if return_percentage else 1.0
+    )

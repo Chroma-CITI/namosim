@@ -326,10 +326,9 @@ class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
             return BinaryOccupancyGrid.update(
                 self, inflated_polygons, removed_polygons, fill=fill
             )
-        else:
-            return BinaryOccupancyGrid.update(
-                self, new_or_updated_polygons, removed_polygons
-            )
+        return BinaryOccupancyGrid.update(
+            self, new_or_updated_polygons, removed_polygons
+        )
 
     def to_image(self) -> Image.Image:
         # grid = np.flipud(self.grid)

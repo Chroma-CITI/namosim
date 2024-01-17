@@ -1124,5 +1124,5 @@ class EvasionTransitPath(TransitPath):
         if self.transit_configuration_after_release and not self.release_executed:
             self.release_executed = True
             return self.transit_configuration_after_release.action
-        else:
-            return TransitPath.pop_next_action(self)
+
+        return TransitPath.pop_next_action(self)
