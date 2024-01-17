@@ -137,7 +137,7 @@ class Stilman2005Agent(Agent):
             params.check_new_local_opening_before_global
         )
         self.activate_grids_logging = params.activate_grids_logging
-        self._social_costmap: npt.NDArray[t.Any] | None = None
+        self._social_costmap: npt.NDArray[np.float_] | None = None
         self.is_first_transfer_step = False
         self.check_horizon = 10
         self.angular_tolerance = 0.1
@@ -538,98 +538,18 @@ class Stilman2005Agent(Agent):
             )
 
             if self.use_social_cost and self.params.resolve_deadlocks:
-                if plan.timer.is_running and not plan.timer.is_timer_over(step_count):
-                    return ThinkResult(
-                        next_action=ba.Wait(),
-                        did_replan=False,
-                        robot_name=self.name,
-                        has_conflicts=True,
-                    )
-
-                if not plan.has_tries_remaining(try_max):
-                    self.logger.append(
-                        utils.BasicLog(
-                            "Agent {}: Failing goal, no tries remaining to plan an evasion.".format(
-                                self.name
-                            ),
-                            step_count,
-                        )
-                    )
-                    return ThinkResult(
-                        next_action=ba.GoalFailed(goal),
-                        did_replan=False,
-                        robot_name=self.name,
-                        has_conflicts=True,
-                    )
-
-                robot_cells = utils.accurate_rasterize_in_grid(
-                    w_t.entities[robot_uid].polygon,
-                    inflated_grid_by_robot.res,
-                    inflated_grid_by_robot.grid_pose,
-                    inflated_grid_by_robot.d_width,
-                    inflated_grid_by_robot.d_height,
-                    fill=True,
-                )
-                plan.forbidden_evasion_cells.update(set(robot_cells))
-                plan.update_count += 1
-
-                assert robot_uid not in inflated_grid_by_robot.cells_sets
-
-                evasion_path = self.compute_evasion(
-                    inflated_grid_by_robot=inflated_grid_by_robot,
+                return self.resolve_deadlocks_social(
+                    robot_uid=robot_uid,
                     w_t=w_t,
-                    main_robot_uid=robot_uid,
+                    robot_inflated_grid=inflated_grid_by_robot,
+                    plan=plan,
+                    goal=goal,
+                    step_count=step_count,
                     potential_deadlocks=potential_deadlocks,
-                    forbidden_evasion_cells=plan.forbidden_evasion_cells,
+                    conflicts=conflicts,
                     ros_publisher=ros_publisher,
                 )
 
-                assert robot_uid not in inflated_grid_by_robot.cells_sets
-
-                if evasion_path:
-                    self.logger.append(
-                        utils.BasicLog(
-                            "Agent {}: Executing evasion path.".format(self.name),
-                            step_count,
-                        )
-                    )
-                    plan.update_plan(
-                        nav_plan.Plan(
-                            robot_uid=self.uid,
-                            path_components=[evasion_path],
-                            goal=goal,
-                        ),
-                        step_count,
-                    )
-                    next_action = plan.pop_next_action()
-                    return ThinkResult(
-                        next_action=next_action,
-                        did_replan=True,
-                        robot_name=self.name,
-                        has_conflicts=True,
-                    )
-                self.logger.append(
-                    utils.BasicLog(
-                        "Agent {}: I can not or should not evade, postponing...".format(
-                            self.name,
-                        ),
-                        step_count,
-                    )
-                )
-                return ThinkResult(
-                    next_action=plan.new_postpone(
-                        t_min,
-                        t_max,
-                        step_count,
-                        conflicts,
-                        self.logger,
-                        self.name,
-                    ),
-                    did_postpone=True,
-                    did_replan=False,
-                    robot_name=self.name,
-                    has_conflicts=True,
-                )
             self.logger.append(
                 utils.BasicLog(
                     "Agent {}: Failing goal because deadlocks where detected and resolve-deadlocks is disabled or unavailable.".format(
@@ -688,6 +608,112 @@ class Stilman2005Agent(Agent):
             rot_mult,
             action_space_reduction,
             ros_publisher=ros_publisher,
+        )
+
+    def resolve_deadlocks_social(
+        self,
+        *,
+        robot_uid: UID,
+        w_t: "w.World",
+        plan: "nav_plan.DynamicPlan",
+        step_count: int,
+        goal: PoseModel,
+        robot_inflated_grid: BinaryInflatedOccupancyGrid,
+        potential_deadlocks: t.Set[Conflict],
+        conflicts: t.List[Conflict],
+        ros_publisher: "rp.RosPublisher",
+    ):
+        if plan.timer.is_running and not plan.timer.is_timer_over(step_count):
+            return ThinkResult(
+                next_action=ba.Wait(),
+                did_replan=False,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
+
+        if not plan.has_tries_remaining(self.replan_count):
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Failing goal, no tries remaining to plan an evasion.".format(
+                        self.name
+                    ),
+                    step_count,
+                )
+            )
+            return ThinkResult(
+                next_action=ba.GoalFailed(goal),
+                did_replan=False,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
+
+        robot_cells = utils.accurate_rasterize_in_grid(
+            w_t.entities[robot_uid].polygon,
+            robot_inflated_grid.res,
+            robot_inflated_grid.grid_pose,
+            robot_inflated_grid.d_width,
+            robot_inflated_grid.d_height,
+            fill=True,
+        )
+        plan.forbidden_evasion_cells.update(set(robot_cells))
+        plan.update_count += 1
+
+        assert robot_uid not in robot_inflated_grid.cells_sets
+
+        evasion_path = self.compute_evasion(
+            inflated_grid_by_robot=robot_inflated_grid,
+            w_t=w_t,
+            main_robot_uid=robot_uid,
+            potential_deadlocks=potential_deadlocks,
+            forbidden_evasion_cells=plan.forbidden_evasion_cells,
+            ros_publisher=ros_publisher,
+        )
+
+        assert robot_uid not in robot_inflated_grid.cells_sets
+
+        if evasion_path:
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Executing evasion path.".format(self.name),
+                    step_count,
+                )
+            )
+            plan.update_plan(
+                nav_plan.Plan(
+                    robot_uid=self.uid,
+                    path_components=[evasion_path],
+                    goal=goal,
+                ),
+                step_count,
+            )
+            next_action = plan.pop_next_action()
+            return ThinkResult(
+                next_action=next_action,
+                did_replan=True,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
+        self.logger.append(
+            utils.BasicLog(
+                "Agent {}: I can not or should not evade, postponing...".format(
+                    self.name,
+                ),
+                step_count,
+            )
+        )
+        return ThinkResult(
+            next_action=plan.new_postpone(
+                t_min=self.min_nb_steps_to_wait,
+                t_max=self.max_nb_steps_to_wait,
+                step_count=step_count,
+                conflicts=conflicts,
+                simulation_log=self.logger,
+                robot_name=self.name,
+            ),
+            did_postpone=True,
+            did_replan=False,
+            robot_name=self.name,
+            has_conflicts=True,
         )
 
     def replan(
@@ -2183,8 +2209,16 @@ class Stilman2005Agent(Agent):
         ros_publisher: "rp.RosPublisher",
         obstacle_can_intrude_r_acc: bool = True,
         obstacle_can_intrude_c_1_x: bool = True,
-    ):
-        def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
+    ) -> t.Any:
+        def get_neighbors(
+            _current: RobotObstacleConfiguration,
+            _gscore: t.Dict[RobotObstacleConfiguration, float],
+            _close_set: t.Set[RobotObstacleConfiguration],
+            _open_queue: t.List[RobotObstacleConfiguration],
+            _came_from: t.Dict[
+                RobotObstacleConfiguration, RobotObstacleConfiguration | None
+            ],
+        ):
             return self.get_manip_search_neighbors(
                 _current,
                 _gscore,
@@ -2275,8 +2309,16 @@ class Stilman2005Agent(Agent):
         ros_publisher: "rp.RosPublisher",
         obstacle_can_intrude_r_acc: bool = True,
         obstacle_can_intrude_c_1_x: bool = True,
-    ):
-        def get_neighbors(_current, _gscore, _close_set, _open_queue, _came_from):
+    ) -> t.Any:
+        def get_neighbors(
+            _current: RobotObstacleConfiguration,
+            _gscore: t.Dict[RobotObstacleConfiguration, float],
+            _close_set: t.Set[RobotObstacleConfiguration],
+            _open_queue: t.List[RobotObstacleConfiguration],
+            _came_from: t.Dict[
+                RobotObstacleConfiguration, RobotObstacleConfiguration | None
+            ],
+        ):
             neighbors, tentative_g_scores = self.get_manip_search_neighbors(
                 _current,
                 _gscore,
@@ -2300,12 +2342,16 @@ class Stilman2005Agent(Agent):
             )
             return neighbors, tentative_g_scores
 
-        def heuristic(_neighbor, _goal):
+        def heuristic(
+            _neighbor: RobotObstacleConfiguration, _goal: RobotObstacleConfiguration
+        ):
             return self.h(
                 _neighbor.robot.floating_point_pose, _goal.robot.floating_point_pose
             )
 
-        def flexible_exit_condition(_current, _goal):
+        def flexible_exit_condition(
+            _current: RobotObstacleConfiguration, _goal: RobotObstacleConfiguration
+        ):
             if _current == _goal:
                 return True
 
@@ -2624,8 +2670,12 @@ class Stilman2005Agent(Agent):
         obstacle_can_intrude_c_1_x: bool = True,
     ) -> RobotObstacleConfiguration | None:
         if close_set:
+            assert gscore is not None
+
             # If all reachable configurations have been explored, index them by obstacle cell
-            obs_cell_to_reachable_configurations = {}
+            obs_cell_to_reachable_configurations: t.Dict[
+                GridCellModel, t.List[RobotObstacleConfiguration]
+            ] = {}
             for c in close_set:
                 if c.obstacle.cell_in_grid in obs_cell_to_reachable_configurations:
                     obs_cell_to_reachable_configurations[
@@ -2877,6 +2927,7 @@ class Stilman2005Agent(Agent):
                                             inflated_grid_by_robot.res,
                                             inflated_grid_by_robot.grid_pose,
                                         ),
+                                        manip_pose_id=0,
                                     )
                 ordered_cells_by_cost.pop()
         return None  # If no valid configuration could be found...
@@ -3422,7 +3473,7 @@ class Stilman2005Agent(Agent):
     @staticmethod
     def deduce_robot_goal_pose(
         robot_manip_pose: PoseModel, obs_init_pose: PoseModel, obs_goal_pose: PoseModel
-    ):
+    ) -> PoseModel:
         translation, rotation = utils.get_translation_and_rotation(
             obs_init_pose, obs_goal_pose
         )
@@ -3441,9 +3492,9 @@ class Stilman2005Agent(Agent):
     @staticmethod
     def dijkstra_cc_and_cost(
         start_cell: GridCellModel,
-        grid,
+        grid: npt.NDArray[t.Any],
         res: float,
-        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+        neighborhood: t.Iterable[t.Iterable[int]] = utils.CHESSBOARD_NEIGHBORHOOD,
     ):
         straight_dist = res
         diag_dist = res * utils.SQRT_OF_2
@@ -3479,6 +3530,9 @@ class Stilman2005Agent(Agent):
         goal_pose: PoseModel,
         ros_publisher: "rp.RosPublisher",
     ):
+        if self._social_costmap is None:
+            raise Exception("Social costmap uninitialized")
+
         # Initialize some needed variables
         obstacle_cell = utils.real_to_grid(
             obstacle_pose[0],
@@ -3771,16 +3825,8 @@ class Stilman2005Agent(Agent):
             )
             other_robot_evasion_path_max_duration = max(
                 other_robot_evasion_path_max_duration,
-                (
-                    0
-                    if main_robot_evasion_path is None
-                    else len(main_robot_evasion_path.actions)
-                )
-                + (
-                    0
-                    if other_robot_exchange_path is None
-                    else len(other_robot_exchange_path.actions)
-                ),
+                len(main_robot_evasion_path.actions)
+                + len(other_robot_exchange_path.actions),
             )
 
         main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
@@ -3874,16 +3920,16 @@ class Stilman2005Agent(Agent):
             # If the robot was in an obstacle, no evasion is possible
             return robot_start_social_cost, None
 
-        accessible_cells = []
-        social_cost = []
-        distance_cost = []
+        accessible_cells: t.List[GridCellModel] = []
+        social_cost: t.List[float] = []
+        distance_cost: t.List[float] = []
         for cell, value in gscore.items():
             if cell not in forbidden_evasion_cells:
                 accessible_cells.append(cell)
-                social_cost.append(self._social_costmap[cell[0]][cell[1]])
+                social_cost.append(self._social_costmap[cell[0]][cell[1]])  # type: ignore
                 distance_cost.append(value)
-        social_cost = np.array(social_cost)
-        distance_cost = np.array(distance_cost)
+        social_cost = np.array(social_cost)  # type: ignore
+        distance_cost = np.array(distance_cost)  # type: ignore
 
         if len(social_cost) == 0:
             return robot_start_social_cost, None
