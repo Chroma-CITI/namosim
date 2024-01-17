@@ -23,6 +23,8 @@ Benoit Renault (benoit.renault@inria.fr)
 import heapq
 import typing as t
 
+import numpy.typing as npt
+
 from namosim.utils import utils
 
 
@@ -251,13 +253,13 @@ def grid_get_neighbors_chessboard_check_diag_neighbors(
 
 
 def grid_search_a_star(
-    start,
-    goal,
-    grid,
-    width,
-    height,
+    start: t.Any,
+    goal: t.Any,
+    grid: npt.NDArray[t.Any],
+    width: int,
+    height: int,
     neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-    check_diag_neighbors=False,
+    check_diag_neighbors: bool = False,
 ):
     is_chess_neighborhood = neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
