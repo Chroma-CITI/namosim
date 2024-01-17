@@ -749,8 +749,8 @@ class StilmanOnlyAgent(Agent):
                     "Rch found a path where no obstacle needed to be traversed."
                 )
             return end_config.first_obstacle_uid, end_config.first_component_uid
-        else:
-            return 0, 0
+
+        return 0, 0
 
     def rch_get_neighbors(
         self,
@@ -1501,13 +1501,13 @@ class StilmanOnlyAgent(Agent):
                 has_new_local_opening,
                 skipped_global_opening_check,
             )
-        else:
-            has_new_global_opening, skipped_global_opening_check = False, True
-            return (
-                has_new_global_opening,
-                has_new_local_opening,
-                skipped_global_opening_check,
-            )
+
+        has_new_global_opening, skipped_global_opening_check = False, True
+        return (
+            has_new_global_opening,
+            has_new_local_opening,
+            skipped_global_opening_check,
+        )
 
     def h(self, r_i: t.Tuple[float, float, float], r_j: t.Tuple[float, float, float]):
         translation_cost = self.translation_factor * utils.euclidean_distance(r_j, r_i)
@@ -1592,8 +1592,8 @@ class StilmanOnlyAgent(Agent):
                 csv_polygon=csv_polygons[(0,)],
             )
             return next_transit_start_configuration
-        else:
-            return None
+
+        return None
 
     def get_transfer_path_from_config(
         self,
@@ -2034,7 +2034,8 @@ class StilmanOnlyAgent(Agent):
     ):
         if obstacle_can_intrude_r_acc and obstacle_can_intrude_c_1_x:
             return False
-        elif obstacle_can_intrude_r_acc and not obstacle_can_intrude_c_1_x:
+
+        if obstacle_can_intrude_r_acc and not obstacle_can_intrude_c_1_x:
             new_obstacle_exterior_cells = utils.accurate_rasterize_in_grid(
                 new_obstacle_polygon.buffer(inflated_grid_by_robot.inflation_radius),
                 inflated_grid_by_robot.res,

@@ -259,8 +259,7 @@ class Timer:
         if current_time - self.start_time >= self.duration:
             self.is_running = False
             return True
-        else:
-            return False
+        return False
 
 
 class DynamicPlan(Plan):

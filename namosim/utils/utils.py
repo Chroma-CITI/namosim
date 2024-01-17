@@ -481,7 +481,7 @@ def chebyshev_distance(a, b, c_cost=1.0, d_cost=SQRT_OF_2):
 def sum_of_euclidean_distances(poses):
     if len(poses) == 0:
         return float("inf")
-    elif len(poses) == 1:
+    if len(poses) == 1:
         return 0.0
 
     total = 0.0
@@ -633,15 +633,13 @@ def yaw_from_direction(
     yaw = math.atan2(direction_vector[1], direction_vector[0])
     if radians:
         return yaw
-    else:
-        return math.degrees(yaw) % 360
+    return math.degrees(yaw) % 360
 
 
 def direction_from_yaw(yaw, radians=False):
     if radians:
         return math.cos(yaw), math.sin(yaw)
-    else:
-        return math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    return math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
 
 
 def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
@@ -682,8 +680,7 @@ def grid_path_to_real_path(grid_path, start_pose, goal_pose, res, grid_pose):
 def is_within_interchangeable_interval(eval_value, value_a, value_b):
     if value_a <= value_b:
         return value_a <= eval_value <= value_b
-    else:
-        return value_b <= eval_value <= value_a
+    return value_b <= eval_value <= value_a
 
 
 def is_cells_set_colliding_in_grid(cells_set, grid):
@@ -947,8 +944,7 @@ def is_convex(polygon: Polygon):
 def convert_to_convex_polygons_list(polygon):
     if is_convex(polygon):
         return [polygon]
-    else:
-        return shapely_polygon_to_shapely_triangles(polygon)
+    return shapely_polygon_to_shapely_triangles(polygon)
 
 
 def find_circle_terms(x1, y1, x2, y2, x3, y3):
