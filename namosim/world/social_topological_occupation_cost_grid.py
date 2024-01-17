@@ -101,16 +101,15 @@ def skeleteton_social_cost_function(
 
     if 0.0 < dist_real < half_1_u_p:
         return curve_0_to_1_u_p * dist_real + offset_0_to_1_u_p
-    elif half_1_u_p <= dist_real < half_2_u_p:
+    if half_1_u_p <= dist_real < half_2_u_p:
         return curve_1_to_2_u_p * dist_real + offset_1_to_2_u_p
-    elif half_2_u_p <= dist_real < half_3_u_p:
+    if half_2_u_p <= dist_real < half_3_u_p:
         return curve_2_to_3_u_p * dist_real + offset_2_to_3_u_p
-    elif half_3_u_p <= dist_real < half_4_u_p:
+    if half_3_u_p <= dist_real < half_4_u_p:
         return curve_3_to_4_u_p * dist_real + offset_3_to_4_u_p
-    elif half_4_u_p <= dist_real:
+    if half_4_u_p <= dist_real:
         return cost_value_at_4_u_p_and_beyond
-    else:
-        return -1.0
+    return -1.0
 
 
 def skeleteton_social_cost_function_02(dist_in_cells, res=1.0):
@@ -135,8 +134,8 @@ def skeleteton_social_cost_function_02(dist_in_cells, res=1.0):
 
     if distances[-1] <= dist_real:
         return values[-1]
-    else:
-        return -1.0
+
+    return -1.0
 
 
 # def plot_conversion_function():

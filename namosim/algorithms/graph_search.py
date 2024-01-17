@@ -51,8 +51,8 @@ class PriorityQueue:
                 if not corresponding_uids:
                     del self.elements_to_heap_nodes_uids[corresponding_element]
                 return corresponding_element
-            else:
-                corresponding_uids.remove(candidate_heap_node.uid)
+
+            corresponding_uids.remove(candidate_heap_node.uid)
         return None
 
     def __nonzero__(self):
@@ -96,8 +96,7 @@ class HeapNode:
         # Meant for fast check whether a configuration is in open heap or not
         if isinstance(other, tuple):
             return self.element == other
-        else:
-            return self.element == other.element
+        return self.element == other.element
 
 
 def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
@@ -345,8 +344,8 @@ def real_to_grid_search_a_star(start_pose, goal_pose, grid):
             raw_path[-1]
         )  # Copy last cell element to have same number of cells and real poses
         return real_path
-    else:
-        return []
+
+    return []
 
 
 def new_generic_dijkstra(

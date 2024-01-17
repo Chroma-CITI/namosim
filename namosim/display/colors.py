@@ -58,9 +58,9 @@ def generate_equally_spread_ros_colors(
 def generate_intervals_values(nb_values: int) -> t.List[float]:
     if nb_values == 0:
         return []
-    elif nb_values == 1:
+    if nb_values == 1:
         return [0.0]
-    elif nb_values < 0:
+    if nb_values < 0:
         raise ValueError("nb_values must be positive.")
     else:
         intervals = [[0.0, 0.85]]
