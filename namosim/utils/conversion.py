@@ -83,17 +83,18 @@ def svg_pathd_to_shapely_geometry(
     # or on y-axis
     if len(dedup_geom_pts) >= 3:
         return Polygon(dedup_geom_pts)
-    elif len(dedup_geom_pts) == 2:
+    if len(dedup_geom_pts) == 2:
         return LineString(dedup_geom_pts)
-    elif len(dedup_geom_pts) == 1:
+    if len(dedup_geom_pts) == 1:
         return Point(dedup_geom_pts)
-    else:
-        raise RuntimeError("SVG path could not be converted to Shapely geometry.")
+    raise RuntimeError("SVG path could not be converted to Shapely geometry.")
 
 
 def shapely_geometry_to_svg_pathd(
     shapely_geometry: Polygon, scaling_value: float = 1.0
 ):
+    coords: npt.NDArray[t.Any]
+
     # Extract polygon coordinates
     if isinstance(shapely_geometry, Polygon):
         coords = np.array(shapely_geometry.exterior.coords)
@@ -111,12 +112,12 @@ def shapely_geometry_to_svg_pathd(
     if isinstance(shapely_geometry, Polygon):
         new_geometry = Polygon(coords)
         return minidom.parseString(new_geometry.svg()).documentElement.getAttribute("d")
-    elif isinstance(shapely_geometry, LineString):
+    if isinstance(shapely_geometry, LineString):
         new_geometry = LineString(coords)
         return polyline2pathd(
             dom2dict(minidom.parseString(new_geometry.svg()).firstChild)
         )
-    elif isinstance(shapely_geometry, Point):
+    if isinstance(shapely_geometry, Point):
         new_geometry = Point(coords)
         return ellipse2pathd(
             dom2dict(minidom.parseString(new_geometry.svg()).firstChild)

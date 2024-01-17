@@ -487,25 +487,25 @@ class GoalObserver(RosObserver):
 
         if q_goal is None:
             return MarkerArray()
-        else:
-            polygon_at_goal_pose = affinity.translate(
-                robot.polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1]
-            )
-            color = ColorRGBA(**colors.hex_to_rgba(colors.darken(robot.style.fill)))
-            marker_array = MarkerArray(
-                markers=[
-                    polygon_to_line_strip(
-                        polygon_at_goal_pose,
-                        "/polygon",
-                        0,
-                        cfg.main_frame_id,
-                        color,
-                        cfg.goal_z_index,
-                        line_width=robot.min_inflation_radius / 4,
-                    )
-                ]
-            )
-            return marker_array
+
+        polygon_at_goal_pose = affinity.translate(
+            robot.polygon, q_goal[0] - q_init[0], q_goal[1] - q_init[1]
+        )
+        color = ColorRGBA(**colors.hex_to_rgba(colors.darken(robot.style.fill)))
+        marker_array = MarkerArray(
+            markers=[
+                polygon_to_line_strip(
+                    polygon_at_goal_pose,
+                    "/polygon",
+                    0,
+                    cfg.main_frame_id,
+                    color,
+                    cfg.goal_z_index,
+                    line_width=robot.min_inflation_radius / 4,
+                )
+            ]
+        )
+        return marker_array
 
     def reset(self):
         super().reset(make_delete_all_marker(cfg.main_frame_id))
@@ -725,7 +725,7 @@ class RosPublisher:  # noqa: F821
     def is_activated(self, topic: str = ""):
         if DEACTIVATE_RVIZ or (topic and topic not in self.my_publishers):
             return False
-        elif not DEACTIVATE_RVIZ and not topic:
+        if not DEACTIVATE_RVIZ and not topic:
             return True
         return topic in self.my_publishers
 

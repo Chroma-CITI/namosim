@@ -248,8 +248,8 @@ class Agent(Entity):
             return TransitPath.from_poses(
                 real_path, robot_polygon, robot_pose, phys_cost
             )
-        else:
-            return None
+
+        return None
 
     def update_world_from_sensors(
         self, reference_world: "w.World", target_world: "w.World"
@@ -275,16 +275,14 @@ class Agent(Entity):
             return Movability.UNKNOWN
         if obstacle_type == "movable":
             return Movability.MOVABLE
-        elif obstacle_type in self.movable_whitelist:
+        if obstacle_type in self.movable_whitelist:
             return Movability.MOVABLE
-        else:
-            return Movability.STATIC
+        return Movability.STATIC
 
     def deduce_push_only(self, obstacle_type: str):
         if self.force_pushes_only or obstacle_type in self.push_only_list:
             return True
-        else:
-            return False
+        return False
 
     def compute_inflation_radius(self) -> float:
         return utils.get_circumscribed_radius(self.polygon)

@@ -223,7 +223,8 @@ class Simulator:
     ) -> t.Tuple[set[UID], t.List[Polygon], int]:
         if self._paused:
             return (active_agents, trace_polygons, step_count)
-        elif self._step:
+
+        if self._step:
             self._paused = True
             self._step = False
 
