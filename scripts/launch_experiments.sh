@@ -7,10 +7,10 @@ cd $DIR/..
 export NAMO_NO_DISPLAY_WINDOW=TRUE
 export NAMO_DEACTIVATE_RVIZ=TRUE
 
-for n_robots in $(seq 10 15); do
+for n_robots in $(seq 1 15); do
   echo "Starting simulations for ${n_robots} robots."
 
-  variants=("namo_ncr" "namo" "snamo" "snamo_ncr" "snamo_ndr")
+  variants=("namo" "namo_ncr" "namo_ndr" "snamo" "snamo_ncr" "snamo_ndr")
   for alg in "${variants[@]}"; do
 
     index=0
