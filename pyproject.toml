@@ -135,7 +135,6 @@ reportIncompatibleMethodOverride = false
 # reportUnknownParameterType = true
 include = ["namosim", "tests/unit"]
 exclude = [
-  "namosim/agents/stilman_2005_agent.py",
   "namosim/agents/stilman_only_agent.py",
   "namosim/navigation/navigation_path.py",
   "namosim/utils/stats_analysis.py",

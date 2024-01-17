@@ -85,8 +85,8 @@ class RobotObstacleConfiguration(BaseConfiguration):
         obstacle_polygon: Polygon,
         obstacle_cell_in_grid: GridCellModel,
         obstacle_fixed_precision_pose: FixedPrecisionPoseModel,
+        manip_pose_id: int,
         action: ba.Action | None = None,
-        manip_pose_id: int | None = None,
         robot_csv_polygon: Polygon | None = None,
         obstacle_csv_polygon: Polygon | None = None,
     ):
