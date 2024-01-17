@@ -229,6 +229,44 @@ class BasicTest(unittest.TestCase):
             ]
         )
 
+    def test_evasion(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(self.scenarios_folder, "evasion.svg")
+        )
+        sim.run()
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_1 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+
+    def test_evasion_nonsocial(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "evasion_nonsocial.svg"
+            )
+        )
+        sim.run()
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_1 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
