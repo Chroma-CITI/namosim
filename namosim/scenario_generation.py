@@ -378,28 +378,18 @@ def generate_alternative_scenarios(
 
         # Create SVG file from modified data
         new_scenario_basedir = f"{nb_robots}_robots_{nb_goals_per_robot}_goals"
-        if use_social_cost is False and resolve_conflicts is False:
-            new_scenario_basedir += "_namo_ncr"
-        elif use_social_cost is False:
+        if not use_social_cost and resolve_conflicts and resolve_deadlocks:
             new_scenario_basedir += "_namo"
-        elif (
-            use_social_cost is True
-            and resolve_conflicts is True
-            and resolve_deadlocks is False
-        ):
-            new_scenario_basedir += "_snamo_ndr"
-        elif (
-            use_social_cost is True
-            and resolve_deadlocks is True
-            and resolve_conflicts is True
-        ):
+        elif not use_social_cost and not resolve_conflicts and not resolve_deadlocks:
+            new_scenario_basedir += "_namo_ncr"
+        elif not use_social_cost and not resolve_conflicts and resolve_deadlocks:
+            new_scenario_basedir += "_namo_ndr"
+        elif use_social_cost and resolve_conflicts and resolve_deadlocks:
             new_scenario_basedir += "_snamo"
-        elif (
-            use_social_cost is True
-            and resolve_deadlocks is False
-            and resolve_conflicts is False
-        ):
-            new_scenario_basedir += "_snamo_ncr"
+        elif use_social_cost and not resolve_conflicts and not resolve_deadlocks:
+            new_scenario_basedir += "snamo_ncr"
+        elif use_social_cost and resolve_conflicts and not resolve_deadlocks:
+            new_scenario_basedir += "_snamo_ndr"
 
         new_scenario_path = os.path.join(
             out_dir,

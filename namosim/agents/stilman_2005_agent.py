@@ -537,8 +537,45 @@ class Stilman2005Agent(Agent):
                 )
             )
 
-            if self.use_social_cost and self.params.resolve_deadlocks:
-                return self.resolve_deadlocks_social(
+            if self.params.resolve_deadlocks:
+                if plan.timer.is_running and not plan.timer.is_timer_over(step_count):
+                    return ThinkResult(
+                        next_action=ba.Wait(),
+                        did_replan=False,
+                        robot_name=self.name,
+                        has_conflicts=True,
+                    )
+
+                if not plan.has_tries_remaining(self.replan_count):
+                    self.logger.append(
+                        utils.BasicLog(
+                            "Agent {}: Failing goal, no tries remaining to plan an evasion.".format(
+                                self.name
+                            ),
+                            step_count,
+                        )
+                    )
+                    return ThinkResult(
+                        next_action=ba.GoalFailed(goal),
+                        did_replan=False,
+                        robot_name=self.name,
+                        has_conflicts=True,
+                    )
+
+                if self.use_social_cost:
+                    return self.resolve_deadlocks_social(
+                        robot_uid=robot_uid,
+                        w_t=w_t,
+                        robot_inflated_grid=inflated_grid_by_robot,
+                        plan=plan,
+                        goal=goal,
+                        step_count=step_count,
+                        potential_deadlocks=potential_deadlocks,
+                        conflicts=conflicts,
+                        ros_publisher=ros_publisher,
+                    )
+
+                return self.resolve_deadlocks_naive(
                     robot_uid=robot_uid,
                     w_t=w_t,
                     robot_inflated_grid=inflated_grid_by_robot,
@@ -623,30 +660,6 @@ class Stilman2005Agent(Agent):
         conflicts: t.List[Conflict],
         ros_publisher: "rp.RosPublisher",
     ):
-        if plan.timer.is_running and not plan.timer.is_timer_over(step_count):
-            return ThinkResult(
-                next_action=ba.Wait(),
-                did_replan=False,
-                robot_name=self.name,
-                has_conflicts=True,
-            )
-
-        if not plan.has_tries_remaining(self.replan_count):
-            self.logger.append(
-                utils.BasicLog(
-                    "Agent {}: Failing goal, no tries remaining to plan an evasion.".format(
-                        self.name
-                    ),
-                    step_count,
-                )
-            )
-            return ThinkResult(
-                next_action=ba.GoalFailed(goal),
-                did_replan=False,
-                robot_name=self.name,
-                has_conflicts=True,
-            )
-
         robot_cells = utils.accurate_rasterize_in_grid(
             w_t.entities[robot_uid].polygon,
             robot_inflated_grid.res,
@@ -666,6 +679,78 @@ class Stilman2005Agent(Agent):
             main_robot_uid=robot_uid,
             potential_deadlocks=potential_deadlocks,
             forbidden_evasion_cells=plan.forbidden_evasion_cells,
+            ros_publisher=ros_publisher,
+        )
+
+        assert robot_uid not in robot_inflated_grid.cells_sets
+
+        if evasion_path:
+            self.logger.append(
+                utils.BasicLog(
+                    "Agent {}: Executing evasion path.".format(self.name),
+                    step_count,
+                )
+            )
+            plan.update_plan(
+                nav_plan.Plan(
+                    robot_uid=self.uid,
+                    path_components=[evasion_path],
+                    goal=goal,
+                ),
+                step_count,
+            )
+            next_action = plan.pop_next_action()
+            return ThinkResult(
+                next_action=next_action,
+                did_replan=True,
+                robot_name=self.name,
+                has_conflicts=True,
+            )
+        self.logger.append(
+            utils.BasicLog(
+                "Agent {}: I can not or should not evade, postponing...".format(
+                    self.name,
+                ),
+                step_count,
+            )
+        )
+        return ThinkResult(
+            next_action=plan.new_postpone(
+                t_min=self.min_nb_steps_to_wait,
+                t_max=self.max_nb_steps_to_wait,
+                step_count=step_count,
+                conflicts=conflicts,
+                simulation_log=self.logger,
+                robot_name=self.name,
+            ),
+            did_postpone=True,
+            did_replan=False,
+            robot_name=self.name,
+            has_conflicts=True,
+        )
+
+    def resolve_deadlocks_naive(
+        self,
+        *,
+        robot_uid: UID,
+        w_t: "w.World",
+        plan: "nav_plan.DynamicPlan",
+        step_count: int,
+        goal: PoseModel,
+        robot_inflated_grid: BinaryInflatedOccupancyGrid,
+        potential_deadlocks: t.Set[Conflict],
+        conflicts: t.List[Conflict],
+        ros_publisher: "rp.RosPublisher",
+    ):
+        plan.update_count += 1
+
+        assert robot_uid not in robot_inflated_grid.cells_sets
+
+        evasion_path = self.compute_evasion_nonsocial(
+            inflated_grid_by_robot=robot_inflated_grid,
+            w_t=w_t,
+            main_robot_uid=robot_uid,
+            potential_deadlocks=potential_deadlocks,
             ros_publisher=ros_publisher,
         )
 
@@ -3838,6 +3923,169 @@ class Stilman2005Agent(Agent):
                 return main_robot_evasion_path
 
         return None  # Wait for others to evade
+
+    def compute_evasion_nonsocial(
+        self,
+        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
+        w_t: "w.World",
+        main_robot_uid: UID,
+        potential_deadlocks: t.Set[Conflict],
+        ros_publisher: "rp.RosPublisher",
+        use_combined_cost: bool = True,
+    ) -> EvasionTransitPath | None:
+        """Computes an evasion path for the main robot without using social cost"""
+        # Compute evasion for main robot
+        robot = t.cast(Agent, w_t.entities[main_robot_uid])
+
+        other_robots_uids = {
+            potential_deadlock.other_robot_uid
+            for potential_deadlock in potential_deadlocks
+            if isinstance(potential_deadlock, RobotRobotConflict)
+        }
+
+        d = np.linalg.norm(robot.pose[:2])
+        for other_robot_uid in other_robots_uids:
+            other_robot = w_t.agents[other_robot_uid]
+            d_other = np.linalg.norm(other_robot.pose[:2])
+            if d_other < d:  # type: ignore
+                return None
+
+        # The main robot uid should be deactivated in the robot-inflated grid
+        assert main_robot_uid in inflated_grid_by_robot.deactivated_entities_cells_sets
+
+        # If the robot is currently holding an object, try to release it first to find a valid transit starting configuration
+        transit_configuration_after_release = None
+        if w_t.is_holding_obstacle(robot.uid):
+            obstacle_uid = w_t.entity_to_agent.inverse[robot.uid]
+            obstacle = w_t.entities[obstacle_uid]
+            other_entities_polygons = {
+                uid: e.polygon
+                for uid, e in w_t.entities.items()
+                if uid not in (robot.uid, obstacle_uid)
+            }
+            other_entities_aabb_tree = collision.polygons_to_aabb_tree(
+                other_entities_polygons
+            )
+            transit_configuration_after_release = (
+                self.get_next_transit_start_configuration(
+                    inflated_grid_by_robot,
+                    robot.pose,
+                    robot.polygon,
+                    robot.uid,
+                    obstacle_uid,
+                    obstacle.pose,
+                    other_entities_polygons,
+                    other_entities_aabb_tree,
+                    trans_mult=self.trans_mult,
+                    rot_mult=self.rot_mult,
+                )
+            )
+            if not transit_configuration_after_release:
+                # Could not release obstacle during manipulation because no valid transit pose could be found.
+                return None
+
+        # Run A* search to find path to a suitable evasion cell
+        robot_polygon = robot.polygon
+        robot_pose = robot.pose
+        robot_cell = utils.real_to_grid(
+            robot_pose[0],
+            robot_pose[1],
+            inflated_grid_by_robot.res,
+            inflated_grid_by_robot.grid_pose,
+        )
+        if transit_configuration_after_release:
+            robot_polygon = transit_configuration_after_release.polygon
+            robot_pose = transit_configuration_after_release.floating_point_pose
+            robot_cell = transit_configuration_after_release.cell_in_grid
+
+        def get_min_dist_to_others(cell: GridCellModel):
+            min_dist_to_other_robot = float("inf")
+            for other_robot_uid in other_robots_uids:
+                other_robot = w_t.agents[other_robot_uid]
+                min_dist_to_other_robot = min(
+                    min_dist_to_other_robot,
+                    utils.euclidean_distance(cell, other_robot.pose),
+                )
+            return min_dist_to_other_robot
+
+        def get_neighbors_for_evasion(
+            current: GridCellModel,
+            gscore: t.Dict[GridCellModel, float],
+            close_set: t.Set[GridCellModel],
+            open_queue: t.List[GridCellModel],
+            came_from: t.Dict[GridCellModel, GridCellModel | None],
+        ) -> t.Tuple[t.List[GridCellModel], t.List[float]]:
+            if len(close_set) >= 1000:
+                return [], []
+
+            grid = inflated_grid_by_robot.grid
+            neighbors, tentative_gscores = [], []
+
+            current_gscore = gscore[current]
+            for i, j in utils.TAXI_NEIGHBORHOOD:
+                neighbor = current[0] + i, current[1] + j
+                neighbor_is_valid = (
+                    neighbor not in close_set
+                    and utils.is_in_matrix(
+                        cell=neighbor,
+                        width=inflated_grid_by_robot.d_width,
+                        height=inflated_grid_by_robot.d_height,
+                    )
+                    and grid[neighbor[0]][neighbor[1]] == 0
+                )
+                if neighbor_is_valid:
+                    neighbors.append(neighbor)
+                    tentative_gscores.append(current_gscore + 1.0)
+
+            return neighbors, tentative_gscores
+
+        def exit_condition(current: GridCellModel):
+            return False
+
+        _, _, came_from, _, gscore, _ = graph_search.new_generic_dijkstra(
+            start=robot_cell,
+            exit_condition=exit_condition,
+            get_neighbors=get_neighbors_for_evasion,
+        )  # type: ignore
+
+        if not came_from:
+            # If the robot was in an obstacle, no evasion is possible
+            return None
+
+        best_evasion_cell: GridCellModel | None = None
+        best_evasion_score = float("-inf")
+        for cell in gscore.keys():
+            score = get_min_dist_to_others(cell)
+            if score > best_evasion_score:
+                best_evasion_cell = cell
+                best_evasion_score = score
+
+        if best_evasion_cell is None:
+            return None
+
+        raw_cell_path = graph_search.reconstruct_path(came_from, best_evasion_cell)
+        real_path = utils.grid_path_to_real_path(
+            raw_cell_path,
+            robot_pose,
+            None,
+            inflated_grid_by_robot.res,
+            inflated_grid_by_robot.grid_pose,
+        )
+
+        if len(real_path) < 2:
+            return None
+
+        evasion_transit_path = EvasionTransitPath.from_poses(
+            real_path, robot_polygon, robot_pose
+        )
+
+        # remember to release the obstacle, if needed
+        if transit_configuration_after_release:
+            evasion_transit_path.set_transit_configuration_after_release(
+                transit_configuration_after_release
+            )
+
+        return evasion_transit_path
 
     def compute_evasion_for_one(
         self,

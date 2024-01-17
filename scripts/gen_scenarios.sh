@@ -14,6 +14,16 @@ for i in $(seq 1 20); do
     --goals-per-robot 50 \
     --n-scenarios 20 \
     --no-resolve-conflicts \
+    --no-resolve-deadlocks \
+    --out-dir $out
+
+  # namo_ndr
+  python -m namosim.main gen-alt-scenarios \
+    --base-scenario "tests/experiments/scenarios/intersections/2_robots_50_goals_snamo.svg" \
+    --n-robots $i \
+    --goals-per-robot 50 \
+    --n-scenarios 20 \
+    --no-resolve-deadlocks \
     --out-dir $out
 
   # namo
@@ -35,15 +45,6 @@ for i in $(seq 1 20); do
     --no-resolve-deadlocks \
     --out-dir $out
 
-  # snamo
-  python -m namosim.main gen-alt-scenarios \
-    --base-scenario "tests/experiments/scenarios/intersections/2_robots_50_goals_snamo.svg" \
-    --n-robots $i \
-    --goals-per-robot 50 \
-    --n-scenarios 20 \
-    --use-social-cost \
-    --out-dir $out
-  
   # snamo_ndr
   python -m namosim.main gen-alt-scenarios \
     --base-scenario "tests/experiments/scenarios/intersections/2_robots_50_goals_snamo.svg" \
@@ -53,4 +54,15 @@ for i in $(seq 1 20); do
     --use-social-cost \
     --no-resolve-deadlocks \
     --out-dir $out
+
+  # snamo
+  python -m namosim.main gen-alt-scenarios \
+    --base-scenario "tests/experiments/scenarios/intersections/2_robots_50_goals_snamo.svg" \
+    --n-robots $i \
+    --goals-per-robot 50 \
+    --n-scenarios 20 \
+    --use-social-cost \
+    --out-dir $out
+  
+
 done
