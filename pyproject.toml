@@ -59,26 +59,7 @@ lint_fix = "ruff check --fix ."                                       # lint fix
 format = "ruff format ."                                              # format
 test.cmd = "python -m unittest discover -s tests.unit -p '*_test.py'" # test
 test.env = { NAMO_NO_DISPLAY_WINDOW = "TRUE" }                        # env vars for test
-
-type_check = """
-pyright \
-  namosim/algorithms/new_local_opening_check.py \
-  namosim/agents/agent.py \
-  namosim/agents/navigation_only_agent.py \
-  namosim/display/colors.py \
-  namosim/display/ros2_publisher.py \
-  namosim/exceptions.py \
-  namosim/data_models.py \
-  namosim/navigation/conflict.py \
-  namosim/simulator.py \
-  namosim/utils/utils.py \
-  namosim/world/binary_occupancy_grid.py \
-  namosim/world/entity.py \
-  namosim/world/goal.py \
-  namosim/world/obstacle.py \
-  namosim/world/world.py \
-  namosim/report.py \
-"""
+type_check = "pyright"
 all_checks = ["lint_check", "type_check", "test"]
 
 [build-system]
@@ -152,3 +133,19 @@ reportUnknownMemberType = false
 reportUnknownArgumentType = false
 reportIncompatibleMethodOverride = false
 # reportUnknownParameterType = true
+include = ["namosim", "tests/unit"]
+exclude = [
+  "namosim/agents/stilman_2005_agent.py",
+  "namosim/agents/stilman_only_agent.py",
+  "namosim/navigation/navigation_path.py",
+  "namosim/utils/stats_analysis.py",
+  "namosim/utils/collision.py",
+  "namosim/utils/svg_preprocessing.py",
+  "namosim/world/social_topological_occupation_cost_grid.py",
+  "namosim/world/sensors/omniscient_sensor.py",
+  "namosim/world/sensors/g_fov_sensor.py",
+  "namosim/world/sensors/s_fov_sensor.py",
+  "namosim/algorithms/d_star_lite.py",
+  "namosim/algorithms/multi_goal_a_star.py",
+  "tests/unit/collision_test.py",
+]
