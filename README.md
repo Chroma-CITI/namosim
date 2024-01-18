@@ -6,7 +6,7 @@ A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable O
 
 ## System Requirements
 
-- Python >=3.9,<3.13
+- Python >=3.10,<3.13
 - ROS2 (we have tested ros-iron but others may work too)
 - RVIZ2
 
