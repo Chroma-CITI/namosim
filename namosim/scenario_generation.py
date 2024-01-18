@@ -240,18 +240,6 @@ def generate_alternative_scenarios(
             poses = sorted(poses, key=lambda x: x[0])
             goals_poses_for_robots.append(poses)
 
-            for pose in poses:
-                goal_cell = utils.real_to_grid(
-                    pose[0],
-                    pose[1],
-                    static_grid.res,
-                    static_grid.grid_pose,
-                )
-                # static_and_movable_grid.update({self.uid: self.polygon})
-                if static_grid.grid[goal_cell[0]][goal_cell[1]] != 0:
-                    pass
-                # static_grid.grid[goal_cell[0]][goal_cell[1]] = 10
-        static_grid.to_image().save("static_gen.png")
         for i_robot in range(nb_robots):
             goals: t.List[GoalConfigModel] = []
             for i_goal in range(len(goals_poses_for_robots[i_robot])):
