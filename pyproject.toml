@@ -13,7 +13,7 @@ keywords = ["namo", "robitics", "simulator"]
 
 [tool.poetry.dependencies]
 # CORE LIBRARIES (used about everywhere)
-python = ">=3.9,<3.13"
+python = ">=3.10,<3.13"
 
 aabbtree = "^2.8.1"   # Used to accelerate collision check detection
 matplotlib = "^3.8.1" # For standalone display without ROS Rviz, and for debug purposes
@@ -96,8 +96,8 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.8
-target-version = "py38"
+# Assume Python 3.10
+target-version = "py310"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
