@@ -4015,7 +4015,7 @@ class Stilman2005Agent(Agent):
             open_queue: t.List[GridCellModel],
             came_from: t.Dict[GridCellModel, GridCellModel | None],
         ) -> t.Tuple[t.List[GridCellModel], t.List[float]]:
-            if len(close_set) >= 1000:
+            if len(close_set) >= 200:
                 return [], []
 
             grid = inflated_grid_by_robot.grid
@@ -4039,23 +4039,29 @@ class Stilman2005Agent(Agent):
 
             return neighbors, tentative_gscores
 
-        def exit_condition(current: GridCellModel):
+        def evasion_heuristic(
+            current: GridCellModel,
+            goal: None,
+        ) -> float:
+            return -get_min_dist_to_others(current)
+
+        def exit_condition(current: GridCellModel, goal: ModuleNotFoundError):
             return False
 
-        _, _, came_from, _, gscore, _ = graph_search.new_generic_dijkstra(
+        _, _, came_from, _, gscore, _ = graph_search.new_generic_a_star(
             start=robot_cell,
+            goal=None,
             exit_condition=exit_condition,
             get_neighbors=get_neighbors_for_evasion,
+            heuristic=evasion_heuristic,
         )  # type: ignore
 
         if not came_from:
-            # If the robot was in an obstacle, no evasion is possible
             return None
 
         best_evasion_cell: GridCellModel | None = None
         best_evasion_score = float("-inf")
-        for cell in gscore.keys():
-            score = get_min_dist_to_others(cell)
+        for cell, score in gscore.items():
             if score > best_evasion_score:
                 best_evasion_cell = cell
                 best_evasion_score = score
