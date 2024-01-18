@@ -115,7 +115,7 @@ class ExperimentsTests(unittest.TestCase):
         sim = Simulator(
             simulation_file_path=os.path.join(
                 self.scenarios_folder,
-                "intersections/generated/11_robots_50_goals_snamo/08.svg",
+                "intersections/generated/3_robots_50_goals_namo/00.svg",
             )
         )
         sim.run()
@@ -162,6 +162,16 @@ class ExperimentsTests(unittest.TestCase):
             simulation_file_path=os.path.join(
                 self.scenarios_folder,
                 "teleop.svg",
+            )
+        )
+        sim.run()
+        assert True
+
+    def test_willow_garage_center_small(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder,
+                "willow_garage_center_small.svg",
             )
         )
         sim.run()

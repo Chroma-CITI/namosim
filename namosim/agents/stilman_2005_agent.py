@@ -1957,7 +1957,7 @@ class Stilman2005Agent(Agent):
         obstacle_can_intrude_c_1_x: bool = True,
     ):
         # Initialize manip search simulation world and some shortcut variables
-        w_t_plus_2 = copy.deepcopy(w_t)
+        w_t_plus_2 = w_t.light_copy([])
         ros_publisher.publish_robot_sim_world(w_t_plus_2, self.uid)
 
         c_1_cells_set = set() if c_1 == 0 else ccs_data.ccs[c_1].visited
