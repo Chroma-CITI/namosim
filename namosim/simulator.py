@@ -96,7 +96,7 @@ class Simulator:
         self.ref_world = World.load_from_svg(
             simulation_file_abs_path, logs_dir=self.logs_dir, logger=self.simulation_log
         )
-        self.init_ref_world = copy.deepcopy(self.ref_world)
+        self.init_ref_world = self.ref_world.light_copy([])
 
         self.config = self.init_ref_world.config
 
