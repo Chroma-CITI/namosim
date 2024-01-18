@@ -3,7 +3,6 @@ import copy
 import io
 import json
 import os
-import pickle
 import random
 import sys
 import time
@@ -119,32 +118,22 @@ class Simulator:
         self.save_report = True
         self.save_history = False
         self.save_logs = True
-        self.pickle_saved_data = False
 
-        if self.pickle_saved_data:
+        def json_save(obj: t.Any, filepath: str):
+            filepath += ".json"
+            p = jsonpickle.Pickler(unpicklable=False)
+            flattened_obj = p.flatten(obj)
+            with open(filepath, "w+") as f:
+                json.dump(
+                    flattened_obj,
+                    f,
+                    default=lambda o: o.__dict__,
+                    indent=4,
+                    sort_keys=True,
+                    cls=utils.JsonEncoder,
+                )
 
-            def pickle_save(obj: t.Any, filepath: str):
-                filepath += ".pickle"
-                with open(filepath, "wb") as f:
-                    pickle.dump(obj, f)
-
-            self.save = pickle_save
-        else:
-
-            def json_save(obj: t.Any, filepath: str):
-                filepath += ".json"
-                p = jsonpickle.Pickler(unpicklable=False)
-                flattened_obj = p.flatten(obj)
-                with open(filepath, "w+") as f:
-                    json.dump(
-                        flattened_obj,
-                        f,
-                        default=lambda o: o.__dict__,
-                        indent=4,
-                        sort_keys=True,
-                    )
-
-            self.save = json_save
+        self.save = json_save
 
         # Reinitialize rviz display
         self.ros_publisher = ros2.RosPublisher(

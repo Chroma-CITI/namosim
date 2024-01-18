@@ -1559,3 +1559,14 @@ def get_angle_to_turn(a: PoseModel, b: PoseModel) -> float:
     v_a_to_b = np.array((b[0] - a[0], b[1] - a[1]))
     angle = signed_angle_between(v_a, v_a_to_b)
     return angle
+
+
+class JsonEncoder(json.JSONEncoder):
+    def default(self, obj: t.Any):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(JsonEncoder, self).default(obj)
