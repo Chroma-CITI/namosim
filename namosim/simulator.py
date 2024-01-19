@@ -239,7 +239,7 @@ class Simulator:
             self.sense(active_agents, step_count, sense_durations)
 
             # Think loop: get each agent to think about their next step
-            with timeout(2 * 60):
+            with timeout(3 * 60):
                 actions, think_results, think_durations = self.think(
                     active_agents=active_agents,
                     trace_polygons=trace_polygons,
@@ -409,9 +409,8 @@ class Simulator:
 
         # - Save report
         if self.save_report:
-            report = self.create_simulation_report()
-            report_path = os.path.join(self.logs_dir, "report")
-            self.save(report, report_path)
+            report_path = os.path.join(self.logs_dir, "report.json")
+            self.report.save(report_path)
             self.simulation_log.append(
                 utils.BasicLog(
                     "Saved simulation report at: {}".format(report_path), step_count
