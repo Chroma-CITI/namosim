@@ -21,8 +21,6 @@ def timeout(seconds: int):
 
     try:
         yield
-    except CustomTimeoutError:
-        pass
     finally:
         # Unregister the signal so it won't be triggered
         # if the timeout is not reached.
