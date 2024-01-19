@@ -75,6 +75,10 @@ class AgentStats(BaseModel):
     """The total number of obstacle transfers
     """
 
+    n_planning_timeouts: float = 0.0
+    """The total number of times the agent timed out
+    """
+
     def update(self, action_result: ar.ActionResult):
         if not isinstance(action_result, ar.ActionSuccess):
             self.n_actions_failed += 1
@@ -86,6 +90,8 @@ class AgentStats(BaseModel):
 
         if isinstance(action, ba.GoalFailed):
             self.n_goals_failed += 1
+            if action.is_timeout:
+                self.n_planning_timeouts += 1
         elif isinstance(action, ba.GoalSuccess):
             self.n_goals_completed += 1
         elif isinstance(action, ba.Advance):
@@ -131,19 +137,20 @@ class SimulationReport(BaseModel):
             return
 
         for stats in self.agent_stats.values():
-            avg.n_goals_failed += stats.n_goals_failed / N
-            avg.n_goals_completed += stats.n_goals_completed / N
-            avg.n_actions_failed += stats.n_actions_failed / N
-            avg.n_actions_completed += stats.n_actions_completed / N
-            avg.distance_traveled += stats.distance_traveled / N
             avg.degrees_rotated += stats.degrees_rotated / N
-            avg.transfer_distance_traveled += stats.transfer_distance_traveled / N
-            avg.transfer_degrees_rotated += stats.transfer_degrees_rotated / N
+            avg.distance_traveled += stats.distance_traveled / N
+            avg.n_actions_completed += stats.n_actions_completed / N
+            avg.n_actions_failed += stats.n_actions_failed / N
             avg.n_goals += stats.n_goals / N
+            avg.n_goals_completed += stats.n_goals_completed / N
+            avg.n_goals_failed += stats.n_goals_failed / N
+            avg.n_transfers += stats.n_transfers / N
+            avg.planning_time += stats.planning_time / N
+            avg.n_planning_timeouts += stats.n_planning_timeouts / N
             avg.postponements += stats.postponements / N
             avg.replans += stats.replans / N
-            avg.planning_time += stats.planning_time / N
-            avg.n_transfers += stats.n_transfers / N
+            avg.transfer_degrees_rotated += stats.transfer_degrees_rotated / N
+            avg.transfer_distance_traveled += stats.transfer_distance_traveled / N
 
         return SimulationReport(agent_stats={"avg": avg})
 
@@ -154,25 +161,21 @@ class SimulationReport(BaseModel):
             if agent_id not in result.agent_stats:
                 result.agent_stats[agent_id] = stats
             else:
-                result.agent_stats[agent_id].n_goals_failed += stats.n_goals_failed
-                result.agent_stats[
-                    agent_id
-                ].n_goals_completed += stats.n_goals_completed
-                result.agent_stats[agent_id].n_actions_failed += stats.n_actions_failed
-                result.agent_stats[
-                    agent_id
-                ].n_actions_completed += stats.n_actions_completed
-                result.agent_stats[
-                    agent_id
-                ].distance_traveled += stats.distance_traveled
-                result.agent_stats[agent_id].degrees_rotated += stats.degrees_rotated
-                result.agent_stats[
-                    agent_id
-                ].transfer_distance_traveled += stats.transfer_distance_traveled
-                result.agent_stats[
-                    agent_id
-                ].transfer_degrees_rotated += stats.transfer_degrees_rotated
-                result.agent_stats[agent_id].n_transfers += stats.n_transfers
+                res_stats = result.agent_stats[agent_id]
+                res_stats.degrees_rotated += stats.degrees_rotated
+                res_stats.distance_traveled += stats.distance_traveled
+                res_stats.n_actions_completed += stats.n_actions_completed
+                res_stats.n_actions_failed += stats.n_actions_failed
+                res_stats.n_goals_completed += stats.n_goals_completed
+                res_stats.n_goals_failed += stats.n_goals_failed
+                res_stats.n_goals += stats.n_goals
+                res_stats.n_transfers += stats.n_transfers
+                res_stats.planning_time += stats.planning_time
+                res_stats.n_planning_timeouts += stats.n_planning_timeouts
+                res_stats.replans += stats.replans
+                res_stats.postponements += stats.postponements
+                res_stats.transfer_degrees_rotated += stats.transfer_degrees_rotated
+                res_stats.transfer_distance_traveled += stats.transfer_distance_traveled
 
         return result
 
@@ -180,15 +183,20 @@ class SimulationReport(BaseModel):
         result = copy.deepcopy(self)
 
         for stats in result.agent_stats.values():
-            stats.n_goals_failed /= divisor
-            stats.n_goals_completed /= divisor
-            stats.n_actions_failed /= divisor
-            stats.n_actions_completed /= divisor
-            stats.distance_traveled /= divisor
             stats.degrees_rotated /= divisor
-            stats.transfer_distance_traveled /= divisor
-            stats.transfer_degrees_rotated /= divisor
+            stats.distance_traveled /= divisor
+            stats.n_actions_completed /= divisor
+            stats.n_actions_failed /= divisor
+            stats.n_goals /= divisor
+            stats.n_goals_completed /= divisor
+            stats.n_goals_failed /= divisor
             stats.n_transfers /= divisor
+            stats.planning_time /= divisor
+            stats.n_planning_timeouts /= divisor
+            stats.postponements /= divisor
+            stats.replans /= divisor
+            stats.transfer_degrees_rotated /= divisor
+            stats.transfer_distance_traveled /= divisor
 
         return result
 

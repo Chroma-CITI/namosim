@@ -21,7 +21,7 @@ import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import UID, PoseModel
-from namosim.exceptions import timeout
+from namosim.exceptions import CustomTimeoutError, timeout
 from namosim.input import Input
 from namosim.report import AgentStats, SimulationReport, WorldStepReport
 from namosim.utils import collision, conversion, stats_utils, utils
@@ -239,12 +239,11 @@ class Simulator:
             self.sense(active_agents, step_count, sense_durations)
 
             # Think loop: get each agent to think about their next step
-            with timeout(3 * 60):
-                actions, think_results, think_durations = self.think(
-                    active_agents=active_agents,
-                    trace_polygons=trace_polygons,
-                    step_count=step_count,
-                )
+            actions, think_results, think_durations = self.think(
+                active_agents=active_agents,
+                trace_polygons=trace_polygons,
+                step_count=step_count,
+            )
 
             # Act loops: Verify that each action is doable individually and together, if so, execute them
             act_start = time.time()
@@ -769,14 +768,32 @@ class Simulator:
         think_results: t.Dict[UID, ThinkResult] = {}
         think_durations: t.Dict[UID, float] = {}
 
-        for agent_uid, behavior in self.ref_world.agents.items():
+        for agent_uid, agent in self.ref_world.agents.items():
             if agent_uid in active_agents:
                 self.publish_robot_goal(agent_uid=agent_uid)
+                agent_goal = agent.get_current_or_next_goal()
 
                 think_start = time.time()
-                think_result = behavior.think(
-                    ros_publisher=self.ros_publisher, input=self.teleop_input
-                )
+                try:
+                    with timeout(60):
+                        think_result = agent.think(
+                            ros_publisher=self.ros_publisher, input=self.teleop_input
+                        )
+                except CustomTimeoutError as e:
+                    assert isinstance(e, CustomTimeoutError)
+                    if not agent_goal:
+                        raise Exception("Agent think timed out without a goal")
+                    think_result = ThinkResult(
+                        next_action=ba.GoalFailed(goal=agent_goal, is_timeout=True),
+                        did_replan=False,
+                        did_postpone=False,
+                        has_conflicts=False,
+                        robot_name=agent.name,
+                    )
+                    agent.skip_current_goal()
+                except Exception as e:
+                    raise e
+
                 think_duration = time.time() - think_start
 
                 think_results[agent_uid] = think_result

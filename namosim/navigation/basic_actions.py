@@ -50,8 +50,9 @@ class GoalSuccess(GoalResult):
 
 
 class GoalFailed(GoalResult):
-    def __init__(self, goal: PoseModel):
+    def __init__(self, goal: PoseModel, is_timeout: bool = False):
         GoalResult.__init__(self, goal)
+        self.is_timeout = is_timeout
 
     def __str__(self):
         return "failure"
