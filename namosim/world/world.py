@@ -559,7 +559,7 @@ class World:
     def get_polygon_collisions(self, uid: UID, others: t.Iterable[UID]) -> t.Any:
         other_polygons = {uid: self.entities[uid].polygon for uid in others}
         others_aabb_tree = collision.polygons_to_aabb_tree(other_polygons)
-        collisions = collision.check_static_collision(
+        collisions, _ = collision.check_static_collision(
             main_uid=uid,
             polygon=self.entities[uid].polygon,
             other_entities_polygons=other_polygons,

@@ -1221,7 +1221,7 @@ class Stilman2005Agent(Agent):
             static_entities_aabb_tree = collision.polygons_to_aabb_tree(
                 static_entities_polygons
             )
-            collisions = collision.check_static_collision(
+            collisions, _ = collision.check_static_collision(
                 main_uid=self.uid,
                 polygon=self.polygon,
                 other_entities_polygons=static_entities_polygons,
@@ -2881,7 +2881,7 @@ class Stilman2005Agent(Agent):
                     obstacle_transfer_end_poly = utils.set_polygon_pose(
                         obstacle_polygon, obstacle_pose, obstacle_pose_at_transfer_end
                     )
-                    collides_with = collision.check_static_collision(
+                    collides_with, _ = collision.check_static_collision(
                         obstacle_uid,
                         obstacle_transfer_end_poly,
                         other_entities_polygons,
@@ -2904,7 +2904,7 @@ class Stilman2005Agent(Agent):
                         robot_transfer_end_poly = utils.set_polygon_pose(
                             robot_polygon, robot_pose, robot_pose_at_transfer_end
                         )
-                        collides_with = collision.check_static_collision(
+                        collides_with, _ = collision.check_static_collision(
                             robot_uid,
                             robot_transfer_end_poly,
                             other_entities_polygons,

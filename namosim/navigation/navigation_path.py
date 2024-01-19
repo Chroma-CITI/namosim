@@ -216,7 +216,7 @@ class TransferPath:
                     grab_zone = robot.polygon.centroid.buffer(
                         radius, join_style="mitre"
                     )
-                    collides_with = collision.check_static_collision(
+                    collides_with, _ = collision.check_static_collision(
                         robot_uid,
                         grab_zone,
                         collision_polygons,
@@ -267,7 +267,7 @@ class TransferPath:
                     grab_zone = world.entities[self.obstacle_uid].polygon.buffer(
                         radius, join_style="mitre"
                     )
-                    collides_with = collision.check_static_collision(
+                    collides_with, _ = collision.check_static_collision(
                         self.obstacle_uid,
                         grab_zone,
                         collision_polygons,
@@ -278,6 +278,9 @@ class TransferPath:
                     )
                     if self.obstacle_uid in collides_with:
                         for uid in collides_with[self.obstacle_uid]:
+                            if uid in encompassing_circle_uid_to_robot_uid:
+                                uid = encompassing_circle_uid_to_robot_uid[uid]
+
                             if (
                                 isinstance(
                                     world.entities[uid],
