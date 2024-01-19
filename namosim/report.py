@@ -75,6 +75,10 @@ class AgentStats(BaseModel):
     """The total number of obstacle transfers
     """
 
+    planning_timeouts: float = 0.0
+    """The total number of times the agent timed out
+    """
+
     def update(self, action_result: ar.ActionResult):
         if not isinstance(action_result, ar.ActionSuccess):
             self.n_actions_failed += 1
@@ -86,6 +90,8 @@ class AgentStats(BaseModel):
 
         if isinstance(action, ba.GoalFailed):
             self.n_goals_failed += 1
+            if action.is_timeout:
+                self.planning_timeouts += 1
         elif isinstance(action, ba.GoalSuccess):
             self.n_goals_completed += 1
         elif isinstance(action, ba.Advance):
@@ -133,6 +139,7 @@ class SimulationReport(BaseModel):
         for stats in self.agent_stats.values():
             avg.n_goals_failed += stats.n_goals_failed / N
             avg.n_goals_completed += stats.n_goals_completed / N
+            avg.planning_timeouts += stats.planning_timeouts / N
             avg.n_actions_failed += stats.n_actions_failed / N
             avg.n_actions_completed += stats.n_actions_completed / N
             avg.distance_traveled += stats.distance_traveled / N
@@ -173,6 +180,9 @@ class SimulationReport(BaseModel):
                     agent_id
                 ].transfer_degrees_rotated += stats.transfer_degrees_rotated
                 result.agent_stats[agent_id].n_transfers += stats.n_transfers
+                result.agent_stats[
+                    agent_id
+                ].planning_timeouts += stats.planning_timeouts
 
         return result
 
@@ -189,6 +199,7 @@ class SimulationReport(BaseModel):
             stats.transfer_distance_traveled /= divisor
             stats.transfer_degrees_rotated /= divisor
             stats.n_transfers /= divisor
+            stats.planning_timeouts /= divisor
 
         return result
 
