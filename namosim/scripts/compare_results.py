@@ -16,7 +16,7 @@ from namosim.report import SimulationReport
 def main():
     goal_success_rates: t.Dict[str, t.Dict[int, float]] = {}
 
-    max_robots = 2
+    max_robots = 3
     algs = {
         "namo": "NAMO",
         "namo_ndr": "NAMO w/o Deadlock Resolution",
@@ -51,8 +51,7 @@ def main():
                 with open(result_file) as f:
                     data = json.load(f)
 
-                print(data["report"]["agent_stats"])
-                report = report.sum(SimulationReport.model_validate(data["report"]))
+                report = report.sum(SimulationReport.model_validate(data))
                 if not report:
                     raise Exception("Failed to load results")
 

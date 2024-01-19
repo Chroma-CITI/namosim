@@ -43,7 +43,7 @@ class AgentStats(BaseModel):
     """The number of actions the agent completed successfully.
     """
 
-    distance_traveled: float = 0.0
+    distance_traveled: float = 0.0  # type: ignore
     """Total amount the traveled, under any circumstance.
     """
 
@@ -71,6 +71,10 @@ class AgentStats(BaseModel):
     """The total amount of time the robot spent in planning
     """
 
+    n_transfers: float = 0.0
+    """The total number of obstacle transfers
+    """
+
     def update(self, action_result: ar.ActionResult):
         if not isinstance(action_result, ar.ActionSuccess):
             self.n_actions_failed += 1
@@ -96,6 +100,8 @@ class AgentStats(BaseModel):
             self.degrees_rotated += abs(float(action.angle))
             if action_result.is_transfer:
                 self.transfer_degrees_rotated += abs(float(action.angle))
+        elif isinstance(action, ba.Release):
+            self.n_transfers += 1
 
 
 class SimulationReport(BaseModel):
@@ -113,6 +119,10 @@ class SimulationReport(BaseModel):
 
     def to_json_data(self):
         return self.model_dump()
+
+    def save(self, path: str):
+        with open(path, "w") as f:
+            f.write(self.model_dump_json(indent=4))
 
     def get_avg_over_agents(self) -> t.Optional["SimulationReport"]:
         avg = AgentStats(agent_id="avg", n_goals=0)
@@ -133,6 +143,7 @@ class SimulationReport(BaseModel):
             avg.postponements += stats.postponements / N
             avg.replans += stats.replans / N
             avg.planning_time += stats.planning_time / N
+            avg.n_transfers += stats.n_transfers / N
 
         return SimulationReport(agent_stats={"avg": avg})
 
@@ -161,6 +172,7 @@ class SimulationReport(BaseModel):
                 result.agent_stats[
                     agent_id
                 ].transfer_degrees_rotated += stats.transfer_degrees_rotated
+                result.agent_stats[agent_id].n_transfers += stats.n_transfers
 
         return result
 
@@ -176,6 +188,7 @@ class SimulationReport(BaseModel):
             stats.degrees_rotated /= divisor
             stats.transfer_distance_traveled /= divisor
             stats.transfer_degrees_rotated /= divisor
+            stats.n_transfers /= divisor
 
         return result
 
