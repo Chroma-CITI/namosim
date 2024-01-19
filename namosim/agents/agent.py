@@ -160,6 +160,11 @@ class Agent(Entity):
     ) -> ThinkResult:
         raise NotImplementedError
 
+    def skip_current_goal(self):
+        """Resets the agent's current goal to None. This will cause the agent to move on to the next goal on the next think step."""
+        self._q_goal = None
+        self._p_opt = None
+
     @property
     def _q_goal(self):
         return self.__q_goal
@@ -197,7 +202,7 @@ class Agent(Entity):
     def goal_pose(self):
         return self._q_goal
 
-    def get_current_or_next_goal(self):
+    def get_current_or_next_goal(self) -> PoseModel | None:
         if self._q_goal:
             return self._q_goal
         if len(self._navigation_goals) > 0:

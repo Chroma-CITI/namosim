@@ -115,7 +115,7 @@ class ExperimentsTests(unittest.TestCase):
         sim = Simulator(
             simulation_file_path=os.path.join(
                 self.scenarios_folder,
-                "intersections/generated/3_robots_50_goals_namo/00.svg",
+                "intersections/generated/2_robots_50_goals_namo/18.svg",
             )
         )
         sim.run()

@@ -306,7 +306,7 @@ def check_static_collision(
     ignored_uids: t.Iterable[UID] | None = None,
     break_at_first: bool = True,
     save_intersections: bool = False,
-):
+) -> t.Tuple[t.Dict[UID, t.Set[UID]], t.Dict[t.Tuple[UID, UID], Polygon]]:
     aabb = polygon_to_aabb(polygon)
     potential_collision_uids = aabb_tree.overlap_values(aabb)
     if ignored_uids:
@@ -323,8 +323,8 @@ def check_static_collision(
                         (uid, main_uid): intersection,
                     }
 
-                return {main_uid: {uid}, uid: {main_uid}}
-        return {}
+                return {main_uid: {uid}, uid: {main_uid}}, {}
+        return {}, {}
 
     collides_with: t.Dict[UID, t.Set[UID]] = {}
     intersections: t.Dict[t.Tuple[UID, UID], Polygon] = {}
@@ -348,9 +348,7 @@ def check_static_collision(
             else:
                 collides_with[uid] = {main_uid}
 
-    if save_intersections:
-        return collides_with, intersections
-    return collides_with
+    return collides_with, intersections
 
 
 def merge_collides_with(
@@ -429,7 +427,7 @@ def csv_check_collisions(
         )
         intersections[tuple(id_sequence)] = local_intersections
     else:
-        collides_with = check_static_collision(
+        collides_with, _ = check_static_collision(
             main_uid,
             csv_polygon,
             other_polygons,
@@ -572,7 +570,7 @@ def csv_simulate_simple_kinematics(
         ignored_entities = (
             {action.entity_uid} if isinstance(action, (ba.Release, ba.Grab)) else set()
         )
-        agent_collides_with = check_static_collision(
+        agent_collides_with, _ = check_static_collision(
             agent_uid, agent_csv, other_polygons, aabb_tree, ignored_entities
         )
         if agent_uid in agent_collides_with:
@@ -627,7 +625,7 @@ def csv_simulate_simple_kinematics(
                 )
             )
             uid_to_csv_polygon[obs_uid] = obs_csv
-            obs_collides_with = check_static_collision(
+            obs_collides_with, _ = check_static_collision(
                 obs_uid, obs_csv, other_polygons, aabb_tree
             )
             merge_collides_with(collides_with, obs_collides_with)
@@ -666,7 +664,7 @@ def csv_simulate_simple_kinematics(
                 uid_to_csv_polygon,
                 csv_aabb_tree,
                 ignored_uids=checked_uids.union(associated_uid),
-            ),
+            )[0],
         )
 
     # If option activated, check that no new polygon's discretized cell is the center cell of another robot in transit
