@@ -377,7 +377,7 @@ def generate_alternative_scenarios(
         elif use_social_cost and resolve_conflicts and not resolve_deadlocks:
             new_scenario_basedir += "_snamo_ndr"
         elif use_social_cost and not resolve_conflicts and not resolve_deadlocks:
-            new_scenario_basedir += "snamo_ncr"
+            new_scenario_basedir += "_snamo_ncr"
 
         new_scenario_path = os.path.join(
             out_dir,
