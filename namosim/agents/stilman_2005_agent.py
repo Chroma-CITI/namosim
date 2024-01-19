@@ -115,6 +115,7 @@ class Stilman2005Agent(Agent):
         )
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
         self.robot_base_drive_type: t.Literal["holonomic", "differential"] = "holonomic"
+        self.max_evasion_cells_to_visit = 1000
 
         # - S-NAMO parameters
         self.use_social_cost = params.use_social_cost
@@ -4015,7 +4016,7 @@ class Stilman2005Agent(Agent):
             open_queue: t.List[GridCellModel],
             came_from: t.Dict[GridCellModel, GridCellModel | None],
         ) -> t.Tuple[t.List[GridCellModel], t.List[float]]:
-            if len(close_set) >= 200:
+            if len(close_set) >= self.max_evasion_cells_to_visit:
                 return [], []
 
             grid = inflated_grid_by_robot.grid
@@ -4061,7 +4062,8 @@ class Stilman2005Agent(Agent):
 
         best_evasion_cell: GridCellModel | None = None
         best_evasion_score = float("-inf")
-        for cell, score in gscore.items():
+        for cell in gscore.keys():
+            score = get_min_dist_to_others(cell)
             if score > best_evasion_score:
                 best_evasion_cell = cell
                 best_evasion_score = score
@@ -4168,6 +4170,7 @@ class Stilman2005Agent(Agent):
             inflated_grid_by_robot.grid,
             inflated_grid_by_robot.d_width,
             inflated_grid_by_robot.d_height,
+            max_visited=self.max_evasion_cells_to_visit,
         )
 
         if not came_from:

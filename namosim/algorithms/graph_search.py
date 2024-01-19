@@ -152,7 +152,7 @@ def new_generic_a_star(start, goal, exit_condition, get_neighbors, heuristic):
     return False, current, came_from, close_set, gscore, open_queue
 
 
-def basic_exit_condition(current, goal):
+def basic_exit_condition(current: t.Any, goal: t.Any) -> bool:
     """
     Simple exit condition that checks whether the goal is the current cell.
     :param current:
@@ -417,6 +417,7 @@ def grid_search_dijkstra(
     height,
     neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
     check_diag_neighbors=False,
+    max_visited: float = float("inf"),
 ):
     is_chess_neighborhood = neighborhood == utils.CHESSBOARD_NEIGHBORHOOD
 
@@ -429,6 +430,9 @@ def grid_search_dijkstra(
             def grid_get_neighbors_instance(
                 current, gscore, close_set, open_queue, came_from
             ):
+                if len(close_set) >= max_visited:
+                    return [], []
+
                 return grid_get_neighbors_chessboard_check_diag_neighbors(
                     current,
                     gscore,
@@ -444,6 +448,8 @@ def grid_search_dijkstra(
             def grid_get_neighbors_instance(
                 current, gscore, close_set, open_queue, came_from
             ):
+                if len(close_set) >= max_visited:
+                    return [], []
                 return grid_get_neighbors_chessboard_simple(
                     current,
                     gscore,
@@ -460,6 +466,8 @@ def grid_search_dijkstra(
         def grid_get_neighbors_instance(
             current, gscore, close_set, open_queue, came_from
         ):
+            if len(close_set) >= max_visited:
+                return [], []
             return grid_get_neighbors_taxi(
                 current, gscore, close_set, open_queue, came_from, grid, width, height
             )
