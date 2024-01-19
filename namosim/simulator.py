@@ -775,7 +775,7 @@ class Simulator:
 
                 think_start = time.time()
                 try:
-                    with timeout(2 * 60):
+                    with timeout(60):
                         think_result = agent.think(
                             ros_publisher=self.ros_publisher, input=self.teleop_input
                         )
@@ -791,6 +791,8 @@ class Simulator:
                         robot_name=agent.name,
                     )
                     agent.skip_current_goal()
+                except Exception as e:
+                    raise e
 
                 think_duration = time.time() - think_start
 
