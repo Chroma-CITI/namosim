@@ -3,7 +3,6 @@ import typing as t
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pydantic_numpy.typing as pnd
 from matplotlib.gridspec import GridSpec
 from pydantic import BaseModel
 
