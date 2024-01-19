@@ -3,7 +3,7 @@ import typing as t
 from contextlib import contextmanager
 
 
-class TimeoutError(Exception):
+class CustomTimeoutError(Exception):
     def __init__(self):
         pass
 
@@ -11,7 +11,7 @@ class TimeoutError(Exception):
 @contextmanager
 def timeout(seconds: int):
     """
-    A context manager that raises a `TimeoutError` if its context block fails
+    A context manager that raises a `CustomTimeoutError` if its context block fails
     to complete execution within the provided number of seconds.
     """
 
@@ -21,7 +21,7 @@ def timeout(seconds: int):
 
     try:
         yield
-    except TimeoutError:
+    except CustomTimeoutError:
         pass
     finally:
         # Unregister the signal so it won't be triggered
@@ -30,4 +30,4 @@ def timeout(seconds: int):
 
 
 def raise_timeout(signum: int, frame: t.Any):
-    raise TimeoutError
+    raise CustomTimeoutError

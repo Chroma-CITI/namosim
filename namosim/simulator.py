@@ -21,7 +21,7 @@ import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.agents.agent import Agent, ThinkResult
 from namosim.data_models import UID, PoseModel
-from namosim.exceptions import timeout
+from namosim.exceptions import CustomTimeoutError, timeout
 from namosim.input import Input
 from namosim.report import AgentStats, SimulationReport, WorldStepReport
 from namosim.utils import collision, conversion, stats_utils, utils
@@ -779,8 +779,8 @@ class Simulator:
                         think_result = agent.think(
                             ros_publisher=self.ros_publisher, input=self.teleop_input
                         )
-                except TimeoutError as e:
-                    assert isinstance(e, TimeoutError)
+                except CustomTimeoutError as e:
+                    assert isinstance(e, CustomTimeoutError)
                     if not agent_goal:
                         raise Exception("Agent think timed out without a goal")
                     think_result = ThinkResult(
