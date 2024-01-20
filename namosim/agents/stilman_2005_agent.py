@@ -4001,11 +4001,18 @@ class Stilman2005Agent(Agent):
 
         def get_min_dist_to_others(cell: GridCellModel):
             min_dist_to_other_robot = float("inf")
+
             for other_robot_uid in other_robots_uids:
                 other_robot = w_t.agents[other_robot_uid]
+                other_robot_cell = utils.real_to_grid(
+                    other_robot.pose[0],
+                    other_robot.pose[1],
+                    inflated_grid_by_robot.res,
+                    inflated_grid_by_robot.grid_pose,
+                )
                 min_dist_to_other_robot = min(
                     min_dist_to_other_robot,
-                    utils.euclidean_distance(cell, other_robot.pose),
+                    utils.euclidean_distance(cell, other_robot_cell),
                 )
             return min_dist_to_other_robot
 
