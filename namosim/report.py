@@ -130,6 +130,25 @@ class SimulationReport(BaseModel):
         with open(path, "w") as f:
             f.write(self.model_dump_json(indent=4))
 
+    def get_sum_over_agents(self) -> "SimulationReport":
+        sum = AgentStats(agent_id="sum", n_goals=0)
+        for stats in self.agent_stats.values():
+            sum.degrees_rotated += stats.degrees_rotated
+            sum.distance_traveled += stats.distance_traveled
+            sum.n_actions_completed += stats.n_actions_completed
+            sum.n_actions_failed += stats.n_actions_failed
+            sum.n_goals += stats.n_goals
+            sum.n_goals_completed += stats.n_goals_completed
+            sum.n_goals_failed += stats.n_goals_failed
+            sum.n_transfers += stats.n_transfers
+            sum.planning_time += stats.planning_time
+            sum.n_planning_timeouts += stats.n_planning_timeouts
+            sum.postponements += stats.postponements
+            sum.replans += stats.replans
+            sum.transfer_degrees_rotated += stats.transfer_degrees_rotated
+            sum.transfer_distance_traveled += stats.transfer_distance_traveled
+        return SimulationReport(agent_stats={"sum": sum})
+
     def get_avg_over_agents(self) -> t.Optional["SimulationReport"]:
         avg = AgentStats(agent_id="avg", n_goals=0)
         N = len(self.agent_stats)
@@ -181,7 +200,7 @@ class SimulationReport(BaseModel):
 
     def divide_by(self, divisor: float) -> "SimulationReport":
         result = copy.deepcopy(self)
-
+        print(divisor)
         for stats in result.agent_stats.values():
             stats.degrees_rotated /= divisor
             stats.distance_traveled /= divisor
