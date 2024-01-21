@@ -92,21 +92,21 @@ class AgentStats(BaseModel):
             self.n_goals_failed += 1
             if action.is_timeout:
                 self.n_planning_timeouts += 1
-        elif isinstance(action, ba.GoalSuccess):
+        if isinstance(action, ba.GoalSuccess):
             self.n_goals_completed += 1
-        elif isinstance(action, ba.Advance):
+        if isinstance(action, ba.Advance):
             self.distance_traveled += np.abs(action.distance)
             if action_result.is_transfer:
                 self.transfer_distance_traveled += np.abs(action.distance)
-        elif isinstance(action, ba.AbsoluteTranslation):
+        if isinstance(action, ba.AbsoluteTranslation):
             self.distance_traveled += np.abs(action.length)
             if action_result.is_transfer:
                 self.transfer_distance_traveled += np.abs(action.length)
-        elif isinstance(action, ba.Rotation):
+        if isinstance(action, ba.Rotation):
             self.degrees_rotated += abs(float(action.angle))
             if action_result.is_transfer:
                 self.transfer_degrees_rotated += abs(float(action.angle))
-        elif isinstance(action, ba.Release):
+        if isinstance(action, ba.Release):
             self.n_transfers += 1
 
 

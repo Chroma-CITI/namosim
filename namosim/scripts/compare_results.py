@@ -16,7 +16,7 @@ from namosim.report import SimulationReport
 def main():
     goal_success_rates: t.Dict[str, t.Dict[int, float]] = {}
 
-    max_robots = 2
+    max_robots = 5
     algs = {
         "namo": "NAMO",
         "namo_ndr": "NAMO w/o Deadlock Resolution",
