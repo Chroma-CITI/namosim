@@ -783,6 +783,14 @@ class Simulator:
                     assert isinstance(e, CustomTimeoutError)
                     if not agent_goal:
                         raise Exception("Agent think timed out without a goal")
+
+                    self.simulation_log.append(
+                        utils.BasicLog(
+                            f"Robot ${agent.name} timed out while planning. Failing goal and reinitializing.",
+                            step_count,
+                        )
+                    )
+
                     think_result = ThinkResult(
                         next_action=ba.GoalFailed(goal=agent_goal, is_timeout=True),
                         did_replan=False,
@@ -790,7 +798,11 @@ class Simulator:
                         has_conflicts=False,
                         robot_name=agent.name,
                     )
+
                     agent.skip_current_goal()
+                    # Reinitialize the agent so it is not left in a bad state after timing out
+                    agent.init(self.ref_world)
+
                 except Exception as e:
                     raise e
 
