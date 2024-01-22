@@ -256,7 +256,7 @@ def generate_alternative_scenarios(
                         {
                             "robot_translation_unit_length": CELL_SIZE,
                             "use_social_cost": use_social_cost,
-                            "solution_interval_bound_percentage": 0.5,
+                            "solution_interval_bound_percentage": 0.01,
                             "manipulation_search_procedure": "DFS"
                             if use_social_cost
                             else "BFS",

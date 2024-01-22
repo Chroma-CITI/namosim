@@ -63,6 +63,5 @@ for i in $(seq 1 20); do
     --n-scenarios 20 \
     --use-social-cost \
     --out-dir $out
-  
 
 done
