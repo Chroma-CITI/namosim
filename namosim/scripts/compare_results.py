@@ -16,7 +16,7 @@ from namosim.report import SimulationReport
 def main():
     goal_success_rates: t.Dict[str, t.Dict[int, float]] = {}
 
-    max_robots = 2
+    max_robots = 9
     algs = {
         "namo": "NAMO",
         "namo_ndr": "NAMO w/o Deadlock Resolution",
@@ -27,10 +27,10 @@ def main():
     }
     for alg in algs.keys():
         goal_success_rates[alg] = {}
-        for i in range(1, max_robots + 1):
-            goal_success_rates[alg][i] = 0
+        for n_robots in range(1, max_robots + 1):
+            goal_success_rates[alg][n_robots] = 0
 
-            dir = f"namo_logs/intersections/{i}_robots_50_goals_{alg}"
+            dir = f"namo_logs/intersections/{n_robots}_robots_50_goals_{alg}"
 
             report = SimulationReport()
             result_files = glob.glob(os.path.join(dir, "**/report.json"))
@@ -55,16 +55,19 @@ def main():
                 if not report:
                     raise Exception("Failed to load results")
 
-            report = report.divide_by(len(result_files) - n_skipped)
+            report = report.get_sum_over_agents()
+            print("i", n_robots)
 
-            avg = report.get_avg_over_agents()
+            if len(result_files) > 0:
+                n_sims = (len(result_files) - n_skipped) * n_robots
+                report = report.divide_by(n_sims)
+                assert np.isclose(report.agent_stats["sum"].n_goals, 50)
 
-            if avg:
-                print(avg.agent_stats["avg"].n_goals)
-                assert np.isclose(avg.agent_stats["avg"].n_goals, 50)
-                goal_success_rates[alg][i] = avg.agent_stats[
-                    "avg"
-                ].n_goals_completed / (avg.agent_stats["avg"].n_goals)
+                goal_success_rates[alg][n_robots] = report.agent_stats[
+                    "sum"
+                ].n_goals_completed / (report.agent_stats["sum"].n_goals)
+            else:
+                goal_success_rates[alg][n_robots] = 0
 
     fig = plt.figure(constrained_layout=True)
     gs = GridSpec(1, 1, figure=fig)
