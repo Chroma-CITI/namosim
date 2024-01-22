@@ -170,6 +170,8 @@ class TransferPath:
                 collision_polygons = other_entities_polygons
                 collision_aabb_tree = other_entities_aabb_tree
 
+            assert robot_uid not in collision_polygons
+
             if action is self.grab_action:
                 ## Grab actions should only occur at start of transfer path
                 assert self.action_index == 0
