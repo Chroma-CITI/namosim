@@ -235,7 +235,7 @@ class Agent(Entity):
         goal_pose: PoseModel,
         robot_inflated_grid: BinaryInflatedOccupancyGrid,
         robot_polygon: Polygon,
-    ):
+    ) -> TransitPath | None:
         real_path = graph_search.real_to_grid_search_a_star(
             robot_pose, goal_pose, robot_inflated_grid
         )
