@@ -15,6 +15,9 @@ from namosim.report import SimulationReport
 
 def main():
     goal_success_rates: t.Dict[str, t.Dict[int, float]] = {}
+    distance_traveled: t.Dict[str, t.Dict[int, float]] = {}
+    replans: t.Dict[str, t.Dict[int, float]] = {}
+    planning_time: t.Dict[str, t.Dict[int, float]] = {}
 
     max_robots = 9
     algs = {
@@ -27,8 +30,15 @@ def main():
     }
     for alg in algs.keys():
         goal_success_rates[alg] = {}
+        distance_traveled[alg] = {}
+        replans[alg] = {}
+        planning_time[alg] = {}
+
         for n_robots in range(1, max_robots + 1):
             goal_success_rates[alg][n_robots] = 0
+            distance_traveled[alg][n_robots] = 0
+            replans[alg][n_robots] = 0
+            planning_time[alg][n_robots] = 0
 
             dir = f"namo_logs/intersections/{n_robots}_robots_50_goals_{alg}"
 
@@ -66,15 +76,19 @@ def main():
                 goal_success_rates[alg][n_robots] = report.agent_stats[
                     "sum"
                 ].n_goals_completed / (report.agent_stats["sum"].n_goals)
+                distance_traveled[alg][n_robots] = report.agent_stats[
+                    "sum"
+                ].distance_traveled
+                replans[alg][n_robots] = report.agent_stats["sum"].replans
+                planning_time[alg][n_robots] = report.agent_stats["sum"].planning_time
             else:
                 goal_success_rates[alg][n_robots] = 0
 
     fig = plt.figure(constrained_layout=True)
-    gs = GridSpec(1, 1, figure=fig)
+    gs = GridSpec(2, 2, figure=fig)
 
     # create sub plots as grid
-    ax_goals = fig.add_subplot(gs[0, :])
-
+    ax_goals = fig.add_subplot(gs[0, 0])
     for alg, title in algs.items():
         ax_goals.plot(
             range(1, max_robots + 1),
@@ -85,6 +99,42 @@ def main():
     ax_goals.set_xlabel("Number of Robots")
     ax_goals.set_ylabel("Goal Success Rate")
     ax_goals.set_title("Goal Success Rates")
+
+    ax_dist = fig.add_subplot(gs[0, 1])
+    for alg, title in algs.items():
+        ax_dist.plot(
+            range(1, max_robots + 1),
+            [distance_traveled[alg][i] for i in range(1, max_robots + 1)],
+            label=title,
+        )
+    ax_dist.legend()
+    ax_dist.set_xlabel("Number of Robots")
+    ax_dist.set_ylabel("Total Distance")
+    ax_dist.set_title("Total Distance")
+
+    ax_replans = fig.add_subplot(gs[1, 0])
+    for alg, title in algs.items():
+        ax_replans.plot(
+            range(1, max_robots + 1),
+            [replans[alg][i] for i in range(1, max_robots + 1)],
+            label=title,
+        )
+    ax_replans.legend()
+    ax_replans.set_xlabel("Number of Robots")
+    ax_replans.set_ylabel("Replans")
+    ax_replans.set_title("Replans")
+
+    ax_planning_time = fig.add_subplot(gs[1, 1])
+    for alg, title in algs.items():
+        ax_planning_time.plot(
+            range(1, max_robots + 1),
+            [planning_time[alg][i] for i in range(1, max_robots + 1)],
+            label=title,
+        )
+    ax_planning_time.legend()
+    ax_planning_time.set_xlabel("Number of Robots")
+    ax_planning_time.set_ylabel("Planning Time")
+    ax_planning_time.set_title("Planning Time")
     plt.show()
 
 
