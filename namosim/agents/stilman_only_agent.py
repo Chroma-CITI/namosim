@@ -171,7 +171,6 @@ class StilmanOnlyAgent(Agent):
                     next_action=ba.GoalsFinished(),
                     did_replan=False,
                     robot_name=self.name,
-                    has_conflicts=False,
                 )
 
         if self._p_opt is None:
@@ -183,7 +182,6 @@ class StilmanOnlyAgent(Agent):
                 next_action=ba.GoalSuccess(self._q_goal),
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=False,
             )
             self._q_goal = None
             return result
@@ -193,7 +191,6 @@ class StilmanOnlyAgent(Agent):
                 next_action=self._p_opt.pop_next_action(),
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=False,
             )
 
         self._p_opt = self.compute_stilman_plan(
@@ -215,7 +212,6 @@ class StilmanOnlyAgent(Agent):
                 next_action=ba.GoalFailed(self._q_goal),
                 did_replan=True,
                 robot_name=self.name,
-                has_conflicts=False,
             )
             self._q_goal = None
             return result
@@ -226,7 +222,6 @@ class StilmanOnlyAgent(Agent):
             next_action=self._p_opt.pop_next_action(),
             did_replan=True,
             robot_name=self.name,
-            has_conflicts=False,
         )
 
     def init_social_costmap(self, ros_publisher: "rp.RosPublisher"):
