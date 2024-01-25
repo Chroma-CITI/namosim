@@ -97,7 +97,6 @@ class NavigationOnlyAgent(Agent):
                     next_action=ba.GoalsFinished(),
                     did_replan=False,
                     robot_name=self.name,
-                    has_conflicts=False,
                 )
 
         if self._p_opt is None:
@@ -109,7 +108,6 @@ class NavigationOnlyAgent(Agent):
                 next_action=ba.GoalSuccess(goal=self._q_goal),
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=False,
             )
             self._q_goal = None
             return result
@@ -119,7 +117,6 @@ class NavigationOnlyAgent(Agent):
                 next_action=self._p_opt.pop_next_action(),
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=False,
             )
 
         path = self.find_path(
@@ -134,7 +131,6 @@ class NavigationOnlyAgent(Agent):
                 next_action=ba.GoalFailed(self._q_goal),
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=False,
             )
 
         self._p_opt = nav_plan.Plan(
@@ -146,7 +142,6 @@ class NavigationOnlyAgent(Agent):
             next_action=self._p_opt.pop_next_action(),
             did_replan=True,
             robot_name=self.name,
-            has_conflicts=False,
         )
 
     def copy(self) -> Self:

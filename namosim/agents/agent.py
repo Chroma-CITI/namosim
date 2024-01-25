@@ -13,6 +13,7 @@ from namosim.data_models import UID, PoseModel
 from namosim.input import Input
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import Action
+from namosim.navigation.conflict import Conflict
 from namosim.navigation.navigation_path import TransitPath
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
@@ -30,13 +31,13 @@ class ThinkResult:
         did_replan: bool,
         did_postpone: bool = False,
         robot_name: str,
-        has_conflicts: bool,
+        conflicts: t.Optional[t.List[Conflict]] = None,
     ) -> None:
         self.next_action = next_action
         self.did_replan = did_replan
         self.did_postpone = did_postpone
         self.robot_name = robot_name
-        self.has_conflicts = has_conflicts
+        self.conflicts = conflicts if conflicts else []
 
 
 class Agent(Entity):

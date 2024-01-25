@@ -354,7 +354,6 @@ class Stilman2005Agent(Agent):
                     next_action=ba.GoalsFinished(),
                     did_replan=False,
                     robot_name=self.name,
-                    has_conflicts=False,
                 )
 
         next_step = self.full_coordination_strategy(
@@ -421,7 +420,6 @@ class Stilman2005Agent(Agent):
                 next_action=ba.GoalSuccess(goal),
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=False,
             )
 
         if plan.is_empty():
@@ -507,7 +505,6 @@ class Stilman2005Agent(Agent):
                 next_action=plan.pop_next_action(),
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=False,
             )  # Normal case, don't log
         if self.params.resolve_conflicts is False:
             self.logger.append(
@@ -522,7 +519,7 @@ class Stilman2005Agent(Agent):
                 next_action=ba.GoalFailed(goal),
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=True,
+                conflicts=conflicts,
             )
 
         # Detect and resolve deadlocks
@@ -544,7 +541,7 @@ class Stilman2005Agent(Agent):
                         next_action=ba.Wait(),
                         did_replan=False,
                         robot_name=self.name,
-                        has_conflicts=True,
+                        conflicts=conflicts,
                     )
 
                 if not plan.has_tries_remaining(self.replan_count):
@@ -560,7 +557,7 @@ class Stilman2005Agent(Agent):
                         next_action=ba.GoalFailed(goal),
                         did_replan=False,
                         robot_name=self.name,
-                        has_conflicts=True,
+                        conflicts=conflicts,
                     )
 
                 if self.use_social_cost:
@@ -600,7 +597,7 @@ class Stilman2005Agent(Agent):
                 next_action=ba.GoalFailed(goal),
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=True,
+                conflicts=conflicts,
             )
 
         if not self.must_replan_now(conflicts):
@@ -616,7 +613,7 @@ class Stilman2005Agent(Agent):
                 did_postpone=True,
                 did_replan=False,
                 robot_name=self.name,
-                has_conflicts=True,
+                conflicts=conflicts,
             )
 
         self.logger.append(
@@ -705,7 +702,7 @@ class Stilman2005Agent(Agent):
                 next_action=next_action,
                 did_replan=True,
                 robot_name=self.name,
-                has_conflicts=True,
+                conflicts=conflicts,
             )
         self.logger.append(
             utils.BasicLog(
@@ -727,7 +724,7 @@ class Stilman2005Agent(Agent):
             did_postpone=True,
             did_replan=False,
             robot_name=self.name,
-            has_conflicts=True,
+            conflicts=conflicts,
         )
 
     def resolve_deadlocks_naive(
@@ -777,7 +774,7 @@ class Stilman2005Agent(Agent):
                 next_action=next_action,
                 did_replan=True,
                 robot_name=self.name,
-                has_conflicts=True,
+                conflicts=conflicts,
             )
         self.logger.append(
             utils.BasicLog(
@@ -799,7 +796,7 @@ class Stilman2005Agent(Agent):
             did_postpone=True,
             did_replan=False,
             robot_name=self.name,
-            has_conflicts=True,
+            conflicts=conflicts,
         )
 
     def replan(
@@ -836,7 +833,6 @@ class Stilman2005Agent(Agent):
                 next_action=ba.GoalFailed(goal),
                 did_replan=True,
                 robot_name=self.name,
-                has_conflicts=False,
             )
 
         plan.steps_with_replan_call.add(step_count)
@@ -884,7 +880,6 @@ class Stilman2005Agent(Agent):
                 next_action=ba.GoalFailed(goal),
                 did_replan=True,
                 robot_name=self.name,
-                has_conflicts=False,
             )
 
         conflicts = plan.get_conflicts(
@@ -906,7 +901,6 @@ class Stilman2005Agent(Agent):
                 next_action=plan.pop_next_action(),
                 did_replan=True,
                 robot_name=self.name,
-                has_conflicts=False,
             )
 
         if self.params.resolve_conflicts is False:
@@ -922,7 +916,7 @@ class Stilman2005Agent(Agent):
                 next_action=ba.GoalFailed(goal),
                 did_replan=True,
                 robot_name=self.name,
-                has_conflicts=True,
+                conflicts=conflicts,
             )
 
         self.logger.append(
@@ -949,7 +943,7 @@ class Stilman2005Agent(Agent):
                 next_action=ba.GoalFailed(goal),
                 did_replan=True,
                 robot_name=self.name,
-                has_conflicts=True,
+                conflicts=conflicts,
             )
 
         # II - Compute plan (with conflicting dynamic obstacles as static)
@@ -1037,7 +1031,7 @@ class Stilman2005Agent(Agent):
                 did_postpone=True,
                 did_replan=True,
                 robot_name=self.name,
-                has_conflicts=True,
+                conflicts=conflicts,
             )
 
         plan.update_plan(p, step_count)
@@ -1076,7 +1070,7 @@ class Stilman2005Agent(Agent):
                 did_replan=True,
                 did_postpone=True,
                 robot_name=self.name,
-                has_conflicts=True,
+                conflicts=conflicts,
             )
 
         self.logger.append(
@@ -1093,7 +1087,6 @@ class Stilman2005Agent(Agent):
             next_action=plan.pop_next_action(),
             did_replan=True,
             robot_name=self.name,
-            has_conflicts=False,
         )
 
     def select_connect(
