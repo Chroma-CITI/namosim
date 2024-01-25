@@ -877,6 +877,7 @@ class Simulator:
                     entity_to_grab_agents[entity_uid].add(agent_uid)
                 else:
                     entity_to_grab_agents[entity_uid] = {agent_uid}
+
         for agent_uid, action in agent_uid_to_next_action.items():
             if isinstance(action, ba.Grab):
                 entity_uid = action.entity_uid
@@ -903,10 +904,9 @@ class Simulator:
         # Check actions regarding dynamic collisions and apply the valid ones
         collides_with = collision.csv_simulate_simple_kinematics(
             world=self.ref_world,
-            agent_uid_to_next_action=to_check,
+            agent_actions=to_check,
             apply=True,
             ignore_collisions=ignore_collisions,
-            extra_transit_check=False,
         )
 
         # Finish separating succeeded and failed actions, and apply result to world state on success
