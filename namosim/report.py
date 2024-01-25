@@ -89,35 +89,40 @@ class AgentStats(BaseModel):
     """The total number of robot-robot conflicts
     """
 
+    n_steps: float = 0.0
+    """The total number of simulation steps until the agent completed or failed all of its goals.
+    """
+
     def update(self, *, think_result: ThinkResult, action_result: ar.ActionResult):
-        if not isinstance(action_result, ar.ActionSuccess):
-            self.n_actions_failed += 1
-            return
+        self.n_steps += 1
 
-        self.n_actions_completed += 1
+        if isinstance(action_result, ar.ActionSuccess):
+            self.n_actions_completed += 1
 
-        action = action_result.action
+            action = action_result.action
 
-        if isinstance(action, ba.GoalFailed):
-            self.n_goals_failed += 1
-            if action.is_timeout:
-                self.n_planning_timeouts += 1
-        if isinstance(action, ba.GoalSuccess):
-            self.n_goals_completed += 1
-        if isinstance(action, ba.Advance):
-            self.distance_traveled += np.abs(action.distance)
-            if action_result.is_transfer:
-                self.transfer_distance_traveled += np.abs(action.distance)
-        if isinstance(action, ba.AbsoluteTranslation):
-            self.distance_traveled += np.abs(action.length)
-            if action_result.is_transfer:
-                self.transfer_distance_traveled += np.abs(action.length)
-        if isinstance(action, ba.Rotation):
-            self.degrees_rotated += abs(float(action.angle))
-            if action_result.is_transfer:
-                self.transfer_degrees_rotated += abs(float(action.angle))
-        if isinstance(action, ba.Release):
-            self.n_transfers += 1
+            if isinstance(action, ba.GoalFailed):
+                self.n_goals_failed += 1
+                if action.is_timeout:
+                    self.n_planning_timeouts += 1
+            if isinstance(action, ba.GoalSuccess):
+                self.n_goals_completed += 1
+            if isinstance(action, ba.Advance):
+                self.distance_traveled += np.abs(action.distance)
+                if action_result.is_transfer:
+                    self.transfer_distance_traveled += np.abs(action.distance)
+            if isinstance(action, ba.AbsoluteTranslation):
+                self.distance_traveled += np.abs(action.length)
+                if action_result.is_transfer:
+                    self.transfer_distance_traveled += np.abs(action.length)
+            if isinstance(action, ba.Rotation):
+                self.degrees_rotated += abs(float(action.angle))
+                if action_result.is_transfer:
+                    self.transfer_degrees_rotated += abs(float(action.angle))
+            if isinstance(action, ba.Release):
+                self.n_transfers += 1
+        else:
+            self.n_actions_completed += 1
 
         conflicts = set(think_result.conflicts)
         if len(conflicts) > 0:
@@ -175,6 +180,7 @@ class SimulationReport(BaseModel):
             sum.transfer_distance_traveled += stats.transfer_distance_traveled
             sum.n_conflicts += stats.n_conflicts
             sum.n_rr_conflicts += stats.n_rr_conflicts
+            sum.n_steps += stats.n_steps
 
         return SimulationReport(agent_stats={"sum": sum})
 
@@ -201,6 +207,7 @@ class SimulationReport(BaseModel):
             avg.transfer_distance_traveled += stats.transfer_distance_traveled / N
             avg.n_conflicts += stats.n_conflicts / N
             avg.n_rr_conflicts += stats.n_rr_conflicts / N
+            avg.n_steps += stats.n_steps / N
 
         return SimulationReport(agent_stats={"avg": avg})
 
@@ -228,6 +235,7 @@ class SimulationReport(BaseModel):
                 res_stats.transfer_distance_traveled += stats.transfer_distance_traveled
                 res_stats.n_conflicts += stats.n_conflicts
                 res_stats.n_rr_conflicts += stats.n_rr_conflicts
+                res_stats.n_steps += stats.n_steps
 
         return result
 
@@ -251,6 +259,7 @@ class SimulationReport(BaseModel):
             stats.transfer_distance_traveled /= divisor
             stats.n_conflicts /= divisor
             stats.n_rr_conflicts /= divisor
+            stats.n_steps /= divisor
 
         return result
 
