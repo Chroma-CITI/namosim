@@ -40,14 +40,12 @@ class CollisionTest(unittest.TestCase):
 
         bb = arc_bounding_box(degrees=90.0, point=(1, 0), center=(0, 0))
         bb = list(tuple(round(x, 6) for x in p) for p in bb)
-        assert set(bb) == set(
-            [
-                (1.0, 0.0),
-                (0.0, 1.0),
-                (1.207107, 0.207107),
-                (0.207107, 1.207107),
-            ]
-        )
+        assert bb == [
+            (1.0, 0.0),
+            (0.0, 1.0),
+            (1.207107, 0.207107),
+            (0.207107, 1.207107),
+        ]
 
         bb = arc_bounding_box(degrees=-90.0, point=(1, 0), center=(0, 0))
         bb = list(tuple(round(x, 6) for x in p) for p in bb)
@@ -334,6 +332,8 @@ class CollisionTest(unittest.TestCase):
             if len(expected_points_rounded.difference(actual_points_rounded)) != 0:
                 print("expected", expected_points_rounded)
                 print("actual", actual_points_rounded)
+
+            assert len(expected_points_rounded.difference(actual_points_rounded)) == 0
 
 
 if __name__ == "__main__":
