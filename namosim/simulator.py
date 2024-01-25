@@ -273,7 +273,12 @@ class Simulator:
     def update_report(self, sim_step_result: SimulationStepResult):
         for uid, action_result in sim_step_result.action_results.items():
             agent_id = self.ref_world.entities[uid].name
-            self.report.update_for_step(agent_id=agent_id, action_result=action_result)
+            think_result = sim_step_result.think_results[uid]
+            self.report.update_for_step(
+                agent_id=agent_id,
+                action_result=action_result,
+                think_result=think_result,
+            )
             self.report.agent_stats[
                 agent_id
             ].planning_time += sim_step_result.think_durations[uid]
@@ -709,7 +714,7 @@ class Simulator:
         """Process the results of each agent's think step. Updates the set of activate agents and the dictionary of think durations."""
         agent_uid_to_next_action: t.Dict[UID, ba.Action] = {}
         for agent_uid, think_result in results.items():
-            if think_result.has_conflicts is False:
+            if len(think_result.conflicts) == 0:
                 self.ros_publisher.cleanup_conflicts_checks(ns=think_result.robot_name)
 
             # TODO Change goal coordinates for easier reading to goal name in log.
@@ -795,7 +800,6 @@ class Simulator:
                         next_action=ba.GoalFailed(goal=agent_goal, is_timeout=True),
                         did_replan=False,
                         did_postpone=False,
-                        has_conflicts=False,
                         robot_name=agent.name,
                     )
 
