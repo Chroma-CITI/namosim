@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
+from namosim.agents.agent import ThinkResult
+from namosim.navigation.conflict import RobotRobotConflict
 
 
 class WorldStepReport(BaseModel):
@@ -79,7 +81,15 @@ class AgentStats(BaseModel):
     """The total number of times the agent timed out
     """
 
-    def update(self, action_result: ar.ActionResult):
+    n_conflicts: float = 0.0
+    """The total number of conflicts of any type
+    """
+
+    n_rr_conflicts: float = 0.0
+    """The total number of robot-robot conflicts
+    """
+
+    def update(self, *, think_result: ThinkResult, action_result: ar.ActionResult):
         if not isinstance(action_result, ar.ActionSuccess):
             self.n_actions_failed += 1
             return
@@ -109,6 +119,14 @@ class AgentStats(BaseModel):
         if isinstance(action, ba.Release):
             self.n_transfers += 1
 
+        conflicts = set(think_result.conflicts)
+        if len(conflicts) > 0:
+            self.n_conflicts += 1
+
+            for conflict in conflicts:
+                if isinstance(conflict, RobotRobotConflict):
+                    self.n_rr_conflicts += 1
+
 
 class SimulationReport(BaseModel):
     agent_stats: t.Dict[str, AgentStats] = {}
@@ -117,11 +135,19 @@ class SimulationReport(BaseModel):
     """A list of world statistics for each step of the simulation
     """
 
-    def update_for_step(self, agent_id: str, action_result: ar.ActionResult):
+    def update_for_step(
+        self,
+        *,
+        agent_id: str,
+        think_result: ThinkResult,
+        action_result: ar.ActionResult,
+    ):
         if agent_id not in self.agent_stats:
             raise Exception(f"Agent ${agent_id} not found in report")
 
-        self.agent_stats[agent_id].update(action_result=action_result)
+        self.agent_stats[agent_id].update(
+            think_result=think_result, action_result=action_result
+        )
 
     def to_json_data(self):
         return self.model_dump()
@@ -147,6 +173,9 @@ class SimulationReport(BaseModel):
             sum.replans += stats.replans
             sum.transfer_degrees_rotated += stats.transfer_degrees_rotated
             sum.transfer_distance_traveled += stats.transfer_distance_traveled
+            sum.n_conflicts += stats.n_conflicts
+            sum.n_rr_conflicts += stats.n_rr_conflicts
+
         return SimulationReport(agent_stats={"sum": sum})
 
     def get_avg_over_agents(self) -> t.Optional["SimulationReport"]:
@@ -170,6 +199,8 @@ class SimulationReport(BaseModel):
             avg.replans += stats.replans / N
             avg.transfer_degrees_rotated += stats.transfer_degrees_rotated / N
             avg.transfer_distance_traveled += stats.transfer_distance_traveled / N
+            avg.n_conflicts += stats.n_conflicts / N
+            avg.n_rr_conflicts += stats.n_rr_conflicts / N
 
         return SimulationReport(agent_stats={"avg": avg})
 
@@ -195,6 +226,8 @@ class SimulationReport(BaseModel):
                 res_stats.postponements += stats.postponements
                 res_stats.transfer_degrees_rotated += stats.transfer_degrees_rotated
                 res_stats.transfer_distance_traveled += stats.transfer_distance_traveled
+                res_stats.n_conflicts += stats.n_conflicts
+                res_stats.n_rr_conflicts += stats.n_rr_conflicts
 
         return result
 
@@ -216,6 +249,8 @@ class SimulationReport(BaseModel):
             stats.replans /= divisor
             stats.transfer_degrees_rotated /= divisor
             stats.transfer_distance_traveled /= divisor
+            stats.n_conflicts /= divisor
+            stats.n_rr_conflicts /= divisor
 
         return result
 
