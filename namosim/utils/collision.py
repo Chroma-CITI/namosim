@@ -25,56 +25,84 @@ def bounds(points: t.Iterable[t.Tuple[float, float]]):
     return minx, miny, maxx, maxy
 
 
-def rotate(
-    point: t.Tuple[float, float],
-    angle: float,
-    center: t.Tuple[float, float],
-    radius: float | None = None,
-    radians: bool = False,
+def rotate_point(
+    *, point: t.Tuple[float, float], center: t.Tuple[float, float], angle_degrees: float
 ):
-    if not radius:
-        radius = math.sqrt((point[0] - center[0]) ** 2 + (point[1] - center[1]) ** 2)
-    if not radians:
-        angle = math.radians(angle)
-    angle += math.atan2((point[1] - center[1]), (point[0] - center[0]))
-    return center[0] + radius * math.cos(angle), center[1] + radius * math.sin(angle)
+    """
+    Rotate a 2D point around a center point by a specified angle in degrees.
+
+    Parameters:
+        point (tuple): (x, y) coordinates of the point to be rotated.
+        center (tuple): (x, y) coordinates of the center point.
+        angle_degrees (float): Rotation angle in degrees.
+
+    Returns:
+        tuple: (x, y) coordinates of the rotated point.
+    """
+    # Convert angle to radians
+    angle_radians = math.radians(angle_degrees)
+
+    # Translate the point to the origin
+    translated_point = (point[0] - center[0], point[1] - center[1])
+
+    # Rotate the translated point using the rotation matrix
+    rotated_x = translated_point[0] * math.cos(angle_radians) - translated_point[
+        1
+    ] * math.sin(angle_radians)
+    rotated_y = translated_point[0] * math.sin(angle_radians) + translated_point[
+        1
+    ] * math.cos(angle_radians)
+
+    # Translate the rotated point back to the original position
+    rotated_point = (rotated_x + center[0], rotated_y + center[1])
+
+    return rotated_point
 
 
 def arc_bounding_box(
     degrees: float,
-    a: t.Tuple[float, float],
-    b: t.Tuple[float, float],
+    point: t.Tuple[float, float],
     center: t.Tuple[float, float],
 ) -> t.List[t.Tuple[float, float]]:
     """Computes the verticies a rectangular box bounding the circular arc from point a to point b."""
 
     # This function first computes the box assuming the arc is centered on the x-axis, then it rotates it to the arc's true position.
 
-    midpoint = (a[0] + b[0] / 2, a[1] + b[1] / 2)
+    a = point
+    b = rotate_point(point=point, angle_degrees=degrees, center=center)
+    midpoint = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
     radius = utils.euclidean_distance(center, a)
     dist_center_to_mid = utils.euclidean_distance(center, midpoint)
-    arc_center = rotate(a, degrees / 2, center, radius=radius)
+    arc_center = rotate_point(point=a, angle_degrees=degrees / 2, center=center)
     dy = arc_center[1] - center[1]
     dx = arc_center[0] - center[0]
-    arc_position = np.arctan2(dy, dx)
+    arc_position = np.arctan2(dy, dx) * 180 / math.pi
 
     ## looking at bounding box from the center of the circle to center of the arc
 
-    if degrees < 180:
+    assert np.abs(degrees) <= 360
+
+    if np.abs(degrees) < 180:
         box_height = utils.euclidean_distance(a, b)
         box_width = radius - dist_center_to_mid
+        box_left = center[0] + dist_center_to_mid
+
     else:
         box_width = radius + dist_center_to_mid
         box_height = 2 * radius
+        box_left = center[0] - dist_center_to_mid
 
+    box_top = center[1] + box_height / 2
     points = [
-        (center[0] + box_width / 2, center[1] + box_height / 2),
-        (center[0] + box_width / 2, center[1] - box_height / 2),
-        (center[0] - box_width / 2, center[1] + box_height / 2),
-        (center[0] - box_width / 2, center[1] - box_height / 2),
+        (box_left, box_top),
+        (box_left + box_width, box_top),
+        (box_left + box_width, box_top - box_height),
+        (box_left, box_top - box_height),
     ]
 
-    points = [rotate(p, angle=arc_position, center=center) for p in points]
+    points = [
+        rotate_point(point=p, angle_degrees=arc_position, center=center) for p in points
+    ]
 
     return points
 
@@ -109,10 +137,9 @@ def bounding_boxes_vertices(
             for coord in end_poly_coords:
                 action_bb_vertices.append(coord)
         elif isinstance(action, ba.AbsoluteRotation):
-            for point_a, point_b in zip(init_poly_coords, end_poly_coords):
+            for point_a, _ in zip(init_poly_coords, end_poly_coords):
                 bb = arc_bounding_box(
-                    a=point_a,
-                    b=point_b,
+                    point=point_a,
                     degrees=action.angle,
                     center=action.center,
                 )
