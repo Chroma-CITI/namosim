@@ -1236,7 +1236,6 @@ class StilmanOnlyAgent(Agent):
                     transfer_start_robot_polygon,
                 ],
                 action_sequence=[grab_action.to_absolute(transit_end_pose)],
-                bb_type="minimum_rotated_rectangle",
                 aabb_tree=other_entities_aabb_tree,
             )
 
@@ -1570,7 +1569,6 @@ class StilmanOnlyAgent(Agent):
             other_polygons=other_entities_polygons,
             polygon_sequence=[robot_polygon, new_robot_polygon],
             action_sequence=[release_action.to_absolute(robot_pose)],
-            bb_type="minimum_rotated_rectangle",
             aabb_tree=other_entities_aabb_tree,
         )
 
@@ -1888,7 +1886,6 @@ class StilmanOnlyAgent(Agent):
                 action_sequence=[
                     action.to_absolute(current_configuration.robot.floating_point_pose)
                 ],
-                bb_type="minimum_rotated_rectangle",
                 aabb_tree=other_entities_aabb_tree,
             )
             if collides_with:
@@ -1913,7 +1910,6 @@ class StilmanOnlyAgent(Agent):
                         current_configuration.obstacle.floating_point_pose
                     )
                 ],
-                bb_type="minimum_rotated_rectangle",
                 aabb_tree=other_entities_aabb_tree,
             )
             if collides_with:

@@ -94,10 +94,10 @@ def arc_bounding_box(
 
     box_top = center[1] + box_height / 2
     points = [
-        (box_left, box_top),
-        (box_left + box_width, box_top),
-        (box_left + box_width, box_top - box_height),
         (box_left, box_top - box_height),
+        (box_left, box_top),
+        (box_left + box_width, box_top - box_height),
+        (box_left + box_width, box_top),
     ]
 
     points = [
@@ -252,12 +252,12 @@ def merge_collides_with(
 
 
 def csv_check_collisions(
+    *,
     main_uid: UID,
     other_polygons: t.Dict[UID, Polygon],
     polygon_sequence: t.List[Polygon],
     action_sequence: t.List[ba.AbsoluteAction],
     id_sequence: t.List[int] | None = None,
-    bb_type: str = "minimum_rotated_rectangle",
     aabb_tree: AABBTree | None = None,
     bb_vertices: t.List[t.List[t.Tuple[float, float]]] | None = None,
     csv_polygons: t.Dict[t.Sequence[int], Polygon] | None = None,
@@ -278,9 +278,7 @@ def csv_check_collisions(
     if not aabb_tree:
         aabb_tree = polygons_to_aabb_tree(other_polygons)
     if not bb_vertices:
-        bb_vertices = bounding_boxes_vertices(
-            action_sequence, polygon_sequence, bb_type
-        )
+        bb_vertices = bounding_boxes_vertices(action_sequence, polygon_sequence)
     if not csv_polygons:
         csv_polygons = {}
     if not intersections:
