@@ -121,6 +121,17 @@ class ExperimentsTests(unittest.TestCase):
         sim.run()
         assert True
 
+    def test_willow_garage_generated(self):
+        config.DISPLAY_WINDOW = True
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder,
+                "willow_garage/generated/2_robots_50_goals_namo/00.svg",
+            )
+        )
+        sim.run()
+        assert True
+
     def test_intersections_4_robots_25_goals_snamo(self):
         config.DISPLAY_WINDOW = True
         sim = Simulator(
