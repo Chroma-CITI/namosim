@@ -122,11 +122,11 @@ class AgentStats(BaseModel):
             if isinstance(action, ba.Release):
                 self.n_transfers += 1
         else:
-            self.n_actions_completed += 1
+            self.n_actions_failed += 1
 
         conflicts = set(think_result.conflicts)
         if len(conflicts) > 0:
-            self.n_conflicts += 1
+            self.n_conflicts += len(conflicts)
 
             for conflict in conflicts:
                 if isinstance(conflict, RobotRobotConflict):
