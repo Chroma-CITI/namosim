@@ -121,3 +121,4 @@ data/
 namo_logs*
 generated/
 *.zip
+*.csv
