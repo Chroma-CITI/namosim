@@ -110,9 +110,6 @@ def arc_bounding_box(
 def bounding_boxes_vertices(
     action_sequence: t.List[ba.AbsoluteAction],
     polygon_sequence: t.List[Polygon],
-    bb_type: t.Literal[
-        "minimum_rotated_rectangle", "aabbox"
-    ] = "minimum_rotated_rectangle",
 ) -> t.List[t.List[t.Tuple[float, float]]]:
     """
     Returns for each action the pointclouds of the bounding boxes that cover each polygon's point trajectory
@@ -121,8 +118,6 @@ def bounding_boxes_vertices(
     :type action_sequence:
     :param polygon_sequence:
     :type polygon_sequence:
-    :param bb_type: Type of bounding box, either 'minimum_rotated_rectangle' or 'aabbox', first one is most accurate
-    :type bb_type: str
     :return:
     :rtype:
     """
@@ -412,7 +407,6 @@ def csv_simulate_simple_kinematics(
     world: "w.World",
     agent_actions: t.Dict[UID, ba.Action],
     apply: bool = False,
-    bb_type: str = "minimum_rotated_rectangle",
     ignore_collisions: bool = False,
 ) -> t.Dict[UID, t.Set[UID]]:
     # Apply each action to get polygon after for robot and obstacle if relevant
@@ -499,9 +493,7 @@ def csv_simulate_simple_kinematics(
             obs_action: ba.AbsoluteAction = action.to_absolute(agent.pose)
             obs_polygon_after = obs_action.apply(obs.polygon)
             obs_csv = csv_from_bb_vertices(
-                bounding_boxes_vertices(
-                    [obs_action], [obs.polygon, obs_polygon_after], bb_type=bb_type
-                )
+                bounding_boxes_vertices([obs_action], [obs.polygon, obs_polygon_after])
             )
             uid_to_csv_polygon[obs_uid] = obs_csv
             obs_collides_with, _ = check_static_collision(
