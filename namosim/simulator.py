@@ -791,7 +791,7 @@ class Simulator:
 
                     self.simulation_log.append(
                         utils.BasicLog(
-                            f"Robot ${agent.name} timed out while planning. Failing goal and reinitializing.",
+                            f"Robot {agent.name} timed out while planning. Failing goal and reinitializing.",
                             step_count,
                         )
                     )
