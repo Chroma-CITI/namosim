@@ -109,7 +109,7 @@ class SimultaneousGrabFailure(ActionFailure):
 
 
 class DynamicCollisionFailure(ActionFailure):
-    def __init__(self, action: Action, colliding_entities_uids: t.Iterable[int]):
+    def __init__(self, action: Action, colliding_entities_uids: t.Iterable[UID]):
         super().__init__(action)
         self.colliding_entities_uids = colliding_entities_uids
 
