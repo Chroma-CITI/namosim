@@ -84,6 +84,18 @@ class AbsoluteRotation(AbsoluteAction):
             ),
         )
 
+    def apply_to_point(self, point: t.Tuple[float, float]) -> t.Tuple[float, float]:
+        rotated = t.cast(
+            Point,
+            affinity.rotate(
+                geom=Point(point),
+                angle=self.angle,
+                origin=self.center,  # type: ignore
+                use_radians=False,
+            ),
+        )
+        return (rotated.x, rotated.y)
+
 
 class Rotation(RelativeAction):
     """This action represents a rotation relative to the robots current pose."""

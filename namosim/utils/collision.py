@@ -2,6 +2,7 @@ import math
 import typing as t
 
 import matplotlib.pyplot as plt
+import numpy as np
 from aabbtree import AABB, AABBTree
 from shapely import Polygon
 from shapely.geometry import MultiPoint, Point
@@ -24,214 +25,91 @@ def bounds(points: t.Iterable[t.Tuple[float, float]]):
     return minx, miny, maxx, maxy
 
 
-def rotate(
-    point: t.Tuple[float, float],
-    angle: float,
-    center: t.Tuple[float, float],
-    radius: float | None = None,
-    radians: bool = False,
+def rotate_point(
+    *, point: t.Tuple[float, float], center: t.Tuple[float, float], angle_degrees: float
 ):
-    if not radius:
-        radius = math.sqrt((point[0] - center[0]) ** 2 + (point[1] - center[1]) ** 2)
-    if not radians:
-        angle = math.radians(angle)
-    angle += math.atan2((point[1] - center[1]), (point[0] - center[0]))
-    return center[0] + radius * math.cos(angle), center[1] + radius * math.sin(angle)
+    """
+    Rotate a 2D point around a center point by a specified angle in degrees.
+
+    Parameters:
+        point (tuple): (x, y) coordinates of the point to be rotated.
+        center (tuple): (x, y) coordinates of the center point.
+        angle_degrees (float): Rotation angle in degrees.
+
+    Returns:
+        tuple: (x, y) coordinates of the rotated point.
+    """
+    # Convert angle to radians
+    angle_radians = math.radians(angle_degrees)
+
+    # Translate the point to the origin
+    translated_point = (point[0] - center[0], point[1] - center[1])
+
+    # Rotate the translated point using the rotation matrix
+    rotated_x = translated_point[0] * math.cos(angle_radians) - translated_point[
+        1
+    ] * math.sin(angle_radians)
+    rotated_y = translated_point[0] * math.sin(angle_radians) + translated_point[
+        1
+    ] * math.cos(angle_radians)
+
+    # Translate the rotated point back to the original position
+    rotated_point = (rotated_x + center[0], rotated_y + center[1])
+
+    return rotated_point
 
 
 def arc_bounding_box(
-    point_a: t.Tuple[float, float],
-    rot_angle: float,
+    degrees: float,
+    point: t.Tuple[float, float],
     center: t.Tuple[float, float],
-    point_b: t.Tuple[float, float] | None = None,
-    point_c: t.Tuple[float, float] | None = None,
-    bb_type: str = "minimum_rotated_rectangle",
-):
-    """
-    Computes the bounding box of the arc formed by the rotation of a point A around a given center
-    :param point_a: Initial point state
-    :type point_a: (float, float)
-    :param rot_angle: rotation angle in degrees.
-    :type rot_angle: float
-    :param center: rotation origin point
-    :type center: (float, float)
-    :param point_b: Final point state after rotation, can be provided to accelerate computation
-    :type point_b: (float, float)
-    :param point_c: Middle point state after rotation, can be provided to accelerate computation
-    :type point_c: (float, float)
-    :param bb_type: Type of bounding box, either 'minimum_rotated_rectangle' or 'aabbox', first one is most accurate
-    :type bb_type: str
-    :return: Return a list of four points coordinates corresponding to the bounding box
-    :rtype: [(float, float), (float, float), (float, float), (float, float)]
-    """
-    if not point_b:
-        r = math.sqrt((point_a[0] - center[0]) ** 2 + (point_a[1] - center[1]) ** 2)
-        point_b = rotate(point_a, rot_angle, center, radius=r)
+) -> t.List[t.Tuple[float, float]]:
+    """Computes the verticies a rectangular box bounding the circular arc from point a to point b."""
+
+    # This function first computes the box assuming the arc is centered on the x-axis, then it rotates it to the arc's true position.
+
+    a = point
+    b = rotate_point(point=point, angle_degrees=degrees, center=center)
+    midpoint = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+    radius = utils.euclidean_distance(center, a)
+    dist_center_to_mid = utils.euclidean_distance(center, midpoint)
+    arc_center = rotate_point(point=a, angle_degrees=degrees / 2, center=center)
+    dy = arc_center[1] - center[1]
+    dx = arc_center[0] - center[0]
+    arc_position = np.arctan2(dy, dx) * 180 / math.pi
+
+    ## looking at bounding box from the center of the circle to center of the arc
+
+    assert np.abs(degrees) <= 360
+
+    if np.abs(degrees) < 180:
+        box_height = utils.euclidean_distance(a, b)
+        box_width = radius - dist_center_to_mid
+        box_left = center[0] + dist_center_to_mid
+
     else:
-        r = None
+        box_width = radius + dist_center_to_mid
+        box_height = 2 * radius
+        box_left = center[0] - dist_center_to_mid
 
-    if -1.0e-15 < rot_angle < 1.0e-15:
-        # It means that there is no movement, return only A
-        return [point_a]
-    if -180.0 <= rot_angle <= 180.0:
-        # If the arc is less than a half circle
+    box_top = center[1] + box_height / 2
+    points = [
+        (box_left, box_top - box_height),
+        (box_left, box_top),
+        (box_left + box_width, box_top - box_height),
+        (box_left + box_width, box_top),
+    ]
 
-        # Compute middle point C
-        if not point_c:
-            point_c = rotate(point_a, rot_angle / 2.0, center)
+    points = [
+        rotate_point(point=p, angle_degrees=arc_position, center=center) for p in points
+    ]
 
-        if bb_type == "minimum_rotated_rectangle":
-            # The minimum rotated rectangle's corners are points A, B, D and E
-            # D and E are the intersection points between the line parallel to [AB] passing by C, and respectively,
-            # the lines perpendicular to [AB] passing by A and B.
-            x_b_min_a, y_b_min_a = (point_b[0] - point_a[0]), (point_b[1] - point_a[1])
-            if -1.0e-15 < x_b_min_a < 1.0e-15:
-                # Special case where [AB] is vertical
-                point_d, point_e = (point_c[0], point_a[1]), (point_c[0], point_b[1])
-            else:
-                # General case
-                m_ab = y_b_min_a / x_b_min_a  # [AB]'s slope = [DC]'s slope
-                if -1.0e-15 < m_ab < 1.0e-15:
-                    # Special case where [AB] is horizontal
-                    point_d, point_e = (
-                        (point_a[0], point_c[1]),
-                        (point_b[0], point_c[1]),
-                    )
-                else:
-                    b_dc = point_c[1] - m_ab * point_c[0]
-                    m_ad = 0.0 if m_ab >= 1e15 else -1.0 / m_ab
-                    b_ad = point_a[1] - m_ad * point_a[0]
-                    xd = (b_ad - b_dc) / (m_ab - m_ad)
-                    yd = xd * m_ab + b_dc
-                    point_d = (xd, yd)
-                    # C is the midpoint between D and E, allowing us to compute E
-                    point_e = (
-                        2.0 * point_c[0] - point_d[0],
-                        2.0 * point_c[1] - point_d[1],
-                    )
-            return [point_a, point_b, point_d, point_e]
-        if bb_type == "aabbox":
-            # The aabb corners are simply the bounds of points A, B and C.
-            minx, miny, maxx, maxy = bounds([point_a, point_b, point_c])
-            return [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]
-    elif -360.0 < rot_angle < 360.0:
-        # If the arc is greater than a half circle but not a circle
-        # then we have 5 extremal points : A, B, C, D and E.
-        # C is the arc middle point
-        # D and E are the intersection points between the circle's equation and the ray that is perpendicular
-        # to the ray passing through C
-
-        # Compute middle point C and the radius if not already computed
-        if not r:
-            r = math.sqrt((point_a[0] - center[0]) ** 2 + (point_a[1] - center[1]) ** 2)
-        if not point_c:
-            point_c = rotate(point_a, rot_angle / 2.0, center, radius=r)
-
-        # Compute the slope of the ray passing through C
-        m1 = (point_c[1] - center[1]) / (point_c[0] - center[0])
-
-        if -1.0e-15 < m1 < 1.0e-15:
-            # If the ray passing through C IS horizontal
-
-            # Line terms of the ray that is perpendicular to the ray passing through C (x=p2 is vertical line equation)
-            p2 = center[0]
-
-            # Terms of the equation to solve for x coordinate of points D and E
-            a = 1.0
-            b = -2.0 * center[1]
-            c = center[0] ** 2 + center[1] ** 2 + p2**2 - 2.0 * center[0] * p2 - r**2
-
-            # Solve the equation to get the coordinates of points D and E
-            discriminant = (b**2) - (4 * a * c)
-
-            yd = (-b - math.sqrt(discriminant)) / (2 * a)
-            ye = (-b + math.sqrt(discriminant)) / (2 * a)
-
-            xd = center[0]
-            xe = center[0]
-
-            point_d, point_e = (xd, yd), (xe, ye)
-
-            # Now simply return the proper bounding box englobing A, B, C, D and E
-            bb_points_x = [point_c[0], point_c[0], point_a[0], point_a[0]]
-            bb_points_y = [point_d[1], point_e[1], point_e[1], point_d[1]]
-            if bb_type == "minimum_rotated_rectangle":
-                return list(zip(bb_points_x, bb_points_y))
-            if bb_type == "aabbox":
-                minx, miny, maxx, maxy = bounds(list(zip(bb_points_x, bb_points_y)))
-                return [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]
-
-            raise Exception("Invalid bb_type arg")
-        else:
-            # If the ray passing through C is not horizontal (GENERAL CASE)
-
-            # Line terms of the ray that is perpendicular to the ray passing through C
-            m2 = (
-                0.0 if m1 >= 1e15 else -1.0 / m1
-            )  # If ray passing through C is vertical, perpendicular is horizontal
-            p2 = center[1] - m2 * center[0]
-
-            # Terms of the equation to solve for x coordinate of points D and E
-            a = 1.0 + m2**2
-            b = m2 * (2.0 * p2 - 2.0 * center[1]) - 2.0 * center[0]
-            c = center[0] ** 2 + p2**2 + center[1] ** 2 - 2.0 * p2 * center[1] - r**2
-
-            # Solve the equation to get the coordinates of points D and E
-            discriminant = (b**2) - (4.0 * a * c)
-
-            xd = (-b - math.sqrt(discriminant)) / (2.0 * a)
-            xe = (-b + math.sqrt(discriminant)) / (2.0 * a)
-
-            yd = xd * m2 + p2
-            ye = xe * m2 + p2
-
-            point_d, point_e = (xd, yd), (xe, ye)
-
-            # Now simply return the proper bounding box englobing A, B, C, D and E
-            m_lc = m2
-            p_lc = point_c[1] - m_lc * point_c[0]
-
-            m_ld = m1
-            p_ld = point_d[1] - m_ld * point_d[0]
-
-            m_le = m1
-            p_le = point_e[1] - m_le * point_e[0]
-
-            m_lab = m2
-            p_lab = point_a[1] - m_lab * point_a[0]
-
-            bb_points_x = [
-                (p_lc - p_ld) / (m_ld - m_lc),
-                (p_lc - p_le) / (m_le - m_lc),
-                (p_lab - p_le) / (m_le - m_lab),
-                (p_lab - p_ld) / (m_ld - m_lab),
-            ]
-            bb_points_y = [
-                m_lc * bb_points_x[0] + p_lc,
-                m_lc * bb_points_x[1] + p_lc,
-                m_lab * bb_points_x[2] + p_lab,
-                m_lab * bb_points_x[3] + p_lab,
-            ]
-            if bb_type == "minimum_rotated_rectangle":
-                return list(zip(bb_points_x, bb_points_y))
-            if bb_type == "aabbox":
-                minx, miny, maxx, maxy = bounds(list(zip(bb_points_x, bb_points_y)))
-                return [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]
-    else:
-        # Beyond 360 degrees, the arc is a circle: its bounding box is necessarily a square aabb
-        r = math.sqrt((point_a[0] - center[0]) ** 2 + (point_a[1] - center[1]) ** 2)
-        return [
-            (center[0] - r, center[1] - r),
-            (center[0] + r, center[1] - r),
-            (center[0] + r, center[1] + r),
-            (center[0] - r, center[1] + r),
-        ]
+    return points
 
 
 def bounding_boxes_vertices(
     action_sequence: t.List[ba.AbsoluteAction],
     polygon_sequence: t.List[Polygon],
-    bb_type: str = "minimum_rotated_rectangle",
 ) -> t.List[t.List[t.Tuple[float, float]]]:
     """
     Returns for each action the pointclouds of the bounding boxes that cover each polygon's point trajectory
@@ -240,8 +118,6 @@ def bounding_boxes_vertices(
     :type action_sequence:
     :param polygon_sequence:
     :type polygon_sequence:
-    :param bb_type: Type of bounding box, either 'minimum_rotated_rectangle' or 'aabbox', first one is most accurate
-    :type bb_type: str
     :return:
     :rtype:
     """
@@ -257,12 +133,13 @@ def bounding_boxes_vertices(
                 action_bb_vertices.append(coord)
         elif isinstance(action, ba.AbsoluteRotation):
             for point_a, point_b in zip(init_poly_coords, end_poly_coords):
+                expected_b = action.apply_to_point(point_a)
+                if not np.allclose(point_b, expected_b):
+                    raise Exception()
                 bb = arc_bounding_box(
-                    point_a=point_a,
-                    point_b=point_b,
-                    rot_angle=action.angle,
+                    point=point_a,
+                    degrees=action.angle,
                     center=action.center,
-                    bb_type=bb_type,
                 )
                 for coord in bb:
                     action_bb_vertices.append(coord)
@@ -373,12 +250,12 @@ def merge_collides_with(
 
 
 def csv_check_collisions(
+    *,
     main_uid: UID,
     other_polygons: t.Dict[UID, Polygon],
     polygon_sequence: t.List[Polygon],
     action_sequence: t.List[ba.AbsoluteAction],
     id_sequence: t.List[int] | None = None,
-    bb_type: str = "minimum_rotated_rectangle",
     aabb_tree: AABBTree | None = None,
     bb_vertices: t.List[t.List[t.Tuple[float, float]]] | None = None,
     csv_polygons: t.Dict[t.Sequence[int], Polygon] | None = None,
@@ -399,9 +276,7 @@ def csv_check_collisions(
     if not aabb_tree:
         aabb_tree = polygons_to_aabb_tree(other_polygons)
     if not bb_vertices:
-        bb_vertices = bounding_boxes_vertices(
-            action_sequence, polygon_sequence, bb_type
-        )
+        bb_vertices = bounding_boxes_vertices(action_sequence, polygon_sequence)
     if not csv_polygons:
         csv_polygons = {}
     if not intersections:
@@ -470,17 +345,16 @@ def csv_check_collisions(
                 _,
                 _,
             ) = csv_check_collisions(
-                main_uid,
-                other_polygons,
-                polygon_sequence,
-                action_sequence,
-                first_half_ids,
+                main_uid=main_uid,
+                other_polygons=other_polygons,
+                polygon_sequence=polygon_sequence,
+                action_sequence=action_sequence,
+                id_sequence=first_half_ids,
                 aabb_tree=aabb_tree,
                 bb_vertices=first_half_bb_vertices,
                 ignored_entities=ignored_entities,
                 display_debug=display_debug,
                 break_at_first=break_at_first,
-                bb_type=bb_type,
                 csv_polygons=csv_polygons,
                 intersections=intersections,
             )
@@ -492,17 +366,16 @@ def csv_check_collisions(
                 _,
                 _,
             ) = csv_check_collisions(
-                main_uid,
-                other_polygons,
-                polygon_sequence,
-                action_sequence,
-                second_half_ids,
+                main_uid=main_uid,
+                other_polygons=other_polygons,
+                polygon_sequence=polygon_sequence,
+                action_sequence=action_sequence,
+                id_sequence=second_half_ids,
                 aabb_tree=aabb_tree,
                 bb_vertices=second_half_bb_vertices,
                 ignored_entities=ignored_entities,
                 display_debug=display_debug,
                 break_at_first=break_at_first,
-                bb_type=bb_type,
                 csv_polygons=csv_polygons,
                 intersections=intersections,
             )
@@ -532,21 +405,19 @@ def csv_check_collisions(
 
 def csv_simulate_simple_kinematics(
     world: "w.World",
-    agent_uid_to_next_action: t.Dict[UID, ba.Action],
+    agent_actions: t.Dict[UID, ba.Action],
     apply: bool = False,
-    bb_type: str = "minimum_rotated_rectangle",
     ignore_collisions: bool = False,
-    extra_transit_check: bool = False,
-):
+) -> t.Dict[UID, t.Set[UID]]:
     # Apply each action to get polygon after for robot and obstacle if relevant
     # and compute CSV for each
     # and check that no CSV intersects with other entities beyond those that are moving this round
     uid_to_csv_polygon = {}
     collides_with = {}
-    moving_uids = set(agent_uid_to_next_action.keys()).union(
+    moving_uids = set(agent_actions.keys()).union(
         {
             world.entity_to_agent.inverse[agent_uid]
-            for agent_uid in agent_uid_to_next_action.keys()
+            for agent_uid in agent_actions.keys()
             if agent_uid in world.entity_to_agent.inverse
         }
     )
@@ -557,13 +428,14 @@ def csv_simulate_simple_kinematics(
     if apply:
         new_polygons: t.Dict[UID, Polygon] = {}
         new_poses: t.Dict[UID, PoseModel] = {}
-    for agent_uid, action in agent_uid_to_next_action.items():
+
+    for agent_uid, action in agent_actions.items():
         agent = world.entities[agent_uid]
         agent_action = action.to_absolute(agent.pose)
         agent_polygon_after = agent_action.apply(agent.polygon)
         agent_csv = csv_from_bb_vertices(
             bounding_boxes_vertices(
-                [agent_action], [agent.polygon, agent_polygon_after], bb_type=bb_type
+                [agent_action], [agent.polygon, agent_polygon_after]
             )
         )
         uid_to_csv_polygon[agent_uid] = agent_csv
@@ -573,6 +445,7 @@ def csv_simulate_simple_kinematics(
         agent_collides_with, _ = check_static_collision(
             agent_uid, agent_csv, other_polygons, aabb_tree, ignored_entities
         )
+
         if agent_uid in agent_collides_with:
             if isinstance(action, ba.Rotation):
                 # Extra check for rotation to avoid false positives during transit paths
@@ -620,9 +493,7 @@ def csv_simulate_simple_kinematics(
             obs_action: ba.AbsoluteAction = action.to_absolute(agent.pose)
             obs_polygon_after = obs_action.apply(obs.polygon)
             obs_csv = csv_from_bb_vertices(
-                bounding_boxes_vertices(
-                    [obs_action], [obs.polygon, obs_polygon_after], bb_type=bb_type
-                )
+                bounding_boxes_vertices([obs_action], [obs.polygon, obs_polygon_after])
             )
             uid_to_csv_polygon[obs_uid] = obs_csv
             obs_collides_with, _ = check_static_collision(
@@ -674,7 +545,7 @@ def csv_simulate_simple_kinematics(
     # discretized_polygons = {uid: utils. for uid, polygon in new_polygons.items()}
 
     if apply:
-        for agent_uid, action in agent_uid_to_next_action.items():
+        for agent_uid, action in agent_actions.items():
             agent = world.entities[agent_uid]
             if ignore_collisions:
                 if agent_uid in world.entity_to_agent.inverse and not isinstance(
