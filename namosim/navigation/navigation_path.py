@@ -313,7 +313,6 @@ class TransferPath:
                     action_sequence=[
                         self.grab_action.to_absolute(self.robot_path.poses[0])
                     ],
-                    bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
                     ignored_entities=previously_moved_entities_uids.union(
                         {self.obstacle_uid}
@@ -426,7 +425,6 @@ class TransferPath:
                     action_sequence=[
                         self.release_action.to_absolute(robot_before_release_pose)
                     ],
-                    bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
                     ignored_entities=previously_moved_entities_uids.union(
                         {self.obstacle_uid}
@@ -530,7 +528,6 @@ class TransferPath:
                         + 2
                     ],
                     action_sequence=[action.to_absolute(robot_pose_prior_to_action)],
-                    bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
                     ignored_entities=previously_moved_entities_uids.union(
                         {self.obstacle_uid}
@@ -637,13 +634,11 @@ class TransferPath:
                         + 2
                     ],
                     action_sequence=[
+                        # Actions are always applied relative to the robot pose!
                         action.to_absolute(
-                            self.obstacle_path.poses[
-                                self.action_index + look_ahead_index
-                            ],
+                            self.robot_path.poses[self.action_index + look_ahead_index],
                         )
                     ],
-                    bb_type="minimum_rotated_rectangle",
                     aabb_tree=collision_aabb_tree,
                     ignored_entities=previously_moved_entities_uids.union(
                         {self.obstacle_uid}
