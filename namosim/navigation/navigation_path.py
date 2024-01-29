@@ -634,10 +634,9 @@ class TransferPath:
                         + 2
                     ],
                     action_sequence=[
+                        # Actions are always applied relative to the robot pose!
                         action.to_absolute(
-                            self.obstacle_path.poses[
-                                self.action_index + look_ahead_index
-                            ],
+                            self.robot_path.poses[self.action_index + look_ahead_index],
                         )
                     ],
                     aabb_tree=collision_aabb_tree,

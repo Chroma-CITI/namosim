@@ -137,7 +137,10 @@ def bounding_boxes_vertices(
             for coord in end_poly_coords:
                 action_bb_vertices.append(coord)
         elif isinstance(action, ba.AbsoluteRotation):
-            for point_a, _ in zip(init_poly_coords, end_poly_coords):
+            for point_a, point_b in zip(init_poly_coords, end_poly_coords):
+                expected_b = action.apply_to_point(point_a)
+                if not np.allclose(point_b, expected_b):
+                    raise Exception()
                 bb = arc_bounding_box(
                     point=point_a,
                     degrees=action.angle,
@@ -347,17 +350,16 @@ def csv_check_collisions(
                 _,
                 _,
             ) = csv_check_collisions(
-                main_uid,
-                other_polygons,
-                polygon_sequence,
-                action_sequence,
-                first_half_ids,
+                main_uid=main_uid,
+                other_polygons=other_polygons,
+                polygon_sequence=polygon_sequence,
+                action_sequence=action_sequence,
+                id_sequence=first_half_ids,
                 aabb_tree=aabb_tree,
                 bb_vertices=first_half_bb_vertices,
                 ignored_entities=ignored_entities,
                 display_debug=display_debug,
                 break_at_first=break_at_first,
-                bb_type=bb_type,
                 csv_polygons=csv_polygons,
                 intersections=intersections,
             )
@@ -369,17 +371,16 @@ def csv_check_collisions(
                 _,
                 _,
             ) = csv_check_collisions(
-                main_uid,
-                other_polygons,
-                polygon_sequence,
-                action_sequence,
-                second_half_ids,
+                main_uid=main_uid,
+                other_polygons=other_polygons,
+                polygon_sequence=polygon_sequence,
+                action_sequence=action_sequence,
+                id_sequence=second_half_ids,
                 aabb_tree=aabb_tree,
                 bb_vertices=second_half_bb_vertices,
                 ignored_entities=ignored_entities,
                 display_debug=display_debug,
                 break_at_first=break_at_first,
-                bb_type=bb_type,
                 csv_polygons=csv_polygons,
                 intersections=intersections,
             )

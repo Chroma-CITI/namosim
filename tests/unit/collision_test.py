@@ -99,14 +99,6 @@ class CollisionTest(unittest.TestCase):
         params_to_expected_results = {
             # Horizontal arc
             ArcBoundingBoxParams(
-                point_a=(1.0, 0.0), rot_angle=180.0, center=(0.0, 0.0)
-            ): [(1.0, 0.0), (1.0, 1.0), (-1.0, 1.0), (-1.0, 0.0)],
-            ArcBoundingBoxParams(
-                point_a=(1.0, 0.0),
-                rot_angle=-180.0,
-                center=(0.0, 0.0),
-            ): [(1.0, 0.0), (1.0, -1.0), (-1.0, -1.0), (-1.0, 0.0)],
-            ArcBoundingBoxParams(
                 point_a=(1.0, 0.0),
                 rot_angle=180.0,
                 center=(0.0, 0.0),
@@ -118,14 +110,6 @@ class CollisionTest(unittest.TestCase):
             ): [(1.0, 0.0), (1.0, -1.0), (-1.0, -1.0), (-1.0, 0.0)],
             # Vertical arc
             ArcBoundingBoxParams(
-                point_a=(0.0, 1.0), rot_angle=180.0, center=(0.0, 0.0)
-            ): [(0.0, 1.0), (-1.0, 1.0), (-1.0, -1.0), (0.0, -1.0)],
-            ArcBoundingBoxParams(
-                point_a=(0.0, 1.0),
-                rot_angle=-180.0,
-                center=(0.0, 0.0),
-            ): [(0.0, 1.0), (1.0, 1.0), (1.0, -1.0), (0.0, -1.0)],
-            ArcBoundingBoxParams(
                 point_a=(0.0, 1.0),
                 rot_angle=180.0,
                 center=(0.0, 0.0),
@@ -136,24 +120,6 @@ class CollisionTest(unittest.TestCase):
                 center=(0.0, 0.0),
             ): [(0.0, 1.0), (1.0, 1.0), (1.0, -1.0), (0.0, -1.0)],
             # 3/4 arc
-            ArcBoundingBoxParams(
-                point_a=(1.0, 0.0), rot_angle=270.0, center=(0.0, 0.0)
-            ): [
-                (-1.414213562373095, -1.2071067811865475),
-                (-1.414213562373095, 1.414213562373095),
-                (1.2071067811865475, 1.414213562373095),
-                (1.2071067811865475, -1.2071067811865475),
-            ],
-            ArcBoundingBoxParams(
-                point_a=(1.0, 0.0),
-                rot_angle=-270.0,
-                center=(0.0, 0.0),
-            ): [
-                (-1.414213562373095, -1.414213562373095),
-                (-1.414213562373095, 1.2071067811865475),
-                (1.2071067811865475, 1.2071067811865475),
-                (1.2071067811865475, -1.414213562373095),
-            ],
             ArcBoundingBoxParams(
                 point_a=(1.0, 0.0),
                 rot_angle=270.0,
@@ -195,26 +161,6 @@ class CollisionTest(unittest.TestCase):
                 (1.0, 0.7071067811865476),
                 (1.0, -1.0),
             ],
-            ArcBoundingBoxParams(
-                point_a=(math.cos(math.pi * 7.0 / 4.0), math.sin(math.pi * 7.0 / 4.0)),
-                rot_angle=270.0,
-                center=(0.0, 0.0),
-            ): [
-                (-1.0, -0.7071067811865477),
-                (-1.0, 1.0),
-                (1.0, 1.0),
-                (1.0, -0.7071067811865477),
-            ],
-            ArcBoundingBoxParams(
-                point_a=(math.cos(math.pi / 4.0), math.sin(math.pi / 4.0)),
-                rot_angle=-270.0,
-                center=(0.0, 0.0),
-            ): [
-                (-1.0, -1.0),
-                (-1.0, 0.7071067811865476),
-                (1.0, 0.7071067811865476),
-                (1.0, -1.0),
-            ],
             # 3/4 arc but the ray passing through C is vertical
             ArcBoundingBoxParams(
                 point_a=(math.cos(math.pi / 4.0), math.sin(math.pi / 4.0)),
@@ -236,64 +182,6 @@ class CollisionTest(unittest.TestCase):
                 (0.7071067811865476, 1.0),
                 (0.7071067811865476, -1.0),
             ],
-            ArcBoundingBoxParams(
-                point_a=(math.cos(math.pi / 4.0), math.sin(math.pi / 4.0)),
-                rot_angle=270.0,
-                center=(0.0, 0.0),
-            ): [
-                (-1.0, -1.0),
-                (-1.0, 1.0),
-                (0.7071067811865476, 1.0),
-                (0.7071067811865476, -1.0),
-            ],
-            ArcBoundingBoxParams(
-                point_a=(math.cos(math.pi * 7.0 / 4.0), math.sin(math.pi * 7.0 / 4.0)),
-                rot_angle=-270.0,
-                center=(0.0, 0.0),
-            ): [
-                (-1.0, -1.0),
-                (-1.0, 1.0),
-                (0.7071067811865476, 1.0),
-                (0.7071067811865476, -1.0),
-            ],
-            # # Full circle
-            # ArcBoundingBoxParams(
-            #     point_a=(1.0, 0.0), rot_angle=360.0, center=(0.0, 0.0)
-            # ): [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)],
-            # ArcBoundingBoxParams(
-            #     point_a=(1.0, 0.0),
-            #     rot_angle=-360.0,
-            #     center=(0.0, 0.0),
-            # ): [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)],
-            # ArcBoundingBoxParams(
-            #     point_a=(1.0, 0.0),
-            #     rot_angle=360.0,
-            #     center=(0.0, 0.0),
-            # ): [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)],
-            # ArcBoundingBoxParams(
-            #     point_a=(1.0, 0.0),
-            #     rot_angle=-360.0,
-            #     center=(0.0, 0.0),
-            # ): [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)],
-            # # Beyond full circle
-            # ArcBoundingBoxParams(
-            #     point_a=(1.0, 0.0), rot_angle=400.0, center=(0.0, 0.0)
-            # ): [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)],
-            # ArcBoundingBoxParams(
-            #     point_a=(1.0, 0.0),
-            #     rot_angle=-400.0,
-            #     center=(0.0, 0.0),
-            # ): [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)],
-            # ArcBoundingBoxParams(
-            #     point_a=(1.0, 0.0),
-            #     rot_angle=400.0,
-            #     center=(0.0, 0.0),
-            # ): [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)],
-            # ArcBoundingBoxParams(
-            #     point_a=(1.0, 0.0),
-            #     rot_angle=-400.0,
-            #     center=(0.0, 0.0),
-            # ): [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)],
         }
 
         for params, expected_result in params_to_expected_results.items():

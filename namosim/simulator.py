@@ -911,31 +911,29 @@ class Simulator:
 
         # Finish separating succeeded and failed actions, and apply result to world state on success
         for agent_uid, action in to_check.items():
-            action_dynamically_collides = (
-                (  # The agent associated with the action collides
-                    (agent_uid in collides_with and not isinstance(action, ba.Grab))
-                    or (  # Special case for Grab: ignore collision with grabbed obstacle
-                        agent_uid in collides_with
-                        and isinstance(action, ba.Grab)
-                        and (
-                            len(collides_with[agent_uid]) > 1
-                            or action.entity_uid not in collides_with[agent_uid]
-                        )
-                    )
-                )
-                or (  # The obstacle associated with the action collides
-                    agent_uid in self.ref_world.entity_to_agent.inverse
-                    and self.ref_world.entity_to_agent.inverse[agent_uid]
-                    in collides_with
-                    and not isinstance(action, ba.Release)
-                )
+            agent_obstacle_id: UID | None = self.ref_world.entity_to_agent.inverse.get(
+                agent_uid
             )
-            if action_dynamically_collides and not ignore_collisions:
+            agent_in_collision_with: t.Set[UID] = set()
+            if agent_uid in collides_with:
+                if isinstance(action, ba.Grab):
+                    if (
+                        len(collides_with[agent_uid]) > 1
+                        or action.entity_uid not in collides_with[agent_uid]
+                    ):
+                        agent_in_collision_with = collides_with[agent_uid]
+                else:
+                    agent_in_collision_with = collides_with[agent_uid]
+            elif agent_obstacle_id is not None and agent_obstacle_id in collides_with:
+                if not isinstance(action, ba.Release):
+                    agent_in_collision_with = collides_with[agent_obstacle_id]
+
+            if len(agent_in_collision_with) > 1 and not ignore_collisions:
                 action_results[agent_uid] = ar.DynamicCollisionFailure(
-                    action, collides_with
+                    action, agent_in_collision_with
                 )
             else:
-                if action_dynamically_collides and ignore_collisions:
+                if len(agent_in_collision_with) > 1 and ignore_collisions:
                     self.simulation_log.append(
                         utils.BasicLog(
                             "Dynamic collision ignored, entities: {}".format(

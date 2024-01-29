@@ -1884,6 +1884,7 @@ class StilmanOnlyAgent(Agent):
                     new_robot_polygon,
                 ],
                 action_sequence=[
+                    # Actions are always applied relative to the robot pose!
                     action.to_absolute(current_configuration.robot.floating_point_pose)
                 ],
                 aabb_tree=other_entities_aabb_tree,
@@ -1906,9 +1907,8 @@ class StilmanOnlyAgent(Agent):
                     new_obstacle_polygon,
                 ],
                 action_sequence=[
-                    action.to_absolute(
-                        current_configuration.obstacle.floating_point_pose
-                    )
+                    # Actions are always applied relative to the robot pose!
+                    action.to_absolute(current_configuration.robot.floating_point_pose)
                 ],
                 aabb_tree=other_entities_aabb_tree,
             )
