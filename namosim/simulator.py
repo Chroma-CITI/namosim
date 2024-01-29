@@ -780,7 +780,7 @@ class Simulator:
 
                 think_start = time.time()
                 try:
-                    with timeout(60 * 5):
+                    with timeout(60):
                         think_result = agent.think(
                             ros_publisher=self.ros_publisher, input=self.teleop_input
                         )
