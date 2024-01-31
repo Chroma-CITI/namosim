@@ -184,11 +184,9 @@ class SimulationReport(BaseModel):
 
         return SimulationReport(agent_stats={"sum": sum})
 
-    def get_avg_over_agents(self) -> t.Optional["SimulationReport"]:
+    def get_avg_over_agents(self) -> "SimulationReport":
         avg = AgentStats(agent_id="avg", n_goals=0)
         N = len(self.agent_stats)
-        if N == 0:
-            return
 
         for stats in self.agent_stats.values():
             avg.degrees_rotated += stats.degrees_rotated / N
