@@ -4159,14 +4159,55 @@ class Stilman2005Agent(Agent):
             robot_pose = transit_configuration_after_release.floating_point_pose
             robot_cell = transit_configuration_after_release.cell_in_grid
 
-        _, _, came_from, _, gscore, _ = graph_search.grid_search_dijkstra(
-            robot_cell,
-            None,
-            inflated_grid_by_robot.grid,
-            inflated_grid_by_robot.d_width,
-            inflated_grid_by_robot.d_height,
-            max_visited=self.max_evasion_cells_to_visit,
-        )
+        def get_neighbors_for_evasion(
+            current: GridCellModel,
+            gscore: t.Dict[GridCellModel, float],
+            close_set: t.Set[GridCellModel],
+            open_queue: t.List[GridCellModel],
+            came_from: t.Dict[GridCellModel, GridCellModel | None],
+        ) -> t.Tuple[t.List[GridCellModel], t.List[float]]:
+            if len(close_set) >= self.max_evasion_cells_to_visit:
+                return [], []
+
+            grid = inflated_grid_by_robot.grid
+            neighbors, tentative_gscores = [], []
+
+            current_gscore = gscore[current]
+            for i, j in utils.TAXI_NEIGHBORHOOD:
+                neighbor = current[0] + i, current[1] + j
+                neighbor_is_valid = (
+                    neighbor not in close_set
+                    and utils.is_in_matrix(
+                        cell=neighbor,
+                        width=inflated_grid_by_robot.d_width,
+                        height=inflated_grid_by_robot.d_height,
+                    )
+                    and grid[neighbor[0]][neighbor[1]] == 0
+                )
+                if neighbor_is_valid:
+                    neighbors.append(neighbor)
+                    tentative_gscores.append(current_gscore + 1.0)
+
+            return neighbors, tentative_gscores
+
+        def evasion_heuristic(
+            current: GridCellModel,
+            goal: None,
+        ) -> float:
+            if self._social_costmap is None:
+                raise Exception("No social costmap")
+            return self._social_costmap[current[0]][current[1]]
+
+        def exit_condition(current: GridCellModel, goal: ModuleNotFoundError):
+            return False
+
+        _, _, came_from, _, gscore, _ = graph_search.new_generic_a_star(
+            start=robot_cell,
+            goal=None,
+            exit_condition=exit_condition,
+            get_neighbors=get_neighbors_for_evasion,
+            heuristic=evasion_heuristic,
+        )  # type: ignore
 
         if not came_from:
             # If the robot was in an obstacle, no evasion is possible
