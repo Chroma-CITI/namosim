@@ -22,7 +22,6 @@ from namosim.world.binary_occupancy_grid import (
     BinaryOccupancyGrid,
 )
 
-CELL_SIZE = 15.0
 random.seed(0)
 
 
@@ -112,6 +111,7 @@ def generate_alternative_scenarios(
     nb_robots: int,
     nb_goals_per_robot: int,
     nb_scenarios: int,
+    cell_size: float,
     use_social_cost: bool = True,
     resolve_conflicts: bool = True,
     resolve_deadlocks: bool = True,
@@ -209,12 +209,12 @@ def generate_alternative_scenarios(
     # for initial robot poses (can not be in any obstacles) and goals robot poses (can be in movable obstacles)
     static_and_movable_grid = BinaryInflatedOccupancyGrid(
         static_and_movable_polygons,
-        CELL_SIZE,
+        cell_size,
         utils.get_circumscribed_radius(base_robot_polygon),
     )
     static_grid = BinaryInflatedOccupancyGrid(
         static_polygons,
-        CELL_SIZE,
+        cell_size,
         utils.get_circumscribed_radius(base_robot_polygon),
     )
 
@@ -224,7 +224,7 @@ def generate_alternative_scenarios(
 
         # Create the NamoConfig
         namo_config = copy.deepcopy(svg_init_config)
-        namo_config.cell_size = CELL_SIZE
+        namo_config.cell_size = cell_size
         namo_config.agents = []
 
         goals_poses_for_robots: t.List[t.List[PoseModel]] = []
@@ -254,7 +254,7 @@ def generate_alternative_scenarios(
                     "type": "stilman_2005_behavior",
                     "parameters": StilmanBehaviorParametersModel.model_validate(
                         {
-                            "robot_translation_unit_length": CELL_SIZE,
+                            "robot_translation_unit_length": cell_size,
                             "use_social_cost": use_social_cost,
                             "solution_interval_bound_percentage": 0.01,
                             "manipulation_search_procedure": "DFS"
@@ -287,7 +287,7 @@ def generate_alternative_scenarios(
             robot_pose=base_robot_pose,
             nb_poses=nb_robots,
             grid=static_and_movable_grid,
-            min_distance_between=robot_radius + utils.SQRT_OF_2 * CELL_SIZE + 1e-6,
+            min_distance_between=robot_radius + utils.SQRT_OF_2 * cell_size + 1e-6,
         )
 
         # Create robot polygons at said poses in svg_data using svg styles of robot and goals and setting unique ids
