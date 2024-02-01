@@ -89,6 +89,7 @@ def gen_alt_scenarios(
     n_robots: t.Annotated[int, typer.Option("--n-robots")] = 1,
     goals_per_robot: t.Annotated[int, typer.Option("--goals-per-robot")] = 50,
     n_scenarios: t.Annotated[int, typer.Option("--n-scenarios")] = 1,
+    cell_size: t.Annotated[float, typer.Option("--cell-size")] = 15.0,
     use_social_cost: t.Annotated[bool, typer.Option("--use-social-cost")] = False,
     no_resolve_deadlocks: t.Annotated[
         bool, typer.Option("--no-resolve-deadlocks")
@@ -102,6 +103,7 @@ def gen_alt_scenarios(
         nb_robots=n_robots,
         nb_goals_per_robot=goals_per_robot,
         nb_scenarios=n_scenarios,
+        cell_size=cell_size,
         use_social_cost=use_social_cost,
         resolve_deadlocks=not no_resolve_deadlocks,
         resolve_conflicts=not no_resolve_conflicts,
