@@ -2225,7 +2225,7 @@ class Stilman2005Agent(Agent):
                             "Manip path found but failed to find next transit start config"
                         )
 
-                    tho_m_phys_cost = gscore[transfer_end_configuration] + self.g(
+                    tho_m_phys_cost = gscore[best_transfer_end_configuration] + self.g(
                         best_transfer_end_configuration.robot.floating_point_pose,
                         next_transit_start_configuration.floating_point_pose,
                         is_transfer=True,
