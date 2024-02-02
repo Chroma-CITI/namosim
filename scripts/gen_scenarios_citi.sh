@@ -5,7 +5,7 @@ cd $DIR/..
 
 out=tests/experiments/scenarios/citi_lab/generated
 base_scenario="tests/experiments/scenarios/citi_lab/citi_lab_2_robots_50_goals_snamo.svg"
-n_scenarios=10
+n_scenarios=20
 n_goals=50
 
 for i in $(seq 1 10); do
