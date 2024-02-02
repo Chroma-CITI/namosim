@@ -190,24 +190,30 @@ class TransferPath:
                     ## This happens when the plan has two consecutive transfer paths back-to-back.
                     break
 
-                # If the obstacle is no longer where the agent thought it would be, or if it is held by a DIFFERENT agent,
-                # we have a stolen object conflict.
-                if not obstacle_at_start_pose or (
-                    self.obstacle_uid in world.entity_to_agent
-                    and world.entity_to_agent[self.obstacle_uid] != robot_uid
-                ):
-                    if self.obstacle_uid in world.entity_to_agent:
-                        conflicts.append(
-                            StealingMovableConflict(
-                                self.obstacle_uid,
-                                world.entity_to_agent[self.obstacle_uid],
-                            )
+                # If held by another agent
+                if self.obstacle_uid in world.entity_to_agent:
+                    conflicts.append(
+                        StealingMovableConflict(
+                            self.obstacle_uid,
+                            world.entity_to_agent[self.obstacle_uid],
                         )
-                    else:
-                        conflicts.append(StolenMovableConflict(self.obstacle_uid))
-                        if exit_early_only_for_long_term_conflicts:
-                            return conflicts
-                    if exit_early_for_any_conflict:
+                    )
+                    if (
+                        exit_early_only_for_long_term_conflicts
+                        or exit_early_for_any_conflict
+                    ):
+                        return conflicts
+
+                # If the obstacle is no longer where the agent thought it would be and it wasn't previously moved by the robot, we have a stolen object conflict.
+                if (
+                    not obstacle_at_start_pose
+                    and self.obstacle_uid not in previously_moved_entities_uids
+                ):
+                    conflicts.append(StolenMovableConflict(self.obstacle_uid))
+                    if (
+                        exit_early_only_for_long_term_conflicts
+                        or exit_early_for_any_conflict
+                    ):
                         return conflicts
 
                 # Check for SimultaneousSpace conflict that might result from the grab, since a grab instantly expands the robot's conflict radius.
