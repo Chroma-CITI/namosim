@@ -2438,12 +2438,9 @@ class Stilman2005Agent(Agent):
                 # TODO Remove this TEMPORARY condition caused by sometimes missing cell in sorted_cell_to_combined_cost
                 return False
 
-            upper_bound = (1.0 + self.bound_percentage) * sorted_cell_to_combined_cost[
-                _goal.obstacle.cell_in_grid
-            ]
             current_cell_cc_within_bound = (
                 sorted_cell_to_combined_cost[_current.obstacle.cell_in_grid]
-                < upper_bound
+                <= bound_quantile
             )
 
             if current_cell_cc_within_bound:
