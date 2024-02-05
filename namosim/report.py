@@ -1,14 +1,12 @@
-import copy
 import typing as t
 
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.gridspec import GridSpec
 from pydantic import BaseModel
 
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.agents.agent import ThinkResult
+from namosim.data_models import PoseModel
 from namosim.navigation.conflict import RobotRobotConflict
 
 
@@ -20,22 +18,12 @@ class WorldStepReport(BaseModel):
     absolute_social_cost: float = 0
 
 
-class AgentStats(BaseModel):
-    agent_id: str
-    """The svg id attribute of the agent
-    """
+class GoalStats(BaseModel):
+    goal_pose: PoseModel
+    """The goal pose"""
 
-    n_goals: float
-    """The total number of navigation goals for the agent.
-    """
-
-    n_goals_failed: float = 0
-    """The number of goals the agent failed to complete.
-    """
-
-    n_goals_completed: float = 0
-    """The number of goals the agent completed successfully.
-    """
+    succeeded: bool | None = None
+    """Whether or not the agent attained this goal"""
 
     n_actions_failed: float = 0
     """The number of actions the agent failed to complete.
@@ -45,7 +33,7 @@ class AgentStats(BaseModel):
     """The number of actions the agent completed successfully.
     """
 
-    distance_traveled: float = 0.0  # type: ignore
+    distance_traveled: float = 0.0
     """Total amount the traveled, under any circumstance.
     """
 
@@ -90,23 +78,34 @@ class AgentStats(BaseModel):
     """
 
     n_steps: float = 0.0
-    """The total number of simulation steps until the agent completed or failed all of its goals.
+    """The total number of simulation steps until the goal was failed or succeeded.
     """
 
-    def update(self, *, think_result: ThinkResult, action_result: ar.ActionResult):
+    def update(
+        self,
+        *,
+        think_result: ThinkResult,
+        action_result: ar.ActionResult,
+        planning_time: float,
+    ):
         self.n_steps += 1
+        self.planning_time += planning_time
+
+        if think_result.did_replan:
+            self.replans += 1
+        if think_result.did_postpone:
+            self.postponements += 1
 
         if isinstance(action_result, ar.ActionSuccess):
             self.n_actions_completed += 1
-
             action = action_result.action
 
             if isinstance(action, ba.GoalFailed):
-                self.n_goals_failed += 1
+                self.succeeded = False
                 if action.is_timeout:
                     self.n_planning_timeouts += 1
             if isinstance(action, ba.GoalSuccess):
-                self.n_goals_completed += 1
+                self.succeeded = True
             if isinstance(action, ba.Advance):
                 self.distance_traveled += np.abs(action.distance)
                 if action_result.is_transfer:
@@ -133,6 +132,36 @@ class AgentStats(BaseModel):
                     self.n_rr_conflicts += 1
 
 
+class AgentStats(BaseModel):
+    agent_id: str
+    """The svg id attribute of the agent
+    """
+
+    goal_stats: t.Dict[PoseModel, GoalStats] = {}
+    """A dictionary of stats for each of the agent's goals"""
+
+    def update(
+        self,
+        *,
+        think_result: ThinkResult,
+        action_result: ar.ActionResult,
+        planning_time: float,
+    ):
+        goal_pose = think_result.goal_pose
+
+        if goal_pose is None:
+            return
+
+        if goal_pose not in self.goal_stats:
+            self.goal_stats[goal_pose] = GoalStats(goal_pose=goal_pose)
+
+        self.goal_stats[goal_pose].update(
+            think_result=think_result,
+            action_result=action_result,
+            planning_time=planning_time,
+        )
+
+
 class SimulationReport(BaseModel):
     agent_stats: t.Dict[str, AgentStats] = {}
 
@@ -146,12 +175,15 @@ class SimulationReport(BaseModel):
         agent_id: str,
         think_result: ThinkResult,
         action_result: ar.ActionResult,
+        planning_time: float,
     ):
         if agent_id not in self.agent_stats:
             raise Exception(f"Agent ${agent_id} not found in report")
 
         self.agent_stats[agent_id].update(
-            think_result=think_result, action_result=action_result
+            think_result=think_result,
+            action_result=action_result,
+            planning_time=planning_time,
         )
 
     def to_json_data(self):
@@ -160,191 +192,3 @@ class SimulationReport(BaseModel):
     def save(self, path: str):
         with open(path, "w") as f:
             f.write(self.model_dump_json(indent=4))
-
-    def get_sum_over_agents(self) -> "SimulationReport":
-        sum = AgentStats(agent_id="sum", n_goals=0)
-        for stats in self.agent_stats.values():
-            sum.degrees_rotated += stats.degrees_rotated
-            sum.distance_traveled += stats.distance_traveled
-            sum.n_actions_completed += stats.n_actions_completed
-            sum.n_actions_failed += stats.n_actions_failed
-            sum.n_goals += stats.n_goals
-            sum.n_goals_completed += stats.n_goals_completed
-            sum.n_goals_failed += stats.n_goals_failed
-            sum.n_transfers += stats.n_transfers
-            sum.planning_time += stats.planning_time
-            sum.n_planning_timeouts += stats.n_planning_timeouts
-            sum.postponements += stats.postponements
-            sum.replans += stats.replans
-            sum.transfer_degrees_rotated += stats.transfer_degrees_rotated
-            sum.transfer_distance_traveled += stats.transfer_distance_traveled
-            sum.n_conflicts += stats.n_conflicts
-            sum.n_rr_conflicts += stats.n_rr_conflicts
-            sum.n_steps += stats.n_steps
-
-        return SimulationReport(agent_stats={"sum": sum})
-
-    def get_avg_over_agents(self) -> "SimulationReport":
-        avg = AgentStats(agent_id="avg", n_goals=0)
-        N = len(self.agent_stats)
-
-        for stats in self.agent_stats.values():
-            avg.degrees_rotated += stats.degrees_rotated / N
-            avg.distance_traveled += stats.distance_traveled / N
-            avg.n_actions_completed += stats.n_actions_completed / N
-            avg.n_actions_failed += stats.n_actions_failed / N
-            avg.n_goals += stats.n_goals / N
-            avg.n_goals_completed += stats.n_goals_completed / N
-            avg.n_goals_failed += stats.n_goals_failed / N
-            avg.n_transfers += stats.n_transfers / N
-            avg.planning_time += stats.planning_time / N
-            avg.n_planning_timeouts += stats.n_planning_timeouts / N
-            avg.postponements += stats.postponements / N
-            avg.replans += stats.replans / N
-            avg.transfer_degrees_rotated += stats.transfer_degrees_rotated / N
-            avg.transfer_distance_traveled += stats.transfer_distance_traveled / N
-            avg.n_conflicts += stats.n_conflicts / N
-            avg.n_rr_conflicts += stats.n_rr_conflicts / N
-            avg.n_steps += stats.n_steps / N
-
-        return SimulationReport(agent_stats={"avg": avg})
-
-    def sum(self, other: "SimulationReport") -> "SimulationReport":
-        result = copy.deepcopy(self)
-
-        for agent_id, stats in other.agent_stats.items():
-            if agent_id not in result.agent_stats:
-                result.agent_stats[agent_id] = stats
-            else:
-                res_stats = result.agent_stats[agent_id]
-                res_stats.degrees_rotated += stats.degrees_rotated
-                res_stats.distance_traveled += stats.distance_traveled
-                res_stats.n_actions_completed += stats.n_actions_completed
-                res_stats.n_actions_failed += stats.n_actions_failed
-                res_stats.n_goals_completed += stats.n_goals_completed
-                res_stats.n_goals_failed += stats.n_goals_failed
-                res_stats.n_goals += stats.n_goals
-                res_stats.n_transfers += stats.n_transfers
-                res_stats.planning_time += stats.planning_time
-                res_stats.n_planning_timeouts += stats.n_planning_timeouts
-                res_stats.replans += stats.replans
-                res_stats.postponements += stats.postponements
-                res_stats.transfer_degrees_rotated += stats.transfer_degrees_rotated
-                res_stats.transfer_distance_traveled += stats.transfer_distance_traveled
-                res_stats.n_conflicts += stats.n_conflicts
-                res_stats.n_rr_conflicts += stats.n_rr_conflicts
-                res_stats.n_steps += stats.n_steps
-
-        return result
-
-    def divide_by(self, divisor: float) -> "SimulationReport":
-        result = copy.deepcopy(self)
-        print(divisor)
-        for stats in result.agent_stats.values():
-            stats.degrees_rotated /= divisor
-            stats.distance_traveled /= divisor
-            stats.n_actions_completed /= divisor
-            stats.n_actions_failed /= divisor
-            stats.n_goals /= divisor
-            stats.n_goals_completed /= divisor
-            stats.n_goals_failed /= divisor
-            stats.n_transfers /= divisor
-            stats.planning_time /= divisor
-            stats.n_planning_timeouts /= divisor
-            stats.postponements /= divisor
-            stats.replans /= divisor
-            stats.transfer_degrees_rotated /= divisor
-            stats.transfer_distance_traveled /= divisor
-            stats.n_conflicts /= divisor
-            stats.n_rr_conflicts /= divisor
-            stats.n_steps /= divisor
-
-        return result
-
-    def plot(self):
-        groups = list(self.agent_stats.keys())
-        agent_goals = {"Goals Completed": []}
-        agent_rotations = {"Total": [], "Transfer": []}
-        agent_translations = {"Total": [], "Transfer": []}
-
-        agent_stats_ls = list(self.agent_stats.values())
-        total_goals = (
-            agent_stats_ls[0].n_goals_completed + agent_stats_ls[0].n_goals_failed
-        )
-
-        for stats in self.agent_stats.values():
-            agent_goals["Goals Completed"].append(stats.n_goals_completed)
-            agent_rotations["Total"].append(
-                stats.degrees_rotated / stats.n_goals_completed
-            )
-            agent_rotations["Transfer"].append(
-                stats.transfer_degrees_rotated / stats.n_goals_completed
-            )
-            agent_translations["Total"].append(
-                stats.distance_traveled / stats.n_goals_completed
-            )
-            agent_translations["Transfer"].append(
-                stats.transfer_distance_traveled / stats.n_goals_completed
-            )
-
-        width = 0.2  # the width of the bars
-
-        fig = plt.figure(constrained_layout=True)
-        gs = GridSpec(3, 2, figure=fig)
-
-        # create sub plots as grid
-        ax_goals = fig.add_subplot(gs[0, :])
-        ax_distance = fig.add_subplot(gs[1, 0])
-        ax_transfer_distance = fig.add_subplot(gs[1, 1])
-        ax_rotations = fig.add_subplot(gs[2, 0])
-        ax_transfer_rotations = fig.add_subplot(gs[2, 1])
-
-        ax_goals.set_title(f"Avg Goals Completed Out of {int(total_goals)}")
-        ax_goals.grid()
-        ax_goals.bar(
-            x=groups,
-            height=agent_goals["Goals Completed"],
-            width=width,
-            align="center",
-        )
-        ax_goals.margins(y=1)
-        ax_goals.tick_params(axis="x", rotation=45)
-
-        ax_rotations.set_title("Avg Total Rotation / Avg Goals Completed")
-        ax_rotations.grid()
-        ax_rotations.bar(groups, agent_rotations["Total"], width=width, align="center")
-        ax_rotations.set_ylabel("Degrees")
-        ax_rotations.legend(loc="upper center", ncols=3)
-        ax_rotations.margins(y=1)
-
-        ax_transfer_rotations.set_title("Avg Transfer Rotation / Avg Goals Completed")
-        ax_transfer_rotations.grid()
-        ax_rotations.set_ylabel("Degrees")
-        ax_transfer_rotations.bar(
-            groups, agent_rotations["Transfer"], width=width, align="center"
-        )
-
-        ax_distance.set_title("Avg Total Distance / Avg Goals Completed")
-        ax_distance.grid()
-        ax_distance.bar(
-            groups, agent_translations["Total"], width=width, align="center"
-        )
-        ax_distance.legend(loc="upper center", ncols=3)
-        ax_distance.margins(y=1)
-
-        ax_transfer_distance.set_title("Avg Transfer Distance / Avg Goals Completed")
-        ax_transfer_distance.grid()
-        ax_transfer_distance.bar(
-            groups,
-            agent_translations["Transfer"],
-            width=width,
-            align="center",
-        )
-
-        plt.show()
-        plt.close("all")
-
-    def plot_agent_avg(self):
-        avg = self.get_avg_over_agents()
-        if avg:
-            avg.plot()
