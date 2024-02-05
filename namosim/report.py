@@ -137,7 +137,7 @@ class AgentStats(BaseModel):
     """The svg id attribute of the agent
     """
 
-    goal_stats: t.Dict[PoseModel, GoalStats] = {}
+    goal_stats: t.Dict[str, GoalStats] = {}
     """A dictionary of stats for each of the agent's goals"""
 
     def update(
@@ -152,10 +152,10 @@ class AgentStats(BaseModel):
         if goal_pose is None:
             return
 
-        if goal_pose not in self.goal_stats:
-            self.goal_stats[goal_pose] = GoalStats(goal_pose=goal_pose)
+        if str(goal_pose) not in self.goal_stats:
+            self.goal_stats[str(goal_pose)] = GoalStats(goal_pose=goal_pose)
 
-        self.goal_stats[goal_pose].update(
+        self.goal_stats[str(goal_pose)].update(
             think_result=think_result,
             action_result=action_result,
             planning_time=planning_time,
