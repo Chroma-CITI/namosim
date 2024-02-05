@@ -48,7 +48,7 @@ def main():
 
                     report = SimulationReport.model_validate(data)
                     for agent in report.agent_stats.values():
-                        assert len(agent.goal_stats) == 5
+                        assert len(agent.goal_stats) == 50
                         for stats in agent.goal_stats.values():
                             row = get_csv_row(
                                 agent_id=agent.agent_id,
