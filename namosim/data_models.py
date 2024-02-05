@@ -50,7 +50,7 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     neighborhood_for_obstacle_choice_heur: t.Literal["TAXI"] = attr(default="TAXI")
     robot_rotation_unit_angle: float = attr(default=30)
     robot_translation_unit_length: float = attr()
-    solution_interval_bound_percentage: float = attr(default=0.1)
+    solution_interval_bound_percentage: float = attr(default=0.05)
     use_social_cost: bool = attr(default=True)
     resolve_conflicts: bool = attr(default=True)
     resolve_deadlocks: bool = attr(default=True)
