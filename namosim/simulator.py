@@ -200,7 +200,7 @@ class Simulator:
         self.report = SimulationReport()
         for agent in self.ref_world.agents.values():
             self.report.agent_stats[agent.name] = AgentStats(
-                agent_id=agent.name, n_goals=agent.num_navigation_goals
+                agent_id=agent.name,
             )
 
         # keyboard actions
@@ -278,14 +278,8 @@ class Simulator:
                 agent_id=agent_id,
                 action_result=action_result,
                 think_result=think_result,
+                planning_time=sim_step_result.think_durations[uid],
             )
-            self.report.agent_stats[
-                agent_id
-            ].planning_time += sim_step_result.think_durations[uid]
-            if sim_step_result.think_results[uid].did_replan:
-                self.report.agent_stats[agent_id].replans += 1
-            if sim_step_result.think_results[uid].did_postpone:
-                self.report.agent_stats[agent_id].postponements += 1
 
         world_stats = self.get_next_world_step_report(
             self.ref_world,
@@ -798,6 +792,7 @@ class Simulator:
 
                     think_result = ThinkResult(
                         next_action=ba.GoalFailed(goal=agent_goal, is_timeout=True),
+                        goal_pose=agent_goal,
                         did_replan=False,
                         did_postpone=False,
                         robot_name=agent.name,

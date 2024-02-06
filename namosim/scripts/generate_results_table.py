@@ -6,14 +6,13 @@ import glob
 import json
 import os
 
-import numpy as np
 from pydantic import BaseModel
 
-from namosim.report import AgentStats, SimulationReport
+from namosim.report import GoalStats, SimulationReport
 
 
 def main():
-    max_robots = 7
+    max_robots = 10
     algs = {
         "namo": "NAMO",
         "namo_ndr": "NAMO w/o Deadlock Resolution",
@@ -48,18 +47,23 @@ def main():
                         data = json.load(f)
 
                     report = SimulationReport.model_validate(data)
-                    for stats in report.agent_stats.values():
-                        assert np.isclose(stats.n_goals, 50)
-                        row = get_csv_row(n_robots=n_robots, alg=alg, stats=stats)
-                        writer.writerow(row.model_dump())
+                    for agent in report.agent_stats.values():
+                        assert len(agent.goal_stats) == 50
+                        for stats in agent.goal_stats.values():
+                            row = get_csv_row(
+                                agent_id=agent.agent_id,
+                                n_robots=n_robots,
+                                alg=alg,
+                                stats=stats,
+                            )
+                            writer.writerow(row.model_dump())
 
 
 class CsvRow(BaseModel):
+    agent_id: str
     n_robots: int
     algorithm: str
-    n_goals: float
-    n_goals_completed: float
-    n_goals_failed: float
+    succeeded: bool | None
     distance_traveled: float
     n_transfers: float
     planning_time: float
@@ -72,13 +76,12 @@ class CsvRow(BaseModel):
     n_steps: float
 
 
-def get_csv_row(n_robots: int, alg: str, stats: AgentStats) -> CsvRow:
+def get_csv_row(n_robots: int, alg: str, agent_id: str, stats: GoalStats) -> CsvRow:
     return CsvRow(
+        agent_id=agent_id,
         n_robots=n_robots,
         algorithm=alg,
-        n_goals=stats.n_goals,
-        n_goals_completed=stats.n_goals_completed,
-        n_goals_failed=stats.n_goals_failed,
+        succeeded=stats.succeeded,
         distance_traveled=stats.distance_traveled,
         n_transfers=stats.n_transfers,
         planning_time=stats.planning_time,

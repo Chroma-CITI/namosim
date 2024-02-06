@@ -83,6 +83,7 @@ class TeleopAgent(Agent):
 
         return ThinkResult(
             next_action=next_action,
+            goal_pose=None,
             did_replan=False,
             robot_name=self.name,
         )

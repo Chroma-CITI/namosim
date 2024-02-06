@@ -55,7 +55,7 @@ def sample_poses_uniform(
     if len(accessible_cells) == 0:
         raise Exception("No accessible cells")
 
-    generated_poses: t.List[PoseModel] = []
+    generated_poses: t.Set[PoseModel] = set()
     generated_polygons: t.List[Polygon] = []
 
     while len(generated_poses) < nb_poses:
@@ -97,12 +97,12 @@ def sample_poses_uniform(
             pose_invalid = True
 
         if not pose_invalid:
-            generated_poses.append(rand_pose)
+            generated_poses.add(rand_pose)
             if min_distance_between > 0:
                 accessible_cells.remove(rand_cell)
                 generated_polygons.append(robot_polygon_at_rand_pose)
 
-    return generated_poses
+    return list(generated_poses)
 
 
 def generate_alternative_scenarios(
