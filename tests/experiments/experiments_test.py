@@ -188,6 +188,16 @@ class ExperimentsTests(unittest.TestCase):
         sim.run()
         assert True
 
+    def test_willow_garage_multi_shape(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder,
+                "willow_garage_multi_shape.svg",
+            )
+        )
+        sim.run()
+        assert True
+
 
 if __name__ == "__main__":
     unittest.main()
