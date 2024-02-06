@@ -169,6 +169,7 @@ class StilmanOnlyAgent(Agent):
             else:
                 return ThinkResult(
                     next_action=ba.GoalsFinished(),
+                    goal_pose=None,
                     did_replan=False,
                     robot_name=self.name,
                 )
@@ -180,6 +181,7 @@ class StilmanOnlyAgent(Agent):
         if self.is_goal_reached(self.world.entities[self.uid].pose, self._q_goal):
             result = ThinkResult(
                 next_action=ba.GoalSuccess(self._q_goal),
+                goal_pose=self._q_goal,
                 did_replan=False,
                 robot_name=self.name,
             )
@@ -189,6 +191,7 @@ class StilmanOnlyAgent(Agent):
         if not self._p_opt.is_empty():
             return ThinkResult(
                 next_action=self._p_opt.pop_next_action(),
+                goal_pose=self._q_goal,
                 did_replan=False,
                 robot_name=self.name,
             )
@@ -210,6 +213,7 @@ class StilmanOnlyAgent(Agent):
         if self._p_opt.is_empty():
             result = ThinkResult(
                 next_action=ba.GoalFailed(self._q_goal),
+                goal_pose=self._q_goal,
                 did_replan=True,
                 robot_name=self.name,
             )
@@ -220,6 +224,7 @@ class StilmanOnlyAgent(Agent):
 
         return ThinkResult(
             next_action=self._p_opt.pop_next_action(),
+            goal_pose=self._q_goal,
             did_replan=True,
             robot_name=self.name,
         )

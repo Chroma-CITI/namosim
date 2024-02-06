@@ -352,6 +352,7 @@ class Stilman2005Agent(Agent):
             else:
                 return ThinkResult(
                     next_action=ba.GoalsFinished(),
+                    goal_pose=None,
                     did_replan=False,
                     robot_name=self.name,
                 )
@@ -418,6 +419,7 @@ class Stilman2005Agent(Agent):
         if self.is_goal_reached(w_t.entities[robot_uid].pose, goal, pos_tol, ang_tol):
             return ThinkResult(
                 next_action=ba.GoalSuccess(goal),
+                goal_pose=goal,
                 did_replan=False,
                 robot_name=self.name,
             )
@@ -503,6 +505,7 @@ class Stilman2005Agent(Agent):
                 plan.unpostponements_history.append(step_count)
             return ThinkResult(
                 next_action=plan.pop_next_action(),
+                goal_pose=goal,
                 did_replan=False,
                 robot_name=self.name,
             )  # Normal case, don't log
@@ -517,6 +520,7 @@ class Stilman2005Agent(Agent):
             )
             return ThinkResult(
                 next_action=ba.GoalFailed(goal),
+                goal_pose=goal,
                 did_replan=False,
                 robot_name=self.name,
                 conflicts=conflicts,
@@ -539,6 +543,7 @@ class Stilman2005Agent(Agent):
                 if plan.timer.is_running and not plan.timer.is_timer_over(step_count):
                     return ThinkResult(
                         next_action=ba.Wait(),
+                        goal_pose=goal,
                         did_replan=False,
                         robot_name=self.name,
                         conflicts=conflicts,
@@ -555,6 +560,7 @@ class Stilman2005Agent(Agent):
                     )
                     return ThinkResult(
                         next_action=ba.GoalFailed(goal),
+                        goal_pose=goal,
                         did_replan=False,
                         robot_name=self.name,
                         conflicts=conflicts,
@@ -595,6 +601,7 @@ class Stilman2005Agent(Agent):
             )
             return ThinkResult(
                 next_action=ba.GoalFailed(goal),
+                goal_pose=goal,
                 did_replan=False,
                 robot_name=self.name,
                 conflicts=conflicts,
@@ -610,6 +617,7 @@ class Stilman2005Agent(Agent):
                     self.logger,
                     self.name,
                 ),
+                goal_pose=goal,
                 did_postpone=True,
                 did_replan=False,
                 robot_name=self.name,
@@ -700,6 +708,7 @@ class Stilman2005Agent(Agent):
             next_action = plan.pop_next_action()
             return ThinkResult(
                 next_action=next_action,
+                goal_pose=goal,
                 did_replan=True,
                 robot_name=self.name,
                 conflicts=conflicts,
@@ -721,6 +730,7 @@ class Stilman2005Agent(Agent):
                 simulation_log=self.logger,
                 robot_name=self.name,
             ),
+            goal_pose=goal,
             did_postpone=True,
             did_replan=False,
             robot_name=self.name,
@@ -772,6 +782,7 @@ class Stilman2005Agent(Agent):
             next_action = plan.pop_next_action()
             return ThinkResult(
                 next_action=next_action,
+                goal_pose=goal,
                 did_replan=True,
                 robot_name=self.name,
                 conflicts=conflicts,
@@ -793,6 +804,7 @@ class Stilman2005Agent(Agent):
                 simulation_log=self.logger,
                 robot_name=self.name,
             ),
+            goal_pose=goal,
             did_postpone=True,
             did_replan=False,
             robot_name=self.name,
@@ -831,6 +843,7 @@ class Stilman2005Agent(Agent):
             )
             return ThinkResult(
                 next_action=ba.GoalFailed(goal),
+                goal_pose=goal,
                 did_replan=True,
                 robot_name=self.name,
             )
@@ -878,6 +891,7 @@ class Stilman2005Agent(Agent):
 
             return ThinkResult(
                 next_action=ba.GoalFailed(goal),
+                goal_pose=goal,
                 did_replan=True,
                 robot_name=self.name,
             )
@@ -899,6 +913,7 @@ class Stilman2005Agent(Agent):
             )
             return ThinkResult(
                 next_action=plan.pop_next_action(),
+                goal_pose=goal,
                 did_replan=True,
                 robot_name=self.name,
             )
@@ -914,6 +929,7 @@ class Stilman2005Agent(Agent):
             )
             return ThinkResult(
                 next_action=ba.GoalFailed(goal),
+                goal_pose=goal,
                 did_replan=True,
                 robot_name=self.name,
                 conflicts=conflicts,
@@ -941,6 +957,7 @@ class Stilman2005Agent(Agent):
             )
             return ThinkResult(
                 next_action=ba.GoalFailed(goal),
+                goal_pose=goal,
                 did_replan=True,
                 robot_name=self.name,
                 conflicts=conflicts,
@@ -1028,6 +1045,7 @@ class Stilman2005Agent(Agent):
                     self.logger,
                     self.name,
                 ),
+                goal_pose=goal,
                 did_postpone=True,
                 did_replan=True,
                 robot_name=self.name,
@@ -1067,6 +1085,7 @@ class Stilman2005Agent(Agent):
                     self.logger,
                     self.name,
                 ),
+                goal_pose=goal,
                 did_replan=True,
                 did_postpone=True,
                 robot_name=self.name,
@@ -1085,6 +1104,7 @@ class Stilman2005Agent(Agent):
 
         return ThinkResult(
             next_action=plan.pop_next_action(),
+            goal_pose=goal,
             did_replan=True,
             robot_name=self.name,
         )

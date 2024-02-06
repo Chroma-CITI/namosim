@@ -5,7 +5,7 @@ cd $DIR/..
 
 out=tests/experiments/scenarios/intersections/generated
 
-for i in $(seq 1 20); do
+for i in $(seq 1 10); do
   echo "Generating Intersections scenarios with ${i} robots."
   # namo_ncr
   python -m namosim.main gen-alt-scenarios \

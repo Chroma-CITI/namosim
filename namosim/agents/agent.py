@@ -28,12 +28,16 @@ class ThinkResult:
         self,
         *,
         next_action: Action | None,
+        goal_pose: PoseModel | None,
         did_replan: bool,
         did_postpone: bool = False,
         robot_name: str,
         conflicts: t.Optional[t.List[Conflict]] = None,
     ) -> None:
         self.next_action = next_action
+        self.goal_pose = goal_pose
+        """The agent's goal at the time this think-result was produced.
+        """
         self.did_replan = did_replan
         self.did_postpone = did_postpone
         self.robot_name = robot_name
