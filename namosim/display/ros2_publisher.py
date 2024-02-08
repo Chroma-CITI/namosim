@@ -443,7 +443,7 @@ class RosPublisher:  # noqa: F821
                 close_set_marker = original_marker
             else:
                 _id = self.namespaces_caches[ns].current_cell_marker_current_id
-                close_set_marker: ros_nodes.Marker = self._grid_cell_to_cube_marker(
+                close_set_marker = self._grid_cell_to_cube_marker(
                     current.cell,
                     res,
                     grid_pose,
@@ -1144,9 +1144,9 @@ class RosPublisher:  # noqa: F821
         grid_cells: t.Iterable[GridCellModel],
         res: float,
         grid_pose: PoseModel,
-        color: ros_nodes.ColorRGBA,
+        color: t.Any,
         z_index: float = -0.5,
-        cube_list: ros_nodes.Marker | None = None,
+        cube_list: t.Any | None = None,
         ns: str = "",
     ):
         if cube_list is None:
@@ -1173,7 +1173,7 @@ class RosPublisher:  # noqa: F821
         cell: GridCellModel,
         res: float,
         grid_pose: PoseModel,
-        color: ros_nodes.ColorRGBA,
+        color: t.Any,
         _id: int,
         z_index: float,
         ns: str = "",
@@ -1200,7 +1200,7 @@ class RosPublisher:  # noqa: F821
         namespace: str,
         p_id: int,
         frame_id: str,
-        color: ros_nodes.ColorRGBA,
+        color: t.Any,
         z_index: float,
         line_width: float,
     ):
@@ -1244,7 +1244,7 @@ class RosPublisher:  # noqa: F821
         polygons: t.List[Polygon],
         namespace: str,
         frame_id: str,
-        color: ros_nodes.ColorRGBA,
+        color: t.Any,
         z_index: float,
         line_width: float,
     ):
@@ -1267,7 +1267,7 @@ class RosPublisher:  # noqa: F821
         namespace: str,
         p_id: int,
         frame_id: str,
-        color: ros_nodes.ColorRGBA,
+        color: t.Any,
         z_index: float,
         arrow_length: float,
         shaft_diameter: float,
@@ -1327,7 +1327,7 @@ class RosPublisher:  # noqa: F821
         z_index: float = 0.0,
         font_size: float = 1.0,
         frame_id: str = "/map",
-        color: ros_nodes.ColorRGBA | None = None,
+        color: t.Any | None = None,
     ):
         if color is None:
             color = colors.black
