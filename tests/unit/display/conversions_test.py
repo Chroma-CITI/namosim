@@ -4,21 +4,18 @@ import numpy as np
 from std_msgs.msg import ColorRGBA
 
 import namosim.display.conversions as conversions
+from namosim.utils import utils
 
 
 class ConversionsTest(unittest.TestCase):
     def test_path_to_polygon(self):
         points = [np.array(x) for x in ((0, 0), (1, 0))]
-        polygon = conversions.path_to_polygon(
-            points=points, line_width=1, cap_stype="flat"
-        )
+        polygon = utils.path_to_polygon(points=points, line_width=1, cap_stype="flat")
         assert polygon.area == 1
 
     def test_polygon_to_triangle_list(self):
         points = [np.array(x) for x in ((0, 0), (1, 0))]
-        polygon = conversions.path_to_polygon(
-            points=points, line_width=1, cap_stype="flat"
-        )
+        polygon = utils.path_to_polygon(points=points, line_width=1, cap_stype="flat")
         triangle_list = conversions.polygon_to_triangle_list(
             polygon=polygon,
             namespace="ns",

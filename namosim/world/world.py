@@ -13,7 +13,6 @@ import namosim.agents as agts
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
 from namosim.data_models import UID, NamosimConfigModel, PoseModel
-from namosim.display import conversions
 from namosim.utils import collision
 from namosim.world.discretization_data import DiscretizationData
 from namosim.world.entity import Entity, Movability, Style
@@ -388,7 +387,7 @@ class World:
                     direction = np.array(utils.direction_from_yaw(entity.pose[2]))
                     point_b = point_a + direction * radius
 
-                    poly = conversions.path_to_polygon(
+                    poly = utils.path_to_polygon(
                         points=[point_a, point_b], line_width=radius / 4
                     )
                     conversion.add_shapely_geometry_to_svg(

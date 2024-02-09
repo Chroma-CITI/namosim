@@ -1570,3 +1570,39 @@ class JsonEncoder(json.JSONEncoder):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         return super(JsonEncoder, self).default(obj)
+
+
+def path_to_polygon(
+    points: t.List[npt.NDArray[np.float_]],
+    line_width: float,
+    cap_stype: t.Literal["round"] | t.Literal["square"] | t.Literal["flat"] = "round",
+) -> Polygon:
+    """Converts a sequence of points representing a navigation path into a polygonal "line strip".
+
+    :param points: A sequence of points
+    :type points: t.List[npt.NDArray[np.float_]
+    :param line_width: width to use for the polygonal line strip
+    :type line_width: float
+    :raises Exception: if less than two points are in the path
+    :return: a polygonal line strip
+    :rtype: Polygon
+    """
+
+    if len(points) < 2:
+        raise Exception("Less than two points")
+
+    # remove z-coord, if any
+    points = [x[:2] for x in points]
+
+    # remove duplicates
+    dedup_points = []
+    seen = set()
+    for p in points:
+        p = (p[0], p[1])
+        if p not in seen:
+            seen.add(p)
+            dedup_points.append(p)
+
+    linestr = LineString(coordinates=dedup_points)
+    buf = linestr.buffer(distance=line_width / 2.0, cap_style=cap_stype)
+    return buf

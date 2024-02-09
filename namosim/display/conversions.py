@@ -7,9 +7,8 @@ import mapbox_earcut as earcut
 import numpy as np
 import numpy.typing as npt
 from builtin_interfaces.msg import Time
-from geometry_msgs.msg import Point, Pose, PoseArray, Quaternion, Vector3
+from geometry_msgs.msg import Point, Pose, Quaternion, Vector3
 from grid_map_msgs.msg import GridMap
-from shapely import LineString
 from shapely.geometry import Polygon
 from std_msgs.msg import (
     ColorRGBA,
@@ -27,10 +26,7 @@ from namosim.agents import agent
 from namosim.data_models import UID, PoseModel
 from namosim.display import tf_replacement
 from namosim.navigation.path_type import PathType
-
-
-def init_header(stamp: Time = Time()):
-    return Header(stamp=stamp, frame_id=cfg.main_frame_id)
+from namosim.utils import utils
 
 
 def plan_to_markerarray(
@@ -297,13 +293,6 @@ def pose_to_ros_pose(pose: PoseModel) -> Pose:
     )
 
 
-def poses_to_poses_array(poses: t.List[PoseModel], stamp: Time = Time()):
-    pose_array = PoseArray(header=init_header(stamp), poses=[])
-    for pose in poses:
-        pose_array.poses.append(pose_to_ros_pose(pose))  # type: ignore
-    return pose_array
-
-
 def real_path_to_triangle_list(
     real_path: t.Sequence[t.Tuple[float, float, float] | t.Tuple[float, float]],
     namespace: str,
@@ -336,7 +325,7 @@ def real_path_to_triangle_list(
     :rtype: _type_
     """
     points = [np.array(x) for x in real_path]
-    polygon = path_to_polygon(points=points, line_width=line_width)
+    polygon = utils.path_to_polygon(points=points, line_width=line_width)
     return polygon_to_triangle_list(
         polygon=polygon,
         namespace=namespace,
@@ -367,39 +356,3 @@ def make_delete_all_marker(frame_id: str, ns: str = "", stamp: Time = Time()):
             )
         ]
     )
-
-
-def path_to_polygon(
-    points: t.List[npt.NDArray[np.float_]],
-    line_width: float,
-    cap_stype: t.Literal["round"] | t.Literal["square"] | t.Literal["flat"] = "round",
-) -> Polygon:
-    """Converts a sequence of points representing a navigation path into a polygonal "line strip".
-
-    :param points: A sequence of points
-    :type points: t.List[npt.NDArray[np.float_]
-    :param line_width: width to use for the polygonal line strip
-    :type line_width: float
-    :raises Exception: if less than two points are in the path
-    :return: a polygonal line strip
-    :rtype: Polygon
-    """
-
-    if len(points) < 2:
-        raise Exception("Less than two points")
-
-    # remove z-coord, if any
-    points = [x[:2] for x in points]
-
-    # remove duplicates
-    dedup_points = []
-    seen = set()
-    for p in points:
-        p = (p[0], p[1])
-        if p not in seen:
-            seen.add(p)
-            dedup_points.append(p)
-
-    linestr = LineString(coordinates=dedup_points)
-    buf = linestr.buffer(distance=line_width / 2.0, cap_style=cap_stype)
-    return buf
