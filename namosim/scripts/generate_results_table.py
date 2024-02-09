@@ -5,58 +5,14 @@ import csv
 import glob
 import json
 import os
+import typing as t
 
+import typer
 from pydantic import BaseModel
 
 from namosim.report import GoalStats, SimulationReport
 
-
-def main():
-    max_robots = 10
-    algs = {
-        "namo": "NAMO",
-        "namo_ndr": "NAMO w/o Deadlock Resolution",
-        "namo_ncr": "NAMO w/o Conflict Resolution",
-        "snamo": "SNAMO",
-        "snamo_ndr": "SNAMO w/o Deadlock Resolution",
-        "snamo_ncr": "SNAMO w/o Conflict Resolution",
-    }
-
-    with open("report.csv", "w") as fp:
-        fieldnames = list(CsvRow.model_json_schema()["properties"].keys())
-        writer = csv.DictWriter(fp, fieldnames=fieldnames)
-        writer.writeheader()
-
-        for alg in algs.keys():
-            for n_robots in range(1, max_robots + 1):
-                dir = f"namo_logs/intersections/{n_robots}_robots_50_goals_{alg}"
-                result_files = glob.glob(os.path.join(dir, "**/report.json"))
-
-                for result_file in result_files:
-                    result_file_dir = os.path.dirname(result_file)
-                    print(result_file_dir)
-                    exceptions = glob.glob(
-                        os.path.join(result_file_dir, "./exceptions.json")
-                    )
-                    if len(exceptions) != 0:
-                        print(
-                            f"Skipping file {result_file} because exceptions where raised during the simulation"
-                        )
-                        continue
-                    with open(result_file) as f:
-                        data = json.load(f)
-
-                    report = SimulationReport.model_validate(data)
-                    for agent in report.agent_stats.values():
-                        assert len(agent.goal_stats) == 50
-                        for stats in agent.goal_stats.values():
-                            row = get_csv_row(
-                                agent_id=agent.agent_id,
-                                n_robots=n_robots,
-                                alg=alg,
-                                stats=stats,
-                            )
-                            writer.writerow(row.model_dump())
+app = typer.Typer()
 
 
 class CsvRow(BaseModel):
@@ -95,5 +51,58 @@ def get_csv_row(n_robots: int, alg: str, agent_id: str, stats: GoalStats) -> Csv
     )
 
 
+@app.command()
+def run(
+    *,
+    results_dir: t.Annotated[str, typer.Option("--results-dir")],
+    out: t.Annotated[str, typer.Option("--out")] = "report.csv",
+    max_robots: t.Annotated[int, typer.Option("--max-robots")] = 10,
+):
+    algs = {
+        "namo": "NAMO",
+        "namo_ndr": "NAMO w/o Deadlock Resolution",
+        "namo_ncr": "NAMO w/o Conflict Resolution",
+        "snamo": "SNAMO",
+        "snamo_ndr": "SNAMO w/o Deadlock Resolution",
+        "snamo_ncr": "SNAMO w/o Conflict Resolution",
+    }
+
+    with open(out, "w") as fp:
+        fieldnames = list(CsvRow.model_json_schema()["properties"].keys())
+        writer = csv.DictWriter(fp, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for alg in algs.keys():
+            for n_robots in range(1, max_robots + 1):
+                dir = os.path.join(results_dir, f"{n_robots}_robots_50_goals_{alg}")
+                result_files = glob.glob(os.path.join(dir, "**/report.json"))
+
+                for result_file in result_files:
+                    result_file_dir = os.path.dirname(result_file)
+                    print(result_file_dir)
+                    exceptions = glob.glob(
+                        os.path.join(result_file_dir, "./exceptions.json")
+                    )
+                    if len(exceptions) != 0:
+                        print(
+                            f"Skipping file {result_file} because exceptions where raised during the simulation"
+                        )
+                        continue
+                    with open(result_file) as f:
+                        data = json.load(f)
+
+                    report = SimulationReport.model_validate(data)
+                    for agent in report.agent_stats.values():
+                        assert len(agent.goal_stats) == 50
+                        for stats in agent.goal_stats.values():
+                            row = get_csv_row(
+                                agent_id=agent.agent_id,
+                                n_robots=n_robots,
+                                alg=alg,
+                                stats=stats,
+                            )
+                            writer.writerow(row.model_dump())
+
+
 if __name__ == "__main__":
-    main()
+    app()
