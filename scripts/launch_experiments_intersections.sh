@@ -20,6 +20,7 @@ for n_robots in $(seq 1 10); do
       ((index++))
     done
 
-    wait
   done
+
+  wait
 done

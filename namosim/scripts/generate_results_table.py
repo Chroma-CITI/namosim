@@ -16,6 +16,7 @@ app = typer.Typer()
 
 
 class CsvRow(BaseModel):
+    sim_id: str
     agent_id: str
     n_robots: int
     algorithm: str
@@ -32,8 +33,11 @@ class CsvRow(BaseModel):
     n_steps: float
 
 
-def get_csv_row(n_robots: int, alg: str, agent_id: str, stats: GoalStats) -> CsvRow:
+def get_csv_row(
+    sim_id: str, n_robots: int, alg: str, agent_id: str, stats: GoalStats
+) -> CsvRow:
     return CsvRow(
+        sim_id=sim_id,
         agent_id=agent_id,
         n_robots=n_robots,
         algorithm=alg,
@@ -77,7 +81,7 @@ def run(
                 dir = os.path.join(results_dir, f"{n_robots}_robots_50_goals_{alg}")
                 result_files = glob.glob(os.path.join(dir, "**/report.json"))
 
-                for result_file in result_files:
+                for i, result_file in enumerate(result_files):
                     result_file_dir = os.path.dirname(result_file)
                     print(result_file_dir)
                     exceptions = glob.glob(
@@ -96,6 +100,7 @@ def run(
                         assert len(agent.goal_stats) == 50
                         for stats in agent.goal_stats.values():
                             row = get_csv_row(
+                                sim_id=f"{n_robots}_{alg}_{i}",
                                 agent_id=agent.agent_id,
                                 n_robots=n_robots,
                                 alg=alg,
