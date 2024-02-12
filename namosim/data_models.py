@@ -54,6 +54,7 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     use_social_cost: bool = attr(default=True)
     resolve_conflicts: bool = attr(default=True)
     resolve_deadlocks: bool = attr(default=True)
+    deadlock_strategy: t.Optional[t.Literal["SOCIAL", "DISTANCE"]] = attr(default=None)
 
 
 class StilmanBehaviorConfigModel(BaseBehaviorConfigModel):
