@@ -3,10 +3,14 @@
 DIR=$(dirname "$0")
 cd $DIR/..
 
+# Deactivate GUIs to go faster
+export NAMO_NO_DISPLAY_WINDOW=TRUE
+export NAMO_DEACTIVATE_RVIZ=TRUE
+
 scenario=intersections
 out=tests/experiments/scenarios/${scenario}/generated
 base_scenario="tests/experiments/scenarios/${scenario}/2_robots_50_goals_snamo.svg"
-n_scenarios=30
+n_scenarios=40
 n_goals=50
 
 for i in $(seq 1 10); do
