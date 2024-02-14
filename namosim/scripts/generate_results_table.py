@@ -63,12 +63,13 @@ def run(
     max_robots: t.Annotated[int, typer.Option("--max-robots")] = 10,
 ):
     algs = {
-        "namo": "NAMO",
-        "namo_ndr": "NAMO w/o Deadlock Resolution",
-        "namo_ncr": "NAMO w/o Conflict Resolution",
-        "snamo": "SNAMO",
-        "snamo_ndr": "SNAMO w/o Deadlock Resolution",
-        "snamo_ncr": "SNAMO w/o Conflict Resolution",
+        "namo",
+        "namo_ndr",
+        "namo_ncr",
+        "snamo",
+        "snamo_ndr",
+        "snamo_ncr",
+        "snamo_distance_dr",
     }
 
     with open(out, "w") as fp:
@@ -76,7 +77,7 @@ def run(
         writer = csv.DictWriter(fp, fieldnames=fieldnames)
         writer.writeheader()
 
-        for alg in algs.keys():
+        for alg in algs:
             for n_robots in range(1, max_robots + 1):
                 dir = os.path.join(results_dir, f"{n_robots}_robots_50_goals_{alg}")
                 result_files = glob.glob(os.path.join(dir, "**/report.json"))
