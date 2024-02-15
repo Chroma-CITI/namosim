@@ -1,4 +1,5 @@
 import typing as t
+from enum import Enum
 
 import typer
 
@@ -17,11 +18,19 @@ def run(
     sim.run()
 
 
+class DeadlockStrategy(str, Enum):
+    SOCIAL = "SOCIAL"
+    DISTANCE = "DISTANCE"
+
+
 @app.command()
 def gen_alt_scenarios(
     *,
     scenario: t.Annotated[str, typer.Option("--base-scenario")],
     out_dir: t.Annotated[str, typer.Option("--out-dir")],
+    deadlock_strategy: t.Annotated[
+        t.Optional[DeadlockStrategy], typer.Option("--deadlock-strategy")
+    ] = None,
     n_robots: t.Annotated[int, typer.Option("--n-robots")] = 1,
     goals_per_robot: t.Annotated[int, typer.Option("--goals-per-robot")] = 50,
     n_scenarios: t.Annotated[int, typer.Option("--n-scenarios")] = 1,
@@ -40,6 +49,7 @@ def gen_alt_scenarios(
         nb_goals_per_robot=goals_per_robot,
         nb_scenarios=n_scenarios,
         cell_size=cell_size,
+        deadlock_strategy=deadlock_strategy.value if deadlock_strategy else None,
         use_social_cost=use_social_cost,
         resolve_deadlocks=not no_resolve_deadlocks,
         resolve_conflicts=not no_resolve_conflicts,
