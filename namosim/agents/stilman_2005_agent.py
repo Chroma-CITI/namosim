@@ -95,6 +95,19 @@ class Stilman2005Agent(Agent):
             uid=uid,
         )
         self.params = params
+
+        self.deadlock_strategy: t.Literal["SOCIAL", "DISTANCE"] = (
+            "SOCIAL" if params.use_social_cost else "DISTANCE"
+        )
+        if params.deadlock_strategy == "SOCIAL":
+            if not params.use_social_cost:
+                raise Exception(
+                    "SOCIAL deadlock strategy requires use_social_cost = TRUE"
+                )
+            self.deadlock_strategy = params.deadlock_strategy
+        elif params.deadlock_strategy == "DISTANCE":
+            self.deadlock_strategy = params.deadlock_strategy
+
         self._p_opt: "nav_plan.DynamicPlan"
 
         # - Original Stilman method configuration parameters
@@ -566,7 +579,7 @@ class Stilman2005Agent(Agent):
                         conflicts=conflicts,
                     )
 
-                if self.use_social_cost:
+                if self.deadlock_strategy == "SOCIAL":
                     return self.resolve_deadlocks_social(
                         robot_uid=robot_uid,
                         w_t=w_t,

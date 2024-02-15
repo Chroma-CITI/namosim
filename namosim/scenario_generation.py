@@ -106,12 +106,14 @@ def sample_poses_uniform(
 
 
 def generate_alternative_scenarios(
+    *,
     out_dir: str,
     base_svg_filepath: str,
     nb_robots: int,
     nb_goals_per_robot: int,
     nb_scenarios: int,
     cell_size: float,
+    deadlock_strategy: t.Optional[t.Literal["SOCIAL", "DISTANCE"]] = None,
     use_social_cost: bool = True,
     resolve_conflicts: bool = True,
     resolve_deadlocks: bool = True,
@@ -266,6 +268,10 @@ def generate_alternative_scenarios(
                     ),
                 }
             )
+
+            if deadlock_strategy:
+                behavior_config.parameters.deadlock_strategy = deadlock_strategy
+
             agent_config = AgentConfigModel.model_validate(
                 {
                     "agent_id": f"robot_{i_robot}",
@@ -364,24 +370,8 @@ def generate_alternative_scenarios(
                     namo_type="orientation",
                 )
 
-        # Create SVG file from modified data
-        new_scenario_basedir = f"{nb_robots}_robots_{nb_goals_per_robot}_goals"
-        if not use_social_cost and resolve_conflicts and resolve_deadlocks:
-            new_scenario_basedir += "_namo"
-        elif not use_social_cost and resolve_conflicts and not resolve_deadlocks:
-            new_scenario_basedir += "_namo_ndr"
-        elif not use_social_cost and not resolve_conflicts and not resolve_deadlocks:
-            new_scenario_basedir += "_namo_ncr"
-        elif use_social_cost and resolve_conflicts and resolve_deadlocks:
-            new_scenario_basedir += "_snamo"
-        elif use_social_cost and resolve_conflicts and not resolve_deadlocks:
-            new_scenario_basedir += "_snamo_ndr"
-        elif use_social_cost and not resolve_conflicts and not resolve_deadlocks:
-            new_scenario_basedir += "_snamo_ncr"
-
         new_scenario_path = os.path.join(
             out_dir,
-            new_scenario_basedir,
             f"{scenario_id}.svg",
         )
 

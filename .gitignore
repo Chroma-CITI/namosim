@@ -122,3 +122,4 @@ namo_logs*
 generated/
 *.zip
 *.csv
+wandb
