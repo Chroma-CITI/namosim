@@ -3857,7 +3857,7 @@ class Stilman2005Agent(Agent):
         assert main_robot_uid in inflated_grid_by_robot.deactivated_entities_cells_sets
 
         (
-            main_robot_evasion_cell_social_cost,
+            main_robot_evasion_cost,
             main_robot_evasion_path,
         ) = self.compute_evasion_for_one(
             w_t=w_t,
@@ -3885,10 +3885,10 @@ class Stilman2005Agent(Agent):
             new_or_updated_polygons={main_robot_uid: main_robot.polygon}
         )
 
-        other_robots_evasion_costs: t.List[float] = []
         other_robot_evasion_path_max_duration = 0
 
         max_d = float("-inf")
+        min_other_robots_evasion_cost = float("inf")
 
         for robot_uid in other_robots_uids:
             # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
@@ -3923,7 +3923,9 @@ class Stilman2005Agent(Agent):
                 other_robot.pose,
             )
 
-            other_robots_evasion_costs.append(other_robot_evaion_cost)
+            min_other_robots_evasion_cost = min(
+                min_other_robots_evasion_cost, other_robot_evaion_cost
+            )
 
             other_robot_evasion_path_max_duration = max(
                 other_robot_evasion_path_max_duration,
@@ -3932,10 +3934,10 @@ class Stilman2005Agent(Agent):
             )
 
         main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
-        if main_robot_evasion_cell_social_cost < np.min(other_robots_evasion_costs):
+        if main_robot_evasion_cost < min_other_robots_evasion_cost:
             return main_robot_evasion_path
 
-        if main_robot_evasion_cell_social_cost == np.min(other_robots_evasion_costs):
+        if main_robot_evasion_cost == min_other_robots_evasion_cost:
             ## tie breaking
             if np.linalg.norm(self.pose[:2]) >= max_d:
                 return main_robot_evasion_path
@@ -4125,7 +4127,7 @@ class Stilman2005Agent(Agent):
         robot: Agent,
         forbidden_evasion_cells: t.Set[GridCellModel],
         ros_publisher: "rp.RosPublisher",
-        use_combined_cost: bool = False,
+        use_combined_cost: bool = True,
     ) -> t.Tuple[float, EvasionTransitPath | None]:
         """Computes an evasion path for a given robot"""
         if self._social_costmap is None:
