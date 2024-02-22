@@ -3848,7 +3848,7 @@ class Stilman2005Agent(Agent):
         potential_deadlocks: t.Set[Conflict],
         forbidden_evasion_cells: t.Set[GridCellModel],
         ros_publisher: "rp.RosPublisher",
-        use_combined_cost: bool = False,
+        use_combined_cost: bool = True,
     ) -> EvasionTransitPath | None:
         # Compute evasion for main robot
         main_robot = t.cast(Agent, w_t.entities[main_robot_uid])
@@ -4257,6 +4257,8 @@ class Stilman2005Agent(Agent):
         if not use_combined_cost:
             min_social_cost_index = np.argmin(social_cost)
             evasion_cell = accessible_cells[min_social_cost_index]
+            evasion_cell_cost = social_cost[min_social_cost_index]
+
         else:
             normalized_social_cost = (social_cost - np.min(social_cost)) / np.ptp(
                 social_cost
@@ -4270,6 +4272,7 @@ class Stilman2005Agent(Agent):
             ) / (self.w_social + self.w_obs)
             min_combined_cost_index = np.argmin(combined_cost)
             evasion_cell = accessible_cells[min_combined_cost_index]
+            evasion_cell_cost = combined_cost[min_combined_cost_index]
 
             if self.activate_grids_logging:
                 sorted_cell_to_combined_cost = OrderedDict(
@@ -4315,10 +4318,7 @@ class Stilman2005Agent(Agent):
                 transit_configuration_after_release
             )
 
-        evasion_cell_social_cost = t.cast(
-            float, self._social_costmap[evasion_cell[0]][evasion_cell[1]]
-        )
-        return evasion_cell_social_cost, evasion_transit_path
+        return evasion_cell_cost, evasion_transit_path
 
     def h(self, r_i: PoseModel, r_j: PoseModel):
         translation_cost = self.translation_factor * utils.euclidean_distance(r_j, r_i)
