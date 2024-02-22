@@ -3888,13 +3888,13 @@ class Stilman2005Agent(Agent):
         other_robots_evasion_costs: t.List[float] = []
         other_robot_evasion_path_max_duration = 0
 
-        min_d = float("inf")
+        max_d = float("-inf")
 
         for robot_uid in other_robots_uids:
             # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
             #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
             other_robot = t.cast(Agent, w_t.entities[robot_uid])
-            min_d = min(min_d, np.linalg.norm(other_robot.pose[:2]))
+            max_d = max(max_d, np.linalg.norm(other_robot.pose[:2]))
 
             inflated_grid_by_robot.deactivate_entities({robot_uid})
             inflated_grid_by_robot.activate_entities({main_robot_uid})
@@ -3937,7 +3937,7 @@ class Stilman2005Agent(Agent):
 
         if main_robot_evasion_cell_social_cost == np.min(other_robots_evasion_costs):
             ## tie breaking
-            if np.linalg.norm(self.pose[:2]) <= min_d:
+            if np.linalg.norm(self.pose[:2]) >= max_d:
                 return main_robot_evasion_path
 
         return None  # Wait for others to evade
