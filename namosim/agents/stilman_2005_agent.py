@@ -3849,7 +3849,7 @@ class Stilman2005Agent(Agent):
         potential_deadlocks: t.Set[Conflict],
         forbidden_evasion_cells: t.Set[GridCellModel],
         ros_publisher: "rp.RosPublisher",
-        use_combined_cost: bool = True,
+        use_combined_cost: bool = False,
     ) -> EvasionTransitPath | None:
         # Compute evasion for main robot
         main_robot = t.cast(Agent, w_t.entities[main_robot_uid])
@@ -3886,7 +3886,7 @@ class Stilman2005Agent(Agent):
             new_or_updated_polygons={main_robot_uid: main_robot.polygon}
         )
 
-        max_evasion_cell_social_cost = main_robot_evasion_cell_social_cost
+        other_robots_evasion_costs: t.List[float] = []
         other_robot_evasion_path_max_duration = 0
 
         max_x_coord = float("-inf")
@@ -3900,7 +3900,7 @@ class Stilman2005Agent(Agent):
             inflated_grid_by_robot.deactivate_entities({robot_uid})
             inflated_grid_by_robot.activate_entities({main_robot_uid})
             (
-                other_robot_evasion_cell_social_cost,
+                other_robot_evaion_cost,
                 _other_robot_evasion_path,
             ) = self.compute_evasion_for_one(
                 w_t=w_t,
@@ -3924,9 +3924,8 @@ class Stilman2005Agent(Agent):
                 other_robot.pose,
             )
 
-            max_evasion_cell_social_cost = max(
-                max_evasion_cell_social_cost, other_robot_evasion_cell_social_cost
-            )
+            other_robots_evasion_costs.append(other_robot_evaion_cost)
+
             other_robot_evasion_path_max_duration = max(
                 other_robot_evasion_path_max_duration,
                 len(main_robot_evasion_path.actions)
@@ -3934,9 +3933,10 @@ class Stilman2005Agent(Agent):
             )
 
         main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
-        if main_robot_evasion_cell_social_cost < max_evasion_cell_social_cost:
+        if main_robot_evasion_cell_social_cost < np.min(other_robots_evasion_costs):
             return main_robot_evasion_path
-        if main_robot_evasion_cell_social_cost == max_evasion_cell_social_cost:
+
+        if main_robot_evasion_cell_social_cost == np.min(other_robots_evasion_costs):
             ## tie breaking
             if self.pose[0] >= max_x_coord:
                 return main_robot_evasion_path
