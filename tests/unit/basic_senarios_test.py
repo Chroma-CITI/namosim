@@ -151,6 +151,47 @@ class BasicTest(unittest.TestCase):
             ]
         )
 
+    def test_social_dr_success(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "social_dr_success.svg"
+            )
+        )
+        sim.run()
+        assert any(
+            [
+                x.message.startswith("Agent robot_1 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+
+    def test_repulsive_dr_fail(self):
+        sim = Simulator(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "repulsive_dr_fail.svg"
+            )
+        )
+        sim.run()
+        assert any(
+            [
+                x.message
+                == "Agent robot_1: Failing goal, no tries remaining to plan an evasion."
+                for x in sim.simulation_log
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.simulation_log
+            ]
+        )
+
     def test_custom(self):
         sim = Simulator(
             simulation_file_path=os.path.join(self.scenarios_folder, "custom.svg")
