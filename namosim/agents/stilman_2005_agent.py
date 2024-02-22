@@ -772,7 +772,6 @@ class Stilman2005Agent(Agent):
             w_t=w_t,
             main_robot_uid=robot_uid,
             potential_deadlocks=potential_deadlocks,
-            ros_publisher=ros_publisher,
         )
 
         assert robot_uid not in robot_inflated_grid.cells_sets
@@ -3889,13 +3888,13 @@ class Stilman2005Agent(Agent):
         other_robots_evasion_costs: t.List[float] = []
         other_robot_evasion_path_max_duration = 0
 
-        max_x_coord = float("-inf")
+        max_d = float("-inf")
 
         for robot_uid in other_robots_uids:
             # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
             #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
             other_robot = t.cast(Agent, w_t.entities[robot_uid])
-            max_x_coord = max(max_x_coord, other_robot.pose[0])
+            max_d = max(max_d, np.linalg.norm(other_robot.pose[:2]))
 
             inflated_grid_by_robot.deactivate_entities({robot_uid})
             inflated_grid_by_robot.activate_entities({main_robot_uid})
@@ -3938,7 +3937,7 @@ class Stilman2005Agent(Agent):
 
         if main_robot_evasion_cell_social_cost == np.min(other_robots_evasion_costs):
             ## tie breaking
-            if self.pose[0] >= max_x_coord:
+            if np.linalg.norm(self.pose[:2]) >= max_d:
                 return main_robot_evasion_path
 
         return None  # Wait for others to evade
@@ -3949,8 +3948,6 @@ class Stilman2005Agent(Agent):
         w_t: "w.World",
         main_robot_uid: UID,
         potential_deadlocks: t.Set[Conflict],
-        ros_publisher: "rp.RosPublisher",
-        use_combined_cost: bool = True,
     ) -> EvasionTransitPath | None:
         """Computes an evasion path for the main robot without using social cost"""
         # Compute evasion for main robot
