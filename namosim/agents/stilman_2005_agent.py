@@ -3888,7 +3888,7 @@ class Stilman2005Agent(Agent):
         other_robot_evasion_path_max_duration = 0
 
         max_d = float("-inf")
-        min_other_robots_evasion_cost = float("inf")
+        max_other_robots_evasion_cost = float("-inf")
 
         for robot_uid in other_robots_uids:
             # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
@@ -3923,8 +3923,8 @@ class Stilman2005Agent(Agent):
                 other_robot.pose,
             )
 
-            min_other_robots_evasion_cost = min(
-                min_other_robots_evasion_cost, other_robot_evaion_cost
+            max_other_robots_evasion_cost = max(
+                max_other_robots_evasion_cost, other_robot_evaion_cost
             )
 
             other_robot_evasion_path_max_duration = max(
@@ -3934,10 +3934,10 @@ class Stilman2005Agent(Agent):
             )
 
         main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
-        if main_robot_evasion_cost < min_other_robots_evasion_cost:
+        if main_robot_evasion_cost < max_other_robots_evasion_cost:
             return main_robot_evasion_path
 
-        if main_robot_evasion_cost == min_other_robots_evasion_cost:
+        if main_robot_evasion_cost == max_other_robots_evasion_cost:
             ## tie breaking
             if np.linalg.norm(self.pose[:2]) >= max_d:
                 return main_robot_evasion_path
@@ -3965,7 +3965,7 @@ class Stilman2005Agent(Agent):
         for other_robot_uid in other_robots_uids:
             other_robot = w_t.agents[other_robot_uid]
             d_other = np.linalg.norm(other_robot.pose[:2])
-            if d_other < d:  # type: ignore
+            if d_other > d:  # type: ignore
                 return None
 
         # The main robot uid should be deactivated in the robot-inflated grid
@@ -4256,11 +4256,11 @@ class Stilman2005Agent(Agent):
         if len(social_cost) == 0:
             return robot_start_social_cost, None
 
-        if not use_combined_cost:
-            min_social_cost_index = np.argmin(social_cost)
-            evasion_cell = accessible_cells[min_social_cost_index]
-            evasion_cell_cost = social_cost[min_social_cost_index]
+        min_social_cost_index = np.argmin(social_cost)
+        evasion_cell_cost = social_cost[min_social_cost_index]
 
+        if not use_combined_cost:
+            evasion_cell = accessible_cells[min_social_cost_index]
         else:
             normalized_social_cost = (social_cost - np.min(social_cost)) / np.ptp(
                 social_cost
@@ -4274,7 +4274,7 @@ class Stilman2005Agent(Agent):
             ) / (self.w_social + self.w_obs)
             min_combined_cost_index = np.argmin(combined_cost)
             evasion_cell = accessible_cells[min_combined_cost_index]
-            evasion_cell_cost = combined_cost[min_combined_cost_index]
+            # evasion_cell_cost = combined_cost[min_combined_cost_index]
 
             if self.activate_grids_logging:
                 sorted_cell_to_combined_cost = OrderedDict(
