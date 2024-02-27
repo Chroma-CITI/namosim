@@ -38,23 +38,25 @@ sudo apt install ros-iron-grid-map
 
 ## Examples
 
-### IROS 2021 Experiments
+### IROS 2024 Experiments
 
-The following command should launch all scenarios presented in our ICRA2022 paper submission.
-
-First fetch the git submodule containing the IROS 2021 data:
+Generate the scenarios:
 
 ```bash
-git submodule update --init
-git pull --recurse-submodules
+./scripts/generate_scenarios_intersections.sh
 ```
+
+Launch the experiments:
 
 ```bash
-python -m tests.integration_tests.namo_socials.iros_2021 IROS2021Tests.test_for_10_hours 0 199
+./scripts/launch_experiments_intersections.sh
 ```
 
-Results should be saved in the 'logs' folder that is automatically created the first time in the repository folder.
-To get the full visual feedback, please install ROS2 and RVIZ. You will also need to install the grid-map ROS package if you don't already have it (e.g. `sudo apt install ros-iron-grid-map`).
+Results should be saved in the `namo_logs` folder. You can transform the results into a single csv file with:
+
+```bash
+python -m namosim.scripts.generate_results_table --results-dir namo_logs/intersections --out report_intersections.csv
+```
 
 ### Run a Basic Scenario and Visualize in RVIZ
 
@@ -69,7 +71,7 @@ rviz2 -d rviz/ROS2/basic_view.rviz
 Then, in a new terminal, run:
 
 ```
-python -m namosim.tests.integration_tests.namo_socials.basic_with_opening_test BasicWithOpeningTest.test_stilman_2005_behavior
+python -m tests.unit.basic_senarios_test BasicTest.test_social_dr_success_d
 ```
 
 ## Run Unit Tests
@@ -92,7 +94,7 @@ The poetry shell will need to be activated.
 
 ## Credits
 
-If you reuse (even partially) of the provided data/code, please do cite the associated paper:
+If you reuse any of the provided data/code, please cite the associated paper:
 
 ```bibtex
 @inproceedings{renault:hal-02912925,
