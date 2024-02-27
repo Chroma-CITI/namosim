@@ -38,19 +38,13 @@ class TeleopehaviorConfigModel(BaseBehaviorConfigModel):
 
 
 class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
-    alpha_for_obstacle_choice_heur: float = attr(default=0.5)
-    basic_rotation_moment: float = attr(default=2.0)
-    basic_translation_force: float = attr(default=2.0)
     check_new_local_opening_before_global: bool = attr(default=True)
-    collision_check_angular_res: float = attr(default=5.0)
     activate_grids_logging: bool = attr(default=False)
     forbid_rotations: bool = attr(default=False)
-    heuristic_cost_for_traversing_obstacle_in_choice_heur: float = attr(default=2.0)
     manipulation_search_procedure: t.Literal["BFS", "DFS"] = attr(default="BFS")
-    neighborhood_for_obstacle_choice_heur: t.Literal["TAXI"] = attr(default="TAXI")
     robot_rotation_unit_angle: float = attr(default=30)
     robot_translation_unit_length: float = attr()
-    solution_interval_bound_percentage: float = attr(default=0.05)
+    manip_search_bound_percentage: float = attr(default=0.05)
     use_social_cost: bool = attr(default=True)
     resolve_conflicts: bool = attr(default=True)
     resolve_deadlocks: bool = attr(default=True)

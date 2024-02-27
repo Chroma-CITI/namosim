@@ -111,11 +111,7 @@ class Stilman2005Agent(Agent):
         self._p_opt: "nav_plan.DynamicPlan"
 
         # - Original Stilman method configuration parameters
-        self.alpha = params.alpha_for_obstacle_choice_heur
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD  # default if bad parameter
-        # self.heur_w = parameters["heuristic_cost_for_traversing_obstacle_in_choice_heur"]
-        # self.basic_trans_force = parameters["basic_translation_force"]
-        # self.basic_rot_moment = parameters["basic_rotation_moment"]
         self.translation_unit_cost = 1.0
         self.rotation_unit_cost = 1.0
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
@@ -132,7 +128,7 @@ class Stilman2005Agent(Agent):
 
         # - S-NAMO parameters
         self.use_social_cost = params.use_social_cost
-        self.bound_percentage = params.solution_interval_bound_percentage
+        self.bound_percentage = params.manip_search_bound_percentage
         if params.manipulation_search_procedure == "DFS":
             if self.use_social_cost:
                 self.manip_search_procedure = self.focused_manip_search
@@ -145,6 +141,8 @@ class Stilman2005Agent(Agent):
         self.w_social, self.w_obs, self.w_goal = 15.0, 10.0, 2.0
         self.w_sum = self.w_social + self.w_obs + self.w_goal
         self.distance_to_obs_cost_is_realistic = True
+        self.trans_mult = 100.0
+        self.rot_mult = 100.0
 
         # - Extra performance parameters
         self.check_new_local_opening_before_global = (
@@ -152,7 +150,6 @@ class Stilman2005Agent(Agent):
         )
         self.activate_grids_logging = params.activate_grids_logging
         self._social_costmap: npt.NDArray[np.float_] | None = None
-        self.is_first_transfer_step = False
         self.check_horizon = 10
         self.angular_tolerance = 0.1
         self.min_nb_steps_to_wait = 5
@@ -186,8 +183,6 @@ class Stilman2005Agent(Agent):
 
     def init(self, world: "w.World"):
         super().init(world)
-        self.trans_mult = 100.0
-        self.rot_mult = 100.0
         self.position_tolerance = self.world.discretization_data.res / 5.0
 
         # Initialize movability status of obstacles
