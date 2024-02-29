@@ -56,9 +56,6 @@ class Agent(Entity):
         polygon: Polygon,
         pose: PoseModel,
         sensors: t.List[OmniscientSensor | GFOVSensor | SFOVSensor],
-        push_only_list: t.List[str],
-        force_pushes_only: bool,
-        movable_whitelist: t.List[str],
         style: Style,
         cell_size: float,
         movability: Movability = Movability.UNKNOWN,
@@ -82,9 +79,6 @@ class Agent(Entity):
         for sensor in sensors:
             sensor.parent_uid = self.uid
 
-        self.push_only_list = push_only_list
-        self.force_pushes_only = force_pushes_only
-        self.movable_whitelist = movable_whitelist
         self.min_inflation_radius = self.compute_inflation_radius()
         self.logger = logger
         self.__world: t.Optional["w.World"] = None
@@ -134,9 +128,6 @@ class Agent(Entity):
             polygon=copy.deepcopy(self.polygon),
             pose=self.pose,
             sensors=copy.deepcopy(self.sensors),
-            push_only_list=copy.deepcopy(self.push_only_list),
-            force_pushes_only=self.force_pushes_only,
-            movable_whitelist=copy.deepcopy(self.movable_whitelist),
             style=copy.deepcopy(self.style),
             cell_size=copy.deepcopy(self.cell_size),
             movability=self.movability,
@@ -285,25 +276,7 @@ class Agent(Entity):
             return Movability.UNKNOWN
         if obstacle_type == "movable":
             return Movability.MOVABLE
-        if obstacle_type in self.movable_whitelist:
-            return Movability.MOVABLE
         return Movability.STATIC
-
-    def deduce_push_only(self, obstacle_type: str):
-        if self.force_pushes_only or obstacle_type in self.push_only_list:
-            return True
-        return False
 
     def compute_inflation_radius(self) -> float:
         return utils.get_circumscribed_radius(self.polygon)
-
-    def to_json(self) -> t.Dict[str, t.Any]:
-        json_data = Entity.to_json(self)
-        json_data["geometry"]["orientation_id"] = self.name + "_dir"
-        json_data["movable_whitelist"] = self.movable_whitelist
-        json_data["push_only_list"] = self.push_only_list
-        json_data["force_pushes_only"] = self.force_pushes_only
-        json_data["sensors"] = []
-        for sensor in self.sensors:
-            json_data["sensors"].append(sensor.to_json())
-        return json_data

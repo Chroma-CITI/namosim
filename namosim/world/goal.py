@@ -22,13 +22,3 @@ class Goal:
         self.name = name
         self.polygon = polygon
         self.pose = pose
-
-    def to_json(self):
-        return {
-            "name": self.name,
-            "geometry": {
-                "from": "file",
-                "id": self.name,
-                "orientation_id": self.name + "_dir",
-            },
-        }

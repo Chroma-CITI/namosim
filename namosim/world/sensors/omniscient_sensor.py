@@ -42,6 +42,3 @@ class OmniscientSensor:
         target_world.entity_to_agent = copy.deepcopy(reference_world.entity_to_agent)
 
         return uids_to_add, uids_to_update, uids_to_remove
-
-    def to_json(self):
-        return {"type": "omniscient"}
