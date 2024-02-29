@@ -102,11 +102,3 @@ class GFOVSensor(CircularSectorSensor):
                 # If entity is not registered yet, create it
                 except KeyError:
                     target_world.add_entity(reference_entity)
-
-    def to_json(self):
-        return {
-            "type": "perfect_g_fov",
-            "min_radius": self.fov_min_radius,
-            "max_radius": self.fov_max_radius,
-            "opening_angle": self.fov_opening_angle,
-        }
