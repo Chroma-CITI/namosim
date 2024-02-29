@@ -29,9 +29,6 @@ class NavigationOnlyAgent(Agent):
         polygon: Polygon,
         pose: PoseModel,
         sensors: t.List[OmniscientSensor],
-        push_only_list: t.List[str],
-        force_pushes_only: bool,
-        movable_whitelist: t.List[str],
         style: Style,
         logger: utils.CustomLogger,
         cell_size: float,
@@ -47,9 +44,6 @@ class NavigationOnlyAgent(Agent):
             polygon=polygon,
             pose=pose,
             sensors=sensors,  # type: ignore
-            push_only_list=push_only_list,
-            force_pushes_only=force_pushes_only,
-            movable_whitelist=movable_whitelist,
             style=style,
             logger=logger,
             cell_size=cell_size,
@@ -160,9 +154,6 @@ class NavigationOnlyAgent(Agent):
             style=copy.deepcopy(self.style),
             pose=copy.deepcopy(self.pose),
             sensors=copy.deepcopy(self.sensors),  # type: ignore
-            push_only_list=[],
-            force_pushes_only=False,
-            movable_whitelist=["box"],
             cell_size=self.cell_size,
             logger=self.logger,
         )
