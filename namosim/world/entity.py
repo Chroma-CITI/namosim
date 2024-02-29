@@ -92,10 +92,3 @@ class Entity:
             uid=self.uid,
             style=self.style,
         )
-
-    def to_json(self) -> t.Dict[str, t.Any]:
-        return {
-            "name": self.name,
-            "type": self.type_,
-            "geometry": {"from": "file", "id": self.name},
-        }

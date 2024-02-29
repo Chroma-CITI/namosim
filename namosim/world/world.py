@@ -245,9 +245,6 @@ class World:
                     style=Style.from_string(robot_style),
                     pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
                     sensors=[OmniscientSensor()],
-                    push_only_list=[],
-                    force_pushes_only=False,
-                    movable_whitelist=["box"],
                     cell_size=config.cell_size,
                     logger=logger,
                 )
@@ -261,9 +258,6 @@ class World:
                     style=Style.from_string(robot_style),
                     pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
                     sensors=[OmniscientSensor()],
-                    push_only_list=[],
-                    force_pushes_only=False,
-                    movable_whitelist=["box"],
                     cell_size=config.cell_size,
                     logger=logger,
                 )
@@ -278,9 +272,6 @@ class World:
                     style=Style.from_string(robot_style),
                     pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
                     sensors=[OmniscientSensor()],
-                    push_only_list=[],
-                    force_pushes_only=False,
-                    movable_whitelist=["box"],
                     cell_size=config.cell_size,
                     logger=logger,
                 )
@@ -294,9 +285,6 @@ class World:
                     style=Style.from_string(robot_style),
                     pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
                     sensors=[OmniscientSensor()],
-                    push_only_list=[],
-                    force_pushes_only=False,
-                    movable_whitelist=["box"],
                     cell_size=config.cell_size,
                     logger=logger,
                 )
