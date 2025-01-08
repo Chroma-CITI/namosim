@@ -14,7 +14,7 @@
          </cc:Work>
       </rdf:RDF>
    </metadata>
-   <namo_config cell_size="2.0">
+   <namo_config cell_size_cm="2.0">
       <agent agent_id="robot_0">
          <goal goal_id="goal_0" />
          <behavior type="teleop_behavior">

@@ -28,26 +28,10 @@ namosim.utils.conversion module
    :undoc-members:
    :show-inheritance:
 
-namosim.utils.stats\_analysis module
-------------------------------------
-
-.. automodule:: namosim.utils.stats_analysis
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 namosim.utils.stats\_utils module
 ---------------------------------
 
 .. automodule:: namosim.utils.stats_utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-namosim.utils.svg\_preprocessing module
----------------------------------------
-
-.. automodule:: namosim.utils.svg_preprocessing
    :members:
    :undoc-members:
    :show-inheritance:

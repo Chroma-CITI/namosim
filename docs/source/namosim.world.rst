@@ -28,14 +28,6 @@ namosim.world.custom\_exceptions module
    :undoc-members:
    :show-inheritance:
 
-namosim.world.discretization\_data module
------------------------------------------
-
-.. automodule:: namosim.world.discretization_data
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 namosim.world.entity module
 ---------------------------
 
@@ -52,14 +44,6 @@ namosim.world.goal module
    :undoc-members:
    :show-inheritance:
 
-namosim.world.models module
----------------------------
-
-.. automodule:: namosim.world.models
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 namosim.world.obstacle module
 -----------------------------
 
@@ -68,26 +52,10 @@ namosim.world.obstacle module
    :undoc-members:
    :show-inheritance:
 
-namosim.world.robot module
---------------------------
-
-.. automodule:: namosim.world.robot
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 namosim.world.social\_topological\_occupation\_cost\_grid module
 ----------------------------------------------------------------
 
 .. automodule:: namosim.world.social_topological_occupation_cost_grid
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-namosim.world.taboo module
---------------------------
-
-.. automodule:: namosim.world.taboo
    :members:
    :undoc-members:
    :show-inheritance:

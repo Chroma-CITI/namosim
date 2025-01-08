@@ -1,23 +1,20 @@
+import copy
 import typing as t
 
 import namosim.navigation.action_result as ar
 import namosim.utils.connectivity as connectivity
-from namosim.data_models import UID
 from namosim.display.ros2_publisher import RosPublisher
-from namosim.utils import utils
 from namosim.utils.utils import euclidean_distance
-from namosim.world.binary_occupancy_grid import (
-    BinaryInflatedOccupancyGrid,
-    BinaryOccupancyGrid,
+from namosim.world.social_topological_occupation_cost_grid import (
+    compute_social_costmap,
 )
-from namosim.world.social_topological_occupation_cost_grid import compute_social_costmap
 from namosim.world.world import World
 
 
 def get_reallocated_obstacles(init_world: World, end_world: World):
-    reallocated_obstacles_uids: t.List[UID] = []
-    end_entities = end_world.entities
-    for init_entity_uid, init_entity in init_world.entities.items():
+    reallocated_obstacles_uids: t.List[str] = []
+    end_entities = end_world.dynamic_entities
+    for init_entity_uid, init_entity in init_world.dynamic_entities.items():
         if init_entity.pose != end_entities[init_entity_uid].pose:
             reallocated_obstacles_uids.append(init_entity_uid)
     return reallocated_obstacles_uids
@@ -28,7 +25,7 @@ def get_nb_reallocated_obstacles(init_world: World, end_world: World):
 
 
 def get_transferred_obstacles_set(actions_results: t.List[ar.ActionResult]):
-    transferred_obstacles: t.Set[UID] = set()
+    transferred_obstacles: t.Set[str] = set()
     for action_result in actions_results:
         if (
             isinstance(action_result, ar.ActionSuccess)
@@ -40,7 +37,7 @@ def get_transferred_obstacles_set(actions_results: t.List[ar.ActionResult]):
 
 
 def get_transferred_obstacles_sequence(actions_results: t.List[ar.ActionResult]):
-    transferred_obstacles: t.List[UID] = []
+    transferred_obstacles: t.List[str] = []
     for action_result in actions_results:
         if (
             isinstance(action_result, ar.ActionSuccess)
@@ -72,11 +69,15 @@ def get_total_path_lengths(actions_results: t.List[ar.ActionResult]):
             ):
                 cur_pose = action_result.robot_pose
                 prev_pose = prev_action_result.robot_pose
+                prev_action_result = action_result
+
+                if cur_pose is None or prev_pose is None:
+                    continue
+
                 if action_result.is_transfer:
                     transfer_path_length += euclidean_distance(cur_pose, prev_pose)
                 else:
                     transit_path_length += euclidean_distance(cur_pose, prev_pose)
-                prev_action_result = action_result
 
     return transit_path_length, transfer_path_length
 
@@ -100,19 +101,11 @@ def get_transit_transfer_ratio(actions_results: t.List[ar.ActionResult]):
 def get_connectivity_stats(
     world: World,
     inflation_radius: float,
-    entities_to_ignore: t.Set[UID],
+    entities_to_ignore: t.Set[str],
     ros_publisher: RosPublisher | None = None,
 ):
-    polygons = {
-        uid: e.polygon
-        for uid, e in world.entities.items()
-        if uid not in entities_to_ignore
-    }
-    occ_grid = BinaryInflatedOccupancyGrid(
-        polygons,
-        world.discretization_data.res,
-        inflation_radius,
-        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
+    occ_grid = world.get_dynamic_occupancy_grid(
+        inflation_radius=inflation_radius, ignored_entities=entities_to_ignore
     )
     ccs_data = connectivity.init_ccs_for_grid(
         occ_grid.grid, occ_grid.d_width, occ_grid.d_height, occ_grid.neighborhood
@@ -122,7 +115,7 @@ def get_connectivity_stats(
 
     if ros_publisher:
         ros_publisher.publish_connected_components_grid(
-            connected_components_grid, world.discretization_data.res, ns="simulation"
+            connected_components_grid, world.map.cell_size, ns="simulation"
         )
 
     # cc is abbreviation of connected component
@@ -145,22 +138,20 @@ def get_connectivity_stats(
 
 def get_social_costs_stats(
     world: World,
-    entities_to_compute_social_cost_for: t.Set[UID],
+    entities_to_compute_social_cost_for: t.Set[str],
     ros_publisher: RosPublisher,
 ):
     polygons = {
         uid: e.polygon
-        for uid, e in world.entities.items()
+        for uid, e in world.dynamic_entities.items()
         if uid not in entities_to_compute_social_cost_for
     }
-    occ_grid = BinaryOccupancyGrid(
-        polygons,
-        world.discretization_data.res,
-        neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-    )
+    occ_grid = copy.deepcopy(world.map)
+    occ_grid.update_polygons(polygons)
+
     abs_social_costmap = compute_social_costmap(
         occ_grid.grid,
-        occ_grid.res,
+        occ_grid.cell_size,
         log_costmaps=False,
         ns="simulation",
         ros_publisher=ros_publisher,
@@ -168,13 +159,9 @@ def get_social_costs_stats(
 
     absolute_social_cost = 0.0
     for entity_uid in entities_to_compute_social_cost_for:
-        entity = world.entities[entity_uid]
-        entity_cell_set = utils.accurate_rasterize_in_grid(
+        entity = world.dynamic_entities[entity_uid]
+        entity_cell_set = occ_grid.rasterize_polygon(
             entity.polygon,
-            occ_grid.res,
-            occ_grid.grid_pose,
-            occ_grid.d_width,
-            occ_grid.d_height,
         )
         for cell in entity_cell_set:
             absolute_social_cost += abs_social_costmap[cell[0]][cell[1]]

@@ -4,7 +4,6 @@ import typing as t
 
 from typing_extensions import Self
 
-import namosim.display.ros2_publisher as ros2
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
@@ -12,7 +11,7 @@ import namosim.navigation.navigation_plan as nav_plan
 import namosim.utils.collision as collision
 import namosim.world.world as w
 import namosim.world.world as world
-from namosim.data_models import UID, PoseModel
+from namosim.data_models import PoseModel
 from namosim.navigation.basic_actions import Action
 from namosim.navigation.conflict import (
     Conflict,
@@ -25,7 +24,7 @@ from namosim.navigation.navigation_path import (
     TransitPath,
 )
 from namosim.utils import utils
-from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
+from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.entity import Movability
 
 
@@ -33,7 +32,7 @@ class Plan:
     def __init__(
         self,
         *,
-        robot_uid: UID,
+        robot_uid: str,
         path_components: t.List[t.Union[TransitPath, TransferPath]] = [],
         goal: t.Optional[PoseModel] = None,
         plan_error: t.Optional[str] = None,
@@ -74,13 +73,14 @@ class Plan:
         self,
         *,
         world: "world.World",
-        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        rp: "ros2.RosPublisher",
+        robot_inflated_grid: BinaryOccupancyGrid,
+        grab_release_distance,
+        rp: t.Optional["rp.RosPublisher"] = None,
         check_horizon: int = 0,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
-        robot_name: str = "",
+        robot_id: str = "",
     ) -> t.List[Conflict]:
         # Check validity of each component
         previously_moved_entities_uids = set()
@@ -90,7 +90,7 @@ class Plan:
         # Define sets of polygons and associated aabb trees to check for collisions
         other_entities_polygons = {
             uid: e.polygon
-            for uid, e in world.entities.items()
+            for uid, e in world.dynamic_entities.items()
             if uid != self.robot_uid and e.movability != Movability.STATIC
         }
         other_entities_aabb_tree = collision.polygons_to_aabb_tree(
@@ -104,7 +104,6 @@ class Plan:
             other_entities_aabb_tree
         )
         encompassing_circle_uid_to_robot_uid = {}
-        max_uid = 10000  # TODO: find a better way compute this temporary uid
         for other_robot in world.agents.values():
             if other_robot.uid == self.robot_uid:
                 continue
@@ -113,32 +112,22 @@ class Plan:
             # SimultaneousSpaceAccess-type Conflicts
             other_robot_center = other_robot.polygon.centroid
             radius = (
-                world.get_robot_conflict_radius(other_robot.uid)
+                world.get_robot_conflict_radius(other_robot.uid, grab_release_distance)
                 # Enlarge radius so that conflict is detected before the robot enters another robot's conflict radius, after which a dealock may occur
-                + utils.SQRT_OF_2 * world.config.cell_size
+                + utils.SQRT_OF_2 * world.map.cell_size
             )
 
             # TODO Get inflation from largest robot
             encompassing_circle = other_robot_center.buffer(radius)
-            temp_uid = (
-                max(
-                    max_uid,
-                    max(
-                        [0]
-                        if not encompassing_circle_uid_to_robot_uid
-                        else encompassing_circle_uid_to_robot_uid.keys()
-                    ),
-                )
-                + 1
+            temp_uid = f"{other_robot.uid}_conflict_circle"
+            other_entities_polygons_with_encompassing_circles[temp_uid] = (
+                encompassing_circle
             )
-            other_entities_polygons_with_encompassing_circles[
-                temp_uid
-            ] = encompassing_circle
             other_entities_with_encompassing_circles_aabb_tree.add(
                 collision.polygon_to_aabb(encompassing_circle), temp_uid
             )
             encompassing_circle_uid_to_robot_uid[temp_uid] = other_robot.uid
-            inflated_grid_by_robot.update(
+            robot_inflated_grid.update_polygons(
                 new_or_updated_polygons={temp_uid: encompassing_circle}
             )
 
@@ -149,7 +138,7 @@ class Plan:
                     conflicts += path.get_conflicts(
                         robot_uid=self.robot_uid,
                         world=world,
-                        inflated_grid_by_robot=inflated_grid_by_robot,
+                        robot_inflated_grid=robot_inflated_grid,
                         encompassing_circle_uid_to_robot_uid=encompassing_circle_uid_to_robot_uid,
                         check_horizon=check_horizon,
                         has_first_action=has_first_action,
@@ -157,13 +146,14 @@ class Plan:
                         exit_early_for_any_conflict=exit_early_for_any_conflict,
                         exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
                         rp=rp,
-                        robot_name=robot_name,
+                        robot_id=robot_id,
                     )
                 else:
                     conflicts += path.get_conflicts(
                         robot_uid=self.robot_uid,
                         world=world,
-                        inflated_grid_by_robot=inflated_grid_by_robot,
+                        grab_release_distance=grab_release_distance,
+                        robot_inflated_grid=robot_inflated_grid,
                         other_entities_polygons=other_entities_polygons,
                         other_entities_aabb_tree=other_entities_aabb_tree,
                         other_entities_polygons_with_encompassing_circles=other_entities_polygons_with_encompassing_circles,
@@ -176,7 +166,7 @@ class Plan:
                         exit_early_for_any_conflict=exit_early_for_any_conflict,
                         exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
                         rp=rp,
-                        robot_name=robot_name,
+                        robot_id=robot_id,
                     )
 
                     # If the previously checked path components are valid, we assume it leaves any manipulated
@@ -185,7 +175,7 @@ class Plan:
                     # - or if another path component needs to move them (check_start_pose)
                     previously_moved_entities_uids.add(path.obstacle_uid)
 
-                    inflated_grid_by_robot.deactivate_entities([path.obstacle_uid])
+                    robot_inflated_grid.deactivate_entities([path.obstacle_uid])
 
                 if exit_early_for_any_conflict and conflicts:
                     break
@@ -208,8 +198,8 @@ class Plan:
                 break
 
         # Reactivate entities that had been deactivated during checks
-        inflated_grid_by_robot.activate_entities(previously_moved_entities_uids)
-        inflated_grid_by_robot.update(
+        robot_inflated_grid.activate_entities(previously_moved_entities_uids)
+        robot_inflated_grid.update_polygons(
             removed_polygons=set(encompassing_circle_uid_to_robot_uid.keys())
         )
 
@@ -265,7 +255,7 @@ class Timer:
 class DynamicPlan(Plan):
     DEBUGGING_WAIT_TIME_GENERATOR = []
 
-    def __init__(self, robot_uid: UID):
+    def __init__(self, robot_uid: str):
         super().__init__(robot_uid=robot_uid)
         self.update_count = 0
         """
@@ -293,24 +283,27 @@ class DynamicPlan(Plan):
 
     def get_conflicts(
         self,
+        *,
         world: "w.World",
-        inflated_grid_by_robot: BinaryInflatedOccupancyGrid,
-        ros_publisher: "rp.RosPublisher",
+        robot_inflated_grid: BinaryOccupancyGrid,
         check_horizon: int,
+        grab_release_distance: float,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = True,
         exit_early_only_for_long_term_conflicts: bool = True,
-        robot_name: str = "",
+        robot_id: str = "",
+        ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
         conflicts = super().get_conflicts(
             world=world,
-            inflated_grid_by_robot=inflated_grid_by_robot,
+            robot_inflated_grid=robot_inflated_grid,
             check_horizon=check_horizon,
             apply_strict_horizon=apply_strict_horizon,
             exit_early_for_any_conflict=exit_early_for_any_conflict,
             exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
+            grab_release_distance=grab_release_distance,
             rp=ros_publisher,
-            robot_name=robot_name,
+            robot_id=robot_id,
         )
         self.current_conflicts += conflicts
         return conflicts
@@ -341,14 +334,14 @@ class DynamicPlan(Plan):
         step_count: int,
         conflicts: t.List[Conflict],
         simulation_log: t.List[utils.BasicLog],
-        robot_name: str,
+        robot_id: str,
     ):
         if self.timer.is_running:
             if self.timer.is_timer_over(step_count):
                 simulation_log.append(
                     utils.BasicLog(
                         "Agent {}: Resetting plan because conflicts still exist after full postponement is over: {}.".format(
-                            robot_name, conflicts
+                            robot_id, conflicts
                         ),
                         step_count,
                     )
@@ -364,7 +357,7 @@ class DynamicPlan(Plan):
             simulation_log.append(
                 utils.BasicLog(
                     "Agent {}: Starting postponement of current plan for {} steps because conflicts: {}.".format(
-                        robot_name, duration, conflicts
+                        robot_id, duration, conflicts
                     ),
                     step_count,
                 )

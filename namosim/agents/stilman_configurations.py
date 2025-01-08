@@ -1,6 +1,7 @@
 """
 This module contains classes describing robot and obstacle configurations used during the Stilman obstacle selection sub-routines.
 """
+
 import typing as t
 from abc import ABC
 
@@ -8,7 +9,7 @@ from shapely import Polygon
 
 import namosim.navigation.basic_actions as ba
 from namosim.algorithms import graph_search
-from namosim.data_models import UID, FixedPrecisionPoseModel, GridCellModel, PoseModel
+from namosim.data_models import FixedPrecisionPoseModel, GridCellModel, PoseModel
 
 
 class BaseConfiguration(ABC):
@@ -19,8 +20,8 @@ class RCHConfiguration(BaseConfiguration):
     def __init__(
         self,
         cell: t.Tuple[int, int],
-        first_obstacle_uid: UID,
-        first_component_uid: UID,
+        first_obstacle_uid: str,
+        first_component_uid: str,
     ):
         self.cell = cell
         self.first_obstacle_uid = first_obstacle_uid
@@ -77,7 +78,7 @@ class RobotObstacleConfiguration(BaseConfiguration):
     def __init__(
         self,
         *,
-        robot_floating_point_pose: PoseModel,
+        robot_pose: PoseModel,
         robot_polygon: Polygon,
         robot_cell_in_grid: GridCellModel,
         robot_fixed_precision_pose: FixedPrecisionPoseModel,
@@ -86,12 +87,14 @@ class RobotObstacleConfiguration(BaseConfiguration):
         obstacle_cell_in_grid: GridCellModel,
         obstacle_fixed_precision_pose: FixedPrecisionPoseModel,
         manip_pose_id: int,
-        action: ba.Action | None = None,
+        action: ba.Action,
+        prev_robot_pose: PoseModel,
+        prev_robot_polygon: Polygon,
         robot_csv_polygon: Polygon | None = None,
         obstacle_csv_polygon: Polygon | None = None,
     ):
         self.robot = RobotConfiguration(
-            floating_point_pose=robot_floating_point_pose,
+            floating_point_pose=robot_pose,
             polygon=robot_polygon,
             cell_in_grid=robot_cell_in_grid,
             fixed_precision_pose=robot_fixed_precision_pose,
@@ -108,6 +111,8 @@ class RobotObstacleConfiguration(BaseConfiguration):
         )
         self.action = action
         self.manip_pose_id = manip_pose_id
+        self.prev_robot_pose = prev_robot_pose
+        self.prev_robot_polygon = prev_robot_polygon
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, graph_search.HeapNode):
