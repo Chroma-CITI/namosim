@@ -1,5 +1,6 @@
 import os
 import time
+import typing as t
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -64,7 +65,7 @@ def display_or_log(
 
 def skeleteton_social_cost_function(
     dist_in_cells,
-    res=1.0,
+    cell_size=1.0,
     cost_value_at_0_u_p=0.0,
     cost_value_before_1_u_p=0.1,
     cost_value_at_1_u_p=1.0,
@@ -97,7 +98,7 @@ def skeleteton_social_cost_function(
     )
     offset_3_to_4_u_p = cost_value_at_4_u_p_and_beyond - curve_3_to_4_u_p * half_4_u_p
 
-    dist_real = dist_in_cells * res
+    dist_real = dist_in_cells * cell_size
 
     if 0.0 < dist_real < half_1_u_p:
         return curve_0_to_1_u_p * dist_real + offset_0_to_1_u_p
@@ -112,7 +113,7 @@ def skeleteton_social_cost_function(
     return -1.0
 
 
-def skeleteton_social_cost_function_02(dist_in_cells, res=1.0):
+def skeleteton_social_cost_function_02(dist_in_cells, cell_size=1.0):
     distances = [0.0, 0.275, 0.45, 0.70, 0.90, 1.20, 1.50]
     values = [1.0, 1.000, 0.90, 0.78, 0.7, 0.6, 0.5]
 
@@ -126,7 +127,7 @@ def skeleteton_social_cost_function_02(dist_in_cells, res=1.0):
         offsets.append(offset)
         counter += 1
 
-    dist_real = dist_in_cells * res
+    dist_real = dist_in_cells * cell_size
 
     for counter in range(len(values) - 1):
         if distances[counter] <= dist_real < distances[counter + 1]:
@@ -238,8 +239,8 @@ def voronoi_skeleton(entities, entities_to_ignore=tuple()):
 
 def compute_social_costmap(
     binary_occ_grid,
-    res,
-    ros_publisher: "rp.RosPublisher",
+    cell_size,
+    ros_publisher: t.Optional["rp.RosPublisher"] = None,
     neighborhood=utils.TAXI_NEIGHBORHOOD,
     skeleton_function=skeleteton_social_cost_function_02,
     decay_function=exp_decay_function,
@@ -303,7 +304,7 @@ def compute_social_costmap(
     skeleton_values = []
     for i in range(skeleton_cells_nb):
         x, y = skeleton_cells_xy[0][i], skeleton_cells_xy[1][i]
-        value = skeleton_function(distance_transformed_grid[x][y], res)
+        value = skeleton_function(distance_transformed_grid[x][y], cell_size)
         if value != -1.0:
             skeleton_cell_set.add((x, y))
             final_array[x][y] = value
@@ -323,10 +324,11 @@ def compute_social_costmap(
         decay_factor = adaptive_lambda(
             min(skeleton_values),
             max(skeleton_values),
-            distance_transformed_grid.max() * res,
+            distance_transformed_grid.max() * cell_size,
         )
 
-    ros_publisher.publish_social_grid_map(final_array, res, ns=ns)
+    if ros_publisher:
+        ros_publisher.publish_social_grid_map(final_array, cell_size, ns=ns)
     # time.sleep(3.0)
 
     cur_set = skeleton_cell_set
@@ -382,7 +384,8 @@ def compute_social_costmap(
         prev_set = cur_set
         cur_set = next_set
 
-        ros_publisher.publish_social_grid_map(final_array, res, ns=ns)
+        if ros_publisher:
+            ros_publisher.publish_social_grid_map(final_array, cell_size, ns=ns)
 
     # prev_set = skeleton_cell_set
     # cur_set = utils.get_set_neighbors_no_coll(skeleton_cell_set, binary_occ_grid, neighborhood)
@@ -425,10 +428,10 @@ class SocialTopologicalOccupationCostGrid:
         occupation_grid,
         d_width,
         d_height,
-        res,
+        cell_size,
         grid_pose,
         inflation_radius,
-        ros_publisher: "rp.RosPublisher",
+        ros_publisher: t.Optional["rp.RosPublisher"] = None,
         skeleton_function=skeleteton_social_cost_function,
         decay_function=exp_decay_function,
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -436,7 +439,7 @@ class SocialTopologicalOccupationCostGrid:
     ):
         self.occupation_grid = occupation_grid
         self.d_width, self.d_height = d_width, d_height
-        self.res = res
+        self.cell_size = cell_size
         self.grid_pose = grid_pose
         self.inflation_radius = inflation_radius
         self.skeleton_function = skeleton_function
@@ -451,7 +454,7 @@ class SocialTopologicalOccupationCostGrid:
     def from_binary_occ_grid(
         cls,
         binary_occ_grid,
-        ros_publisher: "rp.RosPublisher",
+        ros_publisher: t.Optional["rp.RosPublisher"] = None,
         skeleton_function=skeleteton_social_cost_function,
         decay_function=exp_decay_function,
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
@@ -461,7 +464,7 @@ class SocialTopologicalOccupationCostGrid:
             binary_occ_grid.get_grid(),
             binary_occ_grid.d_width,
             binary_occ_grid.d_height,
-            binary_occ_grid.res,
+            binary_occ_grid.cell_size,
             binary_occ_grid.grid_pose,
             binary_occ_grid.inflation_radius,
             ros_publisher=ros_publisher,
@@ -471,18 +474,10 @@ class SocialTopologicalOccupationCostGrid:
             ns="",
         )
 
-    # @classmethod
-    # def from_world(cls, world, entities_to_ignore, skeleton_function=skeleteton_social_cost_function,
-    #                decay_function=exp_decay_function, neighborhood=utils.CHESSBOARD_NEIGHBORHOOD):
-    #     occ_grid = BinaryOccupancyGrid(
-    #         world.discretization_data.d_width, world.discretization_data.d_height, world.discretization_data.res, world.discretization_data.grid_pose,
-    #         world.discretization_data.inflation_radius, world.entities, entities_to_ignore=entities_to_ignore)
-    #
-
     def _update_grid(self):
         self._grid = compute_social_costmap(
             binary_occ_grid=self.occupation_grid,
-            res=self.res,
+            cell_size=self.cell_size,
             ros_publisher=self.ros_publisher,
             ns=self.ns,
         )

@@ -5,22 +5,23 @@ from collections import OrderedDict
 
 from shapely import Polygon
 
+from namosim import svg_styles
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.navigation_plan as navp
+from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 import namosim.world.world as w
 from namosim.algorithms import graph_search
-from namosim.data_models import UID, PoseModel
+from namosim.data_models import AgentBehaviorConfig, PoseModel
 from namosim.input import Input
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import Action
 from namosim.navigation.conflict import Conflict
 from namosim.navigation.navigation_path import TransitPath
 from namosim.utils import utils
-from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
-from namosim.world.entity import Entity, Movability, Style
-from namosim.world.sensors.g_fov_sensor import GFOVSensor
+from namosim.world import goal
+from namosim.world.entity import Entity, Movability
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
-from namosim.world.sensors.s_fov_sensor import SFOVSensor
+import numpy as np
 
 
 class ThinkResult:
@@ -31,7 +32,7 @@ class ThinkResult:
         goal_pose: PoseModel | None,
         did_replan: bool,
         did_postpone: bool = False,
-        robot_name: str,
+        robot_id: str,
         conflicts: t.Optional[t.List[Conflict]] = None,
     ) -> None:
         self.next_action = next_action
@@ -40,103 +41,114 @@ class ThinkResult:
         """
         self.did_replan = did_replan
         self.did_postpone = did_postpone
-        self.robot_name = robot_name
+        self.robot_id = robot_id
         self.conflicts = conflicts if conflicts else []
+
+
+class RLThinkResult(ThinkResult):
+    def __init__(
+        self,
+        *,
+        next_action: Action | None,
+        goal_pose: PoseModel | None,
+        did_replan: bool,
+        did_postpone: bool = False,
+        robot_id: str,
+        conflicts: t.Optional[t.List[Conflict]] = None,
+        log_prob: float = 0.0,
+        action_idx: int = 0,
+    ):
+        super().__init__(
+            next_action=next_action,
+            goal_pose=goal_pose,
+            did_replan=did_replan,
+            did_postpone=did_postpone,
+            robot_id=robot_id,
+            conflicts=conflicts,
+        )
+        self.log_prob = log_prob
+        self.action_idx = action_idx
 
 
 class Agent(Entity):
     def __init__(
         self,
         *,
-        behavior_type: str,
-        navigation_goals: t.List[PoseModel],
+        config: AgentBehaviorConfig,
+        navigation_goals: t.List[goal.Goal],
         logs_dir: str,
-        name: str,
+        uid: str,
         full_geometry_acquired: bool,
         polygon: Polygon,
         pose: PoseModel,
-        sensors: t.List[OmniscientSensor | GFOVSensor | SFOVSensor],
-        style: Style,
+        sensors: t.List[OmniscientSensor],
         cell_size: float,
         movability: Movability = Movability.UNKNOWN,
         logger: utils.CustomLogger,
-        uid: UID = 0,
+        style: svg_styles.AgentStyle | None = None,
     ):
+        self.agent_style = style if style else svg_styles.AgentStyle()
         super().__init__(
-            name=name,
             polygon=polygon,
             pose=pose,
             full_geometry_acquired=full_geometry_acquired,
             movability=movability,
             uid=uid,
-            style=style,
             type_="robot",
         )
-
-        self.behavior_type = behavior_type
-
+        self.config = config
         self.sensors = sensors
         for sensor in sensors:
             sensor.parent_uid = self.uid
-
         self.min_inflation_radius = self.compute_inflation_radius()
         self.logger = logger
-        self.__world: t.Optional["w.World"] = None
+        self._world: t.Optional["w.World"] = None
         self._navigation_goals = navigation_goals
-
-        self.num_navigation_goals = len(navigation_goals)
-        """
-        The number of navigation goals the agent started with
-        """
 
         self.logs_dir = logs_dir
 
         self.__last_action_result: ActionResult | None = None
 
-        self._prev_goal: PoseModel | None = (
+        self._prev_goal: goal.Goal | None = (
             None  # used to check if the goal has changed
         )
-        self.__q_goal: PoseModel | None = None
+        self.__goal: goal.Goal | None = None
 
-        self._prev_plan: t.Optional[
-            "navp.Plan"
-        ] = None  # used to check if a plan has changed
+        self._prev_plan: t.Optional["navp.Plan"] = (
+            None  # used to check if a plan has changed
+        )
         self.__p_opt: t.Optional["navp.Plan"] = None
 
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
 
-        self.goal_to_plans: OrderedDict[PoseModel, "navp.Plan"] = OrderedDict()
+        self.goal_to_plans: OrderedDict[goal.Goal, "navp.Plan"] = OrderedDict()
         self.is_initialized = False
         self.cell_size = cell_size
-        self.grab_and_release_distance = max(
-            utils.SQRT_OF_2 * cell_size + 1e-6,
-            0.5 * self.circumscribed_radius,
-        )
-        """The robot will move backwards by this amount when it releases an object. The robot
-        must be within this distance from a movable obstacle to grab it.
-        This distance must be larger than the cell size otherwise the robot
-        may still be colliding when it releases an obstacle.
+        """The robot must at this distance from an obstacle to grab it.
         """
 
     def copy(self) -> "Agent":
         return Agent(
-            behavior_type=self.behavior_type,
+            config=self.config,
             navigation_goals=copy.deepcopy(self._navigation_goals),
             logs_dir=self.logs_dir,
-            name=self.name,
+            uid=self.uid,
             full_geometry_acquired=self.full_geometry_acquired,
             polygon=copy.deepcopy(self.polygon),
             pose=self.pose,
             sensors=copy.deepcopy(self.sensors),
-            style=copy.deepcopy(self.style),
+            style=copy.deepcopy(self.agent_style),
             cell_size=copy.deepcopy(self.cell_size),
             movability=self.movability,
             logger=self.logger,
-            uid=self.uid,
         )
 
+    def set_navigation_goals(self, goals: t.List[goal.Goal]):
+        self._navigation_goals = goals
+        self._goal = None
+
     def init(self, world: "w.World") -> None:
-        self.__world = world.light_copy([])
+        self._world = world.light_copy([])
         self.is_initialized = True
 
     def sense(
@@ -152,23 +164,28 @@ class Agent(Entity):
 
     @abc.abstractmethod
     def think(
-        self, ros_publisher: "rp.RosPublisher", input: t.Optional[Input] = None
+        self,
+        ros_publisher: t.Optional["rp.RosPublisher"] = None,
+        input: t.Optional[Input] = None,
     ) -> ThinkResult:
         raise NotImplementedError
 
     def skip_current_goal(self):
         """Resets the agent's current goal to None. This will cause the agent to move on to the next goal on the next think step."""
-        self._q_goal = None
+        self._goal = None
         self._p_opt = None
 
-    @property
-    def _q_goal(self):
-        return self.__q_goal
+    def get_current_goal(self):
+        return self._goal
 
-    @_q_goal.setter
-    def _q_goal(self, _q_goal: PoseModel | None):
-        self._prev_goal = self.__q_goal
-        self.__q_goal = _q_goal
+    @property
+    def _goal(self):
+        return self.__goal
+
+    @_goal.setter
+    def _goal(self, _goal: goal.Goal | None):
+        self._prev_goal = self.__goal
+        self.__goal = _goal
 
     @property
     def _p_opt(self):
@@ -189,18 +206,20 @@ class Agent(Entity):
 
     @property
     def world(self):
-        if not self.__world:
+        if not self._world:
             raise Exception("Not initialized")
 
-        return self.__world
+        return self._world
 
     @property
     def goal_pose(self):
-        return self._q_goal
+        if self._goal is None:
+            return None
+        return self._goal.pose
 
-    def get_current_or_next_goal(self) -> PoseModel | None:
-        if self._q_goal:
-            return self._q_goal
+    def get_current_or_next_goal(self) -> goal.Goal | None:
+        if self._goal:
+            return self._goal
         if len(self._navigation_goals) > 0:
             return self._navigation_goals[0]
 
@@ -208,7 +227,7 @@ class Agent(Entity):
         return self.__p_opt
 
     def has_goal_changed(self):
-        return self._prev_goal != self.__q_goal
+        return self._prev_goal != self.__goal
 
     def is_goal_reached(
         self,
@@ -219,9 +238,9 @@ class Agent(Entity):
     ):
         return all(
             [
-                utils.is_close(q_t[0], q_f[0], rel_tol=pos_tol),
-                utils.is_close(q_t[1], q_f[1], rel_tol=pos_tol),
-                utils.angle_is_close(q_t[2], q_f[2], rel_tol=ang_tol),
+                utils.is_close(q_t[0], q_f[0], abs_tol=pos_tol),
+                utils.is_close(q_t[1], q_f[1], abs_tol=pos_tol),
+                utils.angle_is_close(q_t[2], q_f[2], abs_tol=ang_tol),
             ]
         )
 
@@ -229,7 +248,7 @@ class Agent(Entity):
         self,
         robot_pose: PoseModel,
         goal_pose: PoseModel,
-        robot_inflated_grid: BinaryInflatedOccupancyGrid,
+        robot_inflated_grid: BinaryOccupancyGrid,
         robot_polygon: Polygon,
     ) -> TransitPath | None:
         real_path = graph_search.real_to_grid_search_a_star(
@@ -255,9 +274,9 @@ class Agent(Entity):
     def update_world_from_sensors(
         self, reference_world: "w.World", target_world: "w.World"
     ):
-        added_uids: set[UID] = set()
-        updated_uids: set[UID] = set()
-        removed_uids: set[UID] = set()
+        added_entities: set[str] = set()
+        updated_entities: set[str] = set()
+        removed_entities: set[str] = set()
 
         for sensor in self.sensors:
             s_uids_to_add, s_uids_to_update, s_uids_to_remove = sensor.update_from_fov(
@@ -265,11 +284,11 @@ class Agent(Entity):
             )  # type: ignore
 
             # Might need a better update policy if sensors disagree about what happened, but irrelevant for now
-            added_uids.update(s_uids_to_add)
-            updated_uids.update(s_uids_to_update)
-            removed_uids.update(s_uids_to_remove)
+            added_entities.update(s_uids_to_add)
+            updated_entities.update(s_uids_to_update)
+            removed_entities.update(s_uids_to_remove)
 
-        return added_uids, updated_uids, removed_uids
+        return added_entities, updated_entities, removed_entities
 
     def deduce_movability(self, obstacle_type: str):
         if obstacle_type == "unknown" or obstacle_type == "robot":
@@ -280,3 +299,16 @@ class Agent(Entity):
 
     def compute_inflation_radius(self) -> float:
         return utils.get_circumscribed_radius(self.polygon)
+
+    def add_nav_goal(self, g: goal.Goal):
+        self._navigation_goals.append(g)
+
+    def get_orientation_polygon(self):
+        radius = utils.get_inscribed_radius(self.polygon)
+        point_a = np.array([self.pose[0], self.pose[1]])
+        direction = np.array(utils.direction_from_yaw(self.pose[2]))
+        point_b = point_a + direction * radius
+        orientation_polygon = utils.path_to_polygon(
+            points=[point_a, point_b], line_width=radius / 4
+        )
+        return orientation_polygon

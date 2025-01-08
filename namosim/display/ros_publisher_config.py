@@ -7,6 +7,7 @@ sim_costmap_topic = "/costmap"
 sim_social_costmap_topic = "/social_costmap"
 sim_connected_components_topic = "/connected_components"
 sim_latest_message_topic = "/messages"
+obstacles_topic = "/namo/obstacles"
 
 # Robot topics names (without namespace)
 robot_goal_topic = "/goal"
@@ -23,7 +24,7 @@ plan_topic = "/plan"
 swept_area_topic = "/swept_area"
 conflict_horizon_topic = "/conflict_horizon"
 conflicts_check_topic = "/conflicts_check"
-
+manip_search_topic = "/manip_search"
 default_queue_size = 100
 
 # HACK: Necessary because ROS1 pub/sub system is not reliable : wait (time in seconds) for subscribers to listen

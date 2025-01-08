@@ -1,4 +1,4 @@
-# NAMOSIM
+# NAMO Planner
 
 A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable Obstacles.
 
@@ -6,9 +6,17 @@ A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable O
 
 ## System Requirements
 
-- Python >=3.10,<3.13
-- ROS2 (we have tested ros-iron but others may work too)
+- Python 3.10
+- ROS2 (we have tested ros-humble but others may work too)
 - RVIZ2
+
+You might also need the following apt packages
+```
+sudo apt install python3-tk
+sudo apt install libcairo2-dev
+sudo apt install libopencv-dev
+sudo apt install ros-humble-grid-map
+```
 
 ## Quickstart
 
@@ -28,13 +36,6 @@ poetry shell
 ```
 
 You should be all set to start.
-
-### Install ROS packages
-
-```
-sudo apt update
-sudo apt install ros-iron-grid-map
-```
 
 ## Examples
 

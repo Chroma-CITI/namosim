@@ -1,5 +1,5 @@
 default:
-  image: osrf/ros:iron-desktop-full
+  image: osrf/ros:humble-desktop-full
   tags:
     - ci.inria.fr
     - large
@@ -13,7 +13,7 @@ build-and-test-job:
   stage: build-and-test
   script:
     - apt-get update -y
-    - apt-get install -y swig curl ros-iron-tf2 ros-iron-grid-map
+    - apt-get install -y swig curl ros-humble-tf2 ros-humble-grid-map
     - curl -sSL https://install.python-poetry.org | python3 -
     - export PATH="/root/.local/bin:$PATH"
     - poetry install
@@ -25,7 +25,7 @@ pages:
   stage: build-and-test
   script:
     - apt-get update -y
-    - apt-get install -y swig curl ros-iron-tf2 ros-iron-grid-map
+    - apt-get install -y swig curl ros-humble-tf2 ros-humble-grid-map
     - curl -sSL https://install.python-poetry.org | python3 -
     - export PATH="/root/.local/bin:$PATH"
     - poetry install

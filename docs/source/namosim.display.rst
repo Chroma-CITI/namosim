@@ -28,6 +28,14 @@ namosim.display.ros2\_publisher module
    :undoc-members:
    :show-inheritance:
 
+namosim.display.ros\_nodes module
+---------------------------------
+
+.. automodule:: namosim.display.ros_nodes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 namosim.display.ros\_publisher\_config module
 ---------------------------------------------
 

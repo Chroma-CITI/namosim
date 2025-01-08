@@ -9,10 +9,10 @@ from namosim.world.entity import Movability, Style
 from namosim.world.obstacle import Obstacle
 
 
-class TransitPathFromPoses(unittest.TestCase):
-    def setUp(self):
+class TestTransitPathFromPoses:
+    def setup_method(self):
         self.simple_square = Obstacle(
-            name="simple_square",
+            uid="simple_square",
             polygon=Polygon([(-1, -1), (-1, 1), (1, 1), (1, -1)]),
             pose=(0.0, 0.0, 0.0),
             full_geometry_acquired=True,

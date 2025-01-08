@@ -25,8 +25,8 @@ class ArcBoundingBoxParams:
         return f"{self.point_a} - {self.rot_angle} - {self.center}"
 
 
-class CollisionTest(unittest.TestCase):
-    def setUp(self):
+class TestCollision:
+    def setup_method(self):
         self.nb_places = 7
         self.display = False
 

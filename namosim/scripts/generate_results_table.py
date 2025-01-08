@@ -1,6 +1,7 @@
 """
 This is an ad-hoc script to compare and visualize namo simulation results
 """
+
 import csv
 import glob
 import json

@@ -5,7 +5,7 @@ import numpy as np
 from shapely import Polygon, affinity
 from shapely.geometry import LineString, Point
 
-from namosim.data_models import UID, PoseModel
+from namosim.data_models import PoseModel
 
 
 class AbsoluteAction(ABC):
@@ -95,6 +95,17 @@ class AbsoluteRotation(AbsoluteAction):
             ),
         )
         return (rotated.x, rotated.y)
+
+    def predict_pose(self, pose: PoseModel) -> PoseModel:
+        new_point = affinity.rotate(
+            geom=Point((pose[0], pose[1])),
+            angle=self.angle,
+            origin=self.center,  # type: ignore
+            use_radians=False,
+        ).coords[0]
+        orientation = (pose[2] + self.angle) % 360.0
+        orientation = orientation if orientation >= 0.0 else orientation + 360.0
+        return (new_point[0], new_point[1], orientation)
 
 
 class Rotation(RelativeAction):
@@ -201,19 +212,18 @@ class Advance(RelativeAction):
 
 
 class Grab(Advance):
-    def __init__(self, distance: float, entity_uid: UID):
-        Advance.__init__(self, distance)
+    def __init__(self, entity_uid: str, distance: float = 0.0):
+        Advance.__init__(self, distance=distance)
         self.entity_uid = entity_uid
 
     def __str__(self):
-        return f"Grab(distance={self.distance})"
+        return f"Grab(entity={self.entity_uid})"
 
 
 class Release(Advance):
-    def __init__(self, distance: float, entity_uid: UID):
-        Advance.__init__(self, distance)
+    def __init__(self, entity_uid: str, distance: float):
+        Advance.__init__(self, distance=distance)
         self.entity_uid = entity_uid
 
     def __str__(self):
-        return f"Release(distance={self.distance})"
-        return f"Release(distance={self.distance})"
+        return f"Release(entity={self.entity_uid}, distance={self.distance})"

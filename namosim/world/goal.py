@@ -1,24 +1,37 @@
+import typing as t
+
 from shapely import Polygon
 
-from namosim.data_models import UID, PoseModel
+from namosim import svg_styles
+from namosim.data_models import PoseModel
 
 
 class Goal:
-    last_id = 1
-
     def __init__(
         self,
-        name: str,
+        uid: str,
         polygon: Polygon,
         pose: PoseModel,
-        uid: UID = 0,
+        svg_style: svg_styles.AgentStyle | None = None,
     ):
-        if uid == 0:
-            self.uid = Goal.last_id
-            Goal.last_id = Goal.last_id + 1
-        else:
-            self.uid = uid
-
-        self.name = name
-        self.polygon = polygon
+        self.uid = uid
         self.pose = pose
+        self.polygon = polygon
+        if svg_style:
+            self.svg_style = svg_style
+        else:
+            self.svg_style = svg_styles.AgentStyle(
+                shape=svg_styles.DEFAULT_GOAL_SHAPE_STYLE,
+                orientation=svg_styles.DEFAULT_GOAL_ORIENTATION_STYLE,
+            )
+
+    def __key(self):
+        return self.pose
+
+    def __hash__(self):
+        return hash(self.__key())
+
+    def __eq__(self, other: t.Any):
+        if isinstance(other, Goal):
+            return self.__key() == other.__key()
+        return NotImplemented

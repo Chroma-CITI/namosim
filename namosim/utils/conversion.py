@@ -10,15 +10,6 @@ from svgpath2mpl import parse_path
 
 SVG_PATH_ATTRIBUTES_WHITELIST = ["id", "d", "style", "type"]
 
-OBSTACE_TRACE_STYLE = "fill:#000000;fill-opacity:0.05231688;fill-rule:evenodd;stroke:#f1c232;stroke-width:1;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
-UNKNOWN_ENTITY_STYLE = "fill:#674ea7;fill-rule:evenodd"
-MOVABLE_ENTITY_STYLE = "fill:#f1c232;fill-rule:evenodd"
-FIXED_ENTITY_STYLE = "fill:#000000;fill-rule:evenodd"
-ROBOT_ENTITY_STYLE = "fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-opacity:1"
-ORIENTATION_STYLE = "fill:#1155cc;stroke:none;"
-GOAL_STYLE = "fill:none;stroke:#1155cc;stroke-width:10.35194016;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-POSE_STYLE = "fill:none;stroke:#1155cc;stroke-width:3.5999999;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-
 
 def add_group(svg_data, group_id, parent=None, is_layer=True):
     new_group = svg_data.createElement("svg:g")
@@ -34,23 +25,18 @@ def add_group(svg_data, group_id, parent=None, is_layer=True):
 
 
 def add_shapely_geometry_to_svg(
-    shapely_geometry,
-    uname,
-    style,
-    svg_data,
-    svg_group=None,
-    scale=1.0,
-    map_width=None,
-    map_height=None,
+    *,
+    shape: Polygon | LineString | Point,
+    uid: str,
+    style: str,
+    svg_data: minidom.Document,
+    ymax_meters: float,
+    svg_group: minidom.Element | None = None,
     namo_type: str | None = None,
 ):
-    if map_width and map_height:
-        shapely_geometry = affinity.translate(
-            shapely_geometry, map_width / 2.0, -map_height / 2.0
-        )  # TODO Take rotation into account
-    pathd = shapely_geometry_to_svg_pathd(shapely_geometry, scale)
+    pathd = shapely_geometry_to_svg_pathd(shape=shape, ymax_meters=ymax_meters)
     new_path = svg_data.createElement("svg:path")
-    new_path.setAttribute("id", uname)
+    new_path.setAttribute("id", uid)
     new_path.setAttribute("d", pathd)
     new_path.setAttribute("style", style)
     if namo_type:
@@ -63,18 +49,22 @@ def add_shapely_geometry_to_svg(
 
 
 def svg_pathd_to_shapely_geometry(
-    svg_path: str, scaling_value: float = 1.0, precision: float = 1e9
+    *,
+    svg_path: str,
+    ymax_meters: float,
+    precision: float = 1e9,
+    scale: float = 1 / 100,  # cm to meters
 ) -> t.Union[Polygon, LineString, Point]:
     parse_result = parse_path(svg_path)
-    geom_pts: npt.NDArray[np.float_] = (
-        t.cast(npt.NDArray[np.float_], parse_result.vertices) * scaling_value
+    coords: npt.NDArray[np.float_] = (
+        t.cast(npt.NDArray[np.float_], parse_result.vertices) * scale
     )
-    geom_pts[:, 1] = -geom_pts[:, 1]  # type: ignore # Mirror
+    coords[:, 1] = ymax_meters - coords[:, 1]
 
     # Remove duplicates
     pts_set: t.Set[t.Tuple[float, float]] = set()
     dedup_geom_pts: t.List[t.Tuple[float, float]] = []
-    for pt in geom_pts:
+    for pt in coords:
         pt_tuple = (round(pt[0] * precision), round(pt[1] * precision))
         if pt_tuple not in pts_set:
             pts_set.add(pt_tuple)
@@ -91,33 +81,32 @@ def svg_pathd_to_shapely_geometry(
 
 
 def shapely_geometry_to_svg_pathd(
-    shapely_geometry: Polygon, scaling_value: float = 1.0
+    *, shape: Polygon | LineString | Point, ymax_meters: float
 ):
     coords: npt.NDArray[t.Any]
 
     # Extract polygon coordinates
-    if isinstance(shapely_geometry, Polygon):
-        coords = np.array(shapely_geometry.exterior.coords)
-    elif isinstance(shapely_geometry, Point) or isinstance(
-        shapely_geometry, LineString
-    ):
-        coords = np.array(shapely_geometry.coords)
+    if isinstance(shape, Polygon):
+        coords = np.array(shape.exterior.coords)
+    elif isinstance(shape, Point) or isinstance(shape, LineString):
+        coords = np.array(shape.coords)
     else:
         raise TypeError(
             "Only shapely Point, LineString and Polygon objects can be turned into svg."
         )
-    coords /= scaling_value  # Scale them back to appropriate SVG measurements
-    coords[:, 1] = -coords[:, 1]  # Mirror back on y-axis
+    coords[:, 1] = ymax_meters - coords[:, 1]
+    coords *= 100  # meters to cm
+
     # Rebuild polygon
-    if isinstance(shapely_geometry, Polygon):
+    if isinstance(shape, Polygon):
         new_geometry = Polygon(coords)
         return minidom.parseString(new_geometry.svg()).documentElement.getAttribute("d")
-    if isinstance(shapely_geometry, LineString):
+    if isinstance(shape, LineString):
         new_geometry = LineString(coords)
         return polyline2pathd(
             dom2dict(minidom.parseString(new_geometry.svg()).firstChild)
         )
-    if isinstance(shapely_geometry, Point):
+    if isinstance(shape, Point):
         new_geometry = Point(coords)
         return ellipse2pathd(
             dom2dict(minidom.parseString(new_geometry.svg()).firstChild)

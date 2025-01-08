@@ -1,94 +1,150 @@
 import copy
+import io
+import math
 import os
+import random
 import typing as t
 from xml.dom import minidom
 
+import cairosvg
 import numpy as np
-import shapely.affinity as affinity
 from bidict import bidict
-from shapely.geometry import LineString, Polygon, box
+from PIL import Image
+from shapely import Point
+from shapely.geometry import LineString, Polygon
 from typing_extensions import Self
 
+from namosim import svg_styles
 import namosim.agents as agts
+import namosim.navigation.action_result as ar
+import namosim.navigation.basic_actions as ba
+from namosim.svg_styles import AgentStyle
 import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
-from namosim.data_models import UID, NamosimConfigModel, PoseModel
+from namosim import agents
+from namosim.data_models import (
+    NamoAgentYamlModel,
+    NamoConfigYamlModel,
+    NamoConfigModel,
+    PoseModel,
+    StilmanBehaviorConfigModel,
+    StilmanBehaviorParametersModel,
+)
 from namosim.utils import collision
-from namosim.world.discretization_data import DiscretizationData
+from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.entity import Entity, Movability, Style
 from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
+from namosim.data_models import namo_config_from_yaml
 
 
 class World:
     def __init__(
         self,
         *,
-        discretization_data: DiscretizationData,
-        config: NamosimConfigModel,
-        entities: t.Optional[t.Dict[UID, Entity]] = None,
-        agents: t.Optional[t.Dict[UID, "agts.Agent"]] = None,
-        entity_to_agent: t.Optional[bidict[UID, UID]] = None,
-        goals: t.Optional[t.Dict[UID, Goal]] = None,
-        init_geometry_filename: str = "world_name_placeholder.svg",
+        map: BinaryOccupancyGrid,
+        agents: t.Optional[t.Dict[str, "agts.Agent"]] = None,
+        dynamic_entities: t.Optional[t.Dict[str, Entity]] = None,
+        entity_to_agent: t.Optional[bidict[str, str]] = None,
+        goals: t.Optional[t.Dict[str, Goal]] = None,
         init_geometry_file: t.Optional[minidom.Document] = None,
-        logger: utils.CustomLogger,
+        logger: utils.CustomLogger | None = None,
+        svg_config: NamoConfigModel | None = None,
+        generate_report: bool = True,
+        random_seed: int = 0,
     ):
-        self.config = config
-        self.entities = entities or dict()
-        self.agents: t.Dict[UID, "agts.Agent"] = agents if agents else {}
+        self.svg_config = svg_config
+        self.dynamic_entities = dynamic_entities or dict()
+        self.map = map
+        self.agents: t.Dict[str, "agts.Agent"] = agents if agents else {}
         self.entity_to_agent = entity_to_agent or bidict()
-        self.discretization_data = discretization_data
-        self.agent_configs = ({x.agent_id: x for x in config.agents},)
         self.init_geometry_file = init_geometry_file
+        self.generate_report = generate_report
+        self.random_seed = random_seed
         if init_geometry_file:
             conversion.set_all_id_attributes_as_ids(init_geometry_file)
             conversion.clean_attributes(init_geometry_file)
-        self.init_geometry_filename = init_geometry_filename
         self.init_geometry_file = init_geometry_file
-        self.goals: t.Dict[UID, Goal] = goals or dict()
-        self.logger = logger
+        self._goals: t.Dict[str, Goal] = goals if goals else dict()
+        self._goal_pose_to_goal: t.Dict[PoseModel, Goal] = {}
+        for goal in self._goals.values():
+            self._goal_pose_to_goal[goal.pose] = goal
+
+        if logger is None:
+            self.logger = utils.CustomLogger()
+        else:
+            self.logger = logger
+
+    def get_goals(self):
+        return self._goals
+
+    def add_goal(self, goal: Goal):
+        self._goals[goal.uid] = goal
+        self._goal_pose_to_goal[goal.pose] = goal
+
+    def add_agent(self, agent: "agents.Agent"):
+        self.agents[agent.uid] = agent
+        self.add_entity(agent)
+
+    def get_dynamic_occupancy_grid(
+        self, inflation_radius: float = 0, ignored_entities: t.Set[str] | None = None
+    ) -> BinaryOccupancyGrid:
+        grid = copy.deepcopy(self.map)
+        if inflation_radius:
+            grid.inflate_map(inflation_radius)
+        if ignored_entities:
+            grid.update_polygons(removed_polygons=ignored_entities)
+        dynamic_polygons = {}
+        for entity in self.dynamic_entities.values():
+            dynamic_polygons[entity.uid] = entity.polygon
+        grid.update_polygons(dynamic_polygons)
+        return grid
 
     # Constructor
     @classmethod
     def load_from_svg(
-        cls, world_svg_path: str, logs_dir: str, logger: utils.CustomLogger
+        cls,
+        world_svg_path: str,
+        logs_dir: str = "namo_logs",
+        logger: utils.CustomLogger | None = None,
     ) -> Self:
+        if logger is None:
+            logger = utils.CustomLogger()
+
         # Import entire world from svg file
         svg_doc = minidom.parse(world_svg_path)
-        config = NamosimConfigModel.from_xml(
+        conversion.set_all_id_attributes_as_ids(svg_doc)
+        conversion.clean_attributes(svg_doc)
+        config = NamoConfigModel.from_xml(
             svg_doc.getElementsByTagName("namo_config")[0].toxml()
         )
-        svg_filename = os.path.basename(world_svg_path)
 
         if not svg_doc.documentElement.hasAttribute("viewBox"):
             raise Exception("svg has no viewBox attribute")
 
-        # Split the viewBox attribute into its components
+        # Split the viewbox attribute into its components
         viewbox_values = [
-            float(x) for x in svg_doc.documentElement.getAttribute("viewBox").split()
+            float(x) / 100
+            for x in svg_doc.documentElement.getAttribute("viewBox").split()
         ]
 
-        discretization_data = World.get_discretization_data(
-            min_x=viewbox_values[0],
-            min_y=viewbox_values[1],
-            max_x=viewbox_values[2],
-            max_y=viewbox_values[3],
-            config=config,
-        )
+        assert viewbox_values[0] == 0
+        assert viewbox_values[1] == 0
+        height = viewbox_values[3]
+        cell_size = config.cell_size_cm / 100
 
         svg_paths = {}
         for el in svg_doc.getElementsByTagNameNS("*", "path"):
             svg_paths[el.getAttribute("id")] = el.getAttribute("d")
 
-        shapely_geoms: t.Dict[str, t.Union[Polygon, LineString]] = dict()
+        shapes: t.Dict[str, Polygon] = dict()
 
         # Convert imported geometry to shapely polygons
         for svg_id, svg_path in svg_paths.items():
             try:
-                shapely_geoms[svg_id] = conversion.svg_pathd_to_shapely_geometry(
-                    svg_path, scaling_value=1.0
+                shapes[svg_id] = conversion.svg_pathd_to_shapely_geometry(  # type: ignore
+                    svg_path=svg_path, ymax_meters=height
                 )
             except RuntimeError:
                 raise RuntimeError(
@@ -97,43 +153,18 @@ class World:
                     )
                 )
 
-        # Center the imported geometries
-        bounding_box = box(
-            viewbox_values[0],
-            viewbox_values[1],
-            viewbox_values[2],
-            viewbox_values[3],
-        )
-        translation_to_center: t.List[float] = [
-            bounding_box.centroid.coords[0][0],
-            bounding_box.centroid.coords[0][1],
-        ]
-        for svg_id, polygon in shapely_geoms.items():
-            shapely_geoms[svg_id] = t.cast(
-                Polygon | LineString,
-                affinity.translate(
-                    polygon, -translation_to_center[0], translation_to_center[1]
-                ),
-            )
+        static_obstacles: t.Dict[str, Polygon] = {}
+        dynamic_entities: t.List[Entity] = []
 
-        world = cls(
-            init_geometry_filename=svg_filename,
-            init_geometry_file=svg_doc,
-            discretization_data=discretization_data,
-            config=config,
-            logger=logger,
-        )
-
-        # Get all things
+        # Get static and movable obstacles
         for el in svg_doc.getElementsByTagName("*"):
             id = el.getAttribute("id")
             type_ = el.getAttribute("type")
-
             if not id:
                 continue
 
             if el.tagName in ["svg:path", "path"] and type_ == "movable":
-                polygon = shapely_geoms[id]
+                polygon = shapes[id]
                 style = Style.from_string(el.getAttribute("style"))
                 pose = (
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
@@ -142,150 +173,141 @@ class World:
                 )
                 movable_box = Obstacle(
                     type_="movable",
-                    name=id,
+                    uid=id,
                     polygon=polygon,
                     pose=pose,
                     style=style,
                     movability=Movability.MOVABLE,
                     full_geometry_acquired=True,
                 )
-                world.add_entity(movable_box)
+                dynamic_entities.append(movable_box)
             if el.tagName in ["svg:path", "path"] and type_ == "wall":
-                polygon = shapely_geoms[id]
+                polygon = shapes[id]
                 style = Style.from_string(el.getAttribute("style"))
                 pose = (
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
                     t.cast(float, list(polygon.centroid.coords)[0][1]),
                     0.0,
                 )
-                wall = Obstacle(
-                    type_="wall",
-                    name=id,
-                    polygon=polygon,
-                    pose=pose,
-                    style=style,
-                    movability=Movability.STATIC,
-                    full_geometry_acquired=True,
-                )
-                world.add_entity(wall)
+                static_obstacles[id] = polygon
 
+        goals: t.List[Goal] = []
+        agents: t.List["agts.Agent"] = []
+
+        # get agents
         for agent in config.agents:
             el = svg_doc.getElementById(agent.agent_id)
             if not el:
                 raise Exception(f"Robot {agent.agent_id} not found in svg")
 
-            robot_polygon: Polygon | None = None
-            direction_polygon: Polygon | None = None
-            robot_style: str = ""
-            robot_pose = [
-                0.0,
-                0.0,
-                0.0,
-            ]
-            for sub_el in el.getElementsByTagNameNS("*", "path"):
-                sub_id = sub_el.getAttribute("id")
-                if sub_el.getAttribute("type") == "shape":
-                    robot_style = sub_el.getAttribute("style")
-                    robot_polygon = shapely_geoms[sub_id]
-                elif sub_el.getAttribute("type") == "orientation":
-                    direction_polygon = shapely_geoms[sub_id]
-                    theta = get_orientation(direction_polygon)
-                    robot_pose[2] = theta
+            if not el.tagName in ["path", "svg:path"]:
+                raise Exception(
+                    f"Robot {agent.agent_id} svg element is not a path element"
+                )
 
-            if not robot_polygon:
-                raise Exception("No robot shape polygon was found")
+            robot_shape_style = el.getAttribute("style")
+            robot_polygon = shapes[agent.agent_id]
+            robot_angle = 0
+            if el.hasAttribute("angle"):
+                robot_angle = float(el.getAttribute("angle"))
 
-            robot_pose[0] = t.cast(float, list(robot_polygon.centroid.coords)[0][0])
-            robot_pose[1] = t.cast(float, list(robot_polygon.centroid.coords)[0][1])
+            agent_style = AgentStyle(
+                shape=robot_shape_style,
+                orientation="",
+            )
 
-            goal_poses: t.List[PoseModel] = []
+            init_pose = (
+                t.cast(float, list(robot_polygon.centroid.coords)[0][0]),
+                t.cast(float, list(robot_polygon.centroid.coords)[0][1]),
+                robot_angle,
+            )
+
+            # make robot polygon a perfect circle
+            robot_radius = utils.get_circumscribed_radius(robot_polygon)
+            robot_polygon = Point(init_pose[0], init_pose[1]).buffer(robot_radius)
+
             for goal in agent.goals:
                 goal_el = svg_doc.getElementById(goal.goal_id)
                 if not goal_el:
                     raise Exception(f"Goal {goal.goal_id} not found in svg")
-
-                goal_polygon: Polygon | None = None
-                direction_polygon: Polygon | None = None
-                goal_pose = [
-                    0.0,
-                    0.0,
-                    0.0,
-                ]
-                for sub_el in goal_el.getElementsByTagNameNS("*", "path"):
-                    sub_id = sub_el.getAttribute("id")
-                    if sub_el.getAttribute("type") == "shape":
-                        goal_polygon = shapely_geoms[sub_id]
-                    elif sub_el.getAttribute("type") == "orientation":
-                        theta = get_orientation(shapely_geoms[sub_id])
-                        goal_pose[2] = theta
-
-                if not goal_polygon:
+                if not goal_el.tagName in ["path", "svg:path"]:
                     raise Exception(
-                        f"No goal_shape polygon was found for goal {goal.goal_id}"
+                        f"Goal {goal.goal_id} svg element is not a path element"
                     )
 
-                goal_pose[0] = t.cast(float, list(goal_polygon.centroid.coords)[0][0])
-                goal_pose[1] = t.cast(float, list(goal_polygon.centroid.coords)[0][1])
+                goal_style = goal_el.getAttribute("style")
+                goal_polygon = shapes[goal.goal_id]
+                goal_angle = 0
+                if goal_el.hasAttribute("angle"):
+                    goal_angle = float(goal_el.getAttribute("angle"))
+
+                goal_pose = (
+                    t.cast(float, list(goal_polygon.centroid.coords)[0][0]),
+                    t.cast(float, list(goal_polygon.centroid.coords)[0][1]),
+                    goal_angle,
+                )
                 goal = Goal(
-                    name=goal.goal_id,
+                    uid=goal.goal_id,
                     polygon=goal_polygon,
                     pose=tuple(goal_pose),  # type: ignore
+                    svg_style=AgentStyle(shape=goal_style, orientation=""),
                 )
-                world.goals[goal.uid] = goal
-                goal_poses.append((goal_pose[0], goal_pose[1], goal_pose[2]))
+                goals.append(goal)
 
             if agent.behavior.type == "stilman_2005_behavior":
                 new_robot = agts.Stilman2005Agent(
-                    navigation_goals=goal_poses,
-                    params=agent.behavior.parameters,
+                    navigation_goals=goals,
+                    config=agent.behavior,
                     logs_dir=logs_dir,
                     full_geometry_acquired=True,
-                    name=agent.agent_id,
+                    uid=agent.agent_id,
                     polygon=robot_polygon,
-                    style=Style.from_string(robot_style),
-                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    style=agent_style,
+                    pose=init_pose,
                     sensors=[OmniscientSensor()],
-                    cell_size=config.cell_size,
+                    cell_size=cell_size,
                     logger=logger,
                 )
             elif agent.behavior.type == "navigation_only_behavior":
                 new_robot = agts.NavigationOnlyAgent(
-                    navigation_goals=goal_poses,
+                    navigation_goals=goals,
+                    config=agent.behavior,
                     logs_dir=logs_dir,
                     full_geometry_acquired=True,
-                    name=agent.agent_id,
+                    uid=agent.agent_id,
                     polygon=robot_polygon,
-                    style=Style.from_string(robot_style),
-                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    style=agent_style,
+                    pose=init_pose,
                     sensors=[OmniscientSensor()],
-                    cell_size=config.cell_size,
-                    logger=logger,
-                )
-            elif agent.behavior.type == "stilman_only_behavior":
-                new_robot = agts.StilmanOnlyAgent(
-                    navigation_goals=goal_poses,
-                    params=agent.behavior.parameters,
-                    logs_dir=logs_dir,
-                    full_geometry_acquired=True,
-                    name=agent.agent_id,
-                    polygon=robot_polygon,
-                    style=Style.from_string(robot_style),
-                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
-                    sensors=[OmniscientSensor()],
-                    cell_size=config.cell_size,
+                    cell_size=cell_size,
                     logger=logger,
                 )
             elif agent.behavior.type == "teleop_behavior":
                 new_robot = agts.TeleopAgent(
-                    navigation_goals=goal_poses,
+                    navigation_goals=goals,
+                    config=agent.behavior,
                     logs_dir=logs_dir,
                     full_geometry_acquired=True,
-                    name=agent.agent_id,
+                    uid=agent.agent_id,
                     polygon=robot_polygon,
-                    style=Style.from_string(robot_style),
-                    pose=(robot_pose[0], robot_pose[1], robot_pose[2]),
+                    style=agent_style,
+                    pose=init_pose,
                     sensors=[OmniscientSensor()],
-                    cell_size=config.cell_size,
+                    cell_size=cell_size,
+                    logger=logger,
+                )
+            elif agent.behavior.type == "ppo_agent":
+                new_robot = agts.PPOAgent(
+                    navigation_goals=goals,
+                    config=agent.behavior,
+                    logs_dir=logs_dir,
+                    full_geometry_acquired=True,
+                    uid=agent.agent_id,
+                    polygon=robot_polygon,
+                    style=agent_style,
+                    pose=init_pose,
+                    sensors=[OmniscientSensor()],
+                    cell_size=cell_size,
                     logger=logger,
                 )
             else:
@@ -297,193 +319,254 @@ class World:
                     )
                 )
 
-            world.add_entity(new_robot)
-            world.agents[new_robot.uid] = new_robot
+            agents.append(new_robot)
 
         goals_node = svg_doc.getElementById("goals")
         if goals_node:
             goals_node.parentNode.removeChild(goals_node)
 
-        for agent in world.agents.values():
+        map = BinaryOccupancyGrid(
+            static_polygons=list(static_obstacles.values()),
+            cell_size=config.cell_size_cm / 100,
+            width=viewbox_values[2],
+            height=viewbox_values[3],
+        )
+        world = cls(
+            init_geometry_file=svg_doc,
+            logger=logger,
+            map=map,
+            random_seed=config.random_seed,
+            generate_report=config.generate_report,
+            svg_config=config,
+        )
+
+        for movable in dynamic_entities:
+            world.add_entity(movable)
+
+        for agent in agents:
+            world.add_agent(agent)
+
+        for agent in agents:
             agent.init(world)
 
         return world
 
-    def to_svg(self) -> minidom.Document:
+    def get_empty_svg_doc(self, ignore_config: bool = False):
+
+        doc = minidom.Document()
+        svg = doc.createElement("svg")
+        svg.setAttribute("xmlns", "http://www.w3.org/2000/svg")
+        svg.setAttribute("xmlns:svg", "http://www.w3.org/2000/svg")
+        width = self.map.width * 100
+        height = self.map.height * 100
+        svg.setAttribute("width", str(int(width)))
+        svg.setAttribute("height", str(int(height)))
+
+        if ignore_config is False:
+            if not self.svg_config:
+                raise Exception("World has no svg config")
+            config = minidom.parseString(self.svg_config.to_xml()).documentElement
+            svg.appendChild(config)
+        doc.appendChild(svg)
+        return doc
+
+    def to_svg(self, ignore_config: bool = False) -> minidom.Document:
         if self.init_geometry_file:
-            svg_data: minidom.Document = minidom.parseString(
-                self.init_geometry_file.toxml()
-            )
+            svg_data = minidom.parseString(self.init_geometry_file.toxml())
+        else:
+            svg_data = self.get_empty_svg_doc(ignore_config=True)
 
-            # clear geometries
-            els_to_del = list(svg_data.getElementsByTagNameNS("*", "path"))
-            for el in els_to_del:
-                if el.parentNode:
-                    el.parentNode.removeChild(el)
+        # clear geometries
+        els_to_del = list(svg_data.getElementsByTagNameNS("*", "path"))
+        for el in els_to_del:
+            if el.parentNode:
+                el.parentNode.removeChild(el)
 
-            current_geometries_names_to_ids = {
-                entity.name: uid for uid, entity in self.entities.items()
-            }
-            # The 4 following lines are a hack to compensate for the fact the geometries are not associated with entity
-            # for uid, entity in self.entities.items():
-            #     if isinstance(entity, Robot):
-            #         current_geometries_names_to_ids[entity.name + "_shape"] = uid
-            #         current_geometries_names_to_ids[entity.name + "_direction"] = uid
-            current_geometries_names = set(current_geometries_names_to_ids.keys())
-
-            for geometry_name in current_geometries_names:
-                entity = self.entities[current_geometries_names_to_ids[geometry_name]]
-                if isinstance(entity, Obstacle):
-                    if entity.movability in [Movability.STATIC, Movability.UNMOVABLE]:
-                        style = conversion.FIXED_ENTITY_STYLE
-                    elif entity.movability == Movability.MOVABLE:
-                        style = conversion.MOVABLE_ENTITY_STYLE
-                    elif entity.movability == Movability.UNKNOWN:
-                        style = conversion.UNKNOWN_ENTITY_STYLE
-                    else:
-                        raise NotImplementedError(
-                            "Can only export new obstacles entities that have a 'movability' attribute of "
-                            "value ['static', 'unmovable', 'movable', 'unknown'], got {}.".format(
-                                entity.movability
-                            )
+        for entity in self.dynamic_entities.values():
+            if isinstance(entity, Obstacle):
+                if entity.movability in [Movability.STATIC, Movability.UNMOVABLE]:
+                    style = svg_styles.FIXED_ENTITY_STYLE
+                elif entity.movability == Movability.MOVABLE:
+                    style = svg_styles.DEFAULT_MOVABLE_ENTITY_STYLE
+                elif entity.movability == Movability.UNKNOWN:
+                    style = svg_styles.UNKNOWN_ENTITY_STYLE
+                else:
+                    raise NotImplementedError(
+                        "Can only export new obstacles entities that have a 'movability' attribute of "
+                        "value ['static', 'unmovable', 'movable', 'unknown'], got {}.".format(
+                            entity.movability
                         )
-                    conversion.add_shapely_geometry_to_svg(
-                        entity.polygon,
-                        entity.name,
-                        style,
-                        svg_data,
-                        map_width=self.discretization_data.width,
-                        map_height=self.discretization_data.height,
                     )
-                elif isinstance(entity, agts.Agent):
-                    robot_group = conversion.add_group(
-                        svg_data, entity.name, is_layer=False
-                    )
+                conversion.add_shapely_geometry_to_svg(
+                    shape=entity.polygon,
+                    uid=entity.uid,
+                    style=style,
+                    svg_data=svg_data,
+                    ymax_meters=self.map.height,
+                )
+            elif isinstance(entity, agts.Agent):
+                robot_group = conversion.add_group(svg_data, entity.uid, is_layer=False)
+                # Add robot shape
+                conversion.add_shapely_geometry_to_svg(
+                    shape=entity.polygon,
+                    uid=entity.uid + "_shape",
+                    style=entity.agent_style.shape,
+                    svg_data=svg_data,
+                    svg_group=robot_group,
+                    ymax_meters=self.map.height,
+                )
+                # Add robot direction shape
+                orientation_polygon = entity.get_orientation_polygon()
+                conversion.add_shapely_geometry_to_svg(
+                    shape=orientation_polygon,
+                    uid=entity.uid + "_direction",
+                    style=entity.agent_style.orientation,
+                    svg_data=svg_data,
+                    svg_group=robot_group,
+                    ymax_meters=self.map.height,
+                )
+
+                # # add agent goal
+                # goal = entity.get_current_goal()
+                # if goal and not ignore_goal:
+                #     goal_group = conversion.add_group(svg_data, "goal", is_layer=False)
+                #     # Add robot shape
+                #     conversion.add_shapely_geometry_to_svg(
+                #         goal.polygon,
+                #         goal.uid + "_shape",
+                #         goal.style.to_string(),
+                #         svg_data,
+                #         goal_group,
+                #     )
+                #     # Add robot direction shape
+                #     radius = utils.get_inscribed_radius(goal.polygon)
+                #     point_a = np.array([goal.pose[0], goal.pose[1]])
+                #     direction = np.array(utils.direction_from_yaw(goal.pose[2]))
+                #     point_b = point_a + direction * radius
+
+                #     poly = utils.path_to_polygon(
+                #         points=[point_a, point_b], line_width=radius / 4
+                #     )
+                #     conversion.add_shapely_geometry_to_svg(
+                #         shapely_geometry=poly,
+                #         uid=goal.uid + "_dir",
+                #         style=conversion.ORIENTATION_STYLE,
+                #         svg_data=svg_data,
+                #         svg_group=goal_group,
+                #     )
+
+                # add agent goal
+                goal = entity.get_current_goal()
+                if goal:
+                    goal_group = conversion.add_group(svg_data, "goal", is_layer=False)
                     # Add robot shape
+                    polygon = Point(goal.pose[0], goal.pose[1]).buffer(
+                        entity.circumscribed_radius
+                    )
                     conversion.add_shapely_geometry_to_svg(
-                        entity.polygon,
-                        entity.name + "_shape",
-                        conversion.ROBOT_ENTITY_STYLE,
-                        svg_data,
-                        robot_group,
-                        map_width=self.discretization_data.width,
-                        map_height=self.discretization_data.height,
+                        shape=polygon,
+                        uid=goal.uid + "_shape",
+                        style=svg_styles.DEFAULT_GOAL_SHAPE_STYLE,
+                        svg_data=svg_data,
+                        svg_group=goal_group,
+                        ymax_meters=self.map.height,
                     )
                     # Add robot direction shape
                     radius = utils.get_inscribed_radius(entity.polygon)
-                    point_a = np.array([entity.pose[0], entity.pose[1]])
-                    direction = np.array(utils.direction_from_yaw(entity.pose[2]))
+                    point_a = np.array([goal.pose[0], goal.pose[1]])
+                    direction = np.array(utils.direction_from_yaw(goal.pose[2]))
                     point_b = point_a + direction * radius
-
                     poly = utils.path_to_polygon(
                         points=[point_a, point_b], line_width=radius / 4
                     )
                     conversion.add_shapely_geometry_to_svg(
-                        shapely_geometry=poly,
-                        uname=entity.name + "_direction",
-                        style=conversion.ORIENTATION_STYLE,
+                        shape=poly,
+                        uid=goal.uid + "_direction",
+                        style=goal.svg_style.orientation,
                         svg_data=svg_data,
-                        svg_group=robot_group,
-                        map_width=self.discretization_data.width,
-                        map_height=self.discretization_data.height,
+                        svg_group=goal_group,
+                        ymax_meters=self.map.height,
                     )
-                else:
-                    raise NotImplementedError(
-                        "Only entities of class [Robot, Obstacle] can be created in SVG file for now."
-                    )  # TODO Add creation of new SVG goals
-        else:
-            raise NotImplementedError(
-                "TODO : use bootstrap SVG data to build new SVG file from scratch"
-            )
+            else:
+                raise NotImplementedError(
+                    "Only entities of class [Robot, Obstacle] can be created in SVG file for now."
+                )  # TODO Add creation of new SVG goals
+
         return svg_data
 
-    def add_entity(self, new_entity: t.Any):
-        # for obj in self.entities.values():
-        #     is_within = new_entity.within(obj)
-        #     if is_within:
-        #         raise EntityPlacementException("Entity {} would be within entity {}. Cannot load world.".format(
-        #             new_entity.name, obj.name))
-        self.entities[new_entity.uid] = new_entity
+    def to_image(
+        self, grayscale: bool = False, width: int = 100, ignore_goal: bool = False
+    ) -> Image.Image:
 
-    def remove_entity(self, entity_uid: UID):
-        if entity_uid in self.entities:
-            del self.entities[entity_uid]
+        svg = self.to_svg(ignore_config=True).toprettyxml()
+        image_data = cairosvg.svg2png(
+            svg, dpi=300, output_width=width, background_color="white"
+        )
+
+        if not image_data:
+            raise Exception("Failed to convert world to image")
+
+        image = Image.open(io.BytesIO(image_data))
+        background = self.map.to_image()
+        background = background.resize(image.size, resample=Image.Resampling.NEAREST)
+
+        image = image.convert("RGBA")
+        background = background.convert("RGBA")
+        image.alpha_composite(background)
+
+        if grayscale:
+            image = image.convert("L")
+
+        return image
+
+    def to_numpy_array(self, grayscale: bool = False):
+        img = self.to_image(grayscale=grayscale)
+        arr = np.array(img, dtype=np.float32)
+        arr /= 255.0
+        return arr
+
+    def add_entity(self, new_entity: t.Any):
+        self.dynamic_entities[new_entity.uid] = new_entity
+
+    def remove_entity(self, entity_uid: str):
+        if entity_uid in self.dynamic_entities:
+            del self.dynamic_entities[entity_uid]
         if entity_uid in self.agents:
             del self.agents[entity_uid]
         if entity_uid in self.entity_to_agent:
             del self.entity_to_agent[entity_uid]
 
-    @staticmethod
-    def get_discretization_data(
-        min_x: float,
-        min_y: float,
-        max_x: float,
-        max_y: float,
-        config: NamosimConfigModel,
-    ) -> DiscretizationData:
-        width, height = max_x - min_x, max_y - min_y
-        grid_pose = (min_x, min_y, 0.0)
-        d_width = int(round(width / config.cell_size))
-        d_height = int(round(height / config.cell_size))
-
-        return DiscretizationData(
-            res=config.cell_size,
-            grid_pose=grid_pose,
-            width=width,
-            height=height,
-            d_width=d_width,
-            d_height=d_height,
-        )
-
-    # TO DEPRECATE
-    def get_entity_uid_from_name(self, name: str) -> UID:
-        for entity_uid, entity in self.entities.items():
-            if entity.name == name:
-                return entity_uid
-        raise LookupError(
-            "Could not find an entity in this world with name : {name}.".format(
-                name=name
-            )
-        )
-
-    def light_copy(self, ignored_entities: t.Iterable[UID]):
-        entity_to_agent: bidict[UID, UID] = bidict()
-        for e, a in self.entity_to_agent.items():
-            if a not in ignored_entities and e not in ignored_entities:
-                entity_to_agent[e] = a
-        entities = {}
+    def light_copy(self, ignored_entities: t.Iterable[str]):
+        dynamic_entities = {}
         agents = {}
-        for uid, e in self.entities.items():
+        for uid, x in self.dynamic_entities.items():
             if uid in ignored_entities:
                 continue
 
-            e = e.copy()
-            entities[uid] = e
-            if isinstance(e, agts.Agent):
-                agents[uid] = e
+            x = x.copy()
+            dynamic_entities[x.uid] = x
+            if isinstance(x, agts.Agent):
+                agents[x.uid] = x
 
         return World(
-            config=self.config,
-            entities=entities,
+            dynamic_entities=dynamic_entities,
             agents=agents,
-            entity_to_agent=entity_to_agent,
-            discretization_data=copy.deepcopy(self.discretization_data),
-            goals=copy.deepcopy(self.goals),
-            init_geometry_filename=self.init_geometry_filename,
-            init_geometry_file=self.init_geometry_file,
+            goals=copy.deepcopy(self._goals),
             logger=self.logger,
+            map=self.map,
+            random_seed=self.random_seed,
+            generate_report=self.generate_report,
+            svg_config=self.svg_config,
         )
 
-    def set_entity_polygon(self, id: int, polygon: Polygon):
-        self.entities[id].polygon = polygon
+    def set_entity_polygon(self, id: str, polygon: Polygon):
+        self.dynamic_entities[id].polygon = polygon
 
     def save_to_files(
         self,
-        svg_filepath: t.Optional[str] = None,
+        svg_filepath: str,
         svg_data: t.Optional[t.Any] = None,
     ):
-        svg_filepath = svg_filepath or "./" + self.init_geometry_filename
-
         # Generate SVG data
         if not svg_data:
             svg_data = self.to_svg()
@@ -493,25 +576,21 @@ class World:
             svg_data.writexml(f)
 
     def get_map_bounds(self):
-        return (
-            0,
-            0,
-            self.discretization_data.width,
-            self.discretization_data.height,
-        )
+        return self.map.get_bounds()
 
-    def is_holding_obstacle(self, agent_id: UID) -> bool:
+    def is_holding_obstacle(self, agent_id: str) -> bool:
         return agent_id in self.entity_to_agent.inverse
 
-    def get_robot_conflict_radius(self, robot_id: UID, obstacle_id: UID | None = None):
+    def get_robot_conflict_radius(
+        self,
+        robot_id: str,
+        grab_release_distance: float,
+        obstacle_id: str | None = None,
+    ):
         robot = self.agents[robot_id]
         center = robot.polygon.centroid
-        radius_for_move = (
-            robot.circumscribed_radius + utils.SQRT_OF_2 * self.config.cell_size
-        )
-        radius_for_grab_or_release = (
-            robot.circumscribed_radius + robot.grab_and_release_distance
-        )
+        radius_for_move = robot.circumscribed_radius + 2 * self.map.cell_size
+        radius_for_grab_or_release = robot.circumscribed_radius + grab_release_distance
 
         conflict_radius = radius_for_move
 
@@ -519,54 +598,401 @@ class World:
             obstacle_id = self.entity_to_agent.inverse[robot.uid]
 
         if obstacle_id is not None:
-            obstacle = self.entities[obstacle_id]
+            obstacle = self.dynamic_entities[obstacle_id]
             conflict_radius = (
-                center.hausdorff_distance(obstacle.polygon)
-                + utils.SQRT_OF_2 * self.config.cell_size
+                center.hausdorff_distance(obstacle.polygon) + 2 * self.map.cell_size
             )
 
             # Account for possible release
             conflict_radius = max(conflict_radius, radius_for_grab_or_release)
         else:
             # Enlarge radius to account for possible grabs
-            for uid, obstacle in self.entities.items():
+            for uid, obstacle in self.dynamic_entities.items():
                 if (
                     isinstance(obstacle, Obstacle)
                     and uid not in self.entity_to_agent
                     and obstacle.movability == Movability.MOVABLE
                 ):
                     if obstacle.polygon.buffer(
-                        robot.grab_and_release_distance,
+                        robot.cell_size,
                         join_style="mitre",
                     ).intersects(robot.polygon):
                         conflict_radius = radius_for_grab_or_release
                         break
         return conflict_radius
 
-    def get_polygon_collisions(self, uid: UID, others: t.Iterable[UID]) -> t.Any:
-        other_polygons = {uid: self.entities[uid].polygon for uid in others}
+    def get_polygon_collisions(self, uid: str, others: t.Iterable[str]) -> t.Any:
+        other_polygons = {uid: self.dynamic_entities[uid].polygon for uid in others}
         others_aabb_tree = collision.polygons_to_aabb_tree(other_polygons)
-        collisions, _ = collision.check_static_collision(
-            main_uid=uid,
-            polygon=self.entities[uid].polygon,
-            other_entities_polygons=other_polygons,
-            aabb_tree=others_aabb_tree,
+        collisions = collision.get_collisions_for_entity(
+            entity_polygon=self.dynamic_entities[uid].polygon,
+            other_entity_polygons=other_polygons,
+            other_entities_aabb_tree=others_aabb_tree,
         )
         return collisions
 
-    def get_movable_obstacles(self) -> t.List[Entity]:
+    def get_movable_obstacles(self) -> t.List[Obstacle]:
         result = []
-        for e in self.entities.values():
-            if e.movability == Movability.MOVABLE:
+        for e in self.dynamic_entities.values():
+            if isinstance(e, Obstacle) and e.movability == Movability.MOVABLE:
                 result.append(e)
         return result
 
+    def get_all_obstacles(self) -> t.List[Obstacle]:
+        result = []
+        for e in self.dynamic_entities.values():
+            if isinstance(e, Obstacle):
+                result.append(e)
+        return result
 
-def get_orientation(geom: (Polygon | LineString)) -> float:
-    orientation_geom: t.List[t.List[float]] = list(geom.coords)  # type: ignore
-    orientation_vector = (
-        orientation_geom[1][0] - orientation_geom[0][0],
-        orientation_geom[1][1] - orientation_geom[0][1],
-    )
-    theta = utils.yaw_from_direction(orientation_vector)
-    return theta
+    def get_agent_held_obstacle(self, agent_id: str) -> Entity | None:
+        eid = self.entity_to_agent.inverse.get(agent_id, None)
+        if eid:
+            return self.dynamic_entities[eid]
+
+    def step(
+        self,
+        actions: t.Dict[str, ba.Action],
+        step_count: int,
+        ignore_collisions: bool = False,
+    ) -> t.Dict[str, ar.ActionResult]:
+        results: t.Dict[str, ar.ActionResult] = {}
+
+        actions_to_collision_check = {}
+        grabs: t.Dict[str, t.Set[str]] = {}  # maps entity -> grabbing agents
+
+        for agent_id, action in actions.items():
+            if isinstance(
+                action, (ba.Wait, ba.GoalSuccess, ba.GoalFailed, ba.GoalsFinished)
+            ):
+                results[agent_id] = ar.ActionSuccess(action, self.agents[agent_id].pose)
+            elif isinstance(action, ba.Release):
+                # check if release is valid
+                entity_uid = action.entity_uid
+                if entity_uid not in self.entity_to_agent:
+                    results[agent_id] = ar.NotGrabbedFailure(action)
+                elif self.entity_to_agent[entity_uid] != agent_id:
+                    results[agent_id] = ar.GrabbedByOtherFailure(
+                        action, self.entity_to_agent[entity_uid]
+                    )
+                else:
+                    actions_to_collision_check[agent_id] = action
+            elif isinstance(action, ba.Grab):
+                if action.entity_uid in grabs:
+                    grabs[action.entity_uid].add(agent_id)
+                else:
+                    grabs[action.entity_uid] = set([agent_id])
+            else:
+                actions_to_collision_check[agent_id] = action
+
+        # check for simultaneous grabs
+        for agent_ids in grabs.values():
+            if len(agent_ids) > 1:
+                for agent_id in agent_ids:
+                    other_agent_ids = agent_ids.copy()
+                    other_agent_ids.remove(agent_id)
+                    results[agent_id] = ar.SimultaneousGrabFailure(
+                        actions[agent_id], other_agent_ids
+                    )
+            else:
+                agent_id = list(agent_ids)[0]
+                action = actions[agent_id]
+                actions_to_collision_check[agent_id] = action
+
+        # Check actions regarding dynamic collisions and apply the valid ones
+        collides_with = collision.csv_simulate_simple_kinematics(
+            world=self,
+            agent_actions=actions_to_collision_check,
+            apply=True,
+            ignore_collisions=ignore_collisions,
+        )
+
+        # Finish separating succeeded and failed actions, and apply result to world state on success
+        for agent_id, action in actions_to_collision_check.items():
+            agent_obstacle = self.get_agent_held_obstacle(agent_id)
+            agent_obstacle_id = agent_obstacle.uid if agent_obstacle else None
+            agent_in_collision_with: t.Set[str] = set()
+            if agent_id in collides_with:
+                if isinstance(action, ba.Grab):
+                    if (
+                        len(collides_with[agent_id]) > 1
+                        or action.entity_uid not in collides_with[agent_id]
+                    ):
+                        agent_in_collision_with = collides_with[agent_id]
+                else:
+                    agent_in_collision_with = collides_with[agent_id]
+            elif agent_obstacle_id is not None and agent_obstacle_id in collides_with:
+                if not isinstance(action, ba.Release):
+                    agent_in_collision_with = collides_with[agent_obstacle_id]
+
+            if len(agent_in_collision_with) > 0 and not ignore_collisions:
+                results[agent_id] = ar.DynamicCollisionFailure(
+                    action, agent_in_collision_with
+                )
+            else:
+                if len(agent_in_collision_with) > 1 and ignore_collisions:
+                    self.logger.append(
+                        utils.BasicLog(
+                            "Dynamic collision ignored, entities: {}".format(
+                                {
+                                    self.dynamic_entities[uid].uid: {
+                                        self.dynamic_entities[uid2].uid for uid2 in uids
+                                    }
+                                    for uid, uids in collides_with.items()
+                                }
+                            ),
+                            step=step_count,
+                        )
+                    )
+
+                # SUCCESS
+                # If Grab or Release, first update entity_to_agent
+                if isinstance(action, ba.Grab):
+                    self.entity_to_agent[action.entity_uid] = agent_id
+                if isinstance(action, ba.Release):
+                    del self.entity_to_agent[action.entity_uid]
+
+                results[agent_id] = ar.ActionSuccess(
+                    action=action,
+                    robot_pose=self.dynamic_entities[agent_id].pose,
+                    is_transfer=agent_id in self.entity_to_agent.inverse,
+                    obstacle_uid=self.entity_to_agent.inverse.get(agent_id, None),
+                )
+
+        return results
+
+    @classmethod
+    def load_movables(
+        cls, map: BinaryOccupancyGrid, config: NamoConfigYamlModel, config_dir: str
+    ) -> t.List[Obstacle]:
+        if config.svg_file is None:
+            return []
+
+        svg_path = os.path.join(config_dir, config.svg_file)
+
+        # Import entire world from svg file
+        svg_doc = minidom.parse(svg_path)
+        conversion.set_all_id_attributes_as_ids(svg_doc)
+        conversion.clean_attributes(svg_doc)
+
+        bounds = map.get_bounds()
+        height = bounds[3]
+
+        obtacles: t.List[Obstacle] = []
+
+        movables_layer = svg_doc.getElementById("movables_layer")
+        if movables_layer is None:
+            return []
+
+        for el in movables_layer.getElementsByTagNameNS("*", "path"):
+            path_id = el.getAttribute("id")
+            path_data = el.getAttribute("d")
+            try:
+                polygon: Polygon = conversion.svg_pathd_to_shapely_geometry(  # type: ignore
+                    svg_path=path_data, ymax_meters=height, scale=map.cell_size
+                )
+                style = Style.from_string(el.getAttribute("style"))
+                pose = (
+                    t.cast(float, list(polygon.centroid.coords)[0][0]),
+                    t.cast(float, list(polygon.centroid.coords)[0][1]),
+                    0.0,
+                )
+                movable = Obstacle(
+                    type_="movable",
+                    uid=path_id,
+                    polygon=polygon,
+                    pose=pose,
+                    style=style,
+                    movability=Movability.MOVABLE,
+                    full_geometry_acquired=True,
+                )
+                obtacles.append(movable)
+            except RuntimeError:
+                raise RuntimeError(
+                    "Could not convert svg path to shapely geometry for svg id: {}".format(
+                        path_id
+                    )
+                )
+
+        return obtacles
+
+    @classmethod
+    def load_goals(
+        cls,
+        map: BinaryOccupancyGrid,
+        config: NamoConfigYamlModel,
+        config_dir: str,
+        agents: t.Dict[str, "agts.Agent"],
+    ):
+        if config.svg_file is None:
+            return
+
+        svg_path = os.path.join(config_dir, config.svg_file)
+
+        # Import entire world from svg file
+        svg_doc = minidom.parse(svg_path)
+        conversion.set_all_id_attributes_as_ids(svg_doc)
+        # conversion.clean_attributes(svg_doc)
+
+        bounds = map.get_bounds()
+        height = bounds[3]
+
+        goals_layer = svg_doc.getElementById("goals_layer")
+        if goals_layer is None:
+            return
+
+        for el in goals_layer.getElementsByTagNameNS("*", "path"):
+            uid = el.getAttribute("id")
+            path_data = el.getAttribute("d")
+            agent_id = el.getAttribute("agent_id")
+            try:
+                polygon: Polygon = conversion.svg_pathd_to_shapely_geometry(  # type: ignore
+                    svg_path=path_data, ymax_meters=height, scale=map.cell_size
+                )
+                pose = (
+                    t.cast(float, list(polygon.centroid.coords)[0][0]),
+                    t.cast(float, list(polygon.centroid.coords)[0][1]),
+                    0.0,
+                )
+                goal_polygon = Point(pose[0], pose[1]).buffer(
+                    agents[agent_id].circumscribed_radius
+                )
+                goal = Goal(
+                    uid=uid,
+                    polygon=goal_polygon,
+                    pose=pose,
+                    svg_style=AgentStyle(
+                        svg_styles.DEFAULT_GOAL_SHAPE_STYLE,
+                        svg_styles.DEFAULT_GOAL_ORIENTATION_STYLE,
+                    ),
+                )
+                agents[agent_id].add_nav_goal(goal)
+            except RuntimeError:
+                raise RuntimeError(
+                    "Could not convert svg path to shapely geometry for svg id: {}".format(
+                        uid
+                    )
+                )
+
+    @classmethod
+    def load_agents(
+        cls,
+        map: BinaryOccupancyGrid,
+        config: NamoConfigYamlModel,
+        config_dir: str,
+        logs_dir: str,
+        logger: utils.CustomLogger,
+    ) -> t.List["agts.Agent"]:
+        if config.svg_file is None:
+            return []
+
+        svg_path = os.path.join(config_dir, config.svg_file)
+
+        # Import entire world from svg file
+        svg_doc = minidom.parse(svg_path)
+        conversion.set_all_id_attributes_as_ids(svg_doc)
+        bounds = map.get_bounds()
+        height = bounds[3]
+
+        agent_configs: t.Dict[str, NamoAgentYamlModel] = {
+            x.id: x for x in config.agents
+        }
+
+        agent_poses: t.Dict[str, PoseModel] = {}
+
+        robots_layer = svg_doc.getElementById("robots_layer")
+        if robots_layer:
+            for el in robots_layer.getElementsByTagNameNS("*", "path"):
+                uid = el.getAttribute("id")
+                path_data = el.getAttribute("d")
+                agent_id = el.getAttribute("agent_id")
+                try:
+                    agent_config = agent_configs[agent_id]
+                    polygon: Polygon = conversion.svg_pathd_to_shapely_geometry(  # type: ignore
+                        svg_path=path_data, ymax_meters=height, scale=map.cell_size
+                    )
+                    agent_poses[agent_id] = (
+                        t.cast(float, list(polygon.centroid.coords)[0][0]),
+                        t.cast(float, list(polygon.centroid.coords)[0][1]),
+                        0,
+                    )
+                except RuntimeError:
+                    raise RuntimeError(
+                        "Could not convert svg path to shapely geometry for svg id: {}".format(
+                            uid
+                        )
+                    )
+        agents: t.List["agts.Agent"] = []
+        for agent_config in config.agents:
+            pose: PoseModel = (0, 0, 0)
+            if agent_config.initial_pose:
+                pose = (
+                    agent_config.initial_pose[0],
+                    agent_config.initial_pose[1],
+                    agent_config.initial_pose[2],
+                )
+            elif agent_config.id in agent_poses:
+                pose = agent_poses[agent_config.id]
+            agent_polygon = Point(pose[0], pose[1]).buffer(agent_config.radius)
+            agent = agts.Stilman2005Agent(
+                navigation_goals=[],
+                config=StilmanBehaviorConfigModel(
+                    type="stilman_2005_behavior",
+                    parameters=StilmanBehaviorParametersModel(
+                        manipulation_search_procedure=(
+                            "BFS" if agent_config.push_only else "DFS"
+                        ),
+                        drive_type="differential",
+                        robot_rotation_unit_angle=10,
+                        push_only=agent_config.push_only,
+                        grab_release_distance=agent_config.grab_release_distance,
+                    ),
+                ),
+                logs_dir=logs_dir,
+                full_geometry_acquired=True,
+                uid=agent_config.id,
+                polygon=agent_polygon,
+                style=AgentStyle(),
+                pose=pose,
+                sensors=[OmniscientSensor()],
+                cell_size=map.cell_size,
+                logger=logger,
+            )
+            agents.append(agent)
+
+        return agents
+
+    @classmethod
+    def load_from_yaml(
+        cls,
+        yaml_file: str,
+        logs_dir: str = "namo_logs",
+        logger: utils.CustomLogger | None = None,
+    ) -> Self:
+
+        config = namo_config_from_yaml(yaml_file)
+        config_dir = os.path.dirname(yaml_file)
+        map_yaml_path = os.path.join(config_dir, config.map_yaml)
+        map = BinaryOccupancyGrid.load_from_yaml(map_yaml_path)
+        world = cls(map=map, logger=logger)
+
+        agents = World.load_agents(
+            map=map,
+            config=config,
+            config_dir=config_dir,
+            logs_dir=logs_dir,
+            logger=world.logger,
+        )
+        for agent in agents:
+            world.add_agent(agent)
+
+        movables = cls.load_movables(map, config, config_dir)
+        for mo in movables:
+            world.add_entity(mo)
+
+        cls.load_goals(map, config, config_dir, world.agents)
+
+        for agent in world.agents.values():
+            agent.init(world)
+
+        return world
