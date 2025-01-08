@@ -44,6 +44,14 @@ namosim.navigation.navigation\_plan module
    :undoc-members:
    :show-inheritance:
 
+namosim.navigation.path\_type module
+------------------------------------
+
+.. automodule:: namosim.navigation.path_type
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Module contents
 ---------------
 

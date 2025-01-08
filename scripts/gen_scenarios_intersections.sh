@@ -9,7 +9,7 @@ export NAMO_DEACTIVATE_RVIZ=TRUE
 
 scenario=intersections
 out=tests/experiments/scenarios/${scenario}/generated
-base_scenario="tests/experiments/scenarios/${scenario}/2_robots_50_goals_snamo.svg"
+base_scenario="tests/experiments/scenarios/${scenario}/${scenario}_base.svg"
 n_scenarios=20
 n_goals=50
 

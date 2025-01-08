@@ -5,116 +5,115 @@ from shapely.geometry import MultiPolygon, Point, Polygon
 
 import namosim.display.ros2_publisher as rp
 import namosim.utils.collision as collision
-from namosim.data_models import UID, PoseModel
+from namosim.data_models import PoseModel
 
 
 def check_new_local_opening(
-    init_entity_polygon: Polygon,
-    target_entity_polygon: Polygon,
-    other_entities_polygons: t.Dict[UID, Polygon],
+    old_osbtacle_polygon: Polygon,
+    new_obstacle_polygon: Polygon,
+    other_entities_polygons: t.Dict[str, Polygon],
     other_entities_aabb_tree: AABBTree,
-    inflation_radius: float,
+    robot_radius: float,
     goal_pose: PoseModel,
-    ros_publisher: "rp.RosPublisher",
-    init_blocking_areas: t.List[Polygon] | None = None,
-    init_entity_inflated_polygon: t.Optional[Polygon] = None,
+    ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ns: str = "",
-):
-    """Checks is a new local opening exists
+) -> bool:
+    """Checks if a new local opening exists
 
     TODO: Add more documentation for this complicated function.
     """
     # Build inflated polygons
-    if not init_entity_inflated_polygon:
-        init_entity_inflated_polygon = t.cast(
-            Polygon,
-            init_entity_polygon.buffer(2.0 * inflation_radius, join_style="mitre"),
-        )
-        if init_entity_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
-            # Exit early if goal in init_entity_inflated_polygon
-            return True, init_blocking_areas, init_entity_inflated_polygon
-    target_entity_inflated_polygon = target_entity_polygon.buffer(
-        2.0 * inflation_radius, join_style="mitre"
+    old_obstacle_inflated_polygon = t.cast(
+        Polygon,
+        old_osbtacle_polygon.buffer(2.0 * robot_radius, join_style="mitre"),
     )
-    target_entity_radius_inflated_polygon = target_entity_polygon.buffer(
-        inflation_radius, join_style="mitre"
+    if old_obstacle_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
+        # Exit early if goal in old_obstacle_inflated_polygon
+        return True
+
+    new_obtacle_inflated_by_robot_diameter = new_obstacle_polygon.buffer(
+        2.0 * robot_radius, join_style="mitre"
     )
-    if target_entity_radius_inflated_polygon.intersects(
+    new_obstacle_inflated_by_robot_radius = new_obstacle_polygon.buffer(
+        robot_radius, join_style="mitre"
+    )
+    if new_obstacle_inflated_by_robot_radius.intersects(
         Point(goal_pose[0], goal_pose[1])
     ):
-        return False, init_blocking_areas, init_entity_inflated_polygon
+        return False
 
-    ros_publisher.publish_diameter_inflated_polygons(
-        init_entity_inflated_polygon,
-        target_entity_inflated_polygon,
-        line_width=inflation_radius / 10,
-        ns=ns,
-    )
+    if ros_publisher:
+        ros_publisher.publish_diameter_inflated_polygons(
+            old_obstacle_inflated_polygon,
+            new_obtacle_inflated_by_robot_diameter,
+            line_width=robot_radius / 10,
+            ns=ns,
+        )
 
     # Build blocking areas
     # Note: Intersection geometry can be either Point, LineString or Polygon
-    if not init_blocking_areas:
-        init_blocking_areas = []
+    init_blocking_areas = []
 
-        init_entity_inflated_polygon_aabb = collision.polygon_to_aabb(
-            init_entity_inflated_polygon
-        )
-        potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
-            init_entity_inflated_polygon_aabb
-        )
-
-        for uid in potential_collision_polygons_uids:
-            intersection_geometry = init_entity_inflated_polygon.intersection(
-                other_entities_polygons[uid]
-            )
-            if not intersection_geometry.is_empty:
-                if isinstance(intersection_geometry, Polygon):
-                    init_blocking_areas.append(intersection_geometry)
-                elif isinstance(intersection_geometry, MultiPolygon):
-                    for sub_intersection_geometry in intersection_geometry.geoms:
-                        init_blocking_areas.append(sub_intersection_geometry)
-
-    # If there are no blocking areas to begin with, return True
-    if not init_blocking_areas:
-        return True, init_blocking_areas, init_entity_inflated_polygon
-
-    target_blocking_areas = []
-
-    target_entity_inflated_polygon_aabb = collision.polygon_to_aabb(
-        target_entity_inflated_polygon
+    init_entity_inflated_polygon_aabb = collision.polygon_to_aabb(
+        old_obstacle_inflated_polygon
     )
     potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
-        target_entity_inflated_polygon_aabb
+        init_entity_inflated_polygon_aabb
     )
 
     for uid in potential_collision_polygons_uids:
-        intersection_geometry = target_entity_inflated_polygon.intersection(
+        intersection_geometry = old_obstacle_inflated_polygon.intersection(
             other_entities_polygons[uid]
         )
         if not intersection_geometry.is_empty:
             if isinstance(intersection_geometry, Polygon):
-                target_blocking_areas.append(intersection_geometry)
+                init_blocking_areas.append(intersection_geometry)
             elif isinstance(intersection_geometry, MultiPolygon):
                 for sub_intersection_geometry in intersection_geometry.geoms:
-                    target_blocking_areas.append(sub_intersection_geometry)
+                    init_blocking_areas.append(sub_intersection_geometry)
 
-    ros_publisher.publish_blocking_areas(
-        init_blocking_areas, target_blocking_areas, ns=ns
+    # If there are no blocking areas to begin with, return True
+    if not init_blocking_areas:
+        return True
+
+    new_blocking_areas = []
+
+    new_entity_inflated_polygon_aabb = collision.polygon_to_aabb(
+        new_obtacle_inflated_by_robot_diameter
     )
+    potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
+        new_entity_inflated_polygon_aabb
+    )
+
+    for uid in potential_collision_polygons_uids:
+        intersection_geometry = new_obtacle_inflated_by_robot_diameter.intersection(
+            other_entities_polygons[uid]
+        )
+        if not intersection_geometry.is_empty:
+            if isinstance(intersection_geometry, Polygon):
+                new_blocking_areas.append(intersection_geometry)
+            elif isinstance(intersection_geometry, MultiPolygon):
+                for sub_intersection_geometry in intersection_geometry.geoms:
+                    new_blocking_areas.append(sub_intersection_geometry)
+
+    if ros_publisher:
+        ros_publisher.publish_blocking_areas(
+            init_blocking_areas, new_blocking_areas, ns=ns
+        )
 
     # Check if any blocking area has been freed thus a local opening has been created
     for init_blocking_area in init_blocking_areas:
-        if not check_still_blocked(init_blocking_area, target_blocking_areas):
-            return True, init_blocking_areas, init_entity_inflated_polygon
-    return False, init_blocking_areas, init_entity_inflated_polygon
+        if not check_still_blocked(init_blocking_area, new_blocking_areas):
+            return True
+    return False
 
 
 def check_still_blocked(
-    init_blocking_area: Polygon, target_blocking_areas: t.List[Polygon]
+    init_blocking_area: Polygon, new_blocking_areas: t.List[Polygon]
 ):
     try:
-        for target_blocking_area in target_blocking_areas:
-            if init_blocking_area.intersects(target_blocking_area):
+        for new_blocking_area in new_blocking_areas:
+            if init_blocking_area.intersects(new_blocking_area):
                 return True  # If area is still blocked, there is no local opening here
     except Exception:
         print(

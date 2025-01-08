@@ -123,3 +123,8 @@ generated/
 *.zip
 *.csv
 wandb
+*.pt
+*.stl
+*.mp4
+*.prof
+!tests/**/*.png

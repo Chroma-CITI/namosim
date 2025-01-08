@@ -253,6 +253,7 @@ def grid_get_neighbors_chessboard_check_diag_neighbors(
 
 
 def grid_search_a_star(
+    *,
     start: t.Any,
     goal: t.Any,
     grid: npt.NDArray[t.Any],
@@ -279,6 +280,7 @@ def grid_search_a_star(
                     width,
                     height,
                 )
+
         else:
 
             def grid_get_neighbors_instance(
@@ -314,9 +316,11 @@ def grid_search_a_star(
 
 def real_to_grid_search_a_star(start_pose, goal_pose, grid):
     start_cell = utils.real_to_grid(
-        start_pose[0], start_pose[1], grid.res, grid.grid_pose
+        start_pose[0], start_pose[1], grid.cell_size, grid.grid_pose
     )
-    goal_cell = utils.real_to_grid(goal_pose[0], goal_pose[1], grid.res, grid.grid_pose)
+    goal_cell = utils.real_to_grid(
+        goal_pose[0], goal_pose[1], grid.cell_size, grid.grid_pose
+    )
 
     if start_cell == goal_cell:
         return [start_pose, goal_pose]
@@ -328,19 +332,18 @@ def real_to_grid_search_a_star(start_pose, goal_pose, grid):
         return []
 
     path_found, last_cell, came_from, _, _, _ = grid_search_a_star(
-        start_cell,
-        goal_cell,
-        grid.grid,
-        grid.d_width,
-        grid.d_height,
-        grid.neighborhood,
+        start=start_cell,
+        goal=goal_cell,
+        grid=grid.grid,
+        width=grid.d_width,
+        height=grid.d_height,
         check_diag_neighbors=False,
     )
 
     if path_found:
         raw_path = reconstruct_path(came_from, last_cell)
         real_path = utils.grid_path_to_real_path(
-            raw_path, start_pose, goal_pose, grid.res, grid.grid_pose
+            raw_path, start_pose, goal_pose, grid.cell_size, grid.grid_pose
         )
         raw_path.append(
             raw_path[-1]
@@ -443,6 +446,7 @@ def grid_search_dijkstra(
                     width,
                     height,
                 )
+
         else:
 
             def grid_get_neighbors_instance(
@@ -507,6 +511,7 @@ def grid_search_closest_free_cell(
                     height,
                     check=(lambda x: x > 0),
                 )
+
         else:
 
             def grid_get_neighbors_instance(

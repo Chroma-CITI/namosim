@@ -1,264 +1,206 @@
 import math
+import os
 import typing as t
 
 import numpy as np
-from PIL import Image
-from shapely.geometry import Polygon
+import numpy.typing as npt
+import shapely
+import yaml
+from PIL import Image, ImageDraw
+from shapely import GeometryCollection, MultiPolygon, box
+from shapely.geometry import Polygon, box
+from typing_extensions import Self
 
-from namosim.data_models import UID, GridCellModel, GridCellSet, PoseModel
+from namosim.data_models import (
+    GridCellModel,
+    GridCellSet,
+    MapYamlConfigModel,
+    PoseModel,
+)
 from namosim.utils import utils
-
-
-class GridParams:
-    """
-    Represents the position of an entity on the grid, including its pose,
-    grid coordinates, real coordinates, and axis-aligned bounding box.
-    """
-
-    def __init__(
-        self,
-        pose: PoseModel,
-        d_width: int,
-        d_height: int,
-        r_width: float,
-        r_height: float,
-        aabb_polygon: Polygon,
-    ):
-        """
-        :param pose: The entity's pose in real coordinates
-        :type PoseModel
-
-        :param d_width: Grid-space width of the entity's bounding box
-        :type int
-
-        :param d_height: Grid-space height of the entity's bounding box
-        :type int
-
-        :param r_width: Real-space width of the entity's bounding box
-        :type float
-
-        :param r_height: Real-space height of the entity's bounding box
-        :type float
-
-        :param aabb_polygon: The entity's axis-aligned bounding box in real coordinates
-        :type Polygon
-
-        :return: A `GridParams` object
-        :rtype: GridParams
-        """
-        (
-            self.grid_pose,
-            self.d_width,
-            self.d_height,
-            self.r_width,
-            self.r_height,
-            self.aabb_polygon,
-        ) = (pose, d_width, d_height, r_width, r_height, aabb_polygon)
-
-    def __eq__(self, other: object):
-        if isinstance(other, GridParams):
-            return (
-                self.grid_pose,
-                self.d_width,
-                self.d_height,
-                self.r_width,
-                self.r_height,
-                self.aabb_polygon,
-            ) == (
-                other.grid_pose,
-                other.d_width,
-                other.d_height,
-                other.r_width,
-                other.r_height,
-                other.aabb_polygon,
-            )
-        return False
-
-    def all(self):
-        """_summary_
-
-        :return: _description_
-        :rtype: _type_
-        """
-        return (
-            self.grid_pose,
-            self.d_width,
-            self.d_height,
-            self.r_width,
-            self.r_height,
-            self.aabb_polygon,
-        )
-
-
-def grid_parameters(polygons: t.Iterable[Polygon], res: float):
-    min_x, min_y, max_x, max_y = utils.map_bounds(polygons)
-    d_width = math.ceil(abs(max_x - min_x) / res)
-    d_height = math.ceil(abs(max_y - min_y) / res)
-    max_x, max_y = min_x + d_width * res, min_y + d_height * res
-    real_width, real_height = d_width * res, d_height * res
-    real_pose = min_x, min_y, 0.0
-    aabb_polygon = Polygon(
-        [(min_x, min_y), (min_x, max_y), (max_x, max_y), (max_x, min_y)]
-    )
-    return GridParams(
-        pose=real_pose,
-        d_width=d_width,
-        d_height=d_height,
-        r_width=real_width,
-        r_height=real_height,
-        aabb_polygon=aabb_polygon,
-    )
+import cv2
 
 
 class BinaryOccupancyGrid:
     def __init__(
         self,
-        polygons: t.Dict[UID, Polygon],
-        res: float,
+        *,
+        cell_size: float,
+        width: float,
+        height: float,
+        grid: npt.NDArray[np.bool_] | None = None,
+        static_polygons: t.List[Polygon] | None = None,
+        inflation_radius: float = 0.0,
+        grid_pose: PoseModel = (0, 0, 0),
         neighborhood: t.Sequence[GridCellModel] = utils.CHESSBOARD_NEIGHBORHOOD,
-        params: GridParams | None = None,
-        fill: bool = True,
     ):
-        """_summary_
-
-        :param polygons: a dictionary mapping entity uids to polygons
-        :type polygons: t.Dict[UID, Polygon]
-        :param res: the grid resolution parameter
-        :type res: float
-        :param neighborhood: _description_, defaults to utils.CHESSBOARD_NEIGHBORHOOD
-        :type neighborhood: t.Sequence[GridCellModel] , optional
-        :param params: _description_, defaults to None
-        :type params: `GridParams`, optional
-        :param fill: whether to fill grid cells lying within polygons, defaults to True
-        :type fill: bool, optional
-        """
-        self.res = res
-
-        self.params = params if params else grid_parameters(polygons.values(), res)
-
-        (
-            self.grid_pose,
-            self.d_width,
-            self.d_height,
-            self.r_width,
-            self.r_height,
-            self.aabb_polygon,
-        ) = self.params.all()
-
+        self.cell_size = cell_size
+        self.width = width
+        self.height = height
+        self.d_width = math.ceil(width / cell_size)
+        self.d_height = math.ceil(height / cell_size)
+        self.inflation_radius = inflation_radius
+        self.grid_pose = grid_pose
         self.neighborhood = neighborhood
+        self.cell_sets: t.Dict[str, GridCellSet] = dict()
+        self.static_cells: GridCellSet = set()
+        self.deactivated_entities_cell_sets = {}
+        self.aabb_polygon = box(*self.get_bounds())
 
-        self.cells_sets: t.Dict[UID, GridCellSet] = dict()
-        self.grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
+        if grid is not None:
+            self.set_grid(grid)
+        else:
+            self.grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
 
-        self.deactivated_entities_cells_sets = {}
+        if static_polygons is not None:
+            self.reset_static_polygons(static_polygons=static_polygons)
 
-        self.update(new_or_updated_polygons=polygons, fill=fill)
+    def set_grid(self, grid: npt.NDArray[np.bool_]):
+        self.d_width = grid.shape[0]
+        self.d_height = grid.shape[1]
+        self.width = self.d_width * self.cell_size
+        self.height = self.d_height * self.cell_size
+        x_coords, y_coords = np.where(grid == True)
+        occupied_cells = set(zip(x_coords, y_coords))
+        self.static_cells = occupied_cells
+        self.grid = grid.astype(np.int16)
+
+    def inflate_map(self, radius: float):
+        assert len(self.cell_sets) == 0
+        assert len(self.deactivated_entities_cell_sets) == 0
+        assert self.inflation_radius == 0
+        self.inflation_radius = radius
+        self._dilate_grid(radius)
+        return self
 
     def get_bounds(self):
-        min_x = self.params.grid_pose[0]
-        min_y = self.params.grid_pose[1]
-        max_x = self.params.grid_pose[0] + self.params.r_width
-        max_y = self.params.grid_pose[1] + self.params.r_height
-        return (min_x, min_y, max_x, max_y)
+        return (
+            self.grid_pose[0],
+            self.grid_pose[1],
+            self.grid_pose[0] + self.width,
+            self.grid_pose[1] + self.height,
+        )
 
-    def update(
+    def rasterize_polygon(
+        self, polygon: Polygon, fill: bool = True
+    ) -> t.Set[GridCellModel]:
+        """Uses PIL to rasterize a polygon into the occupancy grid. We use PIL for this because it is
+        significantly faster than a naive python implementation.
+        """
+        img = Image.new("L", (self.d_width, self.d_height), 0)
+        poly_coordinates_in_image = [
+            self.pose_to_cell(x, y) for (x, y) in polygon.exterior.coords
+        ]
+        ImageDraw.Draw(img).polygon(
+            poly_coordinates_in_image, outline=1, fill=1 if fill else 0
+        )
+        subgrid = np.transpose(np.array(img, dtype=np.uint8))  # (y, x) -> (x, y)
+        x_coords, y_coords = np.where(subgrid == 1)
+
+        return set(zip(x_coords, y_coords))
+
+    def _dilate_grid(self, radius: float):
+        radius /= self.cell_size
+        # Create a circular kernel with the specified radius
+        grid = (self.grid != 0).astype(np.uint8)
+        kernel_size = (int(2 * radius + 1), int(2 * radius + 1))
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
+        # Apply dilation
+        dilated_grid = cv2.dilate(grid, kernel, iterations=1)
+        self.set_grid(np.array(dilated_grid))
+
+    def reset_static_polygons(
         self,
-        new_or_updated_polygons: t.Dict[UID, Polygon] | None = None,
-        removed_polygons: t.Set[UID] | None = None,
-        fill: bool = True,
+        static_polygons: t.List[Polygon],
+    ):
+        self.static_cells = set()
+        self.grid *= 0
+        for polygon in static_polygons:
+            cells = self.rasterize_polygon(polygon.buffer(self.inflation_radius))
+            self.static_cells = self.static_cells.union(cells)
+
+        for cell in self.static_cells:
+            self.grid[cell[0]][cell[1]] = 1
+
+    def update_polygons(
+        self,
+        new_or_updated_polygons: t.Dict[str, Polygon] | None = None,
+        removed_polygons: t.Set[str] | None = None,
     ):
         """Updates the grid based on which polygons have been added, changed, or removed.
 
         :param new_or_updated_polygons: _description_, defaults to None
-        :type new_or_updated_polygons: t.Dict[UID, Polygon] | None, optional
+        :type new_or_updated_polygons: t.Dict[str, Polygon] | None, optional
         :param removed_polygons: _description_, defaults to None
-        :type removed_polygons: t.Dict[UID, Polygon] | None, optional
+        :type removed_polygons: t.Dict[str, Polygon] | None, optional
         :param fill: _description_, defaults to True
         :type fill: bool, optional
         :return: _description_
         :rtype: _type_
         """
-        new_or_updated_cells_sets = (
+        new_or_updated_cell_sets = (
             None
             if not new_or_updated_polygons
             else {
-                uid: utils.accurate_rasterize_in_grid(
-                    new_polygon,
-                    self.res,
-                    self.grid_pose,
-                    self.d_width,
-                    self.d_height,
-                    fill=fill,
-                )
+                uid: self.rasterize_polygon(new_polygon.buffer(self.inflation_radius))
                 for uid, new_polygon in new_or_updated_polygons.items()
             }
         )
 
-        return self.cells_sets_update(new_or_updated_cells_sets, removed_polygons)
+        return self.cell_sets_update(new_or_updated_cell_sets, removed_polygons)
 
-    def cells_sets_update(
+    def cell_sets_update(
         self,
-        new_or_updated_cells_sets: t.Dict[UID, GridCellSet] | None = None,
-        removed_entities: t.Set[UID] | None = None,
-    ) -> t.Dict[UID, GridCellSet]:
-        prev_cells_sets = {}
+        new_or_updated_cell_sets: t.Dict[str, GridCellSet] | None = None,
+        removed_entities: t.Set[str] | None = None,
+    ) -> t.Dict[str, GridCellSet]:
+        prev_cell_sets = {}
 
-        if new_or_updated_cells_sets is not None:
-            for uid, new_cells_set in new_or_updated_cells_sets.items():
-                if uid in self.deactivated_entities_cells_sets:
-                    self.deactivated_entities_cells_sets[uid] = new_cells_set
+        if new_or_updated_cell_sets is not None:
+            for uid, new_cells_set in new_or_updated_cell_sets.items():
+                if uid in self.deactivated_entities_cell_sets:
+                    self.deactivated_entities_cell_sets[uid] = new_cells_set
                 else:
-                    if uid in self.cells_sets:
-                        prev_cells = self.cells_sets[uid]
+                    if uid in self.cell_sets:
+                        prev_cells = self.cell_sets[uid]
                         for cell in prev_cells:
                             self.grid[cell[0]][cell[1]] -= 1
-                        prev_cells_sets[uid] = prev_cells
+                        prev_cell_sets[uid] = prev_cells
 
-                    self.cells_sets[uid] = new_cells_set
+                    self.cell_sets[uid] = new_cells_set
                     for cell in new_cells_set:
                         self.grid[cell[0]][cell[1]] += 1
 
         if removed_entities is not None:
             for uid in removed_entities:
-                if uid in self.deactivated_entities_cells_sets:
-                    del self.deactivated_entities_cells_sets[uid]
-                else:
-                    prev_cells = self.cells_sets[uid]
-                    del self.cells_sets[uid]
+                if uid in self.deactivated_entities_cell_sets:
+                    del self.deactivated_entities_cell_sets[uid]
+                elif uid in self.cell_sets:
+                    prev_cells = self.cell_sets[uid]
+                    del self.cell_sets[uid]
                     for cell in prev_cells:
                         self.grid[cell[0]][cell[1]] -= 1
-                    prev_cells_sets[uid] = prev_cells
+                    prev_cell_sets[uid] = prev_cells
 
-        return prev_cells_sets
+        return prev_cell_sets
 
-    def deactivate_entities(self, uids: t.Iterable[UID]):
+    def deactivate_entities(self, uids: t.Iterable[str]):
         for uid in uids:
-            if (
-                uid not in self.deactivated_entities_cells_sets
-                and uid in self.cells_sets
-            ):
-                self.deactivated_entities_cells_sets[uid] = self.cells_sets[uid]
-                for cell in self.cells_sets[uid]:
+            if uid not in self.deactivated_entities_cell_sets and uid in self.cell_sets:
+                self.deactivated_entities_cell_sets[uid] = self.cell_sets[uid]
+                for cell in self.cell_sets[uid]:
                     self.grid[cell[0]][cell[1]] -= 1
-                del self.cells_sets[uid]
+                del self.cell_sets[uid]
 
-    def activate_entities(self, uids: t.Iterable[UID]):
+    def activate_entities(self, uids: t.Iterable[str]):
         for uid in uids:
-            if uid in self.deactivated_entities_cells_sets:
-                self.cells_sets[uid] = self.deactivated_entities_cells_sets[uid]
-                del self.deactivated_entities_cells_sets[uid]
-                for cell in self.cells_sets[uid]:
+            if uid in self.deactivated_entities_cell_sets:
+                self.cell_sets[uid] = self.deactivated_entities_cell_sets[uid]
+                del self.deactivated_entities_cell_sets[uid]
+                for cell in self.cell_sets[uid]:
                     self.grid[cell[0]][cell[1]] += 1
 
-    def activate_cells(self, cells: t.Iterable[GridCellModel]):
-        for cell in cells:
-            self.grid[cell[0]][cell[1]] += 1
-
-    def deactivate_cells(self, cells: t.Iterable[GridCellModel]):
-        for cell in cells:
-            self.grid[cell[0]][cell[1]] -= 1
-
-    def cell_to_obstacle_ids(self, cell: GridCellModel) -> t.Set[UID]:
+    def cell_to_dynamic_entity_ids(self, cell: GridCellModel) -> t.Set[str]:
         """
         If cell is contained only by one obstacle o_i, returns o_i.
         If contained by no obstacle, returns None. If contained by more than one, returns -1.
@@ -271,72 +213,84 @@ class BinaryOccupancyGrid:
             return set()
 
         result = set()
-        for uid, cell_set in self.cells_sets.items():
+        for uid, cell_set in self.cell_sets.items():
             if cell in cell_set:
                 result.add(uid)
-
-        if len(result) == 0:
-            raise RuntimeError(
-                "It should be impossible for an occupied cell of the grid to not be in any cells set."
-            )
 
         if len(result) > 1:
             assert self.grid[cell[0]][cell[1]] > 1
         return result
 
     def obstacles_uids_in_cell(self, cell: GridCellModel):
-        return {uid for uid, cell_set in self.cells_sets.items() if cell in cell_set}
+        return {uid for uid, cell_set in self.cell_sets.items() if cell in cell_set}
 
     def get_cell_center(self, cell: GridCellModel):
         return (
-            self.params.grid_pose[0] + cell[0] * self.res + self.res / 2,
-            self.params.grid_pose[1] + cell[1] * self.res + self.res / 2,
+            cell[0] * self.cell_size + self.cell_size / 2,
+            cell[1] * self.cell_size + self.cell_size / 2,
         )
 
-
-class BinaryInflatedOccupancyGrid(BinaryOccupancyGrid):
-    """
-    Represents an occupancy grid in which each polygon has been inflated the robot's radius
-    to avoid collision.
-    """
-
-    def __init__(
-        self,
-        polygons: t.Dict[UID, Polygon],
-        res: float,
-        inflation_radius: float,
-        neighborhood: t.Sequence[GridCellModel] = utils.CHESSBOARD_NEIGHBORHOOD,
-        params: GridParams | None = None,
-        fill: bool = True,
-    ):
-        self.inflation_radius = inflation_radius
-        super().__init__(polygons, res, neighborhood, params, fill)
-
-    def update(
-        self,
-        new_or_updated_polygons: t.Dict[UID, Polygon] | None = None,
-        removed_polygons: t.Set[UID] | None = None,
-        fill: bool = True,
-    ):
-        if new_or_updated_polygons:
-            inflated_polygons = {
-                uid: polygon.buffer(self.inflation_radius)
-                for uid, polygon in new_or_updated_polygons.items()
-            }
-            return BinaryOccupancyGrid.update(
-                self, inflated_polygons, removed_polygons, fill=fill
-            )
-        return BinaryOccupancyGrid.update(
-            self, new_or_updated_polygons, removed_polygons
+    def cell_to_polygon(self, cell: GridCellModel) -> Polygon:
+        return box(
+            minx=self.grid_pose[0] + cell[0] * self.cell_size,
+            miny=self.grid_pose[1] + cell[1] * self.cell_size,
+            maxx=self.grid_pose[0] + cell[0] * self.cell_size + self.cell_size,
+            maxy=self.grid_pose[1] + cell[1] * self.cell_size + self.cell_size,
         )
+
+    def pose_to_cell(self, x: float, y: float) -> GridCellModel:
+        """Computes the grid cell corresponding to a real-valued (x, y) position"""
+        cx = int(math.floor((x - self.grid_pose[0]) / self.cell_size))
+        cx = min(max(0, cx), self.d_width - 1)
+        cy = int(math.floor((y - self.grid_pose[1]) / self.cell_size))
+        cy = min(max(0, cy), self.d_height - 1)
+        return (cx, cy)
 
     def to_image(self) -> Image.Image:
         # grid = np.flipud(self.grid)
         grid = self.grid.astype(np.float32)
-        grid = np.rot90(grid)
-        grid[grid == -1] = 1
-        grid = grid - np.min(grid)
-        grid /= np.max(grid)
+        grid = np.transpose(grid)  # (x, y) -> (y, x)
+        grid = np.flipud(grid)
+        grid = np.where(grid == 0, 1, 0)
+        alpha = np.where(grid == 0, 255, 0).astype(np.uint8)
         grid *= 255
         grid = grid.astype(np.uint8)
-        return Image.fromarray(grid, "L")
+
+        h, w = grid.shape
+        rgba = (np.ones((4, h, w)) * grid).astype(np.uint8)
+        rgba[3] = alpha
+        rgba = np.transpose(rgba, (1, 2, 0))
+        return Image.fromarray(rgba, "RGBA")
+
+    @classmethod
+    def load_from_yaml(
+        cls,
+        yaml_file: str,
+    ) -> Self:
+        with open(yaml_file, "r") as file:
+            data = yaml.safe_load(file)
+
+        config = MapYamlConfigModel(**data)
+        map_image_path = os.path.join(os.path.dirname(yaml_file), config.image)
+        map_image = Image.open(map_image_path)
+        map_image = map_image.convert("L")  # Convert to grayscale
+        orig = np.array(map_image)
+        grid = np.array(map_image)
+
+        free_threshold = 220
+
+        # Apply thresholds from the YAML file
+        grid[orig <= free_threshold] = 1
+        grid[orig > free_threshold] = 0
+
+        grid = np.flipud(grid)
+        grid = grid.transpose()
+
+        grid = grid.astype(np.bool_)
+        if config.negate:
+            grid = np.logical_not(grid)
+
+        d_width, d_height = grid.shape
+        width = d_width * config.resolution
+        height = d_height * config.resolution
+        return cls(cell_size=config.resolution, width=width, height=height, grid=grid)
