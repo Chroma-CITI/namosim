@@ -1,0 +1,6 @@
+map_yaml: citi_full.yaml
+svg_file: citi_full.svg
+agents:
+  - id: robot_0
+    radius: 0.2
+    push_only: true

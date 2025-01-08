@@ -1,17 +1,13 @@
+import typing as t
+
 import numpy as np
 
+from namosim.data_models import GridCellModel
 from namosim.utils import utils
 
 
-class CCSData:
-    def __init__(self, ccs, grid, current_uid):
-        self.ccs = ccs
-        self.grid = grid
-        self.current_uid = current_uid
-
-
 class BFS:
-    def __init__(self, visited, came_from, goes_to, root_cell):
+    def __init__(self, visited, came_from, goes_to, root_cell: GridCellModel):
         # Set of cells in the connected components
         self.visited = visited
         # Dictionnaries that describe the parent-children relationships in the BFS search tree
@@ -19,6 +15,13 @@ class BFS:
         self.goes_to = goes_to
         # Remember root cell of search tree to allow faster destruction of component if root cell is invaded
         self.root_cell = root_cell
+
+
+class CCSData:
+    def __init__(self, ccs: t.Dict[int, BFS], grid, current_uid: int):
+        self.ccs = ccs
+        self.grid = grid
+        self.current_uid = current_uid
 
 
 def bfs_init(grid, width, height, root_cell, neighborhood=utils.TAXI_NEIGHBORHOOD):

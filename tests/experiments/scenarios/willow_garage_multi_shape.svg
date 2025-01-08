@@ -13,7 +13,7 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
   <namo_config
-     cell_size="15.0">
+     cell_size_cm="5.0">
     <agent
        agent_id="robot_0">
       <goal
@@ -21,7 +21,6 @@
       <behavior
          type="stilman_2005_behavior">
         <parameters
-           robot_translation_unit_length="15.0"
            manipulation_search_procedure="DFS" />
       </behavior>
     </agent>
@@ -180,46 +179,27 @@
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="ccccc"
      type="movable" />
-  <g
-     id="robot_0">
-    <path
-       sodipodi:type="star"
-       style="fill:#5599ff"
-       id="path7418"
-       inkscape:flatsided="true"
-       sodipodi:sides="30"
-       sodipodi:cx="313.11505"
-       sodipodi:cy="99.854576"
-       sodipodi:r1="18.059273"
-       sodipodi:r2="16.970165"
-       sodipodi:arg1="0.5472763"
-       sodipodi:arg2="0.65199606"
-       inkscape:rounded="0"
-       inkscape:randomized="0"
-       d="m 328.53668,109.25196 -2.29083,3.00098 -2.8647,2.45911 -3.31338,1.80977 -3.61725,1.08133 -3.76303,0.30564 -3.74434,-0.48343 -3.562,-1.25135 -3.224,-1.96458 -2.74508,-2.59197 -2.1462,-3.10606 -1.45352,-3.4844 -0.6973,-3.71046 0.0894,-3.77436 0.87216,-3.673295 1.61683,-3.411691 2.29082,-3.000981 2.8647,-2.459113 3.31339,-1.80977 3.61725,-1.081331 3.76302,-0.305634 3.74434,0.483423 3.562,1.25135 3.224,1.964588 2.74509,2.591963 2.1462,3.106059 1.45351,3.484403 0.6973,3.710463 -0.0894,3.774356 -0.87217,3.6733 z"
-       type="shape" />
-    <path
-       style="fill:none;stroke:#1155cc;stroke-width:2.02275px;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-opacity:1"
-       d="m 312.8294,98.392614 h 18.28565"
-       id="robot_0_dir"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc"
-       inkscape:label="#path4217"
-       type="orientation" />
-  </g>
-  <g
-     id="goal_0">
-    <path
-       id="robot_0_goal_39_shape"
-       d="m 724.15317,546.46233 3.46272,4.76319 1.37633,5.72575 -0.91957,5.8166 -3.07549,5.02193 -4.76319,3.46271 -5.72574,1.37633 -5.8166,-0.91956 -5.02194,-3.07549 -3.46271,-4.7632 -1.37633,-5.72574 0.91957,-5.8166 3.07549,-5.02193 4.76319,-3.46271 5.72574,-1.37634 5.8166,0.91957 z"
-       style="fill:none;stroke:#1155cc;stroke-width:5.73073;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-       type="shape" />
-    <path
-       id="robot_0_goal_39_direction"
-       d="m 713.73661,557.45602 9.27428,10.52694"
-       style="fill:none;stroke:#1155cc;stroke-width:5.73073;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-       type="orientation" />
-  </g>
+  <path
+     sodipodi:type="star"
+     style="fill:#5599ff"
+     id="robot_0"
+     inkscape:flatsided="true"
+     sodipodi:sides="30"
+     sodipodi:cx="310.11505"
+     sodipodi:cy="96.845543"
+     sodipodi:r1="15.049394"
+     sodipodi:r2="14.141804"
+     sodipodi:arg1="0.5472763"
+     sodipodi:arg2="0.65199606"
+     inkscape:rounded="0"
+     inkscape:randomized="0"
+     d="m 322.96641,104.67669 -1.90903,2.50082 -2.38725,2.04926 -2.76115,1.50814 -3.01437,0.90111 -3.13586,0.2547 -3.12028,-0.40285 -2.96834,-1.0428 -2.68666,-1.63715 -2.28757,-2.15997 -1.7885,-2.58838 -1.21126,-2.90367 -0.58109,-3.092055 0.0745,-3.145298 0.7268,-3.06108 1.34736,-2.843076 1.90902,-2.500817 2.38725,-2.049261 2.76115,-1.508142 3.01438,-0.901109 3.13585,-0.254694 3.12028,0.402852 2.96834,1.042791 2.68667,1.637157 2.28757,2.159969 1.78849,2.588382 1.21127,2.90367 0.58108,3.092052 -0.0745,3.145298 -0.7268,3.061081 z"
+     type="shape" />
+  <path
+     id="goal_0"
+     d="m 724.15317,546.46233 3.46272,4.76319 1.37633,5.72575 -0.91957,5.8166 -3.07549,5.02193 -4.76319,3.46271 -5.72574,1.37633 -5.8166,-0.91956 -5.02194,-3.07549 -3.46271,-4.7632 -1.37633,-5.72574 0.91957,-5.8166 3.07549,-5.02193 4.76319,-3.46271 5.72574,-1.37634 5.8166,0.91957 z"
+     style="fill:none;stroke:#1155cc;stroke-width:5.73073;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+     type="shape" />
   <path
      sodipodi:type="star"
      style="fill:#f1c232;fill-opacity:1"

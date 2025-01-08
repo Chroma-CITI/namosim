@@ -9,7 +9,10 @@ import numpy.typing as npt
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Point, Pose, Quaternion, Vector3
 from grid_map_msgs.msg import GridMap
+from shapely import affinity
 from shapely.geometry import Polygon
+from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
+from namosim.world.entity import Style
 from std_msgs.msg import (
     ColorRGBA,
     Float32MultiArray,
@@ -23,7 +26,7 @@ import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as nav_plan
 from namosim.agents import agent
-from namosim.data_models import UID, PoseModel
+from namosim.data_models import PoseModel
 from namosim.display import tf_replacement
 from namosim.navigation.path_type import PathType
 from namosim.utils import utils
@@ -31,21 +34,31 @@ from namosim.utils import utils
 
 def plan_to_markerarray(
     plan: "nav_plan.Plan",
+    map: BinaryOccupancyGrid,
     robot: agent.Agent,
     frame_id: str,
     stamp: Time = Time(),
+    scale: float = 1.0,
 ):
     markerarray = MarkerArray()
     markers = []
     p_id = 0
     for component in plan.path_components:
-        current_color = ColorRGBA(**colors.hex_to_rgba(robot.style.fill))
+        current_color = ColorRGBA(
+            **colors.hex_to_rgba(Style.from_string(robot.agent_style.shape).fill)
+        )
+
         if component.path_type == PathType.TRANSFER:
             current_color = ColorRGBA(
-                **colors.hex_to_rgba(colors.darken(robot.style.fill))
+                **colors.hex_to_rgba(
+                    colors.darken(Style.from_string(robot.agent_style.shape).fill)
+                )
             )
+
+            polygon = component.obstacle_path.polygons[-1]
+
             obstacle_end_polygon_marker = polygon_to_line_strip(
-                polygon=component.obstacle_path.polygons[-1],
+                polygon=polygon,
                 namespace="/end_obstacles",
                 p_id=p_id,
                 frame_id=frame_id,
@@ -56,6 +69,7 @@ def plan_to_markerarray(
             markers.append(obstacle_end_polygon_marker)
         path_marker = real_path_to_triangle_list(
             real_path=component.robot_path.poses,
+            map=map,
             namespace="/plan",
             p_id=p_id,
             frame_id=frame_id,
@@ -76,7 +90,7 @@ def plan_to_markerarray(
 def real_path_to_linestrip(
     real_path: t.List[PoseModel],
     namespace: str,
-    p_id: UID,
+    p_id: int,
     frame_id: str,
     color: ColorRGBA,
     line_width: float,
@@ -107,7 +121,7 @@ def real_path_to_linestrip(
 def polygon_to_triangle_list(
     polygon: Polygon,
     namespace: str,
-    p_id: UID,
+    p_id: int,
     frame_id: str,
     color: ColorRGBA,
     z_index: float,
@@ -120,7 +134,7 @@ def polygon_to_triangle_list(
     :param namespace: rviz namespace
     :type namespace: str
     :param p_id: marker id
-    :type p_id: UID
+    :type p_id: int
     :param frame_id: rviz frame
     :type frame_id: str
     :param color: color of the rendered marker
@@ -160,7 +174,7 @@ def polygon_to_triangle_list(
 def polygon_to_line_strip(
     polygon: Polygon,
     namespace: str,
-    p_id: UID,
+    p_id: int,
     frame_id: str,
     color: ColorRGBA,
     z_index: float,
@@ -216,7 +230,7 @@ def string_to_text(
     string: str,
     coordinates: t.Tuple[float | int, float | int],
     namespace: str,
-    p_id: UID,
+    p_id: int,
     frame_id: str,
     color: ColorRGBA,
     z_index: float,
@@ -255,6 +269,8 @@ def costmap_to_grid_map(
     grid_map.info.resolution = resolution
     grid_map.info.length_x = costmap.shape[0] * resolution
     grid_map.info.length_y = costmap.shape[1] * resolution
+    grid_map.info.pose.position.x = -grid_map.info.length_x / 2
+    grid_map.info.pose.position.y = -grid_map.info.length_y / 2
     # grid_map.info.pose.position.z = 0. # The lib does not take this parameter into account...
     grid_map.layers = ["elevation"]
     inflated_costmap_data = Float32MultiArray(
@@ -295,37 +311,19 @@ def pose_to_ros_pose(pose: PoseModel) -> Pose:
 
 def real_path_to_triangle_list(
     real_path: t.Sequence[t.Tuple[float, float, float] | t.Tuple[float, float]],
+    map: BinaryOccupancyGrid,
     namespace: str,
-    p_id: UID,
+    p_id: int,
     frame_id: str,
     color: ColorRGBA,
     line_width: float,
     z_index: float,
     stamp: Time = Time(),
 ):
-    """Takes a robot path as a sequence of points and converts them to a TRIANGLE_LIST marker for RVIZ.
-
-    :param real_path: A nagivation path as a sequency of points
-    :type real_path: t.List[t.Tuple[float, float, float]  |  t.Tuple[float, float]]
-    :param namespace: the rviz namespace
-    :type namespace: str
-    :param p_id: _description_
-    :type p_id: UID
-    :param frame_id: _description_
-    :type frame_id: str
-    :param color: _description_
-    :type color: ColorRGBA
-    :param line_width: _description_
-    :type line_width: float
-    :param z_index: _description_
-    :type z_index: float
-    :param stamp: _description_, defaults to Time()
-    :type stamp: Time, optional
-    :return: _description_
-    :rtype: _type_
-    """
+    """Takes a robot path as a sequence of points and converts them to a TRIANGLE_LIST marker for RVIZ."""
     points = [np.array(x) for x in real_path]
     polygon = utils.path_to_polygon(points=points, line_width=line_width)
+
     return polygon_to_triangle_list(
         polygon=polygon,
         namespace=namespace,
@@ -337,7 +335,7 @@ def real_path_to_triangle_list(
     )
 
 
-def make_delete_marker(namespace: str, p_id: UID, frame_id: str, stamp: Time = Time()):
+def make_delete_marker(namespace: str, p_id: int, frame_id: str, stamp: Time = Time()):
     return Marker(
         ns=namespace,
         id=p_id,

@@ -19,6 +19,17 @@
       ]
     },
     {
+      "name": "svg2stl",
+      "type": "python",
+      "request": "launch",
+      "module": "namosim.scripts.svg2stl",
+      "justMyCode": true,
+      "args": [
+        "--svg-file",
+        "tests/e2e/scenarios/minimal_stilman_2005.svg",
+      ]
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",

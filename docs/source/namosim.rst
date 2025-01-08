@@ -7,20 +7,54 @@ Subpackages
 .. toctree::
    :maxdepth: 4
 
+   namosim.agents
    namosim.algorithms
-   namosim.behaviors
    namosim.display
+   namosim.mapgen
    namosim.navigation
+   namosim.scripts
    namosim.utils
    namosim.world
 
 Submodules
 ----------
 
+namosim.config module
+---------------------
+
+.. automodule:: namosim.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+namosim.data\_models module
+---------------------------
+
+.. automodule:: namosim.data_models
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 namosim.exceptions module
 -------------------------
 
 .. automodule:: namosim.exceptions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+namosim.input module
+--------------------
+
+.. automodule:: namosim.input
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+namosim.log module
+------------------
+
+.. automodule:: namosim.log
    :members:
    :undoc-members:
    :show-inheritance:
@@ -33,10 +67,10 @@ namosim.main module
    :undoc-members:
    :show-inheritance:
 
-namosim.models module
+namosim.report module
 ---------------------
 
-.. automodule:: namosim.models
+.. automodule:: namosim.report
    :members:
    :undoc-members:
    :show-inheritance:
@@ -53,6 +87,22 @@ namosim.simulator module
 ------------------------
 
 .. automodule:: namosim.simulator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+namosim.svg\_styles module
+--------------------------
+
+.. automodule:: namosim.svg_styles
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+namosim.trainer module
+----------------------
+
+.. automodule:: namosim.trainer
    :members:
    :undoc-members:
    :show-inheritance:
