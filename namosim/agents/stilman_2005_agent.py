@@ -68,8 +68,9 @@ class Stilman2005Agent(Agent):
         pose: PoseModel,
         sensors: t.List[OmniscientSensor],
         style: AgentStyle,
-        logger: utils.CustomLogger,
+        logger: utils.NamosimLogger,
         cell_size: float,
+        collision_margin: float,
     ):
         super().__init__(
             uid=uid,
@@ -117,19 +118,18 @@ class Stilman2005Agent(Agent):
         # - S-NAMO parameters
         self.use_social_cost = config.parameters.use_social_cost
         self.bound_percentage = config.parameters.manip_search_bound_percentage
-        if config.parameters.manipulation_search_procedure == "DFS":
-            if self.use_social_cost:
-                self.manip_search_procedure = self.focused_manip_search
-            else:
-                raise ValueError(
-                    "Focused manipulation search requires the use_social_cost variable to be True !"
-                )
-        elif config.parameters.manipulation_search_procedure == "BFS":
+        if self.use_social_cost:
+            self.manip_search_procedure = self.focused_manip_search
+        else:
             self.manip_search_procedure = self.manip_search
         self.w_social, self.w_dist, self.w_goal = 15.0, 10.0, 2.0
         self.w_sum = self.w_social + self.w_dist + self.w_goal
-        self.TRANSLATION_DISCRETIZATION_FACTOR = 100.0  # round to nearest centimeter
-        self.ROTATION_DISCRETIZATION_FACTOR = 1.0  # round to nearest degree
+        self.TRANSLATION_DISCRETIZATION_FACTOR = (
+            self.cell_size
+        )  # during grid searches, round pose position to nearest cell
+        self.ROTATION_DISCRETIZATION_FACTOR = (
+            self.rotation_unit_angle
+        )  # during grid searches, round pose angle to nearest rotation-unit-angle
 
         # - Extra performance parameters
         self.check_new_local_opening_before_global = (
@@ -166,10 +166,10 @@ class Stilman2005Agent(Agent):
                 ]
         elif config.parameters.drive_type == "holonomic":
             self._transfer_movement_actions: t.List[ba.Action] = [
-                ba.AbsoluteTranslation((self.translation_unit_length, 0.0)),
-                ba.AbsoluteTranslation((-self.translation_unit_length, 0.0)),
-                ba.AbsoluteTranslation((0.0, self.translation_unit_length)),
-                ba.AbsoluteTranslation((0.0, -self.translation_unit_length)),
+                ba.Translation((self.translation_unit_length, 0.0)),
+                ba.Translation((-self.translation_unit_length, 0.0)),
+                ba.Translation((0.0, self.translation_unit_length)),
+                ba.Translation((0.0, -self.translation_unit_length)),
             ]
         for rot_angle in self._rot_angles:
             self._transfer_movement_actions.append(ba.Rotation(rot_angle))
@@ -181,7 +181,7 @@ class Stilman2005Agent(Agent):
             self.grab_release_distance = 4 * self.cell_size
         else:
             self.grab_release_distance = config.parameters.grab_release_distance
-        self.collision_margin = 1 * self.cell_size
+        self.collision_margin = collision_margin
 
     def init(self, world: "w.World"):
         super().init(world)
@@ -196,11 +196,8 @@ class Stilman2005Agent(Agent):
         )
 
         # Initialize static obstacles occupation grid, since it is not supposed to change
-        self.robot_inflation_radius = (
-            utils.get_circumscribed_radius(self.polygon) + self.collision_margin
-        )
-        self.static_obs_inf_grid = copy.deepcopy(world.map).inflate_map(
-            self.robot_inflation_radius
+        self.static_obs_inf_grid = copy.deepcopy(world.map).inflate_map_destructive(
+            self.circumscribed_radius + self.collision_margin
         )
 
         # check that goals are valid (i.e., not in static obstacles)
@@ -219,8 +216,8 @@ class Stilman2005Agent(Agent):
         movable_polygons = {
             uid: e.polygon for uid, e in self.world.dynamic_entities.items()
         }
-        self.robot_inflated_grid = copy.deepcopy(world.map).inflate_map(
-            self.robot_inflation_radius
+        self.robot_inflated_grid = copy.deepcopy(world.map).inflate_map_destructive(
+            self.circumscribed_radius + self.collision_margin
         )
         self.robot_inflated_grid.update_polygons(movable_polygons)
 
@@ -395,7 +392,7 @@ class Stilman2005Agent(Agent):
 
         if plan.is_empty():
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Absence of plan requires immediate replanning.".format(
                         self.uid
                     ),
@@ -418,7 +415,7 @@ class Stilman2005Agent(Agent):
             )
         if plan.is_evasion_over():
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Finished evasion sequence, replanning.".format(self.uid),
                     step_count,
                 )
@@ -450,7 +447,7 @@ class Stilman2005Agent(Agent):
         if not conflicts:
             if plan.timer.is_running and plan.timer.is_timer_over(step_count):
                 self.logger.append(
-                    utils.BasicLog(
+                    utils.NamosimLog(
                         "Agent {}: No more conflicts, unpostponing current plan.".format(
                             self.uid
                         ),
@@ -467,7 +464,7 @@ class Stilman2005Agent(Agent):
             )  # Normal case, don't log
         if self.config.parameters.resolve_conflicts is False:
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
                         self.uid
                     ),
@@ -487,7 +484,7 @@ class Stilman2005Agent(Agent):
 
         if potential_deadlocks:
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Potential deadlocks detected: {}.".format(
                         self.uid, potential_deadlocks
                     ),
@@ -507,7 +504,7 @@ class Stilman2005Agent(Agent):
 
                 if not plan.has_tries_remaining(self.replan_count):
                     self.logger.append(
-                        utils.BasicLog(
+                        utils.NamosimLog(
                             "Agent {}: Failing goal, no tries remaining to plan an evasion.".format(
                                 self.uid
                             ),
@@ -548,7 +545,7 @@ class Stilman2005Agent(Agent):
                 )
 
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Failing goal because deadlocks where detected and resolve-deadlocks is disabled or unavailable.".format(
                         self.uid
                     ),
@@ -581,7 +578,7 @@ class Stilman2005Agent(Agent):
             )
 
         self.logger.append(
-            utils.BasicLog(
+            utils.NamosimLog(
                 "Agent {}: Detected conflicts require immediate replanning. Conflicts: {}".format(
                     self.uid, conflicts
                 ),
@@ -637,7 +634,7 @@ class Stilman2005Agent(Agent):
 
         if evasion_path:
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Executing evasion path.".format(self.uid),
                     step_count,
                 )
@@ -659,7 +656,7 @@ class Stilman2005Agent(Agent):
                 conflicts=conflicts,
             )
         self.logger.append(
-            utils.BasicLog(
+            utils.NamosimLog(
                 "Agent {}: I can not or should not evade, postponing...".format(
                     self.uid,
                 ),
@@ -710,7 +707,7 @@ class Stilman2005Agent(Agent):
 
         if evasion_path:
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Executing evasion path.".format(self.uid),
                     step_count,
                 )
@@ -732,7 +729,7 @@ class Stilman2005Agent(Agent):
                 conflicts=conflicts,
             )
         self.logger.append(
-            utils.BasicLog(
+            utils.NamosimLog(
                 "Agent {}: I can not or should not evade, postponing...".format(
                     self.uid,
                 ),
@@ -772,7 +769,7 @@ class Stilman2005Agent(Agent):
     ) -> ThinkResult:
         if not plan.has_tries_remaining(max_tries):
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Failing goal, no tries remaining to plan even while ignoring dynamic obstacles.".format(
                         self.uid
                     ),
@@ -817,7 +814,7 @@ class Stilman2005Agent(Agent):
 
         if plan.is_empty():
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Failing goal, no plan could be found when ignoring dynamic obstacles.".format(
                         self.uid
                     ),
@@ -842,7 +839,7 @@ class Stilman2005Agent(Agent):
         )
         if not conflicts:
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Found a pure NAMO plan without conflicts with dynamic obstacles, "
                     "executing its first step...".format(self.uid),
                     step_count,
@@ -857,7 +854,7 @@ class Stilman2005Agent(Agent):
 
         if self.config.parameters.resolve_conflicts is False:
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
                         self.uid
                     ),
@@ -873,7 +870,7 @@ class Stilman2005Agent(Agent):
             )
 
         self.logger.append(
-            utils.BasicLog(
+            utils.NamosimLog(
                 "Agent {}: A new plan has been computed ignoring dynamic "
                 "obstacles but has conflicts with them: {}".format(self.uid, conflicts),
                 step_count,
@@ -882,7 +879,7 @@ class Stilman2005Agent(Agent):
 
         if not (plan.has_tries_remaining(max_tries) and plan.can_even_be_found()):
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Failing goal, no tries remaining to plan after conflicts "
                     "were found with the plan ignoring dynamic obstacles.".format(
                         self.uid,
@@ -963,7 +960,7 @@ class Stilman2005Agent(Agent):
 
         if p.is_empty():
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Postponing for up to {} steps, could not find a plan avoiding the conflicting "
                     "dynamic obstacles of the pure NAMO plan.".format(
                         self.uid, self.max_nb_steps_to_wait
@@ -1004,7 +1001,7 @@ class Stilman2005Agent(Agent):
 
         if new_conflicts:
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Postponing for {} steps, a new plan has been computed avoiding the "
                     "conflicting dynamic obstacles of the pure NAMO plan, but has other conflicts: {}".format(
                         self.uid, conflicts
@@ -1029,7 +1026,7 @@ class Stilman2005Agent(Agent):
             )
 
         self.logger.append(
-            utils.BasicLog(
+            utils.NamosimLog(
                 "Agent {}: Found a new plan that does not have conflicts with the dynamic obstacles "
                 "conflicting with the pure NAMO plan, executing its first step...".format(
                     self.uid
@@ -1165,24 +1162,9 @@ class Stilman2005Agent(Agent):
             )
 
         if static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0:
-            static_entities_polygons = {
-                entity.uid: entity.polygon
-                for entity in w_t.dynamic_entities.values()
-                if entity.movability == Movability.STATIC
-            }
-            static_entities_aabb_tree = collision.polygons_to_aabb_tree(
-                static_entities_polygons
+            raise Exception(
+                "Robot start position is in collision with a static obstacle. This should never happen."
             )
-            collisions = collision.get_collisions_for_entity(
-                entity_polygon=self.polygon,
-                other_entity_polygons=static_entities_polygons,
-                other_entities_aabb_tree=static_entities_aabb_tree,
-            )
-
-            if collisions:
-                raise Exception(
-                    "Robot start position is in collision with a static obstacle. This should never happen."
-                )
 
         forbidden_obstacles = {  # Dynamic obstacles are forbidden !
             uid
@@ -1195,7 +1177,7 @@ class Stilman2005Agent(Agent):
         o_1, c_1 = self.rch(
             start_cell=robot_cell,
             goal_cell=goal_cell,
-            static_obs_grid=static_obs_inf_grid,
+            static_obs_inf_grid=static_obs_inf_grid,
             connected_components_grid=connected_components_grid,
             inflated_robot_grid=robot_inflated_grid,
             avoid_list=avoid_list,
@@ -1207,7 +1189,7 @@ class Stilman2005Agent(Agent):
 
         while o_1 != "":
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: select_connect(depth={}, avoid_list={}): selected entity {} for manipulation search to reach component {}.".format(
                         robot.uid, depth, avoid_list, w_t.dynamic_entities[o_1].uid, c_1
                     ),
@@ -1279,7 +1261,7 @@ class Stilman2005Agent(Agent):
 
             if transfer_path is not None:
                 self.logger.append(
-                    utils.BasicLog(
+                    utils.NamosimLog(
                         "Agent {}: select_connect: found partial plan manipulating entity {} to reach component {}.".format(
                             robot.uid, w_t.dynamic_entities[o_1].uid, c_1
                         ),
@@ -1327,7 +1309,7 @@ class Stilman2005Agent(Agent):
             # Extra check for when the goal is in a movable obstacle that we could not find how to move
             if c_1 == "":
                 self.logger.append(
-                    utils.BasicLog(
+                    utils.NamosimLog(
                         "Agent {}: select_connect: did not find a reachable component if manipulating {}.".format(
                             robot.uid, w_t.dynamic_entities[o_1].uid
                         ),
@@ -1341,7 +1323,7 @@ class Stilman2005Agent(Agent):
             o_1, c_1 = self.rch(
                 start_cell=robot_cell,
                 goal_cell=goal_cell,
-                static_obs_grid=static_obs_inf_grid,
+                static_obs_inf_grid=static_obs_inf_grid,
                 connected_components_grid=connected_components_grid,
                 inflated_robot_grid=robot_inflated_grid,
                 avoid_list=avoid_list,
@@ -1528,7 +1510,7 @@ class Stilman2005Agent(Agent):
         self,
         start_cell: GridCellModel,
         goal_cell: GridCellModel,
-        static_obs_grid: BinaryOccupancyGrid,
+        static_obs_inf_grid: BinaryOccupancyGrid,
         connected_components_grid: npt.NDArray[np.int_],
         inflated_robot_grid: BinaryOccupancyGrid,
         avoid_list: t.Set[t.Tuple[str, str]],
@@ -1542,30 +1524,22 @@ class Stilman2005Agent(Agent):
         Renault's papers and thesis. The search returns the IDs of the first obstacle
         and component encountered on the path to the goal.
         """
-        if static_obs_grid.grid[start_cell[0]][start_cell[1]] > 0:
-            obstacle_ids = {
-                self.world.dynamic_entities[uid].uid
-                for uid in static_obs_grid.obstacles_uids_in_cell(start_cell)
-            }
+        if static_obs_inf_grid.grid[start_cell[0]][start_cell[1]] > 0:
             self.logger.append(
-                utils.BasicLog(
-                    "Agent {}: rch: The robot start cell {} in a rch call must always be outside of static obstacles, here: {}.".format(
-                        self.uid, start_cell, obstacle_ids
+                utils.NamosimLog(
+                    "Agent {}: rch: The robot start cell {} is occupied by a static obstacle.".format(
+                        self.uid, start_cell
                     ),
                     self._step_count,
                 )
             )
             return "", ""
 
-        if static_obs_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
-            obstacle_ids = {
-                self.world.dynamic_entities[uid].uid
-                for uid in static_obs_grid.obstacles_uids_in_cell(goal_cell)
-            }
+        if static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
             self.logger.append(
-                utils.BasicLog(
-                    "Agent {}: rch: The robot goal cell {} in a rch call must always be outside of static obstacles, here: {}.".format(
-                        self.uid, goal_cell, obstacle_ids
+                utils.NamosimLog(
+                    "Agent {}: rch: The robot goal cell {} is occupied by a static obstacle.".format(
+                        self.uid, goal_cell
                     ),
                     self._step_count,
                 )
@@ -1582,7 +1556,7 @@ class Stilman2005Agent(Agent):
                 uid for uid in inflated_robot_grid.obstacles_uids_in_cell(start_cell)
             }
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: rch: The robot start cell {} in a rch call must always be at most in one obstacle and not a forbidden one, here: {}.".format(
                         self.uid, start_cell, obstacle_ids
                     ),
@@ -1597,7 +1571,7 @@ class Stilman2005Agent(Agent):
                 for uid in inflated_robot_grid.obstacles_uids_in_cell(goal_cell)
             }
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: rch: The robot goal cell {} in a rch call must be at most within one movable obstacle, here: {}.".format(
                         self.uid, goal_cell, obstacle_ids
                     ),
@@ -1662,7 +1636,7 @@ class Stilman2005Agent(Agent):
                 close_set,
                 open_queue,
                 came_from,
-                static_obs_grid,
+                static_obs_inf_grid,
                 connected_components_grid,
                 inflated_robot_grid,
                 avoid_list,
@@ -1779,16 +1753,16 @@ class Stilman2005Agent(Agent):
             if ros_publisher:
                 ros_publisher.cleanup_q_manips_for_obs(ns=self.uid)
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     f"Agent {self.uid}: Failed to find manip points around obstacle.",
                     step=0,
                 )
             )
             return w_t_next, None
 
-        inflated_grid_by_obstacle = copy.deepcopy(self.world.map).inflate_map(
-            obstacle_inflation_radius
-        )
+        inflated_grid_by_obstacle = copy.deepcopy(
+            self.world.map
+        ).inflate_map_destructive(obstacle_inflation_radius)
         inflated_grid_by_obstacle.update_polygons(other_entities_polygons)
         # Only deactivate obstacle cells once transit end and transfer start are computed (grab action)
         robot_inflated_grid.deactivate_entities([obstacle_uid])
@@ -1957,16 +1931,16 @@ class Stilman2005Agent(Agent):
             if ros_publisher:
                 ros_publisher.cleanup_q_manips_for_obs(ns=self.uid)
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     f"Agent {self.uid}: Failed to find manip points around obstacle.",
                     step=0,
                 )
             )
             return w_t_next, None
 
-        inflated_grid_by_obstacle = copy.deepcopy(self.world.map).inflate_map(
-            obstacle_inflation_radius
-        )
+        inflated_grid_by_obstacle = copy.deepcopy(
+            self.world.map
+        ).inflate_map_destructive(obstacle_inflation_radius)
         inflated_grid_by_obstacle.update_polygons(other_entities_polygons)
 
         try:
@@ -2455,21 +2429,16 @@ class Stilman2005Agent(Agent):
             grab_action = ba.Grab(
                 entity_uid=obstacle_uid, distance=self.grab_release_distance
             )
-            robot_polygon_after_grab = grab_action.apply(
-                robot_polygon_before_grab, grab_start_pose
-            )
-            robot_pose_after_grab = grab_action.predict_pose(
-                grab_start_pose, grab_start_pose[2]
+            robot_pose_after_grab, robot_polygon_after_grab = grab_action.apply(
+                grab_start_pose, robot_polygon_before_grab
             )
 
             collides_with, csv_polygon = collision.get_csv_collisions(
                 robot_uid=robot_uid,
+                robot_pose=grab_start_pose,
                 other_polygons=other_entities_polygons,
-                polygon_sequence=[
-                    robot_polygon_before_grab,
-                    robot_polygon_after_grab,
-                ],
-                action_sequence=[grab_action.to_absolute(grab_start_pose)],
+                polygon=robot_polygon_before_grab,
+                robot_action=grab_action,
                 others_aabb_tree=other_entities_aabb_tree,
             )
 
@@ -2794,7 +2763,9 @@ class Stilman2005Agent(Agent):
             entity_uid=obstacle_uid, distance=-self.grab_release_distance
         )
         robot_pose = (robot_pose[0], robot_pose[1], robot_pose[2])
-        new_robot_pose = release_action.predict_pose(robot_pose, robot_pose[2])
+        new_robot_pose, new_robot_polygon = release_action.apply(
+            robot_pose, robot_polygon
+        )
         cell = utils.real_to_grid(
             new_robot_pose[0], new_robot_pose[1], grid.cell_size, grid.grid_pose
         )
@@ -2807,8 +2778,6 @@ class Stilman2005Agent(Agent):
             # If robot cell outside of grid, return False
             return None
 
-        new_robot_polygon = release_action.apply(robot_polygon, robot_pose)
-
         # Check if robot is still within map bounds
         if not new_robot_polygon.within(grid.aabb_polygon):
             return None
@@ -2819,9 +2788,10 @@ class Stilman2005Agent(Agent):
             csv_polygon,
         ) = collision.get_csv_collisions(
             robot_uid=robot_uid,
+            robot_pose=robot_pose,
+            robot_action=release_action,
+            polygon=robot_polygon,
             other_polygons=other_entities_polygons,
-            polygon_sequence=[robot_polygon, new_robot_polygon],
-            action_sequence=[release_action.to_absolute(robot_pose)],
             others_aabb_tree=other_entities_aabb_tree,
         )
 
@@ -2974,23 +2944,17 @@ class Stilman2005Agent(Agent):
                 if neighbor_action_opposes_prev_action:
                     continue
 
-                robot_center = (
-                    current_configuration.robot.floating_point_pose[0],
-                    current_configuration.robot.floating_point_pose[1],
-                )
-                new_robot_pose = action.predict_pose(
-                    current_configuration.robot.floating_point_pose, robot_center
+                new_robot_pose, new_robot_polygon = action.apply(
+                    current_configuration.robot.floating_point_pose,
+                    current_configuration.robot.polygon,
                 )
                 new_obstacle_pose = action.predict_pose(
-                    current_configuration.obstacle.floating_point_pose, robot_center
-                )
-                new_robot_polygon = action.apply(
-                    current_configuration.robot.polygon,
                     current_configuration.robot.floating_point_pose,
+                    current_configuration.obstacle.floating_point_pose,
                 )
-                new_obstacle_polygon = action.apply(
+                new_obstacle_polygon = action.predict_polygon(
+                    current_configuration.robot.floating_point_pose,
                     current_configuration.obstacle.polygon,
-                    current_configuration.robot.floating_point_pose,
                 )
                 extra_g_cost = self.rotation_unit_cost
             elif isinstance(action, ba.Advance):
@@ -3002,42 +2966,38 @@ class Stilman2005Agent(Agent):
                 # if neighbor_action_opposes_prev_action:
                 #     continue
 
-                new_robot_pose = action.predict_pose(
+                new_robot_pose, new_robot_polygon = action.apply(
                     current_configuration.robot.floating_point_pose,
-                    current_configuration.robot.floating_point_pose[2],
+                    current_configuration.robot.polygon,
                 )
                 new_obstacle_pose = action.predict_pose(
+                    current_configuration.robot.floating_point_pose,
                     current_configuration.obstacle.floating_point_pose,
-                    current_configuration.robot.floating_point_pose[2],
                 )
-                new_robot_polygon = action.apply(
-                    current_configuration.robot.polygon,
+                new_obstacle_polygon = action.predict_polygon(
                     current_configuration.robot.floating_point_pose,
-                )
-                new_obstacle_polygon = action.apply(
                     current_configuration.obstacle.polygon,
-                    current_configuration.robot.floating_point_pose,
                 )
                 extra_g_cost = self.translation_unit_cost
-            elif isinstance(action, ba.AbsoluteTranslation):
+            elif isinstance(action, ba.Translation):
                 neighbor_action_opposes_prev_action = (
-                    isinstance(current_configuration.action, ba.AbsoluteTranslation)
+                    isinstance(current_configuration.action, ba.Translation)
                     and action.v[0] == -1.0 * current_configuration.action.v[0]
                     and action.v[1] == -1.0 * current_configuration.action.v[1]
                 )
                 if neighbor_action_opposes_prev_action:
                     continue
 
-                new_robot_pose = action.predict_pose(
+                new_robot_pose, new_robot_polygon = action.apply(
                     current_configuration.robot.floating_point_pose,
-                )
-                new_obstacle_pose = action.predict_pose(
-                    current_configuration.obstacle.floating_point_pose,
-                )
-                new_robot_polygon = action.apply(
                     current_configuration.robot.polygon,
                 )
-                new_obstacle_polygon = action.apply(
+                new_obstacle_pose = action.predict_pose(
+                    current_configuration.robot.floating_point_pose,
+                    current_configuration.obstacle.floating_point_pose,
+                )
+                new_obstacle_polygon = action.predict_polygon(
+                    current_configuration.robot.floating_point_pose,
                     current_configuration.obstacle.polygon,
                 )
                 extra_g_cost = self.translation_unit_cost
@@ -3116,41 +3076,29 @@ class Stilman2005Agent(Agent):
                 robot_csv_polygon,
             ) = collision.get_csv_collisions(
                 robot_uid=robot_uid,
+                robot_pose=current_configuration.robot.floating_point_pose,
+                robot_action=action,
+                polygon=current_configuration.robot.polygon,
                 other_polygons=other_entities_polygons,
-                polygon_sequence=[
-                    current_configuration.robot.polygon,
-                    new_robot_polygon,
-                ],
-                action_sequence=[
-                    (
-                        action
-                        if isinstance(action, ba.AbsoluteAction)
-                        else action.to_absolute(
-                            current_configuration.robot.floating_point_pose
-                        )
-                    )
-                ],
                 others_aabb_tree=other_entities_aabb_tree,
             )
+
             if collides_with:
                 continue
+
             # TODO Refactor collision.csv_check_collisions to check for any number of attached polygons or make new function
             (
                 collides_with,
                 obstacle_csv_polygon,
             ) = collision.get_csv_collisions(
                 robot_uid=obstacle_uid,
+                robot_pose=current_configuration.robot.floating_point_pose,
+                robot_action=action,
                 other_polygons=other_entities_polygons,
-                polygon_sequence=[
-                    current_configuration.obstacle.polygon,
-                    new_obstacle_polygon,
-                ],
-                action_sequence=[
-                    # Actions are always applied relative to the robot pose!
-                    action.to_absolute(current_configuration.robot.floating_point_pose)
-                ],
+                polygon=current_configuration.obstacle.polygon,
                 others_aabb_tree=other_entities_aabb_tree,
             )
+
             if collides_with:
                 continue
 
@@ -4083,12 +4031,13 @@ class Stilman2005Agent(Agent):
             pose=copy.deepcopy(self.pose),
             sensors=copy.deepcopy(self.sensors),  # type: ignore
             cell_size=self.cell_size,
+            collision_margin=self.collision_margin,
             logger=self.logger,
         )
 
     def pose_to_fixed_precision(self, pose: PoseModel) -> t.Tuple[int, int, int]:
         return utils.real_pose_to_fixed_precision_pose(
             pose,
-            self.TRANSLATION_DISCRETIZATION_FACTOR,
-            self.ROTATION_DISCRETIZATION_FACTOR,
+            1 / self.TRANSLATION_DISCRETIZATION_FACTOR,
+            1 / self.ROTATION_DISCRETIZATION_FACTOR,
         )

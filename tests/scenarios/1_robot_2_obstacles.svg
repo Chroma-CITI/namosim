@@ -37,7 +37,7 @@
          type="stilman_2005_behavior">
         <parameters
            use_social_cost="false"
-           manipulation_search_procedure="BFS" />
+            />
       </behavior>
     </agent>
   </namo_config>

@@ -84,7 +84,7 @@ class Agent(Entity):
         sensors: t.List[OmniscientSensor],
         cell_size: float,
         movability: Movability = Movability.UNKNOWN,
-        logger: utils.CustomLogger,
+        logger: utils.NamosimLogger,
         style: svg_styles.AgentStyle | None = None,
     ):
         self.agent_style = style if style else svg_styles.AgentStyle()

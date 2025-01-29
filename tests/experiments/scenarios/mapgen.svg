@@ -49,7 +49,7 @@
       <behavior
          type="stilman_2005_behavior">
         <parameters
-           manipulation_search_procedure="DFS" />
+            />
       </behavior>
     </agent>
   </namo_config>

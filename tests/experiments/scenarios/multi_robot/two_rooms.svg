@@ -19,13 +19,13 @@
       <agent agent_id="robot_0">
          <goal goal_id="goal_0" />
          <behavior type="stilman_2005_behavior">
-            <parameters  manipulation_search_procedure="DFS" />
+            <parameters   />
          </behavior>
       </agent>
       <agent agent_id="robot_1">
          <goal goal_id="goal_1" />
          <behavior type="stilman_2005_behavior">
-            <parameters  manipulation_search_procedure="DFS" />
+            <parameters   />
          </behavior>
       </agent>
    </namo_config>
