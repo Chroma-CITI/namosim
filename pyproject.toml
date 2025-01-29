@@ -50,13 +50,13 @@ wandb = "^0.16.2"
 transformers = { extras = ["torch"], version = "^4.38.2" }
 torchvision = "^0.17.1"
 numpy-stl = "^3.1.1"
-opencv-python = "^4.9.0.80"
 moviepy = "^1.0.3"
 pytest = "8.0.2"
 lark = "^1.1.9"
 pytest-cov = "^5.0.0"
 torchmetrics = "^1.4.0"
 black = "^24.8.0"
+opencv-python-headless = "^4.11.0.86"
 
 [tool.poetry.group.dev.dependencies]
 sphinx = "^7.2.6"
