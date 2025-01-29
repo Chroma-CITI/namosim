@@ -41,7 +41,6 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     check_new_local_opening_before_global: bool = attr(default=True)
     activate_grids_logging: bool = attr(default=False)
     push_only: bool = attr(default=False)
-    manipulation_search_procedure: t.Literal["BFS", "DFS"] = attr(default="BFS")
     robot_rotation_unit_angle: float = attr(default=30)
     manip_search_bound_percentage: float = attr(default=0.05)
     use_social_cost: bool = attr(default=True)
@@ -84,6 +83,7 @@ class AgentConfigModel(BaseXmlModel, tag="agent_config"):
 
 class NamoConfigModel(BaseXmlModel, tag="namo_config"):
     cell_size_cm: float = attr()
+    collision_margin_cm: float | None = attr(default=None)
     random_seed: int = attr(default=10)
     generate_report: bool = attr(default=True)
     agents: t.List[AgentConfigModel] = element("agent", default=[])
@@ -106,6 +106,7 @@ class NamoConfigYamlModel(BaseModel):
     map_yaml: str
     svg_file: str | None = None
     agents: t.List[NamoAgentYamlModel] = []
+    collision_margin: float | None = None
 
 
 class MapYamlConfigModel(BaseModel):

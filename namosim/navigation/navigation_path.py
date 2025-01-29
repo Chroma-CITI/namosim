@@ -302,14 +302,10 @@ class TransferPath:
                     _,
                 ) = collision.get_csv_collisions(
                     robot_uid=robot_uid,
+                    robot_pose=self.robot_path.poses[0],
+                    robot_action=self.grab_action,
                     other_polygons=collision_polygons,
-                    polygon_sequence=[
-                        self.robot_path.polygons[0],
-                        self.robot_path.polygons[1],
-                    ],
-                    action_sequence=[
-                        self.grab_action.to_absolute(self.robot_path.poses[0])
-                    ],
+                    polygon=self.robot_path.polygons[0],
                     ignored_entities=previously_moved_entities_uids.union(
                         {self.obstacle_uid}
                     ),
@@ -410,14 +406,10 @@ class TransferPath:
                     _,
                 ) = collision.get_csv_collisions(
                     robot_uid=robot_uid,
+                    robot_pose=robot_before_release_pose,
+                    robot_action=self.release_action,
                     other_polygons=collision_polygons,
-                    polygon_sequence=[
-                        self.robot_path.polygons[-2],
-                        self.robot_path.polygons[-1],
-                    ],
-                    action_sequence=[
-                        self.release_action.to_absolute(robot_before_release_pose)
-                    ],
+                    polygon=self.robot_path.polygons[-2],
                     ignored_entities=previously_moved_entities_uids.union(
                         {self.obstacle_uid}
                     ),
@@ -513,14 +505,12 @@ class TransferPath:
                     _,
                 ) = collision.get_csv_collisions(
                     robot_uid=robot_uid,
+                    robot_pose=robot_pose_prior_to_action,
+                    robot_action=action,
                     other_polygons=collision_polygons,
-                    polygon_sequence=self.robot_path.polygons[
-                        self.action_index
-                        + look_ahead_index : self.action_index
-                        + look_ahead_index
-                        + 2
+                    polygon=self.robot_path.polygons[
+                        self.action_index + look_ahead_index
                     ],
-                    action_sequence=[action.to_absolute(robot_pose_prior_to_action)],
                     ignored_entities=previously_moved_entities_uids.union(
                         {self.obstacle_uid}
                     ),
@@ -619,18 +609,13 @@ class TransferPath:
                     _,
                 ) = collision.get_csv_collisions(
                     robot_uid=self.obstacle_uid,
-                    other_polygons=collision_polygons,
-                    polygon_sequence=self.obstacle_path.polygons[
-                        self.action_index
-                        + look_ahead_index : self.action_index
-                        + look_ahead_index
-                        + 2
+                    robot_action=action,
+                    robot_pose=self.robot_path.poses[
+                        self.action_index + look_ahead_index
                     ],
-                    action_sequence=[
-                        # Actions are always applied relative to the robot pose!
-                        action.to_absolute(
-                            self.robot_path.poses[self.action_index + look_ahead_index],
-                        )
+                    other_polygons=collision_polygons,
+                    polygon=self.obstacle_path.polygons[
+                        self.action_index + look_ahead_index
                     ],
                     others_aabb_tree=collision_aabb_tree,
                     ignored_entities=previously_moved_entities_uids.union(
@@ -751,7 +736,7 @@ class TransitPath:
     def __init__(
         self,
         robot_path: Path,
-        actions: t.List[ba.RelativeAction],
+        actions: t.List[ba.Action],
         phys_cost: float | None = None,
         social_cost: float = 0.0,
         weight: float = 1.0,
@@ -825,7 +810,7 @@ class TransitPath:
                 weight=weight,
             )
 
-        actions: t.List[ba.RelativeAction] = []
+        actions: t.List[ba.Action] = []
         updated_poses = [poses[0]]
 
         for pose, next_pose in zip(poses, poses[1:]):
@@ -1095,7 +1080,7 @@ class EvasionTransitPath(TransitPath):
     def __init__(
         self,
         robot_path: Path,
-        actions: t.List[ba.RelativeAction],
+        actions: t.List[ba.Action],
         phys_cost: float | None = None,
         social_cost: float = 0.0,
         weight: float = 1.0,

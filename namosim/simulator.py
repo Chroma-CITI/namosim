@@ -54,7 +54,7 @@ class Simulator:
     the world and agents and executes a **sense** -> **think** -> **act** loop until all agents have
     either completed or failed their navigation goals."""
 
-    def __init__(self, *, world: World, logger: utils.CustomLogger, logs_dir: str):
+    def __init__(self, *, world: World, logger: utils.NamosimLogger, logs_dir: str):
         self.ref_world = world
         self.init_ref_world = self.ref_world.light_copy([])
         self.logger = logger
@@ -68,7 +68,7 @@ class Simulator:
             self.background = tk.Label(self.window)
             self.background.pack()
         self.teleop_input = Input()
-        self.logger.append(utils.BasicLog("Simulation file successfully loaded", 0))
+        self.logger.append(utils.NamosimLog("Simulation file successfully loaded", 0))
 
         # Save general simulation parameters
         self.random_seed = self.init_ref_world.random_seed or 10
@@ -102,9 +102,9 @@ class Simulator:
         )
         self.ros_publisher.cleanup_all()
 
-        self.logger.append(utils.BasicLog("Display backend initialized.", 0))
+        self.logger.append(utils.NamosimLog("Display backend initialized.", 0))
 
-        self.logger.append(utils.BasicLog("World file successfully loaded.", 0))
+        self.logger.append(utils.NamosimLog("World file successfully loaded.", 0))
 
         # Associate autonomous agents with goals and behaviors
         self.goal_poses = {
@@ -128,7 +128,7 @@ class Simulator:
 
         self.catch_exceptions = False
 
-        self.logger.append(utils.BasicLog("Simulation successfully loaded.", 0))
+        self.logger.append(utils.NamosimLog("Simulation successfully loaded.", 0))
         self.run_exceptions_traces: t.List[t.Any] = []
         self.exception: t.Union[Exception, None] = None
 
@@ -239,10 +239,10 @@ class Simulator:
             if self.catch_exceptions:
                 tb = traceback.format_exc()
                 self.run_exceptions_traces.append(tb)
-                self.logger.append(utils.BasicLog(tb, step_count))
+                self.logger.append(utils.NamosimLog(tb, step_count))
             else:
                 self.logger.append(
-                    utils.BasicLog("MET A RUNTIME EXCEPTION, EXITING !", step_count)
+                    utils.NamosimLog("MET A RUNTIME EXCEPTION, EXITING !", step_count)
                 )
                 print(err)
                 tb = traceback.format_exc()
@@ -275,7 +275,7 @@ class Simulator:
             active_agents: set[str] = set(self.ref_world.agents.keys())
             self.ros_publisher.publish_sim_world(self.ref_world)
             trace_polygons: t.List[Polygon] = []
-            self.logger.append(utils.BasicLog("Starting run.", step_count))
+            self.logger.append(utils.NamosimLog("Starting run.", step_count))
             self.ros_publisher.publish_message(
                 "Sim steps: {}".format(step_count),
                 pose=(
@@ -315,7 +315,7 @@ class Simulator:
             exceptions_filepath = os.path.join(self.logs_dir, "exceptions")
             self.save(exceptions, exceptions_filepath)
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Saved exceptions at: {}".format(exceptions_filepath), step_count
                 )
             )
@@ -325,7 +325,7 @@ class Simulator:
             report_path = os.path.join(self.logs_dir, "report.json")
             self.report.save(report_path)
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Saved simulation report at: {}".format(report_path), step_count
                 )
             )
@@ -344,7 +344,7 @@ class Simulator:
             history_filepath = os.path.join(self.logs_dir, "history")
             self.save(history, history_filepath)
             self.logger.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Saved history at: {}".format(history_filepath), step_count
                 )
             )
@@ -424,6 +424,7 @@ class Simulator:
             dynamic_entities=copy.deepcopy(self.ref_world.dynamic_entities),
             agents=copy.deepcopy(self.ref_world.agents),
             map=copy.deepcopy(self.ref_world.map),
+            collision_margin=self.ref_world.collision_margin,
             logger=self.logger,
             random_seed=self.ref_world.random_seed,
             generate_report=self.ref_world.generate_report,
@@ -450,7 +451,7 @@ class Simulator:
                     (
                         ba.Rotation,
                         ba.Advance,
-                        ba.AbsoluteTranslation,
+                        ba.Translation,
                         ba.Grab,
                         ba.Release,
                     ),
@@ -583,7 +584,7 @@ class Simulator:
                 # If the agent has executed all of its goals, remove it from the active agents
                 active_agents.remove(agent_uid)
                 self.logger.append(
-                    utils.BasicLog(
+                    utils.NamosimLog(
                         "Agent {} finished executing all its goals.".format(
                             self.ref_world.dynamic_entities[agent_uid].uid
                         ),
@@ -592,7 +593,7 @@ class Simulator:
                 )
             elif isinstance(think_result.next_action, ba.GoalFailed):
                 self.logger.append(
-                    utils.BasicLog(
+                    utils.NamosimLog(
                         "{} failed executing goal {}.".format(
                             self.ref_world.dynamic_entities[agent_uid].uid,
                             str(think_result.next_action.goal),
@@ -602,7 +603,7 @@ class Simulator:
                 )
             elif isinstance(think_result.next_action, ba.GoalSuccess):
                 self.logger.append(
-                    utils.BasicLog(
+                    utils.NamosimLog(
                         "Agent {} successfully executed goal {}.".format(
                             self.ref_world.dynamic_entities[agent_uid].uid,
                             str(think_result.next_action.goal),
@@ -642,7 +643,7 @@ class Simulator:
                         raise Exception("Agent think timed out without a goal")
 
                     self.logger.append(
-                        utils.BasicLog(
+                        utils.NamosimLog(
                             f"Robot {agent.uid} timed out while planning. Failing goal and reinitializing.",
                             step_count,
                         )
@@ -734,7 +735,7 @@ def create_sim_from_file(
         )
     if not os.path.isdir(logs_dir):
         os.makedirs(logs_dir)
-    logger = utils.CustomLogger()
+    logger = utils.NamosimLogger()
 
     # Load world file
 

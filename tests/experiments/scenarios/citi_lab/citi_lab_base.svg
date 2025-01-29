@@ -237,7 +237,7 @@
            activate_grids_logging="false"
            push_only="false"
            heuristic_cost_for_traversing_obstacle_in_choice_heur="2.0"
-           manipulation_search_procedure="DFS"
+           
            neighborhood_for_obstacle_choice_heur="TAXI"
            robot_rotation_unit_angle="30.0"
            manip_search_bound_percentage="0.01"
@@ -261,7 +261,7 @@
            activate_grids_logging="false"
            push_only="false"
            heuristic_cost_for_traversing_obstacle_in_choice_heur="2.0"
-           manipulation_search_procedure="DFS"
+           
            neighborhood_for_obstacle_choice_heur="TAXI"
            robot_rotation_unit_angle="30.0"
            manip_search_bound_percentage="0.01"

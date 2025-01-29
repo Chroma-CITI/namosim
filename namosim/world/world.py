@@ -37,6 +37,7 @@ from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.data_models import namo_config_from_yaml
+from collections import deque
 
 
 class World:
@@ -44,12 +45,13 @@ class World:
         self,
         *,
         map: BinaryOccupancyGrid,
+        collision_margin: float,
         agents: t.Optional[t.Dict[str, "agts.Agent"]] = None,
         dynamic_entities: t.Optional[t.Dict[str, Entity]] = None,
         entity_to_agent: t.Optional[bidict[str, str]] = None,
         goals: t.Optional[t.Dict[str, Goal]] = None,
         init_geometry_file: t.Optional[minidom.Document] = None,
-        logger: utils.CustomLogger | None = None,
+        logger: utils.NamosimLogger | None = None,
         svg_config: NamoConfigModel | None = None,
         generate_report: bool = True,
         random_seed: int = 0,
@@ -57,6 +59,7 @@ class World:
         self.svg_config = svg_config
         self.dynamic_entities = dynamic_entities or dict()
         self.map = map
+        self.collision_margin = collision_margin
         self.agents: t.Dict[str, "agts.Agent"] = agents if agents else {}
         self.entity_to_agent = entity_to_agent or bidict()
         self.init_geometry_file = init_geometry_file
@@ -72,7 +75,7 @@ class World:
             self._goal_pose_to_goal[goal.pose] = goal
 
         if logger is None:
-            self.logger = utils.CustomLogger()
+            self.logger = utils.NamosimLogger()
         else:
             self.logger = logger
 
@@ -92,7 +95,7 @@ class World:
     ) -> BinaryOccupancyGrid:
         grid = copy.deepcopy(self.map)
         if inflation_radius:
-            grid.inflate_map(inflation_radius)
+            grid.inflate_map_destructive(inflation_radius)
         if ignored_entities:
             grid.update_polygons(removed_polygons=ignored_entities)
         dynamic_polygons = {}
@@ -107,10 +110,10 @@ class World:
         cls,
         world_svg_path: str,
         logs_dir: str = "namo_logs",
-        logger: utils.CustomLogger | None = None,
+        logger: utils.NamosimLogger | None = None,
     ) -> Self:
         if logger is None:
-            logger = utils.CustomLogger()
+            logger = utils.NamosimLogger()
 
         # Import entire world from svg file
         svg_doc = minidom.parse(world_svg_path)
@@ -133,6 +136,9 @@ class World:
         assert viewbox_values[1] == 0
         height = viewbox_values[3]
         cell_size = config.cell_size_cm / 100
+        collision_margin = cell_size
+        if config.collision_margin_cm:
+            collision_margin = config.collision_margin_cm / 100
 
         svg_paths = {}
         for el in svg_doc.getElementsByTagNameNS("*", "path"):
@@ -266,6 +272,7 @@ class World:
                     pose=init_pose,
                     sensors=[OmniscientSensor()],
                     cell_size=cell_size,
+                    collision_margin=collision_margin,
                     logger=logger,
                 )
             elif agent.behavior.type == "navigation_only_behavior":
@@ -338,6 +345,7 @@ class World:
             random_seed=config.random_seed,
             generate_report=config.generate_report,
             svg_config=config,
+            collision_margin=collision_margin,
         )
 
         for movable in dynamic_entities:
@@ -554,6 +562,7 @@ class World:
             goals=copy.deepcopy(self._goals),
             logger=self.logger,
             map=self.map,
+            collision_margin=self.collision_margin,
             random_seed=self.random_seed,
             generate_report=self.generate_report,
             svg_config=self.svg_config,
@@ -732,7 +741,7 @@ class World:
             else:
                 if len(agent_in_collision_with) > 1 and ignore_collisions:
                     self.logger.append(
-                        utils.BasicLog(
+                        utils.NamosimLog(
                             "Dynamic collision ignored, entities: {}".format(
                                 {
                                     self.dynamic_entities[uid].uid: {
@@ -878,10 +887,11 @@ class World:
     def load_agents(
         cls,
         map: BinaryOccupancyGrid,
+        collision_margin: float,
         config: NamoConfigYamlModel,
         config_dir: str,
         logs_dir: str,
-        logger: utils.CustomLogger,
+        logger: utils.NamosimLogger,
     ) -> t.List["agts.Agent"]:
         if config.svg_file is None:
             return []
@@ -939,11 +949,8 @@ class World:
                 config=StilmanBehaviorConfigModel(
                     type="stilman_2005_behavior",
                     parameters=StilmanBehaviorParametersModel(
-                        manipulation_search_procedure=(
-                            "BFS" if agent_config.push_only else "DFS"
-                        ),
                         drive_type="differential",
-                        robot_rotation_unit_angle=10,
+                        robot_rotation_unit_angle=30,
                         push_only=agent_config.push_only,
                         grab_release_distance=agent_config.grab_release_distance,
                     ),
@@ -956,6 +963,7 @@ class World:
                 pose=pose,
                 sensors=[OmniscientSensor()],
                 cell_size=map.cell_size,
+                collision_margin=collision_margin,
                 logger=logger,
             )
             agents.append(agent)
@@ -967,17 +975,22 @@ class World:
         cls,
         yaml_file: str,
         logs_dir: str = "namo_logs",
-        logger: utils.CustomLogger | None = None,
+        logger: utils.NamosimLogger | None = None,
     ) -> Self:
 
         config = namo_config_from_yaml(yaml_file)
         config_dir = os.path.dirname(yaml_file)
         map_yaml_path = os.path.join(config_dir, config.map_yaml)
         map = BinaryOccupancyGrid.load_from_yaml(map_yaml_path)
-        world = cls(map=map, logger=logger)
+        collision_margin = map.cell_size
+        if config.collision_margin is not None:
+            collision_margin = config.collision_margin
+
+        world = cls(map=map, collision_margin=collision_margin, logger=logger)
 
         agents = World.load_agents(
             map=map,
+            collision_margin=collision_margin,
             config=config,
             config_dir=config_dir,
             logs_dir=logs_dir,
@@ -996,3 +1009,34 @@ class World:
             agent.init(world)
 
         return world
+
+    def get_inflated_grid_for_entity(self, entity_id: str):
+        entity = self.dynamic_entities[entity_id]
+        inflation_radius = entity.circumscribed_radius + self.collision_margin
+        polygons = {
+            x.uid: x.polygon
+            for x in self.dynamic_entities.values()
+            if x.uid != entity_id
+        }
+        grid = copy.deepcopy(self.map)
+        grid = grid.inflate_map_destructive(inflation_radius)
+        grid.update_polygons(polygons)
+        return grid
+
+    def resolve_collisions(self, entity_id: str):
+        entity = self.dynamic_entities[entity_id]
+        grid = self.get_inflated_grid_for_entity(entity_id)
+        entity_cell = grid.pose_to_cell(entity.pose[0], entity.pose[1])
+        if grid.get_cell_value(entity_cell) == 0:
+            return
+
+        # do BFS to find the nearest unoccupied cell
+        nearest = grid.find_nearest_free_cell(entity_cell)
+        if nearest is None:
+            return
+        x, y = grid.get_cell_center(nearest)
+        entity.move_to_pose((x, y, entity.pose[2]))
+
+        # re-init all agents
+        for agent in self.agents.values():
+            agent.init(self)

@@ -39,9 +39,9 @@ class TestTransitPathFromPoses:
         pose = robot_pose
         for action in path.actions:
             if isinstance(action, ba.Advance):
-                pose = action.predict_pose(pose, pose[2])
+                pose = action.predict_pose(pose, pose)
             elif isinstance(action, ba.Rotation):
-                pose = action.predict_pose(pose, pose[:2])
+                pose = action.predict_pose(pose, pose)
 
         assert np.allclose(poses[-1][:2], pose[:2], rtol=1e-6)
 
@@ -94,9 +94,9 @@ class TestTransitPathFromPoses:
         pose = robot_pose
         for action in path.actions:
             if isinstance(action, ba.Advance):
-                pose = action.predict_pose(pose, pose[2])
+                pose = action.predict_pose(pose, pose)
             elif isinstance(action, ba.Rotation):
-                pose = action.predict_pose(pose, pose[:2])
+                pose = action.predict_pose(pose, pose)
 
         assert np.allclose(poses[-1], pose, rtol=1e-6)
 
@@ -121,8 +121,8 @@ class TestTransitPathFromPoses:
         pose = robot_pose
         for action in path.actions:
             if isinstance(action, ba.Advance):
-                pose = action.predict_pose(pose, pose[2])
+                pose = action.predict_pose(pose, pose)
             elif isinstance(action, ba.Rotation):
-                pose = action.predict_pose(pose, pose[:2])
+                pose = action.predict_pose(pose, pose)
 
         assert np.allclose(poses[-1], pose, rtol=1e-6)

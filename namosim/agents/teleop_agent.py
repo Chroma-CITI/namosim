@@ -28,7 +28,7 @@ class TeleopAgent(Agent):
         pose: PoseModel,
         sensors: t.List[OmniscientSensor],
         style: AgentStyle,
-        logger: utils.CustomLogger,
+        logger: utils.NamosimLogger,
         cell_size: float,
     ):
         Agent.__init__(

@@ -85,7 +85,7 @@ class PPOAgent(Agent):
         polygon: Polygon,
         pose: PoseModel,
         sensors: t.List[OmniscientSensor],
-        logger: utils.CustomLogger,
+        logger: utils.NamosimLogger,
         cell_size: float,
         style: AgentStyle | None = None,
     ):
@@ -250,9 +250,9 @@ class PPOAgent(Agent):
             if (isinstance(entity, Obstacle) or entity.movability == Movability.STATIC)
         }
         self.static_obstacle_grid = self.world.map
-        self.robot_inflated_grid = copy.deepcopy(self.world.map).inflate_map(
-            self.circumscribed_radius
-        )
+        self.robot_inflated_grid = copy.deepcopy(
+            self.world.map
+        ).inflate_map_destructive(self.circumscribed_radius)
 
     def sense(
         self, ref_world: "w.World", last_action_result: ar.ActionResult, step_count: int

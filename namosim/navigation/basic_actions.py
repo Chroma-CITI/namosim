@@ -6,109 +6,54 @@ from shapely import Polygon, affinity
 from shapely.geometry import LineString, Point
 
 from namosim.data_models import PoseModel
+from namosim.utils import utils
 
 
-class AbsoluteAction(ABC):
+class BaseAction(ABC):
     """`Absolute` actions are actions that can be applied without knowing the robot's current pose."""
 
-    def apply(self, polygon: Polygon) -> Polygon:
+    def apply(
+        self, robot_pose: PoseModel, polygon: Polygon
+    ) -> t.Tuple[PoseModel, Polygon]:
+        return self.predict_pose(
+            robot_pose=robot_pose, pose=robot_pose
+        ), self.predict_polygon(robot_pose=robot_pose, polygon=polygon)
+
+    def predict_polygon(self, robot_pose: PoseModel, polygon: Polygon) -> Polygon:
         raise NotImplementedError()
 
-    def to_absolute(self, pose: PoseModel):
-        return self
-
-    def predict_pose(self, pose: PoseModel) -> PoseModel:
-        raise NotImplementedError()
-
-
-class RelativeAction(ABC):
-    """`Relative` actions are always applied relative to robot's current pose."""
-
-    def to_absolute(self, pose: PoseModel) -> AbsoluteAction:
+    def predict_pose(self, robot_pose: PoseModel, pose: PoseModel) -> PoseModel:
         raise NotImplementedError()
 
 
-Action = t.Union[AbsoluteAction, RelativeAction]
-
-
-class GoalResult(RelativeAction):
-    def __init__(self, goal: PoseModel):
-        self.goal = goal
-
-
-class GoalsFinished(RelativeAction):
+class GoalsFinished(BaseAction):
     def __init__(self):
         pass
 
 
-class GoalSuccess(GoalResult):
+class GoalSuccess(BaseAction):
     def __init__(self, goal: PoseModel):
-        GoalResult.__init__(self, goal)
+        self.goal = goal
 
     def __str__(self):
         return "success"
 
 
-class GoalFailed(GoalResult):
+class GoalFailed(BaseAction):
     def __init__(self, goal: PoseModel, is_timeout: bool = False):
-        GoalResult.__init__(self, goal)
+        self.goal = goal
         self.is_timeout = is_timeout
 
     def __str__(self):
         return "failure"
 
 
-class Wait(RelativeAction):
+class Wait(BaseAction):
     def __init__(self):
         pass
 
 
-class AbsoluteRotation(AbsoluteAction):
-    """This action represents an rotation about a given point, regardless of the robots current pose."""
-
-    def __init__(self, angle: float, center: t.Tuple[float, float]):
-        self.angle = angle
-        self.center = center
-
-    def __str__(self):
-        return f"AbsoluteRotation(angle={self.angle}, center={self.center})"
-
-    def apply(self, polygon: Polygon) -> Polygon:
-        return t.cast(
-            Polygon,
-            affinity.rotate(
-                geom=polygon,
-                angle=self.angle,
-                origin=self.center,  # type: ignore
-                use_radians=False,
-            ),
-        )
-
-    def apply_to_point(self, point: t.Tuple[float, float]) -> t.Tuple[float, float]:
-        rotated = t.cast(
-            Point,
-            affinity.rotate(
-                geom=Point(point),
-                angle=self.angle,
-                origin=self.center,  # type: ignore
-                use_radians=False,
-            ),
-        )
-        return (rotated.x, rotated.y)
-
-    def predict_pose(self, pose: PoseModel) -> PoseModel:
-        new_point = affinity.rotate(
-            geom=Point((pose[0], pose[1])),
-            angle=self.angle,
-            origin=self.center,  # type: ignore
-            use_radians=False,
-        ).coords[0]
-        orientation = (pose[2] + self.angle) % 360.0
-        orientation = orientation if orientation >= 0.0 else orientation + 360.0
-        return (new_point[0], new_point[1], orientation)
-
-
-class Rotation(RelativeAction):
+class Rotation(BaseAction):
     """This action represents a rotation relative to the robots current pose."""
 
     def __init__(self, angle: float):
@@ -117,58 +62,71 @@ class Rotation(RelativeAction):
     def __str__(self):
         return f"Rotation(angle={self.angle})"
 
-    def apply(self, polygon: Polygon, pose: PoseModel) -> Polygon:
-        return t.cast(
+    def predict_polygon(self, robot_pose: PoseModel, polygon: Polygon) -> Polygon:
+        next_polygon = t.cast(
             Polygon,
             affinity.rotate(
                 geom=polygon,
                 angle=self.angle,
-                origin=(pose[0], pose[1]),  # type: ignore
+                origin=(robot_pose[0], robot_pose[1]),  # type: ignore
                 use_radians=False,
             ),
         )
+        return next_polygon
 
-    def predict_pose(self, pose: PoseModel, center: t.Tuple[float, float]) -> PoseModel:
-        new_point = affinity.rotate(
+    def predict_pose(self, robot_pose: PoseModel, pose: PoseModel) -> PoseModel:
+        next_position = affinity.rotate(
             geom=Point((pose[0], pose[1])),
             angle=self.angle,
-            origin=center,  # type: ignore
+            origin=(robot_pose[0], robot_pose[1]),  # type: ignore
             use_radians=False,
         ).coords[0]
-        orientation = (pose[2] + self.angle) % 360.0
-        orientation = orientation if orientation >= 0.0 else orientation + 360.0
-        return (new_point[0], new_point[1], orientation)
+        orientation = utils.angle_to_360_interval(pose[2] + self.angle)
+        return (next_position[0], next_position[1], orientation)
 
-    def to_absolute(self, pose: PoseModel) -> AbsoluteRotation:
-        return AbsoluteRotation(angle=self.angle, center=(pose[0], pose[1]))
+    def apply_to_point(
+        self, center: t.Tuple[float, float], point: t.Tuple[float, float]
+    ) -> t.Tuple[float, float]:
+        rotated = t.cast(
+            Point,
+            affinity.rotate(
+                geom=Point(point),
+                angle=self.angle,
+                origin=center,  # type: ignore
+                use_radians=False,
+            ),
+        )
+        return (rotated.x, rotated.y)
 
 
-class AbsoluteTranslation(AbsoluteAction):
+class Translation(BaseAction):
     """This action represents an arbitrary translation regardless of the robot's current orientation. This applies mainly to holonomic robots."""
 
     def __init__(self, v: t.Tuple[float, float]):
         self.v = v
         self.length = np.linalg.norm(v)
 
-    def apply(self, polygon: Polygon) -> Polygon:
-        return affinity.translate(
+    def predict_polygon(self, robot_pose: PoseModel, polygon: Polygon) -> Polygon:
+        next_polygon = affinity.translate(
             geom=polygon,
             xoff=self.v[0],
             yoff=self.v[1],
             zoff=0.0,
         )
+        return next_polygon
 
-    def predict_pose(self, pose: PoseModel) -> PoseModel:
-        new_point = affinity.translate(
+    def predict_pose(self, robot_pose: PoseModel, pose: PoseModel) -> PoseModel:
+        next_position = affinity.translate(
             geom=Point((pose[0], pose[1])),
             xoff=self.v[0],
             yoff=self.v[1],
             zoff=0.0,
         ).coords[0]
-        return new_point[0], new_point[1], pose[2]
+        next_pose = next_position[0], next_position[1], pose[2]
+        return next_pose
 
 
-class Advance(RelativeAction):
+class Advance(BaseAction):
     """This action represents a translation along the robots current directional axis. It may be positive or negative."""
 
     def __init__(self, distance: float):
@@ -177,38 +135,23 @@ class Advance(RelativeAction):
     def __str__(self):
         return f"Advance(distance={self.distance})"
 
-    def compute_translation_vector(self, angle: float) -> t.Tuple[float, float]:
+    def to_translation(self, angle: float) -> Translation:
         # TODO Replace by call to utils.direction_from_yaw(angle) multiplying self.translation_vector ?
         rotated_linestring = affinity.rotate(
             LineString([(0.0, 0.0), (self.distance, 0.0)]),
             angle,
             origin=(0.0, 0.0),  # type: ignore
         )
-        translation_vector = rotated_linestring.coords[1]
-        return translation_vector  # type: ignore
+        translation_vector: t.Tuple[float, float] = rotated_linestring.coords[1]  # type: ignore
+        return Translation(v=translation_vector)
 
-    def apply(self, polygon: Polygon, pose: PoseModel) -> Polygon:
-        v = self.compute_translation_vector(pose[2])
-        return affinity.translate(
-            geom=polygon,
-            xoff=v[0],
-            yoff=v[1],
-            zoff=0.0,
+    def predict_polygon(self, robot_pose: PoseModel, polygon: Polygon) -> Polygon:
+        return self.to_translation(angle=robot_pose[2]).predict_polygon(
+            robot_pose, polygon
         )
 
-    def predict_pose(self, pose: PoseModel, direction_angle: float) -> PoseModel:
-        v = self.compute_translation_vector(direction_angle)
-        new_point = affinity.translate(
-            geom=Point((pose[0], pose[1])),
-            xoff=v[0],
-            yoff=v[1],
-            zoff=0.0,
-        ).coords[0]
-        return new_point[0], new_point[1], pose[2]
-
-    def to_absolute(self, pose: PoseModel) -> AbsoluteTranslation:
-        v = self.compute_translation_vector(pose[2])
-        return AbsoluteTranslation(v)
+    def predict_pose(self, robot_pose: PoseModel, pose: PoseModel) -> PoseModel:
+        return self.to_translation(angle=robot_pose[2]).predict_pose(robot_pose, pose)
 
 
 class Grab(Advance):
@@ -227,3 +170,16 @@ class Release(Advance):
 
     def __str__(self):
         return f"Release(entity={self.entity_uid}, distance={self.distance})"
+
+
+Action = t.Union[
+    GoalsFinished,
+    GoalSuccess,
+    GoalFailed,
+    Wait,
+    Rotation,
+    Translation,
+    Advance,
+    Grab,
+    Release,
+]
