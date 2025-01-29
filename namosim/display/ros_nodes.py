@@ -508,6 +508,9 @@ class CostmapObserver(RosObserver):
             robot_max_inflation_radius = utils.get_circumscribed_radius(
                 world.dynamic_entities[robot_uid].polygon
             )
+            grid = copy.deepcopy(world.map).inflate_map_destructive(
+                robot_max_inflation_radius
+            )
             grid = copy.deepcopy(world.map).inflate_map(robot_max_inflation_radius)
         else:
             grid = copy.deepcopy(world.map)

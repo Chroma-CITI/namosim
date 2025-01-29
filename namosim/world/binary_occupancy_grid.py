@@ -1,3 +1,4 @@
+from collections import deque
 import math
 import os
 import typing as t
@@ -55,6 +56,24 @@ class BinaryOccupancyGrid:
         if static_polygons is not None:
             self.reset_static_polygons(static_polygons=static_polygons)
 
+    def find_nearest_free_cell(self, cell: GridCellModel) -> GridCellModel | None:
+        # do BFS to find the nearest unoccupied cell
+        frontier = deque([cell])
+        visited = set()
+        while len(frontier) > 0:
+            x = frontier.popleft()
+            visited.add(x)
+            if self.get_cell_value(x) == 0:
+                return x
+            for n in self.get_neighbors(x):
+                if n in visited:
+                    continue
+                frontier.append(n)
+        return None
+
+    def get_cell_value(self, cell: GridCellModel) -> int:
+        return self.grid[cell[0]][cell[1]]
+
     def set_grid(self, grid: npt.NDArray[np.bool_]):
         self.d_width = grid.shape[0]
         self.d_height = grid.shape[1]
@@ -65,7 +84,7 @@ class BinaryOccupancyGrid:
         self.static_cells = occupied_cells
         self.grid = grid.astype(np.int16)
 
-    def inflate_map(self, radius: float):
+    def inflate_map_destructive(self, radius: float):
         assert len(self.cell_sets) == 0
         assert len(self.deactivated_entities_cell_sets) == 0
         assert self.inflation_radius == 0
@@ -107,7 +126,7 @@ class BinaryOccupancyGrid:
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, kernel_size)
         # Apply dilation
         dilated_grid = cv2.dilate(grid, kernel, iterations=1)
-        self.set_grid(np.array(dilated_grid))
+        self.set_grid(np.array(dilated_grid))  # type: ignore
 
     def reset_static_polygons(
         self,
@@ -237,6 +256,22 @@ class BinaryOccupancyGrid:
             maxx=self.grid_pose[0] + cell[0] * self.cell_size + self.cell_size,
             maxy=self.grid_pose[1] + cell[1] * self.cell_size + self.cell_size,
         )
+
+    def get_neighbors(self, cell: GridCellModel) -> t.List[GridCellModel]:
+        result: t.List[GridCellModel] = []
+        ci, cj = cell
+        for i, j in utils.CHESSBOARD_NEIGHBORHOOD:
+            ni, nj = i + ci, j + cj
+            if self.is_cell_in_bounds((ni, nj)):
+                result.append((ni, nj))
+        return result
+
+    def is_cell_in_bounds(self, cell: GridCellModel) -> bool:
+        if cell[0] < 0 or cell[0] >= self.grid.shape[0]:
+            return False
+        if cell[1] < 0 or cell[1] >= self.grid.shape[1]:
+            return False
+        return True
 
     def pose_to_cell(self, x: float, y: float) -> GridCellModel:
         """Computes the grid cell corresponding to a real-valued (x, y) position"""

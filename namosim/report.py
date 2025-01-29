@@ -110,7 +110,7 @@ class GoalStats(BaseModel):
                 self.distance_traveled += np.abs(action.distance)
                 if action_result.is_transfer:
                     self.transfer_distance_traveled += np.abs(action.distance)
-            if isinstance(action, ba.AbsoluteTranslation):
+            if isinstance(action, ba.Translation):
                 self.distance_traveled += np.abs(action.length)
                 if action_result.is_transfer:
                     self.transfer_distance_traveled += np.abs(action.length)

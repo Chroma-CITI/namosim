@@ -202,6 +202,7 @@ class MapGen:
         )
         world = World(
             map=map,
+            collision_margin=map_cell_size,
             generate_report=config.generate_report,
             random_seed=config.random_seed,
             svg_config=config,

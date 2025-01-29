@@ -333,13 +333,13 @@ class DynamicPlan(Plan):
         t_max: int,
         step_count: int,
         conflicts: t.List[Conflict],
-        simulation_log: t.List[utils.BasicLog],
+        simulation_log: t.List[utils.NamosimLog],
         robot_id: str,
     ):
         if self.timer.is_running:
             if self.timer.is_timer_over(step_count):
                 simulation_log.append(
-                    utils.BasicLog(
+                    utils.NamosimLog(
                         "Agent {}: Resetting plan because conflicts still exist after full postponement is over: {}.".format(
                             robot_id, conflicts
                         ),
@@ -355,7 +355,7 @@ class DynamicPlan(Plan):
         else:
             duration = random.randint(t_min, t_max)
             simulation_log.append(
-                utils.BasicLog(
+                utils.NamosimLog(
                     "Agent {}: Starting postponement of current plan for {} steps because conflicts: {}.".format(
                         robot_id, duration, conflicts
                     ),

@@ -249,7 +249,7 @@ def get_trajectory(idx: int, actor: PPOActor) -> Trajectory | None:
             polygon=agent_polygon,
             pose=(0, 0, 0),
             sensors=[OmniscientSensor()],
-            logger=utils.CustomLogger(),
+            logger=utils.NamosimLogger(),
             cell_size=world.map.cell_size,
         )
 

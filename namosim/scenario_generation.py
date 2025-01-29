@@ -222,9 +222,6 @@ def generate_alternative_scenarios(
                         {
                             "use_social_cost": use_social_cost,
                             "manip_search_bound_percentage": 0.05,
-                            "manipulation_search_procedure": (
-                                "DFS" if use_social_cost else "BFS"
-                            ),
                             "resolve_deadlocks": resolve_deadlocks,
                             "resolve_conflicts": resolve_conflicts,
                         }

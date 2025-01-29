@@ -10,6 +10,7 @@ import namosim.navigation.basic_actions as ba
 import namosim.world.world as w
 from namosim.log import logger
 from namosim.utils import utils
+from namosim.data_models import PoseModel
 
 
 def bounds(points: t.Iterable[t.Tuple[float, float]]):
@@ -107,8 +108,7 @@ def arc_bounding_box(
 
 
 def bounding_boxes_vertices(
-    action_sequence: t.Sequence[ba.AbsoluteAction],
-    polygon_sequence: t.Sequence[Polygon],
+    robot_pose: PoseModel, robot_action: ba.BaseAction, polygon: Polygon
 ) -> t.List[t.List[t.Tuple[float, float]]]:
     """
     Returns for each action the pointclouds of the bounding boxes that cover each polygon's point trajectory
@@ -120,33 +120,32 @@ def bounding_boxes_vertices(
     :return:
     :rtype:
     """
+
+    _, next_polygon = robot_action.apply(robot_pose, polygon=polygon)
     bb_vertices = []
-    for index, action in enumerate(action_sequence):
-        init_poly_coords = list(polygon_sequence[index].exterior.coords)
-        end_poly_coords = list(polygon_sequence[index + 1].exterior.coords)
-        action_bb_vertices = []
-        if isinstance(action, ba.AbsoluteTranslation):
-            for coord in init_poly_coords:
-                action_bb_vertices.append(coord)
-            for coord in end_poly_coords:
-                action_bb_vertices.append(coord)
-        elif isinstance(action, ba.AbsoluteRotation):
-            for point_a, point_b in zip(init_poly_coords, end_poly_coords):
-                expected_b = action.apply_to_point(point_a)
-                if not np.allclose(point_b, expected_b):
-                    raise Exception()
-                bb = arc_bounding_box(
-                    point=point_a,
-                    degrees=action.angle,
-                    center=action.center,
-                )
-                for coord in bb:
-                    action_bb_vertices.append(coord)
-        else:
-            raise TypeError(
-                "Actions must be pure AbsoluteRotation or AbsoluteTranslation."
+    init_poly_coords = list(polygon.exterior.coords)
+    end_poly_coords = list(next_polygon.exterior.coords)
+    action_bb_vertices = []
+    if isinstance(robot_action, ba.Rotation):
+        for point_a, point_b in zip(init_poly_coords, end_poly_coords):
+            expected_b = robot_action.apply_to_point(
+                center=(robot_pose[0], robot_pose[1]), point=point_a
             )
-        bb_vertices.append(action_bb_vertices)
+            if not np.allclose(point_b, expected_b):
+                raise Exception()
+            bb = arc_bounding_box(
+                point=point_a,
+                degrees=robot_action.angle,
+                center=(robot_pose[0], robot_pose[1]),
+            )
+            for coord in bb:
+                action_bb_vertices.append(coord)
+    else:
+        for coord in init_poly_coords:
+            action_bb_vertices.append(coord)
+        for coord in end_poly_coords:
+            action_bb_vertices.append(coord)
+    bb_vertices.append(action_bb_vertices)
     return bb_vertices
 
 
@@ -223,15 +222,16 @@ def merge_collides_with(
 def get_csv_collisions(
     *,
     robot_uid: str,
+    robot_pose: PoseModel,
+    robot_action: ba.Action,
+    polygon: Polygon,
     other_polygons: t.Dict[str, Polygon],
-    polygon_sequence: t.List[Polygon],
-    action_sequence: t.Sequence[ba.AbsoluteAction],
     others_aabb_tree: AABBTree | None = None,
     ignored_entities: t.Set[str] | None = None,
 ):
     if others_aabb_tree is None:
         others_aabb_tree = polygons_to_aabb_tree(other_polygons)
-    bb_vertices = bounding_boxes_vertices(action_sequence, polygon_sequence)
+    bb_vertices = bounding_boxes_vertices(robot_pose, robot_action, polygon)
     csv_polygon = csv_from_bb_vertices(bb_vertices)
     collisions = get_collisions_for_entity(
         csv_polygon,
@@ -261,14 +261,14 @@ def csv_simulate_simple_kinematics(
         if agent.uid not in agent_actions:
             continue
         action = agent_actions[agent.uid]
-        abs_action = action.to_absolute(agent.pose)
 
         # we assume agent is a circle so rotation does not change the csv
         if not isinstance(action, ba.Rotation):
-            agent_polygon_after = abs_action.apply(agent.polygon)
             agent_csv = csv_from_bb_vertices(
                 bounding_boxes_vertices(
-                    [abs_action], [agent.polygon, agent_polygon_after]
+                    robot_pose=agent.pose,
+                    robot_action=action,
+                    polygon=agent.polygon,
                 )
             )
             entity_csv_polygons[agent.uid] = agent_csv
@@ -281,9 +281,10 @@ def csv_simulate_simple_kinematics(
         )
 
         if obs:
-            obs_polygon_after = abs_action.apply(obs.polygon)
             obs_csv = csv_from_bb_vertices(
-                bounding_boxes_vertices([abs_action], [obs.polygon, obs_polygon_after])
+                bounding_boxes_vertices(
+                    robot_pose=agent.pose, robot_action=action, polygon=obs.polygon
+                )
             )
             entity_csv_polygons[obs.uid] = obs_csv
 
@@ -300,22 +301,9 @@ def csv_simulate_simple_kinematics(
 
     for agent_uid, action in agent_actions.items():
         agent = world.agents[agent_uid]
-        abs_action = action.to_absolute(agent.pose)
-        new_agent_polygon = abs_action.apply(agent.polygon)
+        new_agent_pose, new_agent_polygon = action.apply(agent.pose, agent.polygon)
 
         if apply:
-            if isinstance(action, ba.Advance):
-                new_agent_pose = action.predict_pose(agent.pose, agent.pose[2])
-            elif isinstance(action, ba.Rotation):
-                new_agent_pose = action.predict_pose(
-                    agent.pose, (agent.pose[0], agent.pose[1])
-                )
-            elif isinstance(action, (ba.AbsoluteAction)):
-                new_agent_pose = action.predict_pose(agent.pose)
-            else:
-                raise Exception("Unexpected action type")
-            # assert new_pose != agent.pose
-
             obs_id = None
             if isinstance(action, (ba.Grab, ba.Release)):
                 obs_id = action.entity_uid
@@ -329,19 +317,8 @@ def csv_simulate_simple_kinematics(
             if obs:
                 obs_id = obs.uid
 
-                if isinstance(action, ba.Advance):
-                    new_obs_pose = action.predict_pose(obs.pose, agent.pose[2])
-                elif isinstance(action, ba.Rotation):
-                    new_obs_pose = action.predict_pose(
-                        obs.pose, (agent.pose[0], agent.pose[1])
-                    )
-                elif isinstance(action, (ba.AbsoluteAction)):  # type: ignore
-                    new_obs_pose = action.predict_pose(obs.pose)
-
-                obs_uid = world.entity_to_agent.inverse[agent_uid]
-                obs = world.dynamic_entities[obs_uid]
-                obs_action: ba.AbsoluteAction = action.to_absolute(agent.pose)
-                new_obs_polygon = obs_action.apply(obs.polygon)
+                new_obs_pose = action.predict_pose(agent.pose, obs.pose)
+                new_obs_polygon = action.predict_polygon(agent.pose, obs.polygon)
 
             def update_poses():
                 agent.pose = new_agent_pose

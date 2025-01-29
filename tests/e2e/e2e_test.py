@@ -340,6 +340,19 @@ class TestE2E:
             ]
         )
 
+    def test_robot_starts_in_collision(self):
+        sim = create_sim_from_file(
+            simulation_file_path="tests/scenarios/robot_starts_in_collision.svg"
+        )
+        sim.ref_world.resolve_collisions("robot_0")
+        sim.run()
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.logger
+            ]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

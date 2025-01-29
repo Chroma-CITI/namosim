@@ -30,7 +30,7 @@ class NavigationOnlyAgent(Agent):
         pose: PoseModel,
         sensors: t.List[OmniscientSensor],
         style: AgentStyle,
-        logger: utils.CustomLogger,
+        logger: utils.NamosimLogger,
         cell_size: float,
     ):
         Agent.__init__(
@@ -53,7 +53,7 @@ class NavigationOnlyAgent(Agent):
 
     def init(self, world: "w.World"):
         super().init(world)
-        self.static_obs_inf_grid = copy.deepcopy(world.map).inflate_map(
+        self.static_obs_inf_grid = copy.deepcopy(world.map).inflate_map_destructive(
             self.robot_max_inflation_radius
         )
 
