@@ -40,7 +40,7 @@
          type="stilman_2005_behavior">
         <parameters
            use_social_cost="false"
-           manipulation_search_procedure="BFS"
+           
            robot_rotation_unit_angle="30.0" />
       </behavior>
     </agent>

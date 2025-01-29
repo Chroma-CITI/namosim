@@ -9,14 +9,14 @@ import typer
 import yaml
 
 from namosim.scripts.svg2stl import svg_to_mesh
-from namosim.utils.utils import CustomLogger
+from namosim.utils.utils import NamosimLogger
 from namosim.world.world import World
 
 app = typer.Typer()
 
 
 def svg2map(svg_file: str, width: int):
-    logger = CustomLogger()
+    logger = NamosimLogger()
     w = World.load_from_svg(svg_file, logs_dir=".", logger=logger)
 
     non_static_entities = []

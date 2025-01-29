@@ -37,7 +37,7 @@
          type="stilman_2005_behavior">
         <parameters
            use_social_cost="true"
-           manipulation_search_procedure="DFS"
+           
            drive_type="differential" />
       </behavior>
     </agent>

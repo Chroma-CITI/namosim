@@ -14,6 +14,7 @@ import typing_extensions as tx
 from matplotlib import colors
 from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
+from rclpy.impl.rcutils_logger import RcutilsLogger
 
 from namosim.data_models import PoseModel, VertexModel
 
@@ -98,7 +99,7 @@ class OrderedSet(MutableSet):
         return set(self) == set(other)
 
 
-class BasicLog:
+class NamosimLog:
     def __init__(self, message, step, timestamp=timestamp_string()):
         self.message = message
         self.step = step
@@ -112,15 +113,18 @@ class BasicLog:
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
-class CustomLogger(list[BasicLog]):
-    def __init__(self, printout: bool = True):
-        super(CustomLogger, self).__init__(self)
+class NamosimLogger(list[NamosimLog]):
+    def __init__(self, printout: bool = True, ros2_logger: RcutilsLogger | None = None):
+        super(NamosimLogger, self).__init__(self)
         self.printout = printout
+        self.ros2_logger = ros2_logger
 
-    def append(self, log: BasicLog):
-        super(CustomLogger, self).append(log)
+    def append(self, log: NamosimLog):
+        super(NamosimLogger, self).append(log)
         if self.printout:
             print(log)
+        if self.ros2_logger:
+            self.ros2_logger.info(f"[namosim]:[step={log.step}]: {log.message})")
 
 
 def euclidean_distance(a: t.Sequence[float], b: t.Sequence[float]):
@@ -284,10 +288,11 @@ def real_pose_to_fixed_precision_pose(
     Takes a regular real-valued pose and converts to an integer-valued pose with a fixed degree of precision
     determined by the given multipler values.
     """
+    angle = angle_to_360_interval(real_pose[2])
     return (
-        round(real_pose[0] * trans_mult),
-        round(real_pose[1] * trans_mult),
-        round(real_pose[2] * rot_mult),
+        int(real_pose[0] * trans_mult),
+        int(real_pose[1] * trans_mult),
+        int(angle * rot_mult),
     )
 
 

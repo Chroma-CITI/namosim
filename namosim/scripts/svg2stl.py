@@ -2,7 +2,7 @@ import typing as t
 
 import numpy as np
 import typer
-from namosim.utils.utils import CustomLogger
+from namosim.utils.utils import NamosimLogger
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.world import World
 from shapely import GeometryCollection, affinity
@@ -46,7 +46,7 @@ def map_to_polygons(map: BinaryOccupancyGrid) -> t.List[Polygon]:
 
 
 def svg_to_mesh(svg_file: str, wall_height_meters: float):
-    logger = CustomLogger()
+    logger = NamosimLogger()
     w = World.load_from_svg(svg_file, logs_dir=".", logger=logger)
     faces = []
 
