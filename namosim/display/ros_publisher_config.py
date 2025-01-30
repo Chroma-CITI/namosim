@@ -27,9 +27,6 @@ conflicts_check_topic = "/conflicts_check"
 manip_search_topic = "/manip_search"
 default_queue_size = 100
 
-# HACK: Necessary because ROS1 pub/sub system is not reliable : wait (time in seconds) for subscribers to listen
-hack_duration_wait = 1.0
-
 main_frame_id = "/map"
 social_gridmap_frame_id = "/social_gridmap"
 combined_gridmap_frame_id = "/combined_gridmap"
