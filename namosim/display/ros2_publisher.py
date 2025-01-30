@@ -148,9 +148,6 @@ class RosPublisher:  # noqa: F821
                 self.ros_node, f"{agent_id}/manip_search"
             )
 
-        # HACK: Necessary because ROS1 pub/sub system is not really reliable : wait a second for subscribers to listen
-        ros_nodes.time.sleep(cfg.hack_duration_wait)
-
         # Setup Static Transform for grid map (Hack so that it is properly placed in view)
         broadcaster = self.get_transform_broadcaster()
 
