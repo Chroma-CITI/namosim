@@ -48,6 +48,12 @@ def map_to_polygons(map: BinaryOccupancyGrid) -> t.List[Polygon]:
 def svg_to_mesh(svg_file: str, wall_height_meters: float):
     faces = []
     walls = World.get_wall_polygons_from_svg(svg_file)
+
+    # If no wall geometries were found, the scenario must use an image for the map, so get walls from the occupancy grid.
+    if len(walls) == 0:
+        w = World.load_from_svg(svg_file)
+        walls = map_to_polygons(w.map)
+
     for wall in walls:
         triangles = triangulate(wall)  # type: ignore
         for tri in triangles:
