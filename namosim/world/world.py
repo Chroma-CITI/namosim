@@ -359,8 +359,45 @@ class World:
 
         return world
 
-    def get_empty_svg_doc(self, ignore_config: bool = False):
+    @staticmethod
+    def get_wall_polygons_from_svg(
+        svg_path: str,
+    ) -> Self:
+        svg_doc = minidom.parse(svg_path)
+        conversion.set_all_id_attributes_as_ids(svg_doc)
+        conversion.clean_attributes(svg_doc)
+        if not svg_doc.documentElement.hasAttribute("viewBox"):
+            raise Exception("svg has no viewBox attribute")
 
+        # Split the viewbox attribute into its components
+        viewbox_values = [
+            float(x) / 100
+            for x in svg_doc.documentElement.getAttribute("viewBox").split()
+        ]
+
+        assert viewbox_values[0] == 0
+        assert viewbox_values[1] == 0
+        height = viewbox_values[3]
+
+        wall_polygons: t.List[Polygon] = []
+        for el in svg_doc.getElementsByTagNameNS("*", "path"):
+            svg_id = el.getAttribute("id")
+            svg_path = el.getAttribute("d")
+            if el.getAttribute("type") == "wall":
+                try:
+                    polygon = conversion.svg_pathd_to_shapely_geometry(  # type: ignore
+                        svg_path=svg_path, ymax_meters=height
+                    )
+                    wall_polygons.append(polygon)
+                except RuntimeError:
+                    raise RuntimeError(
+                        "Could not convert svg path to shapely geometry for svg id: {}".format(
+                            svg_id
+                        )
+                    )
+        return wall_polygons
+
+    def get_empty_svg_doc(self, ignore_config: bool = False):
         doc = minidom.Document()
         svg = doc.createElement("svg")
         svg.setAttribute("xmlns", "http://www.w3.org/2000/svg")

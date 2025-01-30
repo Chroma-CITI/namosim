@@ -46,11 +46,8 @@ def map_to_polygons(map: BinaryOccupancyGrid) -> t.List[Polygon]:
 
 
 def svg_to_mesh(svg_file: str, wall_height_meters: float):
-    logger = NamosimLogger()
-    w = World.load_from_svg(svg_file, logs_dir=".", logger=logger)
     faces = []
-
-    walls = map_to_polygons(w.map)
+    walls = World.get_wall_polygons_from_svg(svg_file)
     for wall in walls:
         triangles = triangulate(wall)  # type: ignore
         for tri in triangles:
