@@ -362,7 +362,7 @@ class World:
     @staticmethod
     def get_wall_polygons_from_svg(
         svg_path: str,
-    ) -> Self:
+    ) -> t.List[Polygon]:
         svg_doc = minidom.parse(svg_path)
         conversion.set_all_id_attributes_as_ids(svg_doc)
         conversion.clean_attributes(svg_doc)
@@ -388,7 +388,7 @@ class World:
                     polygon = conversion.svg_pathd_to_shapely_geometry(  # type: ignore
                         svg_path=svg_path, ymax_meters=height
                     )
-                    wall_polygons.append(polygon)
+                    wall_polygons.append(polygon)  # type: ignore
                 except RuntimeError:
                     raise RuntimeError(
                         "Could not convert svg path to shapely geometry for svg id: {}".format(
@@ -470,35 +470,6 @@ class World:
                     svg_group=robot_group,
                     ymax_meters=self.map.height,
                 )
-
-                # # add agent goal
-                # goal = entity.get_current_goal()
-                # if goal and not ignore_goal:
-                #     goal_group = conversion.add_group(svg_data, "goal", is_layer=False)
-                #     # Add robot shape
-                #     conversion.add_shapely_geometry_to_svg(
-                #         goal.polygon,
-                #         goal.uid + "_shape",
-                #         goal.style.to_string(),
-                #         svg_data,
-                #         goal_group,
-                #     )
-                #     # Add robot direction shape
-                #     radius = utils.get_inscribed_radius(goal.polygon)
-                #     point_a = np.array([goal.pose[0], goal.pose[1]])
-                #     direction = np.array(utils.direction_from_yaw(goal.pose[2]))
-                #     point_b = point_a + direction * radius
-
-                #     poly = utils.path_to_polygon(
-                #         points=[point_a, point_b], line_width=radius / 4
-                #     )
-                #     conversion.add_shapely_geometry_to_svg(
-                #         shapely_geometry=poly,
-                #         uid=goal.uid + "_dir",
-                #         style=conversion.ORIENTATION_STYLE,
-                #         svg_data=svg_data,
-                #         svg_group=goal_group,
-                #     )
 
                 # add agent goal
                 goal = entity.get_current_goal()
