@@ -103,7 +103,7 @@ class Stilman2005Agent(Agent):
         # - Original Stilman method configuration parameters
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD  # default if bad parameter
         self.translation_unit_cost = 1.0
-        self.rotation_unit_cost = 1.0
+        self.rotation_unit_cost = 2.0
         self.transfer_coefficient = 2.0  # Note: MUST ALWAYS BE > 1 !
         # - Robot action space parameters
         self.rotation_unit_angle = config.parameters.robot_rotation_unit_angle
