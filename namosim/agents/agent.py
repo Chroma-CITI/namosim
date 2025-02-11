@@ -32,7 +32,7 @@ class ThinkResult:
         goal_pose: PoseModel | None,
         did_replan: bool,
         did_postpone: bool = False,
-        robot_id: str,
+        agent_id: str,
         conflicts: t.Optional[t.List[Conflict]] = None,
     ) -> None:
         self.next_action = next_action
@@ -41,7 +41,7 @@ class ThinkResult:
         """
         self.did_replan = did_replan
         self.did_postpone = did_postpone
-        self.robot_id = robot_id
+        self.agent_id = agent_id
         self.conflicts = conflicts if conflicts else []
 
 
@@ -53,7 +53,7 @@ class RLThinkResult(ThinkResult):
         goal_pose: PoseModel | None,
         did_replan: bool,
         did_postpone: bool = False,
-        robot_id: str,
+        agent_id: str,
         conflicts: t.Optional[t.List[Conflict]] = None,
         log_prob: float = 0.0,
         action_idx: int = 0,
@@ -63,7 +63,7 @@ class RLThinkResult(ThinkResult):
             goal_pose=goal_pose,
             did_replan=did_replan,
             did_postpone=did_postpone,
-            robot_id=robot_id,
+            agent_id=agent_id,
             conflicts=conflicts,
         )
         self.log_prob = log_prob

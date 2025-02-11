@@ -409,7 +409,7 @@ class PPOAgent(Agent):
             goal_pose=goal_pose,
             next_action=action,
             did_replan=False,
-            robot_id=self.uid,
+            agent_id=self.uid,
             action_idx=action_i,
         )
 

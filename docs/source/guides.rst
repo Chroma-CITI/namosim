@@ -52,7 +52,7 @@ The full specification for the `<namo_config>` is defined by the `NamoConfigMode
 
 Robots and Navigation Goals
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Each robot and goal listed in the `<namo_config>` must have a corresponding `<svg:path id="[your_robot_id]">` path element somewhere in the svg file. These elements 
+Each robot and goal listed in the `<namo_config>` must have a corresponding `<svg:path id="[your_agent_id]">` path element somewhere in the svg file. These elements 
 provides the shape, position, and orientation of the robots and goals.
 
 .. code-block:: xml
