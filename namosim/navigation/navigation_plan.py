@@ -32,14 +32,14 @@ class Plan:
     def __init__(
         self,
         *,
-        robot_uid: str,
+        agent_id: str,
         path_components: t.List[t.Union[TransitPath, TransferPath]] = [],
         goal: t.Optional[PoseModel] = None,
         plan_error: t.Optional[str] = None,
     ):
         self.path_components = path_components
         self.goal = goal
-        self.robot_uid = robot_uid
+        self.agent_id = agent_id
         self.phys_cost = 0.0
         self.social_cost = 0.0
         self.total_cost = 0.0
@@ -80,7 +80,7 @@ class Plan:
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
-        robot_id: str = "",
+        agent_id: str = "",
     ) -> t.List[Conflict]:
         # Check validity of each component
         previously_moved_entities_uids = set()
@@ -91,7 +91,7 @@ class Plan:
         other_entities_polygons = {
             uid: e.polygon
             for uid, e in world.dynamic_entities.items()
-            if uid != self.robot_uid and e.movability != Movability.STATIC
+            if uid != self.agent_id and e.movability != Movability.STATIC
         }
         other_entities_aabb_tree = collision.polygons_to_aabb_tree(
             other_entities_polygons
@@ -103,9 +103,9 @@ class Plan:
         other_entities_with_encompassing_circles_aabb_tree = copy.deepcopy(
             other_entities_aabb_tree
         )
-        encompassing_circle_uid_to_robot_uid = {}
+        encompassing_circle_uid_to_agent_id = {}
         for other_robot in world.agents.values():
-            if other_robot.uid == self.robot_uid:
+            if other_robot.uid == self.agent_id:
                 continue
 
             # Inflate all other robots and their associated obstacles by the maximum translation at t+1 to prevent
@@ -126,7 +126,7 @@ class Plan:
             other_entities_with_encompassing_circles_aabb_tree.add(
                 collision.polygon_to_aabb(encompassing_circle), temp_uid
             )
-            encompassing_circle_uid_to_robot_uid[temp_uid] = other_robot.uid
+            encompassing_circle_uid_to_agent_id[temp_uid] = other_robot.uid
             robot_inflated_grid.update_polygons(
                 new_or_updated_polygons={temp_uid: encompassing_circle}
             )
@@ -136,21 +136,20 @@ class Plan:
                 has_first_action = i == 0
                 if isinstance(path, TransitPath):
                     conflicts += path.get_conflicts(
-                        robot_uid=self.robot_uid,
+                        agent_id=self.agent_id,
                         world=world,
                         robot_inflated_grid=robot_inflated_grid,
-                        encompassing_circle_uid_to_robot_uid=encompassing_circle_uid_to_robot_uid,
+                        encompassing_circle_uid_to_agent_id=encompassing_circle_uid_to_agent_id,
                         check_horizon=check_horizon,
                         has_first_action=has_first_action,
                         apply_strict_horizon=apply_strict_horizon,
                         exit_early_for_any_conflict=exit_early_for_any_conflict,
                         exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
                         rp=rp,
-                        robot_id=robot_id,
                     )
                 else:
                     conflicts += path.get_conflicts(
-                        robot_uid=self.robot_uid,
+                        agent_id=self.agent_id,
                         world=world,
                         grab_release_distance=grab_release_distance,
                         robot_inflated_grid=robot_inflated_grid,
@@ -158,7 +157,7 @@ class Plan:
                         other_entities_aabb_tree=other_entities_aabb_tree,
                         other_entities_polygons_with_encompassing_circles=other_entities_polygons_with_encompassing_circles,
                         other_entities_with_encompassing_circles_aabb_tree=other_entities_with_encompassing_circles_aabb_tree,
-                        encompassing_circle_uid_to_robot_uid=encompassing_circle_uid_to_robot_uid,
+                        encompassing_circle_uid_to_agent_id=encompassing_circle_uid_to_agent_id,
                         previously_moved_entities_uids=previously_moved_entities_uids,
                         has_first_action=has_first_action,
                         check_horizon=check_horizon,
@@ -166,7 +165,6 @@ class Plan:
                         exit_early_for_any_conflict=exit_early_for_any_conflict,
                         exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
                         rp=rp,
-                        robot_id=robot_id,
                     )
 
                     # If the previously checked path components are valid, we assume it leaves any manipulated
@@ -200,7 +198,7 @@ class Plan:
         # Reactivate entities that had been deactivated during checks
         robot_inflated_grid.activate_entities(previously_moved_entities_uids)
         robot_inflated_grid.update_polygons(
-            removed_polygons=set(encompassing_circle_uid_to_robot_uid.keys())
+            removed_polygons=set(encompassing_circle_uid_to_agent_id.keys())
         )
 
         return conflicts
@@ -255,8 +253,8 @@ class Timer:
 class DynamicPlan(Plan):
     DEBUGGING_WAIT_TIME_GENERATOR = []
 
-    def __init__(self, robot_uid: str):
-        super().__init__(robot_uid=robot_uid)
+    def __init__(self, agent_id: str):
+        super().__init__(agent_id=agent_id)
         self.update_count = 0
         """
         The number of times the plan was updated
@@ -291,7 +289,7 @@ class DynamicPlan(Plan):
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = True,
         exit_early_only_for_long_term_conflicts: bool = True,
-        robot_id: str = "",
+        agent_id: str = "",
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
         conflicts = super().get_conflicts(
@@ -303,7 +301,7 @@ class DynamicPlan(Plan):
             exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
             grab_release_distance=grab_release_distance,
             rp=ros_publisher,
-            robot_id=robot_id,
+            agent_id=agent_id,
         )
         self.current_conflicts += conflicts
         return conflicts
@@ -334,20 +332,20 @@ class DynamicPlan(Plan):
         step_count: int,
         conflicts: t.List[Conflict],
         simulation_log: t.List[utils.NamosimLog],
-        robot_id: str,
+        agent_id: str,
     ):
         if self.timer.is_running:
             if self.timer.is_timer_over(step_count):
                 simulation_log.append(
                     utils.NamosimLog(
                         "Agent {}: Resetting plan because conflicts still exist after full postponement is over: {}.".format(
-                            robot_id, conflicts
+                            agent_id, conflicts
                         ),
                         step_count,
                     )
                 )
                 self.update_plan(
-                    nav_plan.Plan(robot_uid=self.robot_uid, path_components=[]),
+                    nav_plan.Plan(agent_id=self.agent_id, path_components=[]),
                     step_count,
                 )
             else:
@@ -357,7 +355,7 @@ class DynamicPlan(Plan):
             simulation_log.append(
                 utils.NamosimLog(
                     "Agent {}: Starting postponement of current plan for {} steps because conflicts: {}.".format(
-                        robot_id, duration, conflicts
+                        agent_id, duration, conflicts
                     ),
                     step_count,
                 )
@@ -387,7 +385,7 @@ class DynamicPlan(Plan):
 
         self.path_components = plan.path_components
         self.goal = plan.goal
-        self.robot_uid = plan.robot_uid
+        self.agent_id = plan.agent_id
         self.phys_cost = plan.phys_cost
         self.social_cost = plan.social_cost
         self.total_cost = plan.total_cost

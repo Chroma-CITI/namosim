@@ -221,7 +221,7 @@ def merge_collides_with(
 
 def get_csv_collisions(
     *,
-    robot_uid: str,
+    agent_id: str,
     robot_pose: PoseModel,
     robot_action: ba.Action,
     polygon: Polygon,
@@ -239,7 +239,7 @@ def get_csv_collisions(
         other_entities_aabb_tree=others_aabb_tree,
         ignored_entities=ignored_entities,
     )
-    assert robot_uid not in collisions
+    assert agent_id not in collisions
     return collisions, csv_polygon
 
 

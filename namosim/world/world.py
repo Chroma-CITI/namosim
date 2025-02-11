@@ -600,18 +600,18 @@ class World:
 
     def get_robot_conflict_radius(
         self,
-        robot_id: str,
+        agent_id: str,
         grab_release_distance: float,
         obstacle_id: str | None = None,
     ):
-        robot = self.agents[robot_id]
+        robot = self.agents[agent_id]
         center = robot.polygon.centroid
         radius_for_move = robot.circumscribed_radius + 2 * self.map.cell_size
         radius_for_grab_or_release = robot.circumscribed_radius + grab_release_distance
 
         conflict_radius = radius_for_move
 
-        if self.is_holding_obstacle(robot_id):
+        if self.is_holding_obstacle(agent_id):
             obstacle_id = self.entity_to_agent.inverse[robot.uid]
 
         if obstacle_id is not None:

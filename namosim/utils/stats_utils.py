@@ -102,7 +102,6 @@ def get_connectivity_stats(
     world: World,
     inflation_radius: float,
     entities_to_ignore: t.Set[str],
-    ros_publisher: RosPublisher | None = None,
 ):
     occ_grid = world.get_dynamic_occupancy_grid(
         inflation_radius=inflation_radius, ignored_entities=entities_to_ignore
@@ -111,12 +110,6 @@ def get_connectivity_stats(
         occ_grid.grid, occ_grid.d_width, occ_grid.d_height, occ_grid.neighborhood
     )
     connected_components = ccs_data.ccs
-    connected_components_grid = ccs_data.grid
-
-    if ros_publisher:
-        ros_publisher.publish_connected_components_grid(
-            connected_components_grid, world.map.cell_size, ns="simulation"
-        )
 
     # cc is abbreviation of connected component
     nb_cc = len(connected_components)
@@ -139,7 +132,6 @@ def get_connectivity_stats(
 def get_social_costs_stats(
     world: World,
     entities_to_compute_social_cost_for: t.Set[str],
-    ros_publisher: RosPublisher,
 ):
     polygons = {
         uid: e.polygon
@@ -150,11 +142,10 @@ def get_social_costs_stats(
     occ_grid.update_polygons(polygons)
 
     abs_social_costmap = compute_social_costmap(
-        occ_grid.grid,
-        occ_grid.cell_size,
+        binary_occ_grid=occ_grid.grid,
+        cell_size=occ_grid.cell_size,
         log_costmaps=False,
-        ns="simulation",
-        ros_publisher=ros_publisher,
+        agent_id="simulation",
     )
 
     absolute_social_cost = 0.0

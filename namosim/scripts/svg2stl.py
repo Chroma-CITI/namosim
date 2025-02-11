@@ -113,7 +113,7 @@ def run(
     ] = 2,
 ):
     stl_mesh = svg_to_mesh(svg_file, height)
-    export_stl(stl_mesh, out)
+    export_stl(stl_mesh, out)  # type: ignore
 
 
 if __name__ == "__main__":
