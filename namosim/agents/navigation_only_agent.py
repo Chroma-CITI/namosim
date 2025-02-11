@@ -66,14 +66,14 @@ class NavigationOnlyAgent(Agent):
             if self._navigation_goals:
                 self._goal = self._navigation_goals.pop(0)
                 self._p_opt = nav_plan.Plan(
-                    robot_uid=self.uid, path_components=[], goal=self._goal.pose
+                    agent_id=self.uid, path_components=[], goal=self._goal.pose
                 )
             else:
                 return ThinkResult(
                     next_action=ba.GoalsFinished(),
                     goal_pose=None,
                     did_replan=False,
-                    robot_id=self.uid,
+                    agent_id=self.uid,
                 )
 
         if self._p_opt is None:
@@ -87,7 +87,7 @@ class NavigationOnlyAgent(Agent):
                 next_action=ba.GoalSuccess(goal=self._goal.pose),
                 goal_pose=self._goal.pose,
                 did_replan=False,
-                robot_id=self.uid,
+                agent_id=self.uid,
             )
             self._goal = None
             return result
@@ -97,7 +97,7 @@ class NavigationOnlyAgent(Agent):
                 next_action=self._p_opt.pop_next_action(),
                 goal_pose=self._goal.pose,
                 did_replan=False,
-                robot_id=self.uid,
+                agent_id=self.uid,
             )
 
         path = self.find_path(
@@ -112,11 +112,11 @@ class NavigationOnlyAgent(Agent):
                 next_action=ba.GoalFailed(self._goal.pose),
                 goal_pose=self._goal.pose,
                 did_replan=False,
-                robot_id=self.uid,
+                agent_id=self.uid,
             )
 
         self._p_opt = nav_plan.Plan(
-            path_components=[path], goal=self._goal.pose, robot_uid=self.uid
+            path_components=[path], goal=self._goal.pose, agent_id=self.uid
         )
         self.goal_to_plans[self._goal] = self._p_opt
 
@@ -124,7 +124,7 @@ class NavigationOnlyAgent(Agent):
             next_action=self._p_opt.pop_next_action(),
             goal_pose=self._goal.pose,
             did_replan=True,
-            robot_id=self.uid,
+            agent_id=self.uid,
         )
 
     def copy(self) -> Self:

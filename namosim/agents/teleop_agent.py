@@ -82,7 +82,7 @@ class TeleopAgent(Agent):
             next_action=next_action,
             goal_pose=None,
             did_replan=False,
-            robot_id=self.uid,
+            agent_id=self.uid,
         )
 
     def _grab(self) -> ba.Grab | None:

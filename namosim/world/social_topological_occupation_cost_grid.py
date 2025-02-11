@@ -36,12 +36,12 @@ def display_or_log(
             color_grid = rainbow_colormap(grid)
             color_grid_int = np.uint8(color_grid * 255)
             red, green, blue = (
-                color_grid_int[:, :, 0],
-                color_grid_int[:, :, 1],
-                color_grid_int[:, :, 2],
+                color_grid_int[:, :, 0],  # type: ignore
+                color_grid_int[:, :, 1],  # type: ignore
+                color_grid_int[:, :, 2],  # type: ignore
             )
             mask = (red == 255) & (green == 0) & (blue == 191)
-            color_grid_int[:, :, :4][mask] = [0, 0, 0, 0]
+            color_grid_int[:, :, :4][mask] = [0, 0, 0, 0]  # type: ignore
             img = Image.fromarray(color_grid_int).convert("RGBA")
         else:
             img = Image.fromarray(grid).convert("RGB")
@@ -238,8 +238,10 @@ def voronoi_skeleton(entities, entities_to_ignore=tuple()):
 
 
 def compute_social_costmap(
+    *,
     binary_occ_grid,
     cell_size,
+    agent_id: str,
     ros_publisher: t.Optional["rp.RosPublisher"] = None,
     neighborhood=utils.TAXI_NEIGHBORHOOD,
     skeleton_function=skeleteton_social_cost_function_02,
@@ -252,7 +254,6 @@ def compute_social_costmap(
     log_costmaps=True,
     logs_dir: str = abs_path_to_costmap_logs_dir,
     skeleton_filepath=None,
-    ns: str = "",
 ):  # rel_path_to_costmap_logs_dir + "citi_saved_skeleton.png"):
     start_time_str = time.strftime("%Y-%m-%d-%Hh%Mm%Ss")
 
@@ -328,7 +329,7 @@ def compute_social_costmap(
         )
 
     if ros_publisher:
-        ros_publisher.publish_social_grid_map(final_array, cell_size, ns=ns)
+        ros_publisher.publish_social_costmap(final_array, cell_size, agent_id=agent_id)
     # time.sleep(3.0)
 
     cur_set = skeleton_cell_set
@@ -385,7 +386,9 @@ def compute_social_costmap(
         cur_set = next_set
 
         if ros_publisher:
-            ros_publisher.publish_social_grid_map(final_array, cell_size, ns=ns)
+            ros_publisher.publish_social_costmap(
+                final_array, cell_size, agent_id=agent_id
+            )
 
     # prev_set = skeleton_cell_set
     # cur_set = utils.get_set_neighbors_no_coll(skeleton_cell_set, binary_occ_grid, neighborhood)
@@ -435,7 +438,7 @@ class SocialTopologicalOccupationCostGrid:
         skeleton_function=skeleteton_social_cost_function,
         decay_function=exp_decay_function,
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-        ns="",
+        agent_id="",
     ):
         self.occupation_grid = occupation_grid
         self.d_width, self.d_height = d_width, d_height
@@ -445,7 +448,7 @@ class SocialTopologicalOccupationCostGrid:
         self.skeleton_function = skeleton_function
         self.decay_function = decay_function
         self.neighborhood = neighborhood
-        self.ns = ns
+        self.agent_id = agent_id
         self._grid = np.zeros((self.d_width, self.d_height), dtype=np.int16)
         self._update_grid()
         self.ros_publisher = ros_publisher
@@ -458,7 +461,7 @@ class SocialTopologicalOccupationCostGrid:
         skeleton_function=skeleteton_social_cost_function,
         decay_function=exp_decay_function,
         neighborhood=utils.CHESSBOARD_NEIGHBORHOOD,
-        ns="",
+        agent_id="",
     ):
         return cls(
             binary_occ_grid.get_grid(),
@@ -471,7 +474,7 @@ class SocialTopologicalOccupationCostGrid:
             skeleton_function=skeleton_function,
             decay_function=decay_function,
             neighborhood=neighborhood,
-            ns="",
+            agent_id="",
         )
 
     def _update_grid(self):
@@ -479,7 +482,7 @@ class SocialTopologicalOccupationCostGrid:
             binary_occ_grid=self.occupation_grid,
             cell_size=self.cell_size,
             ros_publisher=self.ros_publisher,
-            ns=self.ns,
+            agent_id=self.agent_id,
         )
 
     def get_grid(self):

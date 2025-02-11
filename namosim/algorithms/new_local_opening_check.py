@@ -15,8 +15,8 @@ def check_new_local_opening(
     other_entities_aabb_tree: AABBTree,
     robot_radius: float,
     goal_pose: PoseModel,
+    agent_id: str,
     ros_publisher: t.Optional["rp.RosPublisher"] = None,
-    ns: str = "",
 ) -> bool:
     """Checks if a new local opening exists
 
@@ -47,7 +47,7 @@ def check_new_local_opening(
             old_obstacle_inflated_polygon,
             new_obtacle_inflated_by_robot_diameter,
             line_width=robot_radius / 10,
-            ns=ns,
+            agent_id=agent_id,
         )
 
     # Build blocking areas
@@ -98,7 +98,7 @@ def check_new_local_opening(
 
     if ros_publisher:
         ros_publisher.publish_blocking_areas(
-            init_blocking_areas, new_blocking_areas, ns=ns
+            init_blocking_areas, new_blocking_areas, agent_id=agent_id
         )
 
     # Check if any blocking area has been freed thus a local opening has been created
