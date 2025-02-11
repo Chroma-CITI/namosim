@@ -261,13 +261,13 @@ def generate_alternative_scenarios(
         goals_group = conversion.add_group(svg_data, "goals")
 
         for i in range(nb_robots):
-            robot_id = "robot_" + str(i)
+            agent_id = "robot_" + str(i)
             # Add robot shape
             conversion.add_shapely_geometry_to_svg(
                 shape=utils.set_polygon_pose(
                     base_robot_polygon, base_robot_pose, initial_robot_poses[i]
                 ),
-                uid=robot_id,
+                uid=agent_id,
                 style=svg_base_robot.getAttribute("style"),
                 svg_data=svg_data,
                 namo_type="shape",
@@ -276,11 +276,11 @@ def generate_alternative_scenarios(
 
             # Add robot goals
             robot_goals_layer = conversion.add_group(
-                svg_data, robot_id + "_goals", goals_group
+                svg_data, agent_id + "_goals", goals_group
             )
 
             for i_goal, goal_pose in enumerate(goals_poses_for_robots[i]):
-                goal_id = robot_id + "_goal_" + str(i_goal)
+                goal_id = agent_id + "_goal_" + str(i_goal)
 
                 # Add goal shape
                 goal_shape = utils.set_polygon_pose(

@@ -15,7 +15,6 @@ from PIL import ImageTk
 from shapely.geometry import Polygon
 
 import namosim.config as config
-import namosim.display.ros2_publisher as ros2
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.agents.agent import Agent, ThinkResult
@@ -23,9 +22,10 @@ from namosim.data_models import PoseModel
 from namosim.exceptions import CustomTimeoutError, timeout
 from namosim.input import Input
 from namosim.report import AgentStats, SimulationReport, WorldStepReport
-from namosim.utils import conversion, stats_utils, utils
+from namosim.utils import stats_utils, utils
 from namosim.world.obstacle import Obstacle
 from namosim.world.world import World
+import namosim.config as cfg
 
 sys.setrecursionlimit(10000)
 os.system("xset r off")
@@ -96,11 +96,16 @@ class Simulator:
         self.save = json_save
 
         # Reinitialize rviz display
-        self.ros_publisher = ros2.create_default_ros_publisher(
-            node_name="namosim",
-            robot_ids=list(self.ref_world.agents.keys()),
-        )
-        self.ros_publisher.cleanup_all()
+        self.ros_publisher = None
+        if not cfg.DEACTIVATE_RVIZ:
+            # conditional import to support usage without Ros2 installed
+            import namosim.display.ros2_publisher as ros2_publisher
+
+            self.ros_publisher = ros2_publisher.create_default_ros_publisher(
+                node_name="namosim",
+                agent_ids=list(self.ref_world.agents.keys()),
+            )
+            self.ros_publisher.cleanup_all()
 
         self.logger.append(utils.NamosimLog("Display backend initialized.", 0))
 
@@ -157,16 +162,6 @@ class Simulator:
             return (active_agents, trace_polygons, step_count + 1)
 
         try:
-            self.ros_publisher.publish_message(
-                "Sim steps: {}".format(step_count),
-                pose=(
-                    0.0,
-                    self.ref_world.map.grid_pose[1] + self.ref_world.map.height + 0.25,
-                    0.0,
-                ),
-                font_size=0.5,
-            )
-
             # Sense loop: update each agent's knowledge of the world
             sense_durations = {}
             self.sense(active_agents, step_count, sense_durations)
@@ -197,7 +192,8 @@ class Simulator:
                 self.update_report(sim_step_result)
 
             # Once the simulation reference world has been modified, display the modification
-            self.ros_publisher.publish_sim_world(self.ref_world)
+            if self.ros_publisher:
+                self.ros_publisher.publish_world(self.ref_world)
         except Exception as e:
             self.end_simulation(step_count=step_count, err=e)
 
@@ -273,19 +269,10 @@ class Simulator:
 
         while self.run_active:
             active_agents: set[str] = set(self.ref_world.agents.keys())
-            self.ros_publisher.publish_sim_world(self.ref_world)
+            if self.ros_publisher:
+                self.ros_publisher.publish_world(self.ref_world)
             trace_polygons: t.List[Polygon] = []
             self.logger.append(utils.NamosimLog("Starting run.", step_count))
-            self.ros_publisher.publish_message(
-                "Sim steps: {}".format(step_count),
-                pose=(
-                    0.0,
-                    self.ref_world.map.grid_pose[1] + self.ref_world.map.height + 0.25,
-                    0.0,
-                ),
-                font_size=0.5,
-            )
-
             print("")
 
             if self.window is not None:
@@ -492,12 +479,10 @@ class Simulator:
                     if isinstance(entity, Agent) or uid in world.entity_to_agent.keys()
                 ]
             ),
-            ros_publisher=self.ros_publisher,
         )
         end_abs_social_cost = stats_utils.get_social_costs_stats(
             world,
             set(all_movables_uids),
-            ros_publisher=self.ros_publisher,
         )
         world_stats = WorldStepReport(
             nb_components=nb_components,
@@ -559,12 +544,18 @@ class Simulator:
                 behavior.sense(self.ref_world, last_action_result, step_count)
 
                 # Publish the robot's perceived/sensed world to RVIZ
-                self.ros_publisher.publish_robot_world(behavior.world, behavior.uid)
+                if self.ros_publisher:
+                    self.ros_publisher.publish_robot_observed_world(
+                        behavior.world, behavior.uid
+                    )
 
                 # Record the time it took the robot to sense the world
                 sense_durations[agent_uid] = time.time() - sense_start
             else:
-                self.ros_publisher.cleanup_robot_world(agent_id=behavior.uid)
+                if self.ros_publisher:
+                    self.ros_publisher.cleanup_robot_observed_world(
+                        agent_id=behavior.uid
+                    )
 
     def process_think_results(
         self,
@@ -577,7 +568,10 @@ class Simulator:
         agent_uid_to_next_action: t.Dict[str, ba.Action] = {}
         for agent_uid, think_result in results.items():
             if len(think_result.conflicts) == 0:
-                self.ros_publisher.cleanup_conflicts_checks(ns=think_result.robot_id)
+                if self.ros_publisher:
+                    self.ros_publisher.cleanup_conflicts_checks(
+                        agent_id=think_result.agent_id
+                    )
 
             # TODO Change goal coordinates for easier reading to goal name in log.
             if isinstance(think_result.next_action, ba.GoalsFinished):
@@ -656,7 +650,7 @@ class Simulator:
                         goal_pose=agent_goal.pose,
                         did_replan=False,
                         did_postpone=False,
-                        robot_id=agent.uid,
+                        agent_id=agent.uid,
                     )
 
                     agent.skip_current_goal()
@@ -685,18 +679,20 @@ class Simulator:
         return actions, think_results, think_durations
 
     def publish_robot_goal(self, agent_uid: str):
+        if not self.ros_publisher:
+            return
         agent = self.ref_world.agents[agent_uid]
         goal = agent.get_current_or_next_goal()
         if agent and goal:
             self.ros_publisher.publish_goal(
-                self.ref_world.map,
                 q_init=agent.pose,
                 q_goal=goal.pose,
                 entity=agent,
-                ns=agent.uid,
             )
 
     def publish_robot_plan(self, agent_uid: str, did_replan: bool):
+        if not self.ros_publisher:
+            return
         agent = self.ref_world.agents[agent_uid]
         if agent and agent.goal_pose:
             if did_replan:

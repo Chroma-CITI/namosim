@@ -38,7 +38,6 @@ def plan_to_markerarray(
     robot: agent.Agent,
     frame_id: str,
     stamp: Time = Time(),
-    scale: float = 1.0,
 ):
     markerarray = MarkerArray()
     markers = []
@@ -70,7 +69,6 @@ def plan_to_markerarray(
         path_marker = real_path_to_triangle_list(
             real_path=component.robot_path.poses,
             map=map,
-            namespace="/plan",
             p_id=p_id,
             frame_id=frame_id,
             color=current_color,
@@ -119,13 +117,14 @@ def real_path_to_linestrip(
 
 
 def polygon_to_triangle_list(
+    *,
     polygon: Polygon,
-    namespace: str,
     p_id: int,
     frame_id: str,
     color: ColorRGBA,
     z_index: float,
     stamp: Time = Time(),
+    namespace: str = "",
 ):
     """Takes a polygon and converts it to a TRIANGLE_LIST marker for RVIZ
 
@@ -148,12 +147,12 @@ def polygon_to_triangle_list(
     """
     marker = Marker(
         type=Marker.TRIANGLE_LIST,
-        ns=namespace,
         id=p_id,
         header=Header(frame_id=frame_id, stamp=stamp),
         color=color,
         scale=Vector3(x=1.0, y=1.0, z=1.0),
         points=[],
+        ns=namespace,
     )
     if isinstance(polygon, Polygon):
         verts = list(zip(*polygon.exterior.coords.xy))[:-1]
@@ -172,14 +171,15 @@ def polygon_to_triangle_list(
 
 
 def polygon_to_line_strip(
+    *,
     polygon: Polygon,
-    namespace: str,
     p_id: int,
     frame_id: str,
     color: ColorRGBA,
     z_index: float,
     line_width: float,
     stamp: Time = Time(),
+    namespace: str = "",
 ):
     marker = Marker(
         type=Marker.LINE_STRIP,
@@ -312,7 +312,6 @@ def pose_to_ros_pose(pose: PoseModel) -> Pose:
 def real_path_to_triangle_list(
     real_path: t.Sequence[t.Tuple[float, float, float] | t.Tuple[float, float]],
     map: BinaryOccupancyGrid,
-    namespace: str,
     p_id: int,
     frame_id: str,
     color: ColorRGBA,
@@ -326,7 +325,6 @@ def real_path_to_triangle_list(
 
     return polygon_to_triangle_list(
         polygon=polygon,
-        namespace=namespace,
         p_id=p_id,
         frame_id=frame_id,
         color=color,
