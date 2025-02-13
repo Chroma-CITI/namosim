@@ -21,7 +21,7 @@ from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 
 if not DEACTIVATE_RVIZ:
     from rclpy.node import Node
-
+    from rclpy.callback_groups import CallbackGroup
     import namosim.display.conversions as conversions
     import namosim.display.ros_nodes as ros_nodes
     from namosim.display import colors
@@ -32,6 +32,7 @@ class RosPublisher:  # noqa: F821
         self,
         agent_ids: t.List[str],
         ros_node: t.Optional["Node"] = None,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         if DEACTIVATE_RVIZ or not ros_node:
             return
@@ -41,8 +42,11 @@ class RosPublisher:  # noqa: F821
         self.dynamic_entities_publisher = ros_nodes.DynamicEntitiesPublisher(
             node=self.ros_node,
             topic="namosim/dynamic_entities",
+            callback_group=callback_group,
         )
-        self.map_publisher = ros_nodes.WorldMapPublisher(self.ros_node, "namosim/map")
+        self.map_publisher = ros_nodes.WorldMapPublisher(
+            self.ros_node, "namosim/map", callback_group=callback_group
+        )
         self.agent_ids = agent_ids
 
         # Add robot-specific publishers for each robot namespace
@@ -73,47 +77,65 @@ class RosPublisher:  # noqa: F821
         for agent_id in self.agent_ids:
             ns = f"namosim/{agent_id}"
             self.robot_world_publishers[agent_id] = ros_nodes.DynamicEntitiesPublisher(
-                self.ros_node, f"{ns}/world"
+                self.ros_node, f"{ns}/world", callback_group=callback_group
             )
             self.robot_map_publishers[agent_id] = ros_nodes.WorldMapPublisher(
-                self.ros_node, f"{ns}/map"
+                self.ros_node, f"{ns}/map", callback_group=callback_group
             )
             self.robot_combined_costmap_publishers[agent_id] = (
                 ros_nodes.CombinedCostmapPublisher(
-                    self.ros_node, f"{ns}/combined_costmap"
+                    self.ros_node,
+                    f"{ns}/combined_costmap",
+                    callback_group=callback_group,
                 )
             )
             self.robot_social_costmap_publishers[agent_id] = ros_nodes.GridMapPublisher(
-                self.ros_node, f"{ns}/social_costmap"
+                self.ros_node, f"{ns}/social_costmap", callback_group=callback_group
             )
             self.robot_goal_publishers[agent_id] = ros_nodes.GoalPublisher(
-                self.ros_node, f"{ns}/goals"
+                self.ros_node, f"{ns}/goals", callback_group=callback_group
             )
             self.robot_manip_search_publishers[agent_id] = (
                 ros_nodes.ManipSearchPublisher(self.ros_node, f"{ns}/manip_search")
             )
             self.robot_manip_pose_publishers[agent_id] = ros_nodes.PosesPublisher(
-                self.ros_node, f"{ns}/manip_search/poses"
+                self.ros_node, f"{ns}/manip_search/poses", callback_group=callback_group
             )
             self.robot_plan_publishers[agent_id] = ros_nodes.PlanPublisher(
-                self.ros_node, f"{ns}/plan"
+                self.ros_node, f"{ns}/plan", callback_group=callback_group
             )
             self.robot_conflict_check_publishers[agent_id] = ros_nodes.create_publisher(
-                self.ros_node, ros_nodes.MarkerArray, f"{ns}/conflict_check"
+                self.ros_node,
+                ros_nodes.MarkerArray,
+                f"{ns}/conflict_check",
+                callback_group=callback_group,
             )
             self.robot_conflict_horizon_publishers[agent_id] = (
                 ros_nodes.create_publisher(
-                    self.ros_node, ros_nodes.MarkerArray, f"{ns}/conflict_horizon"
+                    self.ros_node,
+                    ros_nodes.MarkerArray,
+                    f"{ns}/conflict_horizon",
+                    callback_group=callback_group,
                 )
             )
             self.robot_swept_area_publishers[agent_id] = ros_nodes.create_publisher(
-                self.ros_node, ros_nodes.MarkerArray, f"{ns}/swept_area"
+                self.ros_node,
+                ros_nodes.MarkerArray,
+                f"{ns}/swept_area",
+                callback_group=callback_group,
             )
             self.robot_rch_publishers[agent_id] = ros_nodes.create_publisher(
-                self.ros_node, ros_nodes.MarkerArray, f"{ns}/rch"
+                self.ros_node,
+                ros_nodes.MarkerArray,
+                f"{ns}/rch",
+                callback_group=callback_group,
             )
             self.robot_connected_components_publishers[agent_id] = (
-                ros_nodes.GridMapPublisher(self.ros_node, f"{ns}/connected_components")
+                ros_nodes.GridMapPublisher(
+                    self.ros_node,
+                    f"{ns}/connected_components",
+                    callback_group=callback_group,
+                )
             )
 
         # Setup Static Transform for grid map (Hack so that it is properly placed in view)
@@ -159,8 +181,7 @@ class RosPublisher:  # noqa: F821
         return node_name
 
     # region TRUE WORLD
-    def publish_world(self, world: "world.World", agent_id: str | None = None):
-
+    def publish_world(self, world: "world.World"):
         self.map_publisher.publish(world)
         self.dynamic_entities_publisher.update(world=world)
 

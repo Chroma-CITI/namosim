@@ -93,6 +93,10 @@ def create_publisher(
         history=HistoryPolicy.KEEP_LAST,
         depth=1,
     )
+    qos_profile = QoSProfile(
+        reliability=ReliabilityPolicy.RELIABLE,  # Ensures messages get delivered
+        depth=10,
+    )
     return node.create_publisher(
         msg_type=msg_type,
         topic=topic,
@@ -119,10 +123,13 @@ class BasePublisher:
         topic: str,
         is_active: bool = True,
         rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         self.node = node
         self.topic = topic
-        self._publisher = create_publisher(node, msg_type, topic)
+        self._publisher = create_publisher(
+            node, msg_type, topic, callback_group=callback_group
+        )
         self.is_active = is_active
         self._rate = rate
 
@@ -165,10 +172,20 @@ class BasePublisher:
 
 class ObstaclePublisher(BasePublisher):
     def __init__(
-        self, node: Node, topic: str, is_active: bool = True, rate: int = cfg.rate
+        self,
+        node: Node,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         super().__init__(
-            msg_type=MarkerArray, node=node, topic=topic, is_active=is_active, rate=rate
+            msg_type=MarkerArray,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            callback_group=callback_group,
         )
 
     def publish_obstacles(self, world: "world.World"):
@@ -220,10 +237,16 @@ class DynamicEntitiesPublisher(BasePublisher):
         node: Node,
         topic: str,
         is_active: bool = True,
+        callback_group: t.Optional["CallbackGroup"] = None,
         rate: int = cfg.rate,
     ):
         super().__init__(
-            msg_type=MarkerArray, node=node, topic=topic, is_active=is_active, rate=rate
+            msg_type=MarkerArray,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            callback_group=callback_group,
         )
         self.prev_sim_world_draw_data = None
 
@@ -251,7 +274,7 @@ class DynamicEntitiesPublisher(BasePublisher):
             )
         }
         self.prev_sim_world_draw_data = current_world_draw_data
-        msg = self.get_all_markers(world, entities_to_ignore)
+        msg = self.get_all_markers(world, entities_to_ignore={})
         self.publish(msg)
 
     def agent_to_markers(self, agent: "agent.Agent"):
@@ -330,10 +353,20 @@ class DynamicEntitiesPublisher(BasePublisher):
 
 class ManipSearchPublisher(BasePublisher):
     def __init__(
-        self, node: Node, topic: str, is_active: bool = True, rate: int = cfg.rate
+        self,
+        node: Node,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         super().__init__(
-            msg_type=MarkerArray, node=node, topic=topic, is_active=is_active, rate=rate
+            msg_type=MarkerArray,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            callback_group=callback_group,
         )
 
     def reset(self):
@@ -343,7 +376,12 @@ class ManipSearchPublisher(BasePublisher):
 
 class WorldMapPublisher(BasePublisher):
     def __init__(
-        self, node: Node, topic: str, is_active: bool = True, rate: int = cfg.rate
+        self,
+        node: Node,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         super().__init__(
             msg_type=OccupancyGrid,
@@ -351,6 +389,7 @@ class WorldMapPublisher(BasePublisher):
             topic=topic,
             is_active=is_active,
             rate=rate,
+            callback_group=callback_group,
         )
 
     def publish(self, world: "world.World", agent_id: str | None = None):
@@ -391,6 +430,7 @@ class GridMapPublisher(BasePublisher):
         topic: str,
         is_active: bool = True,
         rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         super().__init__(
             msg_type=GridMap,
@@ -398,6 +438,7 @@ class GridMapPublisher(BasePublisher):
             topic=topic,
             is_active=is_active,
             rate=rate,
+            callback_group=callback_group,
         )
 
     def publish(self, costmap: npt.NDArray[t.Any], cell_size: float):
@@ -415,6 +456,7 @@ class CombinedCostmapPublisher(BasePublisher):
         topic: str,
         is_active: bool = True,
         rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         super().__init__(
             msg_type=GridMap,
@@ -422,6 +464,7 @@ class CombinedCostmapPublisher(BasePublisher):
             topic=topic,
             is_active=is_active,
             rate=rate,
+            callback_group=callback_group,
         )
 
     def publish(
@@ -461,6 +504,7 @@ class GoalPublisher(BasePublisher):
         topic: str,
         is_active: bool = True,
         rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         super().__init__(
             node=node,
@@ -468,6 +512,7 @@ class GoalPublisher(BasePublisher):
             is_active=is_active,
             rate=rate,
             msg_type=MarkerArray,
+            callback_group=callback_group,
         )
 
     def publish(self, robot: "agent.Agent", q_init: t.Any, q_goal: t.Any):
@@ -508,6 +553,7 @@ class PosesPublisher(BasePublisher):
         topic: str,
         is_active: bool = True,
         rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         super().__init__(
             node=node,
@@ -515,6 +561,7 @@ class PosesPublisher(BasePublisher):
             is_active=is_active,
             rate=rate,
             msg_type=PoseArray,
+            callback_group=callback_group,
         )
 
     def publish(self, poses: t.Iterable[PoseModel]):
@@ -531,6 +578,7 @@ class PlanPublisher(BasePublisher):
         topic: str,
         is_active: bool = True,
         rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
     ):
         super().__init__(
             node=node,
@@ -538,6 +586,7 @@ class PlanPublisher(BasePublisher):
             is_active=is_active,
             rate=rate,
             msg_type=MarkerArray,
+            callback_group=callback_group,
         )
 
     def publish(self, map: t.Any, plan: t.Any, robot: t.Any):
