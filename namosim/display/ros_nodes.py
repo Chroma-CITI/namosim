@@ -248,33 +248,9 @@ class DynamicEntitiesPublisher(BasePublisher):
             rate=rate,
             callback_group=callback_group,
         )
-        self.prev_sim_world_draw_data = None
 
     def update(self, world: "world.World"):
-        current_world_draw_data = {
-            entity.uid: {
-                "polygon": entity.polygon,
-                "type": "robot" if isinstance(entity, agent.Agent) else entity.type_,
-                "pose": entity.pose,
-            }
-            for entity in world.dynamic_entities.values()
-        }
-        entities_to_ignore = {
-            entity_uid
-            for entity_uid, drawable_data in current_world_draw_data.items()
-            if (
-                self.prev_sim_world_draw_data is not None
-                and entity_uid in self.prev_sim_world_draw_data
-                and drawable_data["polygon"]
-                == self.prev_sim_world_draw_data[entity_uid]["polygon"]
-                and drawable_data["type"]
-                == self.prev_sim_world_draw_data[entity_uid]["type"]
-                and drawable_data["pose"]
-                == self.prev_sim_world_draw_data[entity_uid]["pose"]
-            )
-        }
-        self.prev_sim_world_draw_data = current_world_draw_data
-        msg = self.get_all_markers(world, entities_to_ignore={})
+        msg = self.get_all_markers(world)
         self.publish(msg)
 
     def agent_to_markers(self, agent: "agent.Agent"):
