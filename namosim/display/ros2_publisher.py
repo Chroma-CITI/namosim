@@ -47,6 +47,12 @@ class RosPublisher:  # noqa: F821
         self.map_publisher = ros_nodes.WorldMapPublisher(
             self.ros_node, "namosim/map", callback_group=callback_group
         )
+        self.text_publisher = ros_nodes.create_publisher(
+            self.ros_node,
+            ros_nodes.Marker,
+            f"namosim/text",
+            callback_group=callback_group,
+        )
         self.agent_ids = agent_ids
 
         # Add robot-specific publishers for each robot namespace
@@ -180,13 +186,37 @@ class RosPublisher:  # noqa: F821
             i += 1
         return node_name
 
+    def publish_namespace(self):
+        marker = ros_nodes.Marker()
+        marker.header.frame_id = cfg.main_frame_id
+        marker.type = ros_nodes.Marker.TEXT_VIEW_FACING
+        marker.text = f"Namespace: {self.ros_node.get_namespace()}"
+        marker.pose.position.x = 0.0
+        marker.pose.position.y = -1.0
+        marker.pose.position.z = 1.0
+        marker.scale.z = 0.5
+        marker.color.a = 1.0
+        marker.color.r = 1.0
+        self.text_publisher.publish(marker)
+
+    def clear_namespace(self):
+        self.text_publisher.publish(
+            ros_nodes.Marker(
+                header=ros_nodes.Header(
+                    frame_id=cfg.main_frame_id, stamp=self.get_timestamp()
+                ),
+                action=ros_nodes.Marker.DELETEALL,
+            )
+        )
+
     # region TRUE WORLD
     def publish_world(self, world: "world.World"):
+        self.publish_namespace()
         self.map_publisher.publish(world)
         self.dynamic_entities_publisher.update(world=world)
 
     def clear_world(self):
-
+        self.clear_namespace()
         self.map_publisher.reset()
         self.dynamic_entities_publisher.reset()
 
