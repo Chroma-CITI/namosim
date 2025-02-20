@@ -43,7 +43,7 @@ from namosim.navigation.conflict import (
 )
 from namosim.navigation.navigation_path import (
     EvasionTransitPath,
-    Path,
+    RawPath,
     TransferPath,
     TransitPath,
 )
@@ -440,7 +440,6 @@ class Stilman2005Agent(Agent):
             robot_inflated_grid=robot_inflated_grid,
             check_horizon=conflict_horizon,
             ros_publisher=ros_publisher,
-            agent_id=self.uid,
             exit_early_for_any_conflict=True,
             grab_release_distance=self.grab_release_distance,
         )
@@ -642,7 +641,7 @@ class Stilman2005Agent(Agent):
             plan.update_plan(
                 nav_plan.Plan(
                     agent_id=self.uid,
-                    path_components=[evasion_path],
+                    paths=[evasion_path],
                     goal=goal,
                 ),
                 step_count,
@@ -715,7 +714,7 @@ class Stilman2005Agent(Agent):
             plan.update_plan(
                 nav_plan.Plan(
                     agent_id=self.uid,
-                    path_components=[evasion_path],
+                    paths=[evasion_path],
                     goal=goal,
                 ),
                 step_count,
@@ -832,7 +831,6 @@ class Stilman2005Agent(Agent):
             robot_inflated_grid=robot_inflated_grid,
             check_horizon=conflict_horizon,
             ros_publisher=ros_publisher,
-            agent_id=self.uid,
             grab_release_distance=self.grab_release_distance,
         )
         if not conflicts:
@@ -989,7 +987,6 @@ class Stilman2005Agent(Agent):
                 robot_inflated_grid=robot_inflated_grid,
                 check_horizon=conflict_horizon,
                 ros_publisher=ros_publisher,
-                agent_id=self.uid,
                 grab_release_distance=self.grab_release_distance,
             )
         )
@@ -1091,7 +1088,7 @@ class Stilman2005Agent(Agent):
             if ros_publisher:
                 ros_publisher.cleanup_robot_observed_world(agent_id=self.uid)
             return nav_plan.Plan(
-                path_components=[simple_path_to_goal],
+                paths=[simple_path_to_goal],
                 goal=r_f,
                 agent_id=self.uid,
             )
@@ -1299,7 +1296,7 @@ class Stilman2005Agent(Agent):
                         else [transfer_path]
                     )
                     return nav_plan.Plan(
-                        path_components=plan_components,
+                        paths=plan_components,
                         goal=r_f,
                         agent_id=self.uid,
                     ).append(future_plan)
@@ -3990,12 +3987,12 @@ class Stilman2005Agent(Agent):
         obtacle_poses.append(obtacle_poses[-1])
         obtacle_polygons.append(obtacle_polygons[-1])
 
-        robot_path = Path(
+        robot_path = RawPath(
             poses=robot_poses,
             polygons=robot_polygons,
         )
 
-        obstacle_path = Path(
+        obstacle_path = RawPath(
             poses=obtacle_poses,
             polygons=obtacle_polygons,
         )

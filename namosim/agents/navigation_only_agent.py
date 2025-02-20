@@ -65,9 +65,7 @@ class NavigationOnlyAgent(Agent):
         if self._goal is None:
             if self._navigation_goals:
                 self._goal = self._navigation_goals.pop(0)
-                self._p_opt = nav_plan.Plan(
-                    agent_id=self.uid, path_components=[], goal=self._goal.pose
-                )
+                self._p_opt = nav_plan.Plan(agent_id=self.uid, goal=self._goal.pose)
             else:
                 return ThinkResult(
                     next_action=ba.GoalsFinished(),
@@ -116,7 +114,7 @@ class NavigationOnlyAgent(Agent):
             )
 
         self._p_opt = nav_plan.Plan(
-            path_components=[path], goal=self._goal.pose, agent_id=self.uid
+            paths=[path], goal=self._goal.pose, agent_id=self.uid
         )
         self.goal_to_plans[self._goal] = self._p_opt
 

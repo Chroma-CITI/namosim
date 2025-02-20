@@ -24,24 +24,25 @@ from namosim.utils import collision, utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 
 
-class Path:
+class RawPath:
     """
-    Represents a sequence of entity poses and their associated geometries such as covered grid cells,
-    convex-swept volumes (CSVs) and bounding-box verticies.
+    Represents a sequence of entity poses and their associated polygons
     """
-
-    path_type = PathType.PATH
 
     def __init__(
         self,
         poses: t.List[PoseModel],
         polygons: t.List[Polygon],
-        cells: t.Optional[set[t.Tuple[int, int]]] = None,
     ):
+        if len(poses) != len(polygons):
+            raise ValueError(
+                "A RawPath requires that its polygon and pose arrays be the same size."
+                "Current sizes are: polygon({}), pose({}))".format(
+                    len(polygons), len(poses)
+                )
+            )
         self.poses = poses
         self.polygons = polygons
-        self.cells = cells
-        self.is_transfer = False
 
     # TODO Have these trans and rot precision values be passed from calling functions !
     def is_start_pose(
@@ -57,6 +58,9 @@ class Path:
         )
         return other_pose == start_pose
 
+    def __len__(self):
+        return len(self.poses)
+
 
 class TransferPath:
     """
@@ -67,8 +71,8 @@ class TransferPath:
 
     def __init__(
         self,
-        robot_path: Path,
-        obstacle_path: Path,
+        robot_path: RawPath,
+        obstacle_path: RawPath,
         actions: t.List[ba.Action],
         grab_action: ba.Grab,
         release_action: ba.Release,
@@ -78,6 +82,13 @@ class TransferPath:
         social_cost: float = 0.0,
         weight: float = 1.0,
     ):
+        if len(robot_path) != len(obstacle_path) != len(actions) + 1:
+            raise ValueError(
+                "A TransferPath requires its robot and obstacle raw paths have the same length and equal to number of actions + 1"
+                "Current sizes are: robot_path({}), obstacle_path({}), action({})".format(
+                    len(robot_path), len(obstacle_path), len(actions)
+                )
+            )
         self.robot_path = robot_path
         self.obstacle_path = obstacle_path
         self.obstacle_uid = obstacle_uid
@@ -99,8 +110,8 @@ class TransferPath:
         self.actions = actions
         self.action_index = 0
 
-    def has_infinite_cost(self):
-        return True if self.total_cost == float("inf") else False
+    def reset(self):
+        self.action_index = 0
 
     def is_fully_executed(self):
         return self.action_index >= len(self.actions)
@@ -734,18 +745,17 @@ class TransitPath:
 
     def __init__(
         self,
-        robot_path: Path,
+        robot_path: RawPath,
         actions: t.List[ba.Action],
         phys_cost: float | None = None,
         social_cost: float = 0.0,
         weight: float = 1.0,
     ):
-        if len(robot_path.polygons) != len(robot_path.poses) != len(actions) + 1:
+        if len(robot_path) != len(actions) + 1:
             raise ValueError(
-                "A TransitPath requires that its polygon and pose arrays are the same size. "
-                "The action array must be of this same size -1."
-                "Current sizes are: polygon({}), pose({}), action({})".format(
-                    len(robot_path.polygons), len(robot_path.poses), len(actions)
+                "A TransitPath requires the length of the robot raw path be equal to the number of actions + 1. "
+                "Current sizes are: robot_path({}), action({})".format(
+                    len(robot_path.polygons), len(actions)
                 )
             )
 
@@ -764,6 +774,9 @@ class TransitPath:
         self.is_transfer = False
 
         self.actions = actions
+        self.action_index = 0
+
+    def reset(self):
         self.action_index = 0
 
     def __str__(self):
@@ -790,7 +803,7 @@ class TransitPath:
         # Separate translation from rotation actions
         if len(poses) == 0:
             return cls(
-                robot_path=Path([], []),
+                robot_path=RawPath([], []),
                 actions=[],
                 phys_cost=phys_cost,
                 social_cost=social_cost,
@@ -802,7 +815,7 @@ class TransitPath:
 
         if len(poses) == 1:
             return cls(
-                robot_path=Path(poses=poses, polygons=[robot_polygon]),
+                robot_path=RawPath(poses=poses, polygons=[robot_polygon]),
                 actions=[],
                 phys_cost=phys_cost,
                 social_cost=social_cost,
@@ -849,7 +862,7 @@ class TransitPath:
             utils.set_polygon_pose(robot_polygon, robot_pose, pose)
             for pose in updated_poses
         ]
-        robot_path = Path(updated_poses, polygons)
+        robot_path = RawPath(updated_poses, polygons)
 
         return cls(
             robot_path,
@@ -858,9 +871,6 @@ class TransitPath:
             social_cost=social_cost,
             weight=weight,
         )
-
-    def has_infinite_cost(self):
-        return True if self.total_cost == float("inf") else False
 
     def is_fully_executed(self):
         return self.action_index >= len(self.actions)
@@ -1077,7 +1087,7 @@ class TransitPath:
 class EvasionTransitPath(TransitPath):
     def __init__(
         self,
-        robot_path: Path,
+        robot_path: RawPath,
         actions: t.List[ba.Action],
         phys_cost: float | None = None,
         social_cost: float = 0.0,
