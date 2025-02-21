@@ -82,10 +82,10 @@ class TransferPath:
         social_cost: float = 0.0,
         weight: float = 1.0,
     ):
-        if len(robot_path) != len(obstacle_path) != len(actions) + 1:
+        if len(robot_path) != len(obstacle_path) or len(robot_path) != len(actions) + 1:
             raise ValueError(
                 "A TransferPath requires its robot and obstacle raw paths have the same length and equal to number of actions + 1"
-                "Current sizes are: robot_path({}), obstacle_path({}), action({})".format(
+                "Current sizes are: robot_path({}), obstacle_path({}), actions({})".format(
                     len(robot_path), len(obstacle_path), len(actions)
                 )
             )
@@ -754,7 +754,7 @@ class TransitPath:
         if len(robot_path) != len(actions) + 1:
             raise ValueError(
                 "A TransitPath requires the length of the robot raw path be equal to the number of actions + 1. "
-                "Current sizes are: robot_path({}), action({})".format(
+                "Current sizes are: robot_path({}), actions({})".format(
                     len(robot_path.polygons), len(actions)
                 )
             )
@@ -853,9 +853,6 @@ class TransitPath:
             if has_rotation:
                 remaining_angle = utils.subtract_angles(next_pose[2], current_angle)
                 actions.append(ba.Rotation(angle=remaining_angle))
-                updated_poses.append(next_pose)
-
-            if not has_rotation and not has_translation:
                 updated_poses.append(next_pose)
 
         polygons = [
