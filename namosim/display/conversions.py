@@ -42,7 +42,7 @@ def plan_to_markerarray(
     markerarray = MarkerArray()
     markers = []
     p_id = 0
-    for component in plan.path_components:
+    for component in plan.paths:
         current_color = ColorRGBA(
             **colors.hex_to_rgba(Style.from_string(robot.agent_style.shape).fill)
         )

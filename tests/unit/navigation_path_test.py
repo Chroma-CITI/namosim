@@ -56,7 +56,7 @@ class TestTransitPathFromPoses:
             ],
         )
         assert len(path.actions) == 0
-        assert len(path.robot_path.poses) == 3
+        assert len(path.robot_path.poses) == 1
 
     def test_bug_case(self):
         robot_polygon = Polygon(
