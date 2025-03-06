@@ -33,11 +33,11 @@ class Plan:
         self,
         *,
         agent_id: str,
-        path_components: t.List[t.Union[TransitPath, TransferPath]] = [],
+        paths: t.List[t.Union[TransitPath, TransferPath]] | None = None,
         goal: t.Optional[PoseModel] = None,
         plan_error: t.Optional[str] = None,
     ):
-        self.path_components = path_components
+        self.paths = [] if paths is None else paths
         self.goal = goal
         self.agent_id = agent_id
         self.phys_cost = 0.0
@@ -46,8 +46,8 @@ class Plan:
         self.plan_error = plan_error
         self.component_index = 0
 
-        if path_components:
-            for path in path_components:
+        if paths:
+            for path in paths:
                 self.phys_cost += path.phys_cost
                 self.social_cost += path.social_cost
                 self.total_cost += path.total_cost
@@ -56,18 +56,47 @@ class Plan:
             self.social_cost = float("inf")
             self.total_cost = float("inf")
 
+    def reset(self):
+        self.component_index = 0
+        for path in self.paths:
+            path.reset()
+
+    def get_current_path(self):
+        return self.paths[self.component_index]
+
+    def get_all_robot_poses(self) -> t.List[PoseModel]:
+        poses = []
+        for path in self.paths:
+            poses += path.robot_path.poses
+        return poses
+
+    def get_all_actions(self) -> t.List[Action]:
+        actions = []
+        for path in self.paths:
+            actions += path.actions
+        return actions
+
+    def get_current_action_index(self):
+        idx = 0
+        for path in self.paths[0 : self.component_index + 1]:
+            if path.is_fully_executed():
+                idx += len(path.actions)
+            else:
+                idx += path.action_index
+        return idx
+
+    def get_current_pose_index(self):
+        return self.get_current_action_index()
+
     def append(self, future_plan: Self):
-        self.path_components += future_plan.path_components
+        self.paths += future_plan.paths
         self.phys_cost += future_plan.phys_cost
         self.social_cost += future_plan.social_cost
         self.total_cost += future_plan.total_cost
         return self
 
-    def has_infinite_cost(self):
-        return True if self.total_cost == float("inf") else False
-
     def is_empty(self):
-        return len(self.path_components) == 0
+        return len(self.paths) == 0
 
     def get_conflicts(
         self,
@@ -80,11 +109,10 @@ class Plan:
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
-        agent_id: str = "",
     ) -> t.List[Conflict]:
         # Check validity of each component
         previously_moved_entities_uids = set()
-        remaining_components = self.path_components[self.component_index :]
+        remaining_components = self.paths[self.component_index :]
         conflicts = []
 
         # Define sets of polygons and associated aabb trees to check for collisions
@@ -211,22 +239,21 @@ class Plan:
         :except: if pop_next_action is called when the plan is fully executed
         :exception: IndexError
         """
-        current_component = self.path_components[self.component_index]
+        current_component = self.paths[self.component_index]
         if current_component.is_fully_executed():
-            if self.component_index < len(self.path_components) - 1:
+            if self.component_index < len(self.paths) - 1:
                 self.component_index += 1
-            current_component = self.path_components[self.component_index]
+            current_component = self.paths[self.component_index]
         return current_component.pop_next_action()
 
     def is_evading(self):
         return self.is_empty() is False and isinstance(
-            self.path_components[self.component_index], EvasionTransitPath
+            self.paths[self.component_index], EvasionTransitPath
         )
 
     def is_evasion_over(self):
         return (
-            self.is_evading()
-            and self.path_components[self.component_index].is_fully_executed()
+            self.is_evading() and self.paths[self.component_index].is_fully_executed()
         )
 
 
@@ -254,7 +281,7 @@ class DynamicPlan(Plan):
     DEBUGGING_WAIT_TIME_GENERATOR = []
 
     def __init__(self, agent_id: str):
-        super().__init__(agent_id=agent_id)
+        super().__init__(agent_id=agent_id, paths=[])
         self.update_count = 0
         """
         The number of times the plan was updated
@@ -289,7 +316,6 @@ class DynamicPlan(Plan):
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = True,
         exit_early_only_for_long_term_conflicts: bool = True,
-        agent_id: str = "",
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
         conflicts = super().get_conflicts(
@@ -301,7 +327,6 @@ class DynamicPlan(Plan):
             exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
             grab_release_distance=grab_release_distance,
             rp=ros_publisher,
-            agent_id=agent_id,
         )
         self.current_conflicts += conflicts
         return conflicts
@@ -345,7 +370,7 @@ class DynamicPlan(Plan):
                     )
                 )
                 self.update_plan(
-                    nav_plan.Plan(agent_id=self.agent_id, path_components=[]),
+                    nav_plan.Plan(agent_id=self.agent_id, paths=[]),
                     step_count,
                 )
             else:
@@ -383,7 +408,7 @@ class DynamicPlan(Plan):
         else:
             self.plan_history[step_count] = [plan]
 
-        self.path_components = plan.path_components
+        self.paths = plan.paths
         self.goal = plan.goal
         self.agent_id = plan.agent_id
         self.phys_cost = plan.phys_cost
