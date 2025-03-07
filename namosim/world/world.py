@@ -601,13 +601,13 @@ class World:
     def get_robot_conflict_radius(
         self,
         agent_id: str,
-        grab_release_distance: float,
+        grab_start_distance: float,
         obstacle_id: str | None = None,
     ):
         robot = self.agents[agent_id]
         center = robot.polygon.centroid
         radius_for_move = robot.circumscribed_radius + 2 * self.map.cell_size
-        radius_for_grab_or_release = robot.circumscribed_radius + grab_release_distance
+        radius_for_grab_or_release = robot.circumscribed_radius + grab_start_distance
 
         conflict_radius = radius_for_move
 
@@ -960,7 +960,7 @@ class World:
                         drive_type="differential",
                         robot_rotation_unit_angle=30,
                         push_only=agent_config.push_only,
-                        grab_release_distance=agent_config.grab_release_distance,
+                        grab_start_distance=agent_config.grab_start_distance,
                     ),
                 ),
                 logs_dir=logs_dir,
