@@ -177,10 +177,20 @@ class Stilman2005Agent(Agent):
         self.goal_position_tolerance = 0.05  # meters
         self.goal_angle_tolerance = 1  # degrees
 
-        if config.parameters.grab_release_distance is None:
-            self.grab_release_distance = 4 * self.cell_size
+        # grab_start_distance
+        if config.parameters.grab_start_distance is None:
+            self.grab_start_distance = 4 * self.cell_size
         else:
-            self.grab_release_distance = config.parameters.grab_release_distance
+            self.grab_start_distance = (
+                config.parameters.grab_start_distance
+            )
+
+        # grab_end_distance
+        if config.parameters.grab_end_distance is None:
+            self.grab_end_distance = self.cell_size
+        else:
+            self.grab_end_distance = config.parameters.grab_end_distance
+
         self.collision_margin = collision_margin
 
     def init(self, world: "w.World"):
@@ -441,7 +451,7 @@ class Stilman2005Agent(Agent):
             check_horizon=conflict_horizon,
             ros_publisher=ros_publisher,
             exit_early_for_any_conflict=True,
-            grab_release_distance=self.grab_release_distance,
+            grab_start_distance=self.grab_start_distance,
         )
         if not conflicts:
             if plan.timer.is_running and plan.timer.is_timer_over(step_count):
@@ -831,7 +841,7 @@ class Stilman2005Agent(Agent):
             robot_inflated_grid=robot_inflated_grid,
             check_horizon=conflict_horizon,
             ros_publisher=ros_publisher,
-            grab_release_distance=self.grab_release_distance,
+            grab_start_distance=self.grab_start_distance,
         )
         if not conflicts:
             self.logger.append(
@@ -925,7 +935,7 @@ class Stilman2005Agent(Agent):
 
             conflicting_robot = new_w_t_no_dyn.agents[conflicting_agent_id]
             conflict_radius = new_w_t_no_dyn.get_robot_conflict_radius(
-                conflicting_agent_id, grab_release_distance=self.cell_size
+                conflicting_agent_id, grab_start_distance=self.cell_size
             )
             center = conflicting_robot.polygon.centroid
 
@@ -987,7 +997,7 @@ class Stilman2005Agent(Agent):
                 robot_inflated_grid=robot_inflated_grid,
                 check_horizon=conflict_horizon,
                 ros_publisher=ros_publisher,
-                grab_release_distance=self.grab_release_distance,
+                grab_start_distance=self.grab_start_distance,
             )
         )
         for conflict in conflicts:
@@ -2371,7 +2381,7 @@ class Stilman2005Agent(Agent):
         """
         grab_start_poses = utils.sample_poses_at_middle_of_inflated_sides(
             obstacle_polygon,
-            self.circumscribed_radius + self.grab_release_distance,
+            self.circumscribed_radius + self.grab_start_distance,
         )
 
         if ros_publisher:
@@ -2418,7 +2428,8 @@ class Stilman2005Agent(Agent):
             )
 
             grab_action = ba.Grab(
-                entity_uid=obstacle_uid, distance=self.grab_release_distance
+                entity_uid=obstacle_uid,
+                distance=self.grab_start_distance - self.grab_end_distance,
             )
             robot_pose_after_grab, robot_polygon_after_grab = grab_action.apply(
                 grab_start_pose, robot_polygon_before_grab
@@ -2750,7 +2761,7 @@ class Stilman2005Agent(Agent):
         other_entities_aabb_tree: AABBTree,
     ) -> RobotConfiguration | None:
         release_action = ba.Release(
-            entity_uid=obstacle_uid, distance=-self.grab_release_distance
+            entity_uid=obstacle_uid, distance=-(self.grab_start_distance - self.grab_end_distance)
         )
         robot_pose = (robot_pose[0], robot_pose[1], robot_pose[2])
         new_robot_pose, new_robot_polygon = release_action.apply(
