@@ -2,18 +2,10 @@
   "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "*_test.py"],
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
-  "ros.distro": "humble",
+  "ros.distro": "jazzy",
   "python.testing.pytestArgs": ["tests"],
   "python.autoComplete.extraPaths": [
-    "/opt/ros/humble/lib/python3.10/site-packages",
-    "/opt/ros/humble/local/lib/python3.10/dist-packages"
-  ],
-  "python.analysis.extraPaths": [
-    "/home/chroma/code/namo_turtlebot_host/install/namoros/lib/python3.10/site-packages",
-    "/home/chroma/code/namo_turtlebot_host/install/namo_turtlebot/lib/python3.10/site-packages",
-    "/home/chroma/code/namo_turtlebot_host/install/kobuki_ros_interfaces/local/lib/python3.10/dist-packages",
-    "/home/chroma/code/namo_turtlebot_host/install/aruco_msgs/local/lib/python3.10/dist-packages",
-    "/opt/ros/humble/lib/python3.10/site-packages",
-    "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    "/opt/ros/jazzy/lib/python3.10/site-packages",
+    "/opt/ros/jazzy/local/lib/python3.10/dist-packages"
   ]
 }

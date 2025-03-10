@@ -129,7 +129,7 @@ class TransferPath:
         previously_moved_entities_uids: t.Set[str],
         check_horizon: int,
         has_first_action: bool,
-        grab_release_distance: float,
+        grab_start_distance: float,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
@@ -227,7 +227,7 @@ class TransferPath:
                 if look_ahead_index < check_horizon:
                     radius = world.get_robot_conflict_radius(
                         agent_id=agent_id,
-                        grab_release_distance=grab_release_distance,
+                        grab_start_distance=grab_start_distance,
                         obstacle_id=self.obstacle_uid,
                     )
                     grab_zone = robot.polygon.centroid.buffer(
@@ -282,7 +282,7 @@ class TransferPath:
                 if look_ahead_index < check_horizon and has_first_action:
                     grab_zone = world.dynamic_entities[
                         self.obstacle_uid
-                    ].polygon.buffer(grab_release_distance, join_style="mitre")
+                    ].polygon.buffer(grab_start_distance, join_style="mitre")
                     collides_with, _ = collision.get_collisions_for_entity(
                         grab_zone,
                         collision_polygons,
