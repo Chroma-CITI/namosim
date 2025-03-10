@@ -103,7 +103,7 @@ class Plan:
         *,
         world: "world.World",
         robot_inflated_grid: BinaryOccupancyGrid,
-        grab_release_distance,
+        grab_start_distance,
         rp: t.Optional["rp.RosPublisher"] = None,
         check_horizon: int = 0,
         apply_strict_horizon: bool = False,
@@ -140,7 +140,7 @@ class Plan:
             # SimultaneousSpaceAccess-type Conflicts
             other_robot_center = other_robot.polygon.centroid
             radius = (
-                world.get_robot_conflict_radius(other_robot.uid, grab_release_distance)
+                world.get_robot_conflict_radius(other_robot.uid, grab_start_distance)
                 # Enlarge radius so that conflict is detected before the robot enters another robot's conflict radius, after which a dealock may occur
                 + utils.SQRT_OF_2 * world.map.cell_size
             )
@@ -179,7 +179,7 @@ class Plan:
                     conflicts += path.get_conflicts(
                         agent_id=self.agent_id,
                         world=world,
-                        grab_release_distance=grab_release_distance,
+                        grab_start_distance=grab_start_distance,
                         robot_inflated_grid=robot_inflated_grid,
                         other_entities_polygons=other_entities_polygons,
                         other_entities_aabb_tree=other_entities_aabb_tree,
@@ -312,7 +312,7 @@ class DynamicPlan(Plan):
         world: "w.World",
         robot_inflated_grid: BinaryOccupancyGrid,
         check_horizon: int,
-        grab_release_distance: float,
+        grab_start_distance: float,
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = True,
         exit_early_only_for_long_term_conflicts: bool = True,
@@ -325,7 +325,7 @@ class DynamicPlan(Plan):
             apply_strict_horizon=apply_strict_horizon,
             exit_early_for_any_conflict=exit_early_for_any_conflict,
             exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
-            grab_release_distance=grab_release_distance,
+            grab_start_distance=grab_start_distance,
             rp=ros_publisher,
         )
         self.current_conflicts += conflicts
