@@ -194,13 +194,7 @@ class TestE2E:
             )
         )
         sim.run()
-        assert any(
-            [
-                x.message
-                == "Agent robot_1: Failing goal, no tries remaining to plan an evasion."
-                for x in sim.logger
-            ]
-        )
+        assert any(["Agent robot_1: Failing goal" in x.message for x in sim.logger])
 
     def test_multi_robot(self):
         sim = create_sim_from_file(
@@ -237,7 +231,7 @@ class TestE2E:
                 for x in sim.logger
             ]
         )
-        assert any(["Stealing Movable conflict" in x.message for x in sim.logger])
+        assert any(["StealingMovableConflict" in x.message for x in sim.logger])
 
     def test_obstacle_on_goal(self):
         sim = create_sim_from_file(

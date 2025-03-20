@@ -28,6 +28,36 @@ from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.entity import Movability
 
 
+class Postpone:
+    def __init__(self):
+        self.duration = 0
+        self._step_index = 0
+        self._is_running = False
+
+    def start(self, duration: int):
+        self.duration = duration
+        self._step_index = 0
+        self._is_running = True
+
+    def go_to_end(self):
+        self._step_index = self.duration
+
+    def clear(self):
+        self.duration = 0
+        self._step_index = 0
+        self._is_running = False
+
+    def tick(self):
+        self._step_index += 1
+        return ba.Wait()
+
+    def is_running(self):
+        return self._is_running
+
+    def is_done(self):
+        return self._step_index >= self.duration
+
+
 class Plan:
     def __init__(
         self,
@@ -45,6 +75,11 @@ class Plan:
         self.total_cost = 0.0
         self.plan_error = plan_error
         self.component_index = 0
+        self.postpone: Postpone = Postpone()
+        self.postponements_history: t.Dict[int, int] = {}
+        self.conflicts_history: t.Dict[int, t.List[Conflict]] = {}
+        self.steps_with_replan_call: t.Set[int] = set()
+        self.update_count = 0
 
         if paths:
             for path in paths:
@@ -110,6 +145,9 @@ class Plan:
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
     ) -> t.List[Conflict]:
+        # if self.postpone.is_running():
+        #     return []
+
         # Check validity of each component
         previously_moved_entities_uids = set()
         remaining_components = self.paths[self.component_index :]
@@ -239,6 +277,15 @@ class Plan:
         :except: if pop_next_action is called when the plan is fully executed
         :exception: IndexError
         """
+        if self.is_empty():
+            return ba.Wait()
+
+        if self.postpone.is_running():
+            if self.postpone.is_done():
+                self.postpone.clear()
+            else:
+                return self.postpone.tick()
+
         current_component = self.paths[self.component_index]
         if current_component.is_fully_executed():
             if self.component_index < len(self.paths) - 1:
@@ -256,49 +303,8 @@ class Plan:
             self.is_evading() and self.paths[self.component_index].is_fully_executed()
         )
 
-
-class Timer:
-    def __init__(
-        self, start_time: int = 0, duration: int = 0, is_running: bool = False
-    ):
-        self.start_time = start_time
-        self.duration = duration
-        self.is_running = is_running
-
-    def start_timer(self, start_time: int, duration: int):
-        self.start_time = start_time
-        self.duration = duration
-        self.is_running = True
-
-    def is_timer_over(self, current_time: int):
-        if current_time - self.start_time >= self.duration:
-            self.is_running = False
-            return True
-        return False
-
-
-class DynamicPlan(Plan):
-    DEBUGGING_WAIT_TIME_GENERATOR = []
-
-    def __init__(self, agent_id: str):
-        super().__init__(agent_id=agent_id, paths=[])
-        self.update_count = 0
-        """
-        The number of times the plan was updated
-        """
-
-        self.steps_with_replan_call = set()
-        """
-        The steps in which a replan occurred
-        """
-
-        self.current_conflicts = []
-        self.plan_history = {}
-        self.conflicts_history = {}
-        self.postponements_history = {}
-        self.unpostponements_history = []
-        self.forbidden_evasion_cells = set()
-        self.timer = Timer()
+    def is_postpone_over(self):
+        return self.postpone.is_running() and self.postpone.is_done()
 
     def was_last_step_success(
         self, w_t: "w.World", last_action_result: ar.ActionResult
@@ -306,37 +312,12 @@ class DynamicPlan(Plan):
         # TODO Check if robot state (position and grab) are coherent with next step's preconditions
         return isinstance(last_action_result, ar.ActionSuccess)
 
-    def get_conflicts(
-        self,
-        *,
-        world: "w.World",
-        robot_inflated_grid: BinaryOccupancyGrid,
-        check_horizon: int,
-        grab_start_distance: float,
-        apply_strict_horizon: bool = False,
-        exit_early_for_any_conflict: bool = True,
-        exit_early_only_for_long_term_conflicts: bool = True,
-        ros_publisher: t.Optional["rp.RosPublisher"] = None,
-    ):
-        conflicts = super().get_conflicts(
-            world=world,
-            robot_inflated_grid=robot_inflated_grid,
-            check_horizon=check_horizon,
-            apply_strict_horizon=apply_strict_horizon,
-            exit_early_for_any_conflict=exit_early_for_any_conflict,
-            exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
-            grab_start_distance=grab_start_distance,
-            rp=ros_publisher,
-        )
-        self.current_conflicts += conflicts
-        return conflicts
-
-    def save_conflicts(self, step_count: int):
-        if self.current_conflicts:
+    def save_conflicts(self, step_count: int, conflicts: t.List[Conflict]):
+        if len(conflicts) > 0:
             if step_count in self.conflicts_history:
-                self.conflicts_history[step_count] += self.current_conflicts
+                self.conflicts_history[step_count] += conflicts
             else:
-                self.conflicts_history[step_count] = self.current_conflicts
+                self.conflicts_history[step_count] = conflicts
         self.current_conflicts = []
 
     def has_tries_remaining(self, max_tries: int):
@@ -355,59 +336,27 @@ class DynamicPlan(Plan):
         t_min: int,
         t_max: int,
         step_count: int,
-        conflicts: t.List[Conflict],
         simulation_log: t.List[utils.NamosimLog],
         agent_id: str,
     ):
-        if self.timer.is_running:
-            if self.timer.is_timer_over(step_count):
-                simulation_log.append(
-                    utils.NamosimLog(
-                        "Agent {}: Resetting plan because conflicts still exist after full postponement is over: {}.".format(
-                            agent_id, conflicts
-                        ),
-                        step_count,
-                    )
-                )
-                self.update_plan(
-                    nav_plan.Plan(agent_id=self.agent_id, paths=[]),
-                    step_count,
-                )
-            else:
-                return ba.Wait()
-        else:
-            duration = random.randint(t_min, t_max)
-            simulation_log.append(
-                utils.NamosimLog(
-                    "Agent {}: Starting postponement of current plan for {} steps because conflicts: {}.".format(
-                        agent_id, duration, conflicts
-                    ),
-                    step_count,
-                )
+        if self.postpone.is_running() and not self.postpone.is_done():
+            return
+
+        n_steps = random.randint(t_min, t_max)
+        simulation_log.append(
+            utils.NamosimLog(
+                f"Agent {agent_id}: Postponing for {n_steps} steps.",
+                step_count,
             )
-            self.timer.start_timer(step_count, duration)
-            self.postponements_history[step_count] = duration
-            return ba.Wait()
+        )
+        self.postpone.start(duration=n_steps)
+        self.postponements_history[step_count] = n_steps
+        self.update_count += 1
 
-    # def postpone(self, t_min, t_max, step_count):
-    #     if self.DEBUGGING_WAIT_TIME_GENERATOR:
-    #         self.wait_counter = self.DEBUGGING_WAIT_TIME_GENERATOR.pop(0)
-    #     else:
-    #         self.wait_counter = random.randint(t_min, t_max)
-    #     self.wait_counter = t_max  # TODO - Reconsider the computation of the wait time
-    #     self.postponements_history[
-    #         step_count] = self.wait_counter
-
-    # def unpostpone(self, step_count):
-    #     self.wait_counter = 0
-    #     self.unpostponements_history.append(step_count)
-
-    def update_plan(self, plan: Plan, step_count: int):
-        if step_count in self.plan_history:
-            self.plan_history[step_count].append(plan)
-        else:
-            self.plan_history[step_count] = [plan]
-
+    def set_plan(
+        self, plan: "nav_plan.Plan", step_count: int, postpone: Postpone | None = None
+    ):
+        self.update_count += 1
         self.paths = plan.paths
         self.goal = plan.goal
         self.agent_id = plan.agent_id
@@ -416,3 +365,4 @@ class DynamicPlan(Plan):
         self.total_cost = plan.total_cost
         self.plan_error = plan.plan_error
         self.component_index = plan.component_index
+        self.postpone = postpone or Postpone()

@@ -4,8 +4,21 @@
   "python.testing.unittestEnabled": false,
   "ros.distro": "jazzy",
   "python.testing.pytestArgs": ["tests"],
+  "python.testing.pytestPath": "pytest",
   "python.autoComplete.extraPaths": [
-    "/opt/ros/jazzy/lib/python3.10/site-packages",
-    "/opt/ros/jazzy/local/lib/python3.10/dist-packages"
+    "/home/chroma/code/namo_turtlebot_host/install/namoros/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/namo_turtlebot/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/namo_msgs/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/kobuki_ros_interfaces/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/aruco_ros2_msgs/lib/python3.12/site-packages",
+    "/opt/ros/jazzy/lib/python3.12/site-packages"
+  ],
+  "python.analysis.extraPaths": [
+    "/home/chroma/code/namo_turtlebot_host/install/namoros/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/namo_turtlebot/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/namo_msgs/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/kobuki_ros_interfaces/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/aruco_ros2_msgs/lib/python3.12/site-packages",
+    "/opt/ros/jazzy/lib/python3.12/site-packages"
   ]
 }

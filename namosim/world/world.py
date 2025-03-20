@@ -606,7 +606,7 @@ class World:
     ):
         robot = self.agents[agent_id]
         center = robot.polygon.centroid
-        radius_for_move = robot.circumscribed_radius + 2 * self.map.cell_size
+        radius_for_move = robot.circumscribed_radius + 4 * self.map.cell_size
         radius_for_grab_or_release = robot.circumscribed_radius + grab_start_distance
 
         conflict_radius = radius_for_move
