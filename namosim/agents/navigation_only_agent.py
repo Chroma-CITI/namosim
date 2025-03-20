@@ -68,6 +68,7 @@ class NavigationOnlyAgent(Agent):
                 self._p_opt = nav_plan.Plan(agent_id=self.uid, goal=self._goal.pose)
             else:
                 return ThinkResult(
+                    plan=None,
                     next_action=ba.GoalsFinished(),
                     goal_pose=None,
                     did_replan=False,
@@ -79,9 +80,11 @@ class NavigationOnlyAgent(Agent):
 
         # If current robot pose is close enough to goal, return Success
         if self.is_goal_reached(
-            self.world.dynamic_entities[self.uid].pose, self._goal.pose
+            robot_pose=self.world.dynamic_entities[self.uid].pose,
+            goal_pose=self._goal.pose,
         ):
             result = ThinkResult(
+                plan=None,
                 next_action=ba.GoalSuccess(goal=self._goal.pose),
                 goal_pose=self._goal.pose,
                 did_replan=False,
@@ -92,7 +95,7 @@ class NavigationOnlyAgent(Agent):
 
         if not self._p_opt.is_empty():
             return ThinkResult(
-                next_action=self._p_opt.pop_next_action(),
+                plan=self._p_opt,
                 goal_pose=self._goal.pose,
                 did_replan=False,
                 agent_id=self.uid,
@@ -107,6 +110,7 @@ class NavigationOnlyAgent(Agent):
 
         if path is None:
             return ThinkResult(
+                plan=None,
                 next_action=ba.GoalFailed(self._goal.pose),
                 goal_pose=self._goal.pose,
                 did_replan=False,
@@ -119,7 +123,8 @@ class NavigationOnlyAgent(Agent):
         self.goal_to_plans[self._goal] = self._p_opt
 
         return ThinkResult(
-            next_action=self._p_opt.pop_next_action(),
+            plan=self._p_opt,
+            next_action=None,
             goal_pose=self._goal.pose,
             did_replan=True,
             agent_id=self.uid,

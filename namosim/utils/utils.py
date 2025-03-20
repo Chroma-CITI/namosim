@@ -100,7 +100,7 @@ class OrderedSet(MutableSet):
 
 
 class NamosimLog:
-    def __init__(self, message, step, timestamp=timestamp_string()):
+    def __init__(self, message: str, step, timestamp=timestamp_string()):
         self.message = message
         self.step = step
         self.timestamp = timestamp
