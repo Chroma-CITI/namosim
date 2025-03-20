@@ -28,13 +28,15 @@ class ThinkResult:
     def __init__(
         self,
         *,
-        next_action: Action | None,
+        plan: t.Union["navp.Plan", None],
         goal_pose: PoseModel | None,
         did_replan: bool,
         did_postpone: bool = False,
         agent_id: str,
         conflicts: t.Optional[t.List[Conflict]] = None,
+        next_action: Action | None = None,
     ) -> None:
+        self.plan = plan
         self.next_action = next_action
         self.goal_pose = goal_pose
         """The agent's goal at the time this think-result was produced.
@@ -59,6 +61,7 @@ class RLThinkResult(ThinkResult):
         action_idx: int = 0,
     ):
         super().__init__(
+            plan=None,
             next_action=next_action,
             goal_pose=goal_pose,
             did_replan=did_replan,
@@ -68,6 +71,14 @@ class RLThinkResult(ThinkResult):
         )
         self.log_prob = log_prob
         self.action_idx = action_idx
+        self.next_action = next_action
+        self.goal_pose = goal_pose
+        """The agent's goal at the time this think-result was produced.
+        """
+        self.did_replan = did_replan
+        self.did_postpone = did_postpone
+        self.agent_id = agent_id
+        self.conflicts = conflicts if conflicts else []
 
 
 class Agent(Entity):
@@ -231,16 +242,16 @@ class Agent(Entity):
 
     def is_goal_reached(
         self,
-        q_t: PoseModel,
-        q_f: PoseModel,
+        goal_pose: PoseModel,
+        robot_pose: PoseModel,
         pos_tol: float = 0.05,
         ang_tol: float = 0.1,
     ):
         return all(
             [
-                utils.is_close(q_t[0], q_f[0], abs_tol=pos_tol),
-                utils.is_close(q_t[1], q_f[1], abs_tol=pos_tol),
-                utils.angle_is_close(q_t[2], q_f[2], abs_tol=ang_tol),
+                utils.is_close(goal_pose[0], robot_pose[0], abs_tol=pos_tol),
+                utils.is_close(goal_pose[1], robot_pose[1], abs_tol=pos_tol),
+                utils.angle_is_close(goal_pose[2], robot_pose[2], abs_tol=ang_tol),
             ]
         )
 

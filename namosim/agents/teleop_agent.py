@@ -79,6 +79,7 @@ class TeleopAgent(Agent):
             input.clear()
 
         return ThinkResult(
+            plan=None,
             next_action=next_action,
             goal_pose=None,
             did_replan=False,

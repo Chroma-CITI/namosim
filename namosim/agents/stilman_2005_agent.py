@@ -98,7 +98,7 @@ class Stilman2005Agent(Agent):
         elif config.parameters.deadlock_strategy == "DISTANCE":
             self.deadlock_strategy = config.parameters.deadlock_strategy
 
-        self._p_opt: "nav_plan.DynamicPlan"
+        self._p_opt: "nav_plan.Plan"
 
         # - Original Stilman method configuration parameters
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD  # default if bad parameter
@@ -122,7 +122,7 @@ class Stilman2005Agent(Agent):
             self.manip_search_procedure = self.focused_manip_search
         else:
             self.manip_search_procedure = self.manip_search
-        self.w_social, self.w_dist, self.w_goal = 15.0, 10.0, 2.0
+        self.w_social, self.w_dist, self.w_goal = 20.0, 5.0, 2.0
         self.w_sum = self.w_social + self.w_dist + self.w_goal
         self.TRANSLATION_DISCRETIZATION_FACTOR = (
             self.cell_size
@@ -137,7 +137,7 @@ class Stilman2005Agent(Agent):
         )
         self.activate_grids_logging = config.parameters.activate_grids_logging
         self._social_costmap: npt.NDArray[np.float_] | None = None
-        self.conflict_horizon = 10
+        self.conflict_horizon = config.parameters.conflict_horizon
         self.min_nb_steps_to_wait = 5
         self.max_nb_steps_to_wait = 20
         self.replan_count = 20
@@ -181,9 +181,7 @@ class Stilman2005Agent(Agent):
         if config.parameters.grab_start_distance is None:
             self.grab_start_distance = 4 * self.cell_size
         else:
-            self.grab_start_distance = (
-                config.parameters.grab_start_distance
-            )
+            self.grab_start_distance = config.parameters.grab_start_distance
 
         # grab_end_distance
         if config.parameters.grab_end_distance is None:
@@ -265,7 +263,7 @@ class Stilman2005Agent(Agent):
     def potential_deadlocks(
         self,
         current_conflicts: t.List[Conflict],
-        dynamic_plan: "nav_plan.DynamicPlan",
+        plan: "nav_plan.Plan",
         current_step: int,
     ) -> t.Set[Conflict]:
         robot_robot_conflicts = [
@@ -276,11 +274,11 @@ class Stilman2005Agent(Agent):
 
         result: t.Set[Conflict] = set()
 
-        for past_step, past_conflicts_at_step in dynamic_plan.conflicts_history.items():
+        for past_step, past_conflicts_at_step in plan.conflicts_history.items():
             for conflict in robot_robot_conflicts:
                 if conflict in past_conflicts_at_step:
                     # Check if a replan occurred after this conflict was first detected. If so, we have a potential deadlock.
-                    for replan_step in dynamic_plan.steps_with_replan_call:
+                    for replan_step in plan.steps_with_replan_call:
                         if replan_step >= past_step:
                             result.add(conflict)
                             break
@@ -328,12 +326,13 @@ class Stilman2005Agent(Agent):
                 self._goal = self._navigation_goals.pop(
                     0
                 )  # TODO Stop popping goals, use an index
-                self._p_opt = nav_plan.DynamicPlan(
+                self._p_opt = nav_plan.Plan(
                     agent_id=self.uid
                 )  # pyright: ignore[reportIncompatibleMethodOverride]
                 self.goal_to_plans[self._goal] = self._p_opt
             else:
                 return ThinkResult(
+                    plan=self._p_opt,
                     next_action=ba.GoalsFinished(),
                     goal_pose=None,
                     did_replan=False,
@@ -355,7 +354,7 @@ class Stilman2005Agent(Agent):
             ros_publisher=ros_publisher,
         )
 
-        self._p_opt.save_conflicts(self._step_count)
+        self._p_opt.save_conflicts(self._step_count, next_step.conflicts)
 
         if isinstance(next_step.next_action, (ba.GoalSuccess, ba.GoalFailed)):
             self._goal = None
@@ -376,7 +375,7 @@ class Stilman2005Agent(Agent):
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
         goal: PoseModel,
-        plan: "nav_plan.DynamicPlan",
+        plan: "nav_plan.Plan",
         conflict_horizon: int,
         try_max: int,
         neighborhood: t.Sequence[GridCellModel],
@@ -388,12 +387,13 @@ class Stilman2005Agent(Agent):
 
         # If current robot pose is close enough to goal, return Success
         if self.is_goal_reached(
-            w_t.dynamic_entities[agent_id].pose,
-            goal,
-            self.goal_position_tolerance,
-            self.goal_angle_tolerance,
+            robot_pose=self.pose,
+            goal_pose=goal,
+            pos_tol=self.goal_position_tolerance,
+            ang_tol=self.goal_angle_tolerance,
         ):
             return ThinkResult(
+                plan=plan,
                 next_action=ba.GoalSuccess(goal),
                 goal_pose=goal,
                 did_replan=False,
@@ -449,68 +449,84 @@ class Stilman2005Agent(Agent):
             world=w_t,
             robot_inflated_grid=robot_inflated_grid,
             check_horizon=conflict_horizon,
-            ros_publisher=ros_publisher,
             exit_early_for_any_conflict=True,
             grab_start_distance=self.grab_start_distance,
         )
-        if not conflicts:
-            if plan.timer.is_running and plan.timer.is_timer_over(step_count):
+        if len(conflicts) > 0:
+            self.logger.append(
+                utils.NamosimLog(
+                    f"Agent {self.uid}: Conflicts detected: {conflicts}",
+                    step_count,
+                )
+            )
+            if self.config.parameters.resolve_conflicts is False:
                 self.logger.append(
                     utils.NamosimLog(
-                        "Agent {}: No more conflicts, unpostponing current plan.".format(
+                        "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
                             self.uid
                         ),
                         step_count,
                     )
                 )
-                plan.timer.is_running = False
-                plan.unpostponements_history.append(step_count)
-            return ThinkResult(
-                next_action=plan.pop_next_action(),
-                goal_pose=goal,
-                did_replan=False,
-                agent_id=self.uid,
-            )  # Normal case, don't log
-        if self.config.parameters.resolve_conflicts is False:
+                return ThinkResult(
+                    plan=plan,
+                    next_action=ba.GoalFailed(goal),
+                    goal_pose=goal,
+                    did_replan=False,
+                    agent_id=self.uid,
+                    conflicts=conflicts,
+                )
+            return self.handle_conflicts(
+                conflicts=conflicts,
+                w_t=w_t,
+                step_count=step_count,
+                static_obs_inf_grid=static_obs_inf_grid,
+                robot_inflated_grid=robot_inflated_grid,
+                agent_id=agent_id,
+                goal=goal,
+                plan=plan,
+                ros_publisher=ros_publisher,
+            )
+
+        if plan.postpone.is_running():
             self.logger.append(
                 utils.NamosimLog(
-                    "Agent {}: Failing goal because conflicts where detected and resolve-conflicts is disabled.".format(
+                    "Agent {}: No more conflicts, unpostponing current plan.".format(
                         self.uid
                     ),
                     step_count,
                 )
             )
-            return ThinkResult(
-                next_action=ba.GoalFailed(goal),
-                goal_pose=goal,
-                did_replan=False,
-                agent_id=self.uid,
-                conflicts=conflicts,
-            )
+            plan.postpone.clear()
 
-        # Detect and resolve deadlocks
+        return ThinkResult(
+            plan=plan,
+            goal_pose=goal,
+            did_replan=False,
+            agent_id=self.uid,
+        )
+
+    def handle_conflicts(
+        self,
+        conflicts: t.List[Conflict],
+        w_t: "w.World",
+        step_count: int,
+        static_obs_inf_grid: BinaryOccupancyGrid,
+        robot_inflated_grid: BinaryOccupancyGrid,
+        agent_id: str,
+        goal: PoseModel,
+        plan: "nav_plan.Plan",
+        ros_publisher: t.Optional["rp.RosPublisher"] = None,
+    ) -> ThinkResult:
         potential_deadlocks = self.potential_deadlocks(conflicts, plan, step_count)
 
         if potential_deadlocks:
             self.logger.append(
                 utils.NamosimLog(
-                    "Agent {}: Potential deadlocks detected: {}.".format(
-                        self.uid, potential_deadlocks
-                    ),
-                    step_count,
+                    f"Agent {self.uid}: Potential deadlocks detected", step_count
                 )
             )
-
             if self.config.parameters.resolve_deadlocks:
-                if plan.timer.is_running and not plan.timer.is_timer_over(step_count):
-                    return ThinkResult(
-                        next_action=ba.Wait(),
-                        goal_pose=goal,
-                        did_replan=False,
-                        agent_id=self.uid,
-                        conflicts=conflicts,
-                    )
-
                 if not plan.has_tries_remaining(self.replan_count):
                     self.logger.append(
                         utils.NamosimLog(
@@ -521,6 +537,7 @@ class Stilman2005Agent(Agent):
                         )
                     )
                     return ThinkResult(
+                        plan=plan,
                         next_action=ba.GoalFailed(goal),
                         goal_pose=goal,
                         did_replan=False,
@@ -562,6 +579,7 @@ class Stilman2005Agent(Agent):
                 )
             )
             return ThinkResult(
+                plan=plan,
                 next_action=ba.GoalFailed(goal),
                 goal_pose=goal,
                 did_replan=False,
@@ -569,44 +587,66 @@ class Stilman2005Agent(Agent):
                 conflicts=conflicts,
             )
 
-        if not self.must_replan_now(conflicts):
-            return ThinkResult(
-                next_action=plan.new_postpone(
-                    t_max=self.max_nb_steps_to_wait,
-                    t_min=self.min_nb_steps_to_wait,
-                    step_count=step_count,
-                    conflicts=conflicts,
-                    simulation_log=self.logger,
-                    agent_id=self.uid,
-                ),
-                goal_pose=goal,
-                did_postpone=True,
-                did_replan=False,
-                agent_id=self.uid,
-                conflicts=conflicts,
+        if self.must_replan_now(conflicts):
+            self.logger.append(
+                utils.NamosimLog(
+                    f"Agent {self.uid}: Detected conflicts require immediate replanning. Conflicts: {conflicts}",
+                    step_count,
+                )
+            )
+            return self.replan(
+                w_t=w_t,
+                static_obs_inf_grid=static_obs_inf_grid,
+                robot_inflated_grid=robot_inflated_grid,
+                agent_id=agent_id,
+                goal=goal,
+                plan=plan,
+                conflict_horizon=self.conflict_horizon,
+                max_tries=self.replan_count,
+                neighborhood=self.neighborhood,
+                step_count=step_count,
+                action_space_reduction=self.action_space_reduction,
+                ros_publisher=ros_publisher,
             )
 
-        self.logger.append(
-            utils.NamosimLog(
-                "Agent {}: Detected conflicts require immediate replanning. Conflicts: {}".format(
-                    self.uid, conflicts
-                ),
-                step_count,
+        if plan.is_postpone_over():
+            plan.postpone.clear()
+            self.logger.append(
+                utils.NamosimLog(
+                    f"Agent {self.uid}: Conflicts remain at end of postpone. Replanning.",
+                    step_count,
+                )
             )
+            return self.replan(
+                w_t=w_t,
+                static_obs_inf_grid=static_obs_inf_grid,
+                robot_inflated_grid=robot_inflated_grid,
+                agent_id=agent_id,
+                goal=goal,
+                plan=plan,
+                conflict_horizon=self.conflict_horizon,
+                max_tries=self.replan_count,
+                neighborhood=self.neighborhood,
+                step_count=step_count,
+                action_space_reduction=self.action_space_reduction,
+                ros_publisher=ros_publisher,
+            )
+
+        plan.new_postpone(
+            t_max=self.max_nb_steps_to_wait,
+            t_min=self.min_nb_steps_to_wait,
+            step_count=step_count,
+            simulation_log=self.logger,
+            agent_id=self.uid,
         )
-        return self.replan(
-            w_t,
-            static_obs_inf_grid,
-            robot_inflated_grid,
-            agent_id,
-            goal,
-            plan,
-            conflict_horizon,
-            try_max,
-            neighborhood,
-            step_count,
-            action_space_reduction,
-            ros_publisher=ros_publisher,
+
+        return ThinkResult(
+            plan=plan,
+            goal_pose=goal,
+            did_postpone=True,
+            did_replan=False,
+            agent_id=self.uid,
+            conflicts=conflicts,
         )
 
     def resolve_deadlocks_social(
@@ -614,7 +654,7 @@ class Stilman2005Agent(Agent):
         *,
         agent_id: str,
         w_t: "w.World",
-        plan: "nav_plan.DynamicPlan",
+        plan: "nav_plan.Plan",
         step_count: int,
         goal: PoseModel,
         robot_inflated_grid: BinaryOccupancyGrid,
@@ -625,8 +665,13 @@ class Stilman2005Agent(Agent):
         robot_cells = robot_inflated_grid.rasterize_polygon(
             w_t.dynamic_entities[agent_id].polygon,
         )
-        plan.forbidden_evasion_cells.update(set(robot_cells))
-        plan.update_count += 1
+        for conflict in potential_deadlocks:
+            if isinstance(conflict, RobotRobotConflict):
+                robot_cells.update(
+                    robot_inflated_grid.rasterize_polygon(
+                        w_t.dynamic_entities[conflict.other_agent_id].polygon
+                    )
+                )
 
         assert agent_id not in robot_inflated_grid.cell_sets
 
@@ -635,8 +680,9 @@ class Stilman2005Agent(Agent):
             w_t=w_t,
             main_agent_id=agent_id,
             potential_deadlocks=potential_deadlocks,
-            forbidden_evasion_cells=plan.forbidden_evasion_cells,
+            forbidden_evasion_cells=set(robot_cells),
             ros_publisher=ros_publisher,
+            always_evade=plan.is_postpone_over(),
         )
 
         assert agent_id not in robot_inflated_grid.cell_sets
@@ -648,7 +694,7 @@ class Stilman2005Agent(Agent):
                     step_count,
                 )
             )
-            plan.update_plan(
+            plan.set_plan(
                 nav_plan.Plan(
                     agent_id=self.uid,
                     paths=[evasion_path],
@@ -656,9 +702,8 @@ class Stilman2005Agent(Agent):
                 ),
                 step_count,
             )
-            next_action = plan.pop_next_action()
             return ThinkResult(
-                next_action=next_action,
+                plan=plan,
                 goal_pose=goal,
                 did_replan=True,
                 agent_id=self.uid,
@@ -672,15 +717,17 @@ class Stilman2005Agent(Agent):
                 step_count,
             )
         )
+
+        plan.new_postpone(
+            t_min=self.min_nb_steps_to_wait,
+            t_max=self.max_nb_steps_to_wait,
+            step_count=step_count,
+            simulation_log=self.logger,
+            agent_id=self.uid,
+        )
+
         return ThinkResult(
-            next_action=plan.new_postpone(
-                t_min=self.min_nb_steps_to_wait,
-                t_max=self.max_nb_steps_to_wait,
-                step_count=step_count,
-                conflicts=conflicts,
-                simulation_log=self.logger,
-                agent_id=self.uid,
-            ),
+            plan=plan,
             goal_pose=goal,
             did_postpone=True,
             did_replan=False,
@@ -693,7 +740,7 @@ class Stilman2005Agent(Agent):
         *,
         agent_id: str,
         w_t: "w.World",
-        plan: "nav_plan.DynamicPlan",
+        plan: "nav_plan.Plan",
         step_count: int,
         goal: PoseModel,
         robot_inflated_grid: BinaryOccupancyGrid,
@@ -701,8 +748,6 @@ class Stilman2005Agent(Agent):
         conflicts: t.List[Conflict],
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
-        plan.update_count += 1
-
         assert agent_id not in robot_inflated_grid.cell_sets
 
         evasion_path = self.compute_evasion_nonsocial(
@@ -710,6 +755,7 @@ class Stilman2005Agent(Agent):
             w_t=w_t,
             main_agent_id=agent_id,
             potential_deadlocks=potential_deadlocks,
+            always_evade=plan.is_postpone_over(),
         )
 
         assert agent_id not in robot_inflated_grid.cell_sets
@@ -721,7 +767,7 @@ class Stilman2005Agent(Agent):
                     step_count,
                 )
             )
-            plan.update_plan(
+            plan.set_plan(
                 nav_plan.Plan(
                     agent_id=self.uid,
                     paths=[evasion_path],
@@ -729,9 +775,8 @@ class Stilman2005Agent(Agent):
                 ),
                 step_count,
             )
-            next_action = plan.pop_next_action()
             return ThinkResult(
-                next_action=next_action,
+                plan=plan,
                 goal_pose=goal,
                 did_replan=True,
                 agent_id=self.uid,
@@ -745,15 +790,17 @@ class Stilman2005Agent(Agent):
                 step_count,
             )
         )
+
+        plan.new_postpone(
+            t_min=self.min_nb_steps_to_wait,
+            t_max=self.max_nb_steps_to_wait,
+            step_count=step_count,
+            simulation_log=self.logger,
+            agent_id=self.uid,
+        )
+
         return ThinkResult(
-            next_action=plan.new_postpone(
-                t_min=self.min_nb_steps_to_wait,
-                t_max=self.max_nb_steps_to_wait,
-                step_count=step_count,
-                conflicts=conflicts,
-                simulation_log=self.logger,
-                agent_id=self.uid,
-            ),
+            plan=plan,
             goal_pose=goal,
             did_postpone=True,
             did_replan=False,
@@ -768,7 +815,7 @@ class Stilman2005Agent(Agent):
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
         goal: PoseModel,
-        plan: "nav_plan.DynamicPlan",
+        plan: "nav_plan.Plan",
         conflict_horizon: int,
         max_tries: int,
         neighborhood: t.Sequence[GridCellModel],
@@ -779,13 +826,12 @@ class Stilman2005Agent(Agent):
         if not plan.has_tries_remaining(max_tries):
             self.logger.append(
                 utils.NamosimLog(
-                    "Agent {}: Failing goal, no tries remaining to plan even while ignoring dynamic obstacles.".format(
-                        self.uid
-                    ),
+                    f"Agent {self.uid}: Failing goal, no tries remaining to plan",
                     step_count,
                 )
             )
             return ThinkResult(
+                plan=plan,
                 next_action=ba.GoalFailed(goal),
                 goal_pose=goal,
                 did_replan=True,
@@ -805,7 +851,6 @@ class Stilman2005Agent(Agent):
         }
         w_t_no_dyn = w_t.light_copy(ignored_entities=dynamic_entities)
         robot_inflated_grid.deactivate_entities(dynamic_entities)
-        plan.update_count += 1
         p = self.select_connect(
             w_t=w_t_no_dyn,
             static_obs_inf_grid=static_obs_inf_grid,
@@ -817,7 +862,7 @@ class Stilman2005Agent(Agent):
             prev_list=set(),
         )
         robot_inflated_grid.activate_entities(dynamic_entities)
-        plan.update_plan(p, step_count)
+        plan.set_plan(p, step_count)
 
         if plan.is_empty():
             self.logger.append(
@@ -830,6 +875,7 @@ class Stilman2005Agent(Agent):
             )
 
             return ThinkResult(
+                plan=plan,
                 next_action=ba.GoalFailed(goal),
                 goal_pose=goal,
                 did_replan=True,
@@ -840,7 +886,6 @@ class Stilman2005Agent(Agent):
             world=w_t,
             robot_inflated_grid=robot_inflated_grid,
             check_horizon=conflict_horizon,
-            ros_publisher=ros_publisher,
             grab_start_distance=self.grab_start_distance,
         )
         if not conflicts:
@@ -852,7 +897,7 @@ class Stilman2005Agent(Agent):
                 )
             )
             return ThinkResult(
-                next_action=plan.pop_next_action(),
+                plan=plan,
                 goal_pose=goal,
                 did_replan=True,
                 agent_id=self.uid,
@@ -868,6 +913,7 @@ class Stilman2005Agent(Agent):
                 )
             )
             return ThinkResult(
+                plan=plan,
                 next_action=ba.GoalFailed(goal),
                 goal_pose=goal,
                 did_replan=True,
@@ -894,6 +940,7 @@ class Stilman2005Agent(Agent):
                 )
             )
             return ThinkResult(
+                plan=plan,
                 next_action=ba.GoalFailed(goal),
                 goal_pose=goal,
                 did_replan=True,
@@ -947,7 +994,6 @@ class Stilman2005Agent(Agent):
                 {conflicting_agent_id: conflicting_robot.polygon}
             )
         # Plan using this modified version of the world
-        plan.update_count += 1
         p = self.select_connect(
             w_t=new_w_t_no_dyn,
             static_obs_inf_grid=static_obs_inf_grid,
@@ -967,22 +1013,20 @@ class Stilman2005Agent(Agent):
         if p.is_empty():
             self.logger.append(
                 utils.NamosimLog(
-                    "Agent {}: Postponing for up to {} steps, could not find a plan avoiding the conflicting "
-                    "dynamic obstacles of the pure NAMO plan.".format(
-                        self.uid, self.max_nb_steps_to_wait
-                    ),
+                    f"Agent {self.uid}: Postponing. Could not find a plan avoiding the conflicting dynamic obstacles of the pure NAMO plan.",
                     step_count,
                 )
             )
+
+            plan.new_postpone(
+                t_max=self.max_nb_steps_to_wait,
+                t_min=self.min_nb_steps_to_wait,
+                step_count=step_count,
+                simulation_log=self.logger,
+                agent_id=self.uid,
+            )
             return ThinkResult(
-                next_action=plan.new_postpone(
-                    t_max=self.max_nb_steps_to_wait,
-                    t_min=self.min_nb_steps_to_wait,
-                    step_count=step_count,
-                    conflicts=conflicts,
-                    simulation_log=self.logger,
-                    agent_id=self.uid,
-                ),
+                plan=plan,
                 goal_pose=goal,
                 did_postpone=True,
                 did_replan=True,
@@ -990,13 +1034,12 @@ class Stilman2005Agent(Agent):
                 conflicts=conflicts,
             )
 
-        plan.update_plan(p, step_count)
+        plan.set_plan(p, step_count)
         new_conflicts = set(
             plan.get_conflicts(
                 world=w_t,
                 robot_inflated_grid=robot_inflated_grid,
                 check_horizon=conflict_horizon,
-                ros_publisher=ros_publisher,
                 grab_start_distance=self.grab_start_distance,
             )
         )
@@ -1007,22 +1050,20 @@ class Stilman2005Agent(Agent):
         if new_conflicts:
             self.logger.append(
                 utils.NamosimLog(
-                    "Agent {}: Postponing for {} steps, a new plan has been computed avoiding the "
-                    "conflicting dynamic obstacles of the pure NAMO plan, but has other conflicts: {}".format(
-                        self.uid, conflicts
-                    ),
+                    f"Agent {self.uid}: Postponing because a new plan has been computed avoiding the conflicting dynamic obstacles of the pure NAMO plan, but has other conflicts.",
                     step_count,
                 )
             )
+
+            plan.new_postpone(
+                t_max=self.max_nb_steps_to_wait,
+                t_min=self.min_nb_steps_to_wait,
+                step_count=step_count,
+                simulation_log=self.logger,
+                agent_id=self.uid,
+            )
             return ThinkResult(
-                next_action=plan.new_postpone(
-                    t_max=self.max_nb_steps_to_wait,
-                    t_min=self.min_nb_steps_to_wait,
-                    step_count=step_count,
-                    conflicts=conflicts,
-                    simulation_log=self.logger,
-                    agent_id=self.uid,
-                ),
+                plan=plan,
                 goal_pose=goal,
                 did_replan=True,
                 did_postpone=True,
@@ -1041,7 +1082,7 @@ class Stilman2005Agent(Agent):
         )
 
         return ThinkResult(
-            next_action=plan.pop_next_action(),
+            plan=plan,
             goal_pose=goal,
             did_replan=True,
             agent_id=self.uid,
@@ -2761,7 +2802,8 @@ class Stilman2005Agent(Agent):
         other_entities_aabb_tree: AABBTree,
     ) -> RobotConfiguration | None:
         release_action = ba.Release(
-            entity_uid=obstacle_uid, distance=-(self.grab_start_distance - self.grab_end_distance)
+            entity_uid=obstacle_uid,
+            distance=-(self.grab_start_distance - self.grab_end_distance),
         )
         robot_pose = (robot_pose[0], robot_pose[1], robot_pose[2])
         new_robot_pose, new_robot_polygon = release_action.apply(
@@ -3467,6 +3509,7 @@ class Stilman2005Agent(Agent):
         main_agent_id: str,
         potential_deadlocks: t.Set[Conflict],
         forbidden_evasion_cells: t.Set[GridCellModel],
+        always_evade: bool,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         use_combined_cost: bool = True,
     ) -> EvasionTransitPath | None:
@@ -3490,6 +3533,9 @@ class Stilman2005Agent(Agent):
 
         if not main_robot_evasion_path:
             return None
+
+        if always_evade:
+            return main_robot_evasion_path
 
         # If this robot is able to evade, it must check if it should by comparing its evasion path with the one of
         # other robots.
@@ -3572,6 +3618,7 @@ class Stilman2005Agent(Agent):
         w_t: "w.World",
         main_agent_id: str,
         potential_deadlocks: t.Set[Conflict],
+        always_evade: bool,
     ) -> EvasionTransitPath | None:
         """Computes an evasion path for the main robot without using social cost"""
         # Compute evasion for main robot
@@ -3583,12 +3630,13 @@ class Stilman2005Agent(Agent):
             if isinstance(potential_deadlock, RobotRobotConflict)
         }
 
-        d = np.linalg.norm(robot.pose[:2])
-        for other_agent_id in other_robots_uids:
-            other_robot = w_t.agents[other_agent_id]
-            d_other = np.linalg.norm(other_robot.pose[:2])
-            if d_other > d:  # type: ignore
-                return None
+        if not always_evade:
+            d = np.linalg.norm(robot.pose[:2])
+            for other_agent_id in other_robots_uids:
+                other_robot = w_t.agents[other_agent_id]
+                d_other = np.linalg.norm(other_robot.pose[:2])
+                if d_other > d:  # type: ignore
+                    return None
 
         # The main robot uid should be deactivated in the robot-inflated grid
         assert main_agent_id in robot_inflated_grid.deactivated_entities_cell_sets
@@ -3681,22 +3729,14 @@ class Stilman2005Agent(Agent):
 
             return neighbors, tentative_gscores
 
-        def evasion_heuristic(
-            current: GridCellModel,
-            goal: None,
-        ) -> float:
-            return -get_min_dist_to_others(current)
-
-        def exit_condition(current: GridCellModel, goal: ModuleNotFoundError):
+        def exit_condition(current: GridCellModel):
             return False
 
-        _, _, came_from, _, gscore, _ = graph_search.new_generic_a_star(
+        _, _, came_from, _, gscore, _ = graph_search.new_generic_dijkstra(
             start=robot_cell,
-            goal=None,
             exit_condition=exit_condition,
             get_neighbors=get_neighbors_for_evasion,
-            heuristic=evasion_heuristic,
-        )  # type: ignore
+        )
 
         if not came_from:
             return None
@@ -3831,25 +3871,22 @@ class Stilman2005Agent(Agent):
 
             return neighbors, tentative_gscores
 
-        def evasion_heuristic(
-            current: GridCellModel,
-            goal: None,
-        ) -> float:
-            if self._social_costmap is None:
-                raise Exception("No social costmap")
-            return self._social_costmap[current[0]][current[1]]
-
-        def exit_condition(current: GridCellModel, goal: ModuleNotFoundError):
+        def exit_condition(current: GridCellModel):
             return False
 
-        _, _, came_from, _, gscore, _ = graph_search.new_generic_a_star(
+        # _, _, came_from, _, gscore, _ = graph_search.di(
+        #     start=robot_cell,
+        #     goal=None,
+        #     exit_condition=exit_condition,
+        #     get_neighbors=get_neighbors_for_evasion,
+        #     heuristic=evasion_heuristic,
+        # )  # type: ignore
+
+        _, _, came_from, _, gscore, _ = graph_search.new_generic_dijkstra(
             start=robot_cell,
-            goal=None,
             exit_condition=exit_condition,
             get_neighbors=get_neighbors_for_evasion,
-            heuristic=evasion_heuristic,
-        )  # type: ignore
-
+        )
         if not came_from:
             # If the robot was in an obstacle, no evasion is possible
             return robot_start_social_cost, None

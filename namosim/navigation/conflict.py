@@ -2,18 +2,24 @@ import typing as t
 
 from namosim.data_models import PoseModel
 from namosim.utils import utils
+from enum import Enum, auto
 
 
-class Conflict:
-    def __init__(self):
-        pass
+class ConflictType(Enum):
+    ROBOT_ROBOT = auto()
+    SSA = auto()
+    ROBOT_OBSTACLE = auto()
+    STOLEN_OBSTACLE = auto()
+    SIMULTAEOUS_GRAB = auto()
 
+
+class BaseConflict:
     def __repr__(self):
-        return self.__str__()
+        return str(self)
 
 
-class RobotRobotConflict(Conflict):
-    CONFLICT_STRING = "Robot - Robot"
+class RobotRobotConflict(BaseConflict):
+    conflict_type = ConflictType.ROBOT_OBSTACLE
 
     def __init__(
         self,
@@ -98,40 +104,11 @@ class RobotRobotConflict(Conflict):
         )
 
     def __str__(self):
-        robot_state = (
-            "in transit"
-            if self.robot_transfered_obstacle_uid is None
-            else "transfering obstacle uid {}".format(
-                self.robot_transfered_obstacle_uid
-            )
-        )
-
-        s = "{} conflict between robot uid {} () and other robot uid {} - {}.".format(
-            self.CONFLICT_STRING,
-            self.agent_id,
-            self.other_agent_id,
-            robot_state,
-        )
-
-        robot_transfered_obstacle_pose_text = (
-            ""
-            if self.robot_transfered_obstacle_pose is None
-            else "robot's transfered obstacle: {}, ".format(
-                self.robot_transfered_obstacle_pose
-            )
-        )
-
-        s += " Collision detected between entities {} at configuration: robot: {}, {}other robot {}.".format(
-            self.colliding_uids,
-            self.robot_pose,
-            robot_transfered_obstacle_pose_text,
-            self.other_robot_pose,
-        )
-        return s
+        return f"RobotRobotConflict({self.other_agent_id})"
 
 
 class SimultaneousSpaceAccess(RobotRobotConflict):
-    CONFLICT_STRING = "Simultaneous Space Access"
+    conflict_type = ConflictType.SSA
 
     def __init__(
         self,
@@ -162,47 +139,61 @@ class SimultaneousSpaceAccess(RobotRobotConflict):
             at_release,
         )
 
+    def __str__(self):
+        return f"SimultaneousSpaceAccess({self.other_agent_id}, {self.colliding_uids})"
 
-class RobotObstacleConflict(Conflict):
+
+class RobotObstacleConflict(BaseConflict):
+    conflict_type = ConflictType.ROBOT_OBSTACLE
+
     def __init__(self, obstacle_uid: str):
         self.obstacle_uid = obstacle_uid
 
     def __str__(self):
-        return "Robot-Obstacle conflict with obstacle uid {}.".format(self.obstacle_uid)
+        return f"RobotObstacleConflict({self.obstacle_uid})"
 
     def __repr__(self):
         return self.__str__()
 
 
-class StolenMovableConflict(
-    Conflict
-):  # If Movable is in grabbed state, postpone, else immediate replan
+class StolenMovableConflict(BaseConflict):
+    # If Movable is in grabbed state, postpone, else immediate replan
+    conflict_type = ConflictType.STOLEN_OBSTACLE
+
     def __init__(self, obstacle_uid: str):
         self.obstacle_uid = obstacle_uid
 
     def __str__(self):
-        return "Stolen Movable conflict concerning obstacle uid {}.".format(
-            self.obstacle_uid
-        )
+        return f"StolenMovableConflict({self.obstacle_uid})."
 
 
-class StealingMovableConflict(Conflict):
+class StealingMovableConflict(BaseConflict):
+    conflict_type = ConflictType.STOLEN_OBSTACLE
+
     def __init__(self, obstacle_uid: str, thief_uid: str):
         self.obstacle_uid = obstacle_uid
         self.thief_uid = thief_uid
 
     def __str__(self):
-        return "Stealing Movable conflict concerning obstacle uid {} by robot uid {}.".format(
-            self.obstacle_uid, self.thief_uid
-        )
+        return f"StealingMovableConflict({self.obstacle_uid}, {self.thief_uid})"
 
 
 class ConcurrentGrabConflict(StealingMovableConflict):  # Systematic postpone
+    conflict_type = ConflictType.SIMULTAEOUS_GRAB
+
     def __init__(self, obstacle_uid: str, other_agent_id: str):
         self.obstacle_uid = obstacle_uid
         self.other_agent_id = other_agent_id
 
     def __str__(self):
-        return "Concurrent Grab conflict concerning obstacle uid {}, with concurrent agents uid {}.".format(
-            self.obstacle_uid, self.other_agent_id
-        )
+        return f"ConcurrentGrabConflict({self.obstacle_uid}, {self.other_agent_id})"
+
+
+Conflict = t.Union[
+    RobotRobotConflict,
+    RobotObstacleConflict,
+    SimultaneousSpaceAccess,
+    StolenMovableConflict,
+    StealingMovableConflict,
+    ConcurrentGrabConflict,
+]
