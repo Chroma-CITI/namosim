@@ -44,7 +44,7 @@ The best way is to open the repo in VSCode and use the pythong test explorer to 
 
 Alternativley you can launch a test from the command line like so:
 ```bash
-
+pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
 
 ### Run a Basic Scenario and Visualize in RVIZ
