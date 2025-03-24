@@ -11,7 +11,8 @@ A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable O
 - RVIZ2
 
 You might also need the following apt packages
-```
+
+```bash
 sudo apt install python3-tk
 sudo apt install libcairo2-dev
 sudo apt install libopencv-dev
@@ -39,24 +40,11 @@ You should be all set to start.
 
 ## Examples
 
-### IROS 2024 Experiments
+The best way is to open the repo in VSCode and use the pythong test explorer to run the `e2e` tests.
 
-Generate the scenarios:
-
+Alternativley you can launch a test from the command line like so:
 ```bash
-./scripts/generate_scenarios_intersections.sh
-```
 
-Launch the experiments:
-
-```bash
-./scripts/launch_experiments_intersections.sh
-```
-
-Results should be saved in the `namo_logs` folder. You can transform the results into a single csv file with:
-
-```bash
-python -m namosim.scripts.generate_results_table --results-dir namo_logs/intersections --out report_intersections.csv
 ```
 
 ### Run a Basic Scenario and Visualize in RVIZ
@@ -72,7 +60,7 @@ rviz2 -d rviz/ROS2/basic_view.rviz
 Then, in a new terminal, run:
 
 ```
-python -m tests.unit.basic_senarios_test BasicTest.test_social_dr_success_d
+pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
 
 ## Run Unit Tests
