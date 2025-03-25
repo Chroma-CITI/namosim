@@ -129,12 +129,12 @@ def bounding_boxes_vertices(
     if isinstance(robot_action, ba.Rotation):
         for point_a, point_b in zip(init_poly_coords, end_poly_coords):
             expected_b = robot_action.apply_to_point(
-                center=(robot_pose[0], robot_pose[1]), point=point_a
+                center=(robot_pose[0], robot_pose[1]), point=point_a  # type: ignore
             )
             if not np.allclose(point_b, expected_b):
                 raise Exception()
             bb = arc_bounding_box(
-                point=point_a,
+                point=point_a,  # type: ignore
                 degrees=robot_action.angle,
                 center=(robot_pose[0], robot_pose[1]),
             )

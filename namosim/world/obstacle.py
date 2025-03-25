@@ -35,7 +35,7 @@ class Obstacle(Entity):
     def copy(self, copy_polygon: bool = True):
         return Obstacle(
             uid=self.uid,
-            polygon=None if not copy_polygon else copy.deepcopy(self.polygon),
+            polygon=None if not copy_polygon else copy.deepcopy(self.polygon),  # type: ignore
             pose=self.pose,
             full_geometry_acquired=self.full_geometry_acquired,
             type_=self.type_,
