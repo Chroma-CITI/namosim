@@ -10,7 +10,7 @@
     "/home/chroma/code/namo_turtlebot_host/install/namo_turtlebot/lib/python3.12/site-packages",
     "/home/chroma/code/namo_turtlebot_host/install/namo_msgs/lib/python3.12/site-packages",
     "/home/chroma/code/namo_turtlebot_host/install/kobuki_ros_interfaces/lib/python3.12/site-packages",
-    "/home/chroma/code/namo_turtlebot_host/install/aruco_ros2_msgs/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/aruco_markers_msgs/lib/python3.12/site-packages",
     "/opt/ros/jazzy/lib/python3.12/site-packages"
   ],
   "python.analysis.extraPaths": [
@@ -18,7 +18,7 @@
     "/home/chroma/code/namo_turtlebot_host/install/namo_turtlebot/lib/python3.12/site-packages",
     "/home/chroma/code/namo_turtlebot_host/install/namo_msgs/lib/python3.12/site-packages",
     "/home/chroma/code/namo_turtlebot_host/install/kobuki_ros_interfaces/lib/python3.12/site-packages",
-    "/home/chroma/code/namo_turtlebot_host/install/aruco_ros2_msgs/lib/python3.12/site-packages",
+    "/home/chroma/code/namo_turtlebot_host/install/aruco_markers_msgs/lib/python3.12/site-packages",
     "/opt/ros/jazzy/lib/python3.12/site-packages"
   ]
 }
