@@ -134,14 +134,15 @@ class TransferPath:
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
         rp: t.Optional["ros2.RosPublisher"] = None,
-    ) -> t.List[Conflict]:
+    ) -> t.Set[Conflict]:
+        conflicts: t.Set[Conflict] = set()
+
         assert agent_id not in robot_inflated_grid.cell_sets
 
         if check_horizon <= 0 and apply_strict_horizon:
-            return []
+            return conflicts
 
         robot = t.cast(agent.Agent, world.dynamic_entities[agent_id])
-        conflicts = []
 
         collision_polygons = other_entities_polygons
         collision_aabb_tree = other_entities_aabb_tree
@@ -199,7 +200,7 @@ class TransferPath:
 
                 # If held by another agent
                 if self.obstacle_uid in world.entity_to_agent:
-                    conflicts.append(
+                    conflicts.add(
                         StealingMovableConflict(
                             self.obstacle_uid,
                             world.entity_to_agent[self.obstacle_uid],
@@ -216,7 +217,7 @@ class TransferPath:
                     not obstacle_at_start_pose
                     and self.obstacle_uid not in previously_moved_entities_uids
                 ):
-                    conflicts.append(StolenMovableConflict(self.obstacle_uid))
+                    conflicts.add(StolenMovableConflict(self.obstacle_uid))
                     if (
                         exit_early_only_for_long_term_conflicts
                         or exit_early_for_any_conflict
@@ -251,7 +252,7 @@ class TransferPath:
                         ):
                             other_robot_obstacle = world.get_agent_held_obstacle(uid)
 
-                            conflicts.append(
+                            conflicts.add(
                                 SimultaneousSpaceAccess(
                                     agent_id=agent_id,
                                     robot_pose=robot_pose_prior_to_action,
@@ -301,7 +302,7 @@ class TransferPath:
                             )
                             and uid not in world.entity_to_agent.inverse
                         ):
-                            conflicts.append(
+                            conflicts.add(
                                 ConcurrentGrabConflict(self.obstacle_uid, uid)
                             )
                             if exit_early_for_any_conflict:
@@ -329,7 +330,7 @@ class TransferPath:
                             other_robot_obs = world.get_agent_held_obstacle(
                                 other_agent_id
                             )
-                            conflicts.append(
+                            conflicts.add(
                                 SimultaneousSpaceAccess(
                                     agent_id=agent_id,
                                     robot_pose=robot_pose_prior_to_action,
@@ -360,7 +361,7 @@ class TransferPath:
                         or uid in world.entity_to_agent
                     ):
                         if look_ahead_index < check_horizon:
-                            conflicts.append(
+                            conflicts.add(
                                 RobotRobotConflict(
                                     agent_id=agent_id,
                                     robot_pose=robot_pose_prior_to_action,
@@ -401,7 +402,7 @@ class TransferPath:
                             if exit_early_for_any_conflict:
                                 return conflicts
                     else:
-                        conflicts.append(RobotObstacleConflict(uid))
+                        conflicts.add(RobotObstacleConflict(uid))
                         if (
                             exit_early_for_any_conflict
                             or exit_early_only_for_long_term_conflicts
@@ -433,7 +434,7 @@ class TransferPath:
                             other_robot_obs = world.get_agent_held_obstacle(
                                 other_agent_id
                             )
-                            conflicts.append(
+                            conflicts.add(
                                 SimultaneousSpaceAccess(
                                     agent_id=agent_id,
                                     robot_pose=robot_before_release_pose,
@@ -464,7 +465,7 @@ class TransferPath:
                         or uid in world.entity_to_agent
                     ):
                         if look_ahead_index < check_horizon:
-                            conflicts.append(
+                            conflicts.add(
                                 RobotRobotConflict(
                                     agent_id=agent_id,
                                     robot_pose=robot_before_release_pose,
@@ -503,7 +504,7 @@ class TransferPath:
                             if exit_early_for_any_conflict:
                                 return conflicts
                     else:
-                        conflicts.append(RobotObstacleConflict(uid))
+                        conflicts.add(RobotObstacleConflict(uid))
                         if (
                             exit_early_for_any_conflict
                             or exit_early_only_for_long_term_conflicts
@@ -534,7 +535,7 @@ class TransferPath:
                             other_robot_obs = world.get_agent_held_obstacle(
                                 other_agent_id
                             )
-                            conflicts.append(
+                            conflicts.add(
                                 SimultaneousSpaceAccess(
                                     agent_id=agent_id,
                                     robot_pose=robot_pose_prior_to_action,
@@ -567,7 +568,7 @@ class TransferPath:
                         or uid in world.entity_to_agent
                     ):
                         if look_ahead_index < check_horizon:
-                            conflicts.append(
+                            conflicts.add(
                                 RobotRobotConflict(
                                     agent_id=agent_id,
                                     robot_pose=robot_pose_prior_to_action,
@@ -607,7 +608,7 @@ class TransferPath:
                             if exit_early_for_any_conflict:
                                 return conflicts
                     else:
-                        conflicts.append(RobotObstacleConflict(uid))
+                        conflicts.add(RobotObstacleConflict(uid))
                         if (
                             exit_early_for_any_conflict
                             or exit_early_only_for_long_term_conflicts
@@ -640,7 +641,7 @@ class TransferPath:
                             other_robot_obs = world.get_agent_held_obstacle(
                                 other_agent_id
                             )
-                            conflicts.append(
+                            conflicts.add(
                                 SimultaneousSpaceAccess(
                                     agent_id=agent_id,
                                     robot_pose=self.robot_path.poses[
@@ -677,7 +678,7 @@ class TransferPath:
                         or uid in world.entity_to_agent
                     ):
                         if look_ahead_index < check_horizon:
-                            conflicts.append(
+                            conflicts.add(
                                 RobotRobotConflict(
                                     agent_id=agent_id,
                                     robot_pose=self.robot_path.poses[
@@ -719,7 +720,7 @@ class TransferPath:
                             if exit_early_for_any_conflict:
                                 return conflicts
                     else:
-                        conflicts.append(RobotObstacleConflict(uid))
+                        conflicts.add(RobotObstacleConflict(uid))
                         if (
                             exit_early_for_any_conflict
                             or exit_early_only_for_long_term_conflicts
@@ -884,15 +885,17 @@ class TransitPath:
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
         rp: t.Optional["ros2.RosPublisher"] = None,
-    ) -> t.List[Conflict]:
+    ) -> t.Set[Conflict]:
+        conflicts: t.Set[Conflict] = set()
+
         assert agent_id not in robot_inflated_grid.cell_sets
         if not self.actions:
-            return []
+            return conflicts
 
         if check_horizon <= 0 and apply_strict_horizon:
-            return []
+            return conflicts
 
-        conflicts = []
+        conflicts = conflicts
 
         encompassing_circles_uids = set(encompassing_circle_uid_to_agent_id.keys())
 
@@ -941,7 +944,7 @@ class TransitPath:
                             other_robot_obs = world.get_agent_held_obstacle(
                                 other_agent_id
                             )
-                            conflicts.append(
+                            conflicts.add(
                                 SimultaneousSpaceAccess(
                                     agent_id=agent_id,
                                     robot_pose=pose,
@@ -989,7 +992,7 @@ class TransitPath:
                             other_agent_id = world.entity_to_agent[uid]
 
                         if look_ahead_index < check_horizon:
-                            conflicts.append(
+                            conflicts.add(
                                 RobotRobotConflict(
                                     agent_id=agent_id,
                                     robot_pose=pose,
@@ -1040,7 +1043,7 @@ class TransitPath:
                         # if len(collisions) == 0:
                         #     continue
 
-                        conflicts.append(RobotObstacleConflict(uid))
+                        conflicts.add(RobotObstacleConflict(uid))
                         conflicting_cells.add(cell)
                         conflicting_entities_cells.update(
                             robot_inflated_grid.cell_sets[uid]
@@ -1086,6 +1089,7 @@ class EvasionTransitPath(TransitPath):
         self,
         robot_path: RawPath,
         actions: t.List[ba.Action],
+        conflicts: t.Set[Conflict],
         phys_cost: float | None = None,
         social_cost: float = 0.0,
         weight: float = 1.0,
@@ -1096,6 +1100,7 @@ class EvasionTransitPath(TransitPath):
         )
         self.transit_configuration_after_release = None
         self.release_executed = False
+        self.conflicts = conflicts
 
     def set_wait(self, nb_wait_steps: int):
         for _ in range(nb_wait_steps):
@@ -1115,3 +1120,18 @@ class EvasionTransitPath(TransitPath):
             return self.transit_configuration_after_release.action
 
         return TransitPath.pop_next_action(self)
+
+    @classmethod
+    def from_poses(
+        cls,
+        poses: t.List[PoseModel],
+        robot_polygon: Polygon,
+        robot_pose: PoseModel,
+        conflicts: t.Set[Conflict],
+    ):
+        path = TransitPath.from_poses(
+            poses=poses, robot_polygon=robot_polygon, robot_pose=robot_pose
+        )
+        return EvasionTransitPath(
+            robot_path=path.robot_path, actions=path.actions, conflicts=conflicts
+        )
