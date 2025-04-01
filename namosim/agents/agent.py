@@ -33,7 +33,7 @@ class ThinkResult:
         did_replan: bool,
         did_postpone: bool = False,
         agent_id: str,
-        conflicts: t.Optional[t.List[Conflict]] = None,
+        conflicts: t.Optional[t.Set[Conflict]] = None,
         next_action: Action | None = None,
     ) -> None:
         self.plan = plan
@@ -44,7 +44,7 @@ class ThinkResult:
         self.did_replan = did_replan
         self.did_postpone = did_postpone
         self.agent_id = agent_id
-        self.conflicts = conflicts if conflicts else []
+        self.conflicts: t.Set[Conflict] = conflicts if conflicts else set()
 
 
 class RLThinkResult(ThinkResult):
@@ -56,7 +56,7 @@ class RLThinkResult(ThinkResult):
         did_replan: bool,
         did_postpone: bool = False,
         agent_id: str,
-        conflicts: t.Optional[t.List[Conflict]] = None,
+        conflicts: t.Optional[t.Set[Conflict]] = None,
         log_prob: float = 0.0,
         action_idx: int = 0,
     ):
