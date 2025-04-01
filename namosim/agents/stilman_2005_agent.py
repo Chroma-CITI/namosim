@@ -262,7 +262,7 @@ class Stilman2005Agent(Agent):
 
     def potential_deadlocks(
         self,
-        current_conflicts: t.List[Conflict],
+        current_conflicts: t.Set[Conflict],
         plan: "nav_plan.Plan",
         current_step: int,
     ) -> t.Set[Conflict]:
@@ -361,7 +361,7 @@ class Stilman2005Agent(Agent):
 
         return next_step
 
-    def must_replan_now(self, conflicts: t.List[Conflict]):
+    def must_replan_now(self, conflicts: t.Set[Conflict]):
         for conflict in conflicts:
             if isinstance(conflict, (StolenMovableConflict, RobotObstacleConflict)):
                 return True
@@ -508,7 +508,7 @@ class Stilman2005Agent(Agent):
 
     def handle_conflicts(
         self,
-        conflicts: t.List[Conflict],
+        conflicts: t.Set[Conflict],
         w_t: "w.World",
         step_count: int,
         static_obs_inf_grid: BinaryOccupancyGrid,
@@ -659,7 +659,7 @@ class Stilman2005Agent(Agent):
         goal: PoseModel,
         robot_inflated_grid: BinaryOccupancyGrid,
         potential_deadlocks: t.Set[Conflict],
-        conflicts: t.List[Conflict],
+        conflicts: t.Set[Conflict],
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
         robot_cells = robot_inflated_grid.rasterize_polygon(
@@ -745,7 +745,7 @@ class Stilman2005Agent(Agent):
         goal: PoseModel,
         robot_inflated_grid: BinaryOccupancyGrid,
         potential_deadlocks: t.Set[Conflict],
-        conflicts: t.List[Conflict],
+        conflicts: t.Set[Conflict],
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
         assert agent_id not in robot_inflated_grid.cell_sets
@@ -3529,6 +3529,7 @@ class Stilman2005Agent(Agent):
             forbidden_evasion_cells=forbidden_evasion_cells,
             ros_publisher=ros_publisher,
             use_combined_cost=use_combined_cost,
+            potential_deadlocks=potential_deadlocks,
         )
 
         if not main_robot_evasion_path:
@@ -3576,6 +3577,7 @@ class Stilman2005Agent(Agent):
                 forbidden_evasion_cells=set(),
                 use_combined_cost=use_combined_cost,
                 ros_publisher=ros_publisher,
+                potential_deadlocks=potential_deadlocks,
             )
             robot_inflated_grid.deactivate_entities({main_agent_id})
 
@@ -3765,7 +3767,7 @@ class Stilman2005Agent(Agent):
             return None
 
         evasion_transit_path = EvasionTransitPath.from_poses(
-            real_path, robot_polygon, robot_pose
+            real_path, robot_polygon, robot_pose, conflicts=potential_deadlocks
         )
 
         # remember to release the obstacle, if needed
@@ -3783,6 +3785,7 @@ class Stilman2005Agent(Agent):
         robot_inflated_grid: BinaryOccupancyGrid,
         robot: Agent,
         forbidden_evasion_cells: t.Set[GridCellModel],
+        potential_deadlocks: t.Set[Conflict],
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         use_combined_cost: bool = True,
     ) -> t.Tuple[float, EvasionTransitPath | None]:
@@ -3962,7 +3965,7 @@ class Stilman2005Agent(Agent):
             return robot_start_social_cost, None
 
         evasion_transit_path = EvasionTransitPath.from_poses(
-            real_path, robot_polygon, robot_pose
+            real_path, robot_polygon, robot_pose, conflicts=potential_deadlocks
         )
 
         if transit_configuration_after_release:
