@@ -16,6 +16,7 @@ from namosim.navigation.basic_actions import Action
 from namosim.navigation.conflict import (
     Conflict,
     RobotObstacleConflict,
+    RobotRobotConflict,
     StolenMovableConflict,
 )
 from namosim.navigation.navigation_path import (
@@ -77,7 +78,7 @@ class Plan:
         self.component_index = 0
         self.postpone: Postpone = Postpone()
         self.postponements_history: t.Dict[int, int] = {}
-        self.conflicts_history: t.Dict[int, t.List[Conflict]] = {}
+        self.conflicts_history: t.Dict[int, t.Set[Conflict]] = {}
         self.steps_with_replan_call: t.Set[int] = set()
         self.update_count = 0
 
@@ -133,7 +134,7 @@ class Plan:
     def is_empty(self):
         return len(self.paths) == 0
 
-    def get_conflicts(
+    def _get_conflicts(
         self,
         *,
         world: "world.World",
@@ -144,14 +145,14 @@ class Plan:
         apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
-    ) -> t.List[Conflict]:
+    ) -> t.Set[Conflict]:
         # if self.postpone.is_running():
         #     return []
 
         # Check validity of each component
         previously_moved_entities_uids = set()
         remaining_components = self.paths[self.component_index :]
-        conflicts = []
+        conflicts = set()
 
         # Define sets of polygons and associated aabb trees to check for collisions
         other_entities_polygons = {
@@ -201,36 +202,40 @@ class Plan:
             if check_horizon > 0 or apply_strict_horizon is False:
                 has_first_action = i == 0
                 if isinstance(path, TransitPath):
-                    conflicts += path.get_conflicts(
-                        agent_id=self.agent_id,
-                        world=world,
-                        robot_inflated_grid=robot_inflated_grid,
-                        encompassing_circle_uid_to_agent_id=encompassing_circle_uid_to_agent_id,
-                        check_horizon=check_horizon,
-                        has_first_action=has_first_action,
-                        apply_strict_horizon=apply_strict_horizon,
-                        exit_early_for_any_conflict=exit_early_for_any_conflict,
-                        exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
-                        rp=rp,
+                    conflicts.update(
+                        path.get_conflicts(
+                            agent_id=self.agent_id,
+                            world=world,
+                            robot_inflated_grid=robot_inflated_grid,
+                            encompassing_circle_uid_to_agent_id=encompassing_circle_uid_to_agent_id,
+                            check_horizon=check_horizon,
+                            has_first_action=has_first_action,
+                            apply_strict_horizon=apply_strict_horizon,
+                            exit_early_for_any_conflict=exit_early_for_any_conflict,
+                            exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
+                            rp=rp,
+                        )
                     )
                 else:
-                    conflicts += path.get_conflicts(
-                        agent_id=self.agent_id,
-                        world=world,
-                        grab_start_distance=grab_start_distance,
-                        robot_inflated_grid=robot_inflated_grid,
-                        other_entities_polygons=other_entities_polygons,
-                        other_entities_aabb_tree=other_entities_aabb_tree,
-                        other_entities_polygons_with_encompassing_circles=other_entities_polygons_with_encompassing_circles,
-                        other_entities_with_encompassing_circles_aabb_tree=other_entities_with_encompassing_circles_aabb_tree,
-                        encompassing_circle_uid_to_agent_id=encompassing_circle_uid_to_agent_id,
-                        previously_moved_entities_uids=previously_moved_entities_uids,
-                        has_first_action=has_first_action,
-                        check_horizon=check_horizon,
-                        apply_strict_horizon=apply_strict_horizon,
-                        exit_early_for_any_conflict=exit_early_for_any_conflict,
-                        exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
-                        rp=rp,
+                    conflicts.update(
+                        path.get_conflicts(
+                            agent_id=self.agent_id,
+                            world=world,
+                            grab_start_distance=grab_start_distance,
+                            robot_inflated_grid=robot_inflated_grid,
+                            other_entities_polygons=other_entities_polygons,
+                            other_entities_aabb_tree=other_entities_aabb_tree,
+                            other_entities_polygons_with_encompassing_circles=other_entities_polygons_with_encompassing_circles,
+                            other_entities_with_encompassing_circles_aabb_tree=other_entities_with_encompassing_circles_aabb_tree,
+                            encompassing_circle_uid_to_agent_id=encompassing_circle_uid_to_agent_id,
+                            previously_moved_entities_uids=previously_moved_entities_uids,
+                            has_first_action=has_first_action,
+                            check_horizon=check_horizon,
+                            apply_strict_horizon=apply_strict_horizon,
+                            exit_early_for_any_conflict=exit_early_for_any_conflict,
+                            exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
+                            rp=rp,
+                        )
                     )
 
                     # If the previously checked path components are valid, we assume it leaves any manipulated
@@ -268,6 +273,45 @@ class Plan:
         )
 
         return conflicts
+
+    def get_conflicts(
+        self,
+        *,
+        world: "world.World",
+        robot_inflated_grid: BinaryOccupancyGrid,
+        grab_start_distance,
+        rp: t.Optional["rp.RosPublisher"] = None,
+        check_horizon: int = 0,
+        apply_strict_horizon: bool = False,
+        exit_early_for_any_conflict: bool = False,
+        exit_early_only_for_long_term_conflicts: bool = True,
+    ) -> t.Set[Conflict]:
+        conflicts = set(
+            self._get_conflicts(
+                world=world,
+                robot_inflated_grid=robot_inflated_grid,
+                grab_start_distance=grab_start_distance,
+                rp=rp,
+                check_horizon=check_horizon,
+                apply_strict_horizon=apply_strict_horizon,
+                exit_early_for_any_conflict=exit_early_for_any_conflict,
+                exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
+            )
+        )
+
+        conflicts_to_ignore: t.Set[Conflict] = set()
+        if self.is_evading():
+            evasion_path = t.cast(EvasionTransitPath, self.get_current_path())
+            for evasion_conflict in evasion_path.conflicts:
+
+                for conflict in conflicts:
+                    if (
+                        isinstance(conflict, RobotRobotConflict)
+                        and conflict.other_agent_id == evasion_conflict.other_agent_id
+                    ):
+                        conflicts_to_ignore.add(conflict)
+
+        return conflicts.difference(conflicts_to_ignore)
 
     def pop_next_action(self) -> Action:
         """
@@ -312,10 +356,10 @@ class Plan:
         # TODO Check if robot state (position and grab) are coherent with next step's preconditions
         return isinstance(last_action_result, ar.ActionSuccess)
 
-    def save_conflicts(self, step_count: int, conflicts: t.List[Conflict]):
+    def save_conflicts(self, step_count: int, conflicts: t.Set[Conflict]):
         if len(conflicts) > 0:
             if step_count in self.conflicts_history:
-                self.conflicts_history[step_count] += conflicts
+                self.conflicts_history[step_count].update(conflicts)
             else:
                 self.conflicts_history[step_count] = conflicts
         self.current_conflicts = []
