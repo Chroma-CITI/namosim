@@ -166,6 +166,14 @@ class Simulator:
             sense_durations = {}
             self.sense(active_agents, step_count, sense_durations)
 
+            # for agent in self.ref_world.agents.values():
+            #     self.logger.append(
+            #         utils.NamosimLog(
+            #             f"Robot {agent.uid} is at pose {agent.pose}",
+            #             step=step_count,
+            #         )
+            #     )
+
             # Think loop: get each agent to think about their next step
             actions, think_results, think_durations = self.think(
                 active_agents=active_agents,
