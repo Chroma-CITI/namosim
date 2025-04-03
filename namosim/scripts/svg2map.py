@@ -59,7 +59,7 @@ def run(
     width_in_pixels = int(width_in_meters / res)
 
     img = svg2map(svg_file, width=width_in_pixels)
-    mesh = svg_to_mesh(svg_file, wall_height_meters=2)
+    mesh = svg_to_mesh(svg_file, wall_height_meters=1.0)
 
     img_name = f"{name}.png"
     img.save(img_name)

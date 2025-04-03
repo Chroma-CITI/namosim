@@ -39,8 +39,7 @@
       <behavior
          type="stilman_2005_behavior">
         <parameters
-           use_social_cost="true"
-            />
+           use_social_cost="true" />
       </behavior>
     </agent>
     <agent
@@ -50,8 +49,7 @@
       <behavior
          type="stilman_2005_behavior">
         <parameters
-           use_social_cost="true"
-            />
+           use_social_cost="true" />
       </behavior>
     </agent>
   </namo_config>
@@ -74,8 +72,8 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="2490"
-     inkscape:window-height="1376"
+     inkscape:window-width="1850"
+     inkscape:window-height="1136"
      id="namedview37"
      showgrid="false"
      inkscape:zoom="0.02"
@@ -91,8 +89,8 @@
      inkscape:snap-page="true"
      inkscape:snap-global="true"
      inkscape:pagecheckerboard="0"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:window-x="70"
+     inkscape:window-y="27"
      inkscape:window-maximized="1" />
   <path
      style="fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-width:0;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"

@@ -9,7 +9,7 @@ from xml.dom import minidom
 import cairosvg
 import numpy as np
 from bidict import bidict
-from PIL import Image
+from PIL import Image, ImageDraw
 from shapely import Point
 from shapely.geometry import LineString, Polygon
 from typing_extensions import Self
@@ -197,7 +197,6 @@ class World:
                 )
                 static_obstacles[id] = polygon
 
-        goals: t.List[Goal] = []
         agents: t.List["agts.Agent"] = []
 
         # get agents
@@ -231,6 +230,7 @@ class World:
             # make robot polygon a perfect circle
             robot_radius = utils.get_circumscribed_radius(robot_polygon)
             robot_polygon = Point(init_pose[0], init_pose[1]).buffer(robot_radius)
+            goals: t.List[Goal] = []
 
             for goal in agent.goals:
                 goal_el = svg_doc.getElementById(goal.goal_id)
@@ -482,7 +482,7 @@ class World:
                     conversion.add_shapely_geometry_to_svg(
                         shape=polygon,
                         uid=goal.uid + "_shape",
-                        style=svg_styles.DEFAULT_GOAL_SHAPE_STYLE,
+                        style=goal.svg_style.shape,
                         svg_data=svg_data,
                         svg_group=goal_group,
                         ymax_meters=self.map.height,
@@ -529,11 +529,31 @@ class World:
         image = image.convert("RGBA")
         background = background.convert("RGBA")
         image.alpha_composite(background)
-
+        image = self._draw_grid_lines(image, self.map.width)
         if grayscale:
             image = image.convert("L")
 
         return image
+
+    def _draw_grid_lines(self, img: Image.Image, map_width_meters: float):
+
+        # Create a drawing object
+        draw = ImageDraw.Draw(img)
+
+        # Get image dimensions
+        width, height = img.size
+
+        pixels_per_meter = int(width / map_width_meters)
+
+        # Draw vertical lines
+        for x in range(0, width, pixels_per_meter):
+            draw.line([(x, 0), (x, height)], fill=(128, 128, 128), width=1)
+
+        # Draw horizontal lines
+        for y in range(0, height, pixels_per_meter):
+            draw.line([(0, y), (width, y)], fill=(128, 128, 128), width=1)
+
+        return img
 
     def to_numpy_array(self, grayscale: bool = False):
         img = self.to_image(grayscale=grayscale)
