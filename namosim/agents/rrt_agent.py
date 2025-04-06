@@ -1,0 +1,146 @@
+import copy
+import typing as t
+
+from shapely import Polygon
+from typing_extensions import Self
+
+import namosim.display.ros2_publisher as rp
+import namosim.navigation.basic_actions as ba
+import namosim.navigation.navigation_plan as nav_plan
+from namosim.svg_styles import AgentStyle
+import namosim.world.world as w
+from namosim.agents.agent import Agent, ThinkResult
+from namosim.data_models import NavigationOnlyBehaviorConfigModel, PoseModel
+from namosim.input import Input
+from namosim.utils import utils
+from namosim.world.goal import Goal
+from namosim.world.sensors.omniscient_sensor import OmniscientSensor
+
+
+class RRTAgent(Agent):
+    def __init__(
+        self,
+        *,
+        navigation_goals: t.List[Goal],
+        config: NavigationOnlyBehaviorConfigModel,
+        logs_dir: str,
+        uid: str,
+        full_geometry_acquired: bool,
+        polygon: Polygon,
+        pose: PoseModel,
+        sensors: t.List[OmniscientSensor],
+        style: AgentStyle,
+        logger: utils.NamosimLogger,
+        cell_size: float,
+    ):
+        Agent.__init__(
+            self,
+            uid=uid,
+            navigation_goals=navigation_goals,
+            config=config,
+            logs_dir=logs_dir,
+            full_geometry_acquired=full_geometry_acquired,
+            polygon=polygon,
+            pose=pose,
+            sensors=sensors,  # type: ignore
+            style=style,
+            logger=logger,
+            cell_size=cell_size,
+        )
+        self.config = config
+        self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
+        self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
+
+    def init(self, world: "w.World"):
+        super().init(world)
+        self.static_obs_inf_grid = copy.deepcopy(world.map).inflate_map_destructive(
+            self.robot_max_inflation_radius
+        )
+
+    def think(
+        self,
+        ros_publisher: t.Optional["rp.RosPublisher"] = None,
+        input: t.Optional[Input] = None,
+    ) -> ThinkResult:
+        if self._goal is None:
+            if self._navigation_goals:
+                self._goal = self._navigation_goals.pop(0)
+                self._p_opt = nav_plan.Plan(agent_id=self.uid, goal=self._goal.pose)
+            else:
+                return ThinkResult(
+                    plan=None,
+                    next_action=ba.GoalsFinished(),
+                    goal_pose=None,
+                    did_replan=False,
+                    agent_id=self.uid,
+                )
+
+        if self._p_opt is None:
+            raise Exception("No plan")
+
+        # If current robot pose is close enough to goal, return Success
+        if self.is_goal_reached(
+            robot_pose=self.world.dynamic_entities[self.uid].pose,
+            goal_pose=self._goal.pose,
+        ):
+            result = ThinkResult(
+                plan=None,
+                next_action=ba.GoalSuccess(goal=self._goal.pose),
+                goal_pose=self._goal.pose,
+                did_replan=False,
+                agent_id=self.uid,
+            )
+            self._goal = None
+            return result
+
+        if not self._p_opt.is_empty():
+            return ThinkResult(
+                plan=self._p_opt,
+                goal_pose=self._goal.pose,
+                did_replan=False,
+                agent_id=self.uid,
+            )
+
+        path = self.find_path(
+            robot_pose=self.world.dynamic_entities[self.uid].pose,
+            goal_pose=self._goal.pose,
+            robot_inflated_grid=self.static_obs_inf_grid,
+            robot_polygon=self.world.dynamic_entities[self.uid].polygon,
+        )
+
+        if path is None:
+            return ThinkResult(
+                plan=None,
+                next_action=ba.GoalFailed(self._goal.pose),
+                goal_pose=self._goal.pose,
+                did_replan=False,
+                agent_id=self.uid,
+            )
+
+        self._p_opt = nav_plan.Plan(
+            paths=[path], goal=self._goal.pose, agent_id=self.uid
+        )
+        self.goal_to_plans[self._goal] = self._p_opt
+
+        return ThinkResult(
+            plan=self._p_opt,
+            next_action=None,
+            goal_pose=self._goal.pose,
+            did_replan=True,
+            agent_id=self.uid,
+        )
+
+    def copy(self) -> Self:
+        return RRTAgent(
+            navigation_goals=copy.deepcopy(self._navigation_goals),
+            config=self.config,
+            logs_dir=self.logs_dir,
+            full_geometry_acquired=self.full_geometry_acquired,
+            uid=self.uid,
+            polygon=copy.deepcopy(self.polygon),
+            style=copy.deepcopy(self.agent_style),
+            pose=copy.deepcopy(self.pose),
+            sensors=copy.deepcopy(self.sensors),  # type: ignore
+            cell_size=self.cell_size,
+            logger=self.logger,
+        )
