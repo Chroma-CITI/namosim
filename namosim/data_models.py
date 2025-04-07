@@ -24,6 +24,10 @@ class NavigationOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["navigation_only_behavior"] = attr()
 
 
+class RRTAgentConfigModel(BaseBehaviorConfigModel):
+    type: t.Literal["rrt"] = attr()
+
+
 class TeleopBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["teleop_behavior"] = attr()
 
@@ -71,6 +75,7 @@ class WuLevihnBehaviorConfigModel(BaseBehaviorConfigModel):
 AgentBehaviorConfig = t.Union[
     WuLevihnBehaviorConfigModel,
     NavigationOnlyBehaviorConfigModel,
+    RRTAgentConfigModel,
     TeleopBehaviorConfigModel,
     StilmanBehaviorConfigModel,
     PPOAgentConfigModel,

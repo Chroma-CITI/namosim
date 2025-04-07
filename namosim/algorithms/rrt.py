@@ -9,40 +9,43 @@ import math
 from namosim.data_models import PoseModel
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
+from shapely import affinity
+from shapely.geometry import Polygon
+
 
 @dataclass
 class Node:
-    x: float
-    y: float
-    theta: float
-    parent: Optional['Node'] = None
+    pose: PoseModel
+    parent: Optional["Node"] = None
     cost: float = 0.0
 
+
 class DiffDriveRRT:
-    def __init__(self, start: PoseModel, 
-                 goal: PoseModel,
-                 map: BinaryOccupancyGrid,
-                 max_iter: int = 1000,
-                 step_size: float = 0.1,
-                 goal_tolerance: float = 0.2):
+    def __init__(
+        self,
+        polygon: Polygon,
+        start: PoseModel,
+        goal: PoseModel,
+        map: BinaryOccupancyGrid,
+        max_iter: int = 10000,
+        goal_tolerance=0.1,
+    ):
         """
         Initialize RRT planner for differential drive robot
         start: (x, y, theta) initial pose
         goal: (x, y, theta) goal pose
         bounds: (x_min, x_max, y_min, y_max) workspace boundaries
         """
-        self.start = Node(start[0], start[1], start[2])
-        self.goal = Node(goal[0], goal[1], goal[2])
+        self.polygon = polygon
+        self.start = Node(start)
+        self.goal = Node(goal)
         self.map = map
         self.max_iter = max_iter
-        self.step_size = step_size
         self.goal_tolerance = goal_tolerance
         self.tree: List[Node] = [self.start]
-        
+
         # Robot parameters
-        self.wheel_radius = 0.05  # meters
-        self.wheel_base = 0.2    # meters
-        
+        self.max_vel = self.map.cell_size
 
     def random_pose(self) -> PoseModel:
         """Generate random configuration in workspace"""
@@ -53,66 +56,103 @@ class DiffDriveRRT:
 
     def nearest_node(self, pose: PoseModel) -> Node:
         """Find nearest node in tree to given pose"""
-        distances = [math.sqrt((node.x - pose[0])**2 + 
-                             (node.y - pose[1])**2) 
-                    for node in self.tree]
+        distances = [
+            utils.distance_between_poses(pose, node.pose) for node in self.tree
+        ]
         return self.tree[np.argmin(distances)]
 
-    def steer(self, from_node: Node, to_pose: PoseModel) -> Node:
-        """Steer from nearest node towards random config with diff-drive constraints"""
-        # Calculate desired heading
-        dx = to_pose[0] - from_node.x
-        dy = to_pose[1] - from_node.y
-        desired_theta = math.degrees(math.atan2(dy, dx))
-        
-        # Simple differential drive kinematics
-        theta_diff = utils.angle_to_360_interval(desired_theta - from_node.theta)
-        distance = min(self.step_size, math.sqrt(dx**2 + dy**2))
-        
-        # Update position and orientation
-        new_theta = from_node.theta + theta_diff
-        new_x = from_node.x + distance * math.cos(math.radians(new_theta))
-        new_y = from_node.y + distance * math.sin(math.radians(new_theta))
-        
-        new_node = Node(new_x, new_y, new_theta, from_node)
-        new_node.cost = from_node.cost + distance
-        
-        return new_node
+    def steer(self, from_node: Node, target: PoseModel) -> Node:
+        """Steer by testing ranges of linear and angular velocities towards target"""
+        x0, y0, theta0 = from_node.pose
+        theta0_rad = utils.normalize_angle_radians(math.radians(theta0))
+
+        # Define ranges of linear and angular velocities
+        linear_vels = np.linspace(-self.max_vel, self.max_vel, 5)
+        angular_vels = np.linspace(-np.pi / 8, np.pi / 8, 13)
+
+        # Create combinations of control inputs
+        control_inputs = [(v, w) for v in linear_vels for w in angular_vels]
+
+        best_node = from_node
+        best_distance = float("inf")
+
+        # Simulate each control input
+        for v, w in control_inputs:
+            if v == 0 and w == 0:
+                continue
+
+            # Calculate new pose based on velocity inputs
+            if abs(w) < 1e-6:  # Straight line motion
+                x_new = x0 + v * math.cos(theta0_rad) 
+                y_new = y0 + v * math.sin(theta0_rad) 
+                theta_new_rad = theta0_rad
+            else:  # Arc motion
+                x_new = x0 + (v / w) * (
+                    math.sin(theta0_rad + w ) - math.sin(theta0_rad)
+                )
+                y_new = y0 - (v / w) * (
+                    math.cos(theta0_rad + w ) - math.cos(theta0_rad)
+                )
+                theta_new_rad = theta0_rad + w   # Don't normalize here yet
+
+            # Normalize the new angle relative to the target to avoid 180-degree flips
+            theta_new_rad = utils.normalize_angle_radians(theta_new_rad)
+            new_pose = (x_new, y_new, math.degrees(theta_new_rad))
+
+            # Calculate distance to target with proper angle difference
+            distance_to_target = utils.distance_between_poses(new_pose, target)
+
+            # Create temporary node for collision checking
+            temp_node = Node(new_pose)
+
+            if distance_to_target < best_distance and self.collision_free(temp_node):
+                best_distance = distance_to_target
+                best_node = Node(new_pose, from_node)
+                best_node.cost = from_node.cost + utils.distance_between_poses(
+                    from_node.pose, new_pose
+                )
+
+        return best_node
 
     def collision_free(self, node: Node) -> bool:
-        """Check if node is in collision with obstacles"""
-        for obs_x, obs_y, obs_r in self.obstacles:
-            dist = math.sqrt((node.x - obs_x)**2 + (node.y - obs_y)**2)
-            if dist < obs_r + 0.1:  # Adding robot radius buffer
-                return False
-        # Check boundaries
-        return (self.x_min <= node.x <= self.x_max and 
-                self.y_min <= node.y <= self.y_max)
+        dx, dy, dtheta = (
+            node.pose[0] - self.start.pose[0],
+            node.pose[1] - self.start.pose[1],
+            node.pose[2] - self.start.pose[2],
+        )
+        new_polygon = affinity.translate(self.polygon, xoff=dx, yoff=dy)
+        new_polygon = affinity.rotate(new_polygon, angle=dtheta)
+
+        cell = self.map.pose_to_cell(node.pose[0], node.pose[1])
+        occupied = self.map.grid[cell[0]][cell[1]]
+        return occupied == 0
 
     def near_goal(self, node: Node) -> bool:
         """Check if node is near goal"""
-        dist = math.sqrt((node.x - self.goal.x)**2 + (node.y - self.goal.y)**2)
-        return dist < self.goal_tolerance
+        return (
+            utils.distance_between_poses(node.pose, self.goal.pose)
+            <= self.goal_tolerance
+        )
 
     def plan(self) -> Optional[List[Node]]:
         """Main RRT planning algorithm"""
-        for _ in range(self.max_iter):
+        for n in range(self.max_iter):
             rand_config = self.random_pose()
-            
+
             # Occasionally sample goal directly
             if random.random() < 0.1:
-                rand_config = (self.goal.x, self.goal.y, self.goal.theta)
-                
+                rand_config = self.goal.pose
+
             nearest = self.nearest_node(rand_config)
             new_node = self.steer(nearest, rand_config)
-            
+
             if self.collision_free(new_node):
                 self.tree.append(new_node)
-                
-                if self.near_goal(new_node):
+
+                if self.near_goal(new_node) and n > 3000:
                     path = self._get_path(new_node)
                     return path
-                    
+
         return None  # No path found
 
     def _get_path(self, node: Node) -> List[Node]:
@@ -127,54 +167,30 @@ class DiffDriveRRT:
     def plot(self, path: Optional[List[Node]] = None):
         """Visualize the RRT and path"""
         plt.figure(figsize=(10, 10))
-        
-        # Plot obstacles
-        for obs_x, obs_y, obs_r in self.obstacles:
-            circle = patches.Circle((obs_x, obs_y), obs_r, color='r', alpha=0.5)
-            plt.gca().add_artist(circle)
-        
+
         # Plot tree
         for node in self.tree:
             if node.parent:
-                plt.plot([node.x, node.parent.x], 
-                        [node.y, node.parent.y], 'b-', alpha=0.2)
-        
+                plt.plot(
+                    [node.pose[0], node.parent.pose[0]],
+                    [node.pose[1], node.parent.pose[1]],
+                    "b-",
+                    alpha=0.2,
+                )
+
         # Plot path
         if path:
-            path_x = [node.x for node in path]
-            path_y = [node.y for node in path]
-            plt.plot(path_x, path_y, 'g-', linewidth=2)
-        
+            path_x = [node.pose[0] for node in path]
+            path_y = [node.pose[1] for node in path]
+            plt.plot(path_x, path_y, "g-", linewidth=2)
+
         # Plot start and goal
-        plt.plot(self.start.x, self.start.y, 'bo', markersize=10)
-        plt.plot(self.goal.x, self.goal.y, 'go', markersize=10)
-        
-        plt.xlim(self.x_min, self.x_max)
-        plt.ylim(self.y_min, self.y_max)
+        plt.plot(self.start.pose[0], self.start.pose[1], "bo", markersize=10)
+        plt.plot(self.goal.pose[0], self.goal.pose[1], "go", markersize=10)
+
+        plt.xlim(0, self.map.width)
+        plt.ylim(0, self.map.height)
         plt.grid(True)
-        plt.axis('equal')
-        plt.title('RRT Path Planning for Differential Drive Robot')
+        plt.axis("equal")
+        plt.title("RRT Path Planning for Differential Drive Robot")
         plt.show()
-
-def main():
-    # Define start and goal poses (x, y, theta)
-    start = (0.0, 0.0, 0.0)
-    goal = (3.0, 3.0, 0.0)
-    bounds = (-0.5, 3.5, -0.5, 3.5)
-    
-    # Create and run RRT planner
-    planner = DiffDriveRRT(start, goal, bounds)
-    path = planner.plan()
-    
-    # Visualize results
-    planner.plot(path)
-    
-    if path:
-        print(f"Path found with {len(path)} nodes")
-        for i, node in enumerate(path):
-            print(f"Node {i}: x={node.x:.2f}, y={node.y:.2f}, theta={node.theta:.2f}")
-    else:
-        print("No path found")
-
-if __name__ == "__main__":
-    main()

@@ -4,13 +4,16 @@ import typing as t
 from shapely import Polygon
 from typing_extensions import Self
 
+from namosim.algorithms.rrt import DiffDriveRRT
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.basic_actions as ba
+from namosim.navigation.navigation_path import TransitPath
 import namosim.navigation.navigation_plan as nav_plan
 from namosim.svg_styles import AgentStyle
+from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 import namosim.world.world as w
 from namosim.agents.agent import Agent, ThinkResult
-from namosim.data_models import NavigationOnlyBehaviorConfigModel, PoseModel
+from namosim.data_models import RRTAgentConfigModel, PoseModel
 from namosim.input import Input
 from namosim.utils import utils
 from namosim.world.goal import Goal
@@ -22,7 +25,7 @@ class RRTAgent(Agent):
         self,
         *,
         navigation_goals: t.List[Goal],
-        config: NavigationOnlyBehaviorConfigModel,
+        config: RRTAgentConfigModel,
         logs_dir: str,
         uid: str,
         full_geometry_acquired: bool,
@@ -53,9 +56,12 @@ class RRTAgent(Agent):
 
     def init(self, world: "w.World"):
         super().init(world)
-        self.static_obs_inf_grid = copy.deepcopy(world.map).inflate_map_destructive(
-            self.robot_max_inflation_radius
+        self.robot_inflated_grid = copy.deepcopy(world.map).inflate_map_destructive(
+            self.circumscribed_radius + world.map.cell_size
         )
+
+        # TODO Make sure static and generalist grid share same width and height (occurs naturally if map borders are static, but not otherwise)
+        self.robot_inflated_grid.deactivate_entities({self.uid})
 
     def think(
         self,
@@ -79,9 +85,12 @@ class RRTAgent(Agent):
             raise Exception("No plan")
 
         # If current robot pose is close enough to goal, return Success
-        if self.is_goal_reached(
-            robot_pose=self.world.dynamic_entities[self.uid].pose,
-            goal_pose=self._goal.pose,
+        if (
+            utils.distance_between_poses(
+                a=self.world.dynamic_entities[self.uid].pose,
+                b=self._goal.pose,
+            )
+            <= 0.1
         ):
             result = ThinkResult(
                 plan=None,
@@ -101,10 +110,10 @@ class RRTAgent(Agent):
                 agent_id=self.uid,
             )
 
-        path = self.find_path(
+        path = self.find_path_rrt(
             robot_pose=self.world.dynamic_entities[self.uid].pose,
             goal_pose=self._goal.pose,
-            robot_inflated_grid=self.static_obs_inf_grid,
+            robot_inflated_grid=self.robot_inflated_grid,
             robot_polygon=self.world.dynamic_entities[self.uid].polygon,
         )
 
@@ -144,3 +153,25 @@ class RRTAgent(Agent):
             cell_size=self.cell_size,
             logger=self.logger,
         )
+
+    def find_path_rrt(
+        self,
+        robot_pose: PoseModel,
+        goal_pose: PoseModel,
+        robot_inflated_grid: BinaryOccupancyGrid,
+        robot_polygon: Polygon,
+    ) -> TransitPath | None:
+        rrt = DiffDriveRRT(
+            polygon=robot_polygon,
+            start=robot_pose,
+            goal=goal_pose,
+            map=robot_inflated_grid,
+        )
+
+        plan = rrt.plan()
+        rrt.plot(plan)
+        if not plan:
+            return None
+        poses = [x.pose for x in plan]
+
+        return TransitPath.from_poses(poses, robot_polygon, robot_pose)

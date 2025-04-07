@@ -281,6 +281,18 @@ class BinaryOccupancyGrid:
         cy = min(max(0, cy), self.d_height - 1)
         return (cx, cy)
 
+    def polygon_has_collisions(self, polygon: Polygon) -> bool:
+        """Computes the grid cell corresponding to a real-valued (x, y) position"""
+        img = Image.new("L", (self.d_width, self.d_height), 0)
+        poly_coordinates_in_image = [
+            self.pose_to_cell(x, y) for (x, y) in polygon.exterior.coords
+        ]
+        ImageDraw.Draw(img).polygon(poly_coordinates_in_image, outline=1, fill=1)
+        polygon_grid = np.transpose(np.array(img, dtype=np.uint8))  # (y, x) -> (x, y)
+        grid_map = self.grid != 0
+        overlap = np.any(grid_map * polygon_grid > 0)
+        return overlap  # type: ignore
+
     def to_image(self) -> Image.Image:
         # grid = np.flipud(self.grid)
         grid = self.grid.astype(np.float32)

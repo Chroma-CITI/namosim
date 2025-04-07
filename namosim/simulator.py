@@ -621,6 +621,7 @@ class Simulator:
                     think_result.plan.pop_next_action()
                 )
 
+            print(agent_uid_to_next_action.get(agent_uid))
         return agent_uid_to_next_action
 
     def think(
@@ -643,6 +644,7 @@ class Simulator:
                         think_result = agent.think(
                             ros_publisher=self.ros_publisher, input=self.teleop_input
                         )
+
                 except CustomTimeoutError as e:
                     assert isinstance(e, CustomTimeoutError)
                     if not agent_goal:
