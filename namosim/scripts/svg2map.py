@@ -27,7 +27,7 @@ def svg2map(svg_file: str, width: int):
     for eid in non_static_entities:
         w.remove_entity(eid)
 
-    img = w.to_image(width=width, grayscale=True)
+    img = w.to_image(width=width, grayscale=True, draw_grid_lines=False)
     return img
 
 
