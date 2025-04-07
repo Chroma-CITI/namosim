@@ -511,7 +511,11 @@ class World:
         return svg_data
 
     def to_image(
-        self, grayscale: bool = False, width: int = 100, ignore_goal: bool = False
+        self,
+        grayscale: bool = False,
+        width: int = 100,
+        ignore_goal: bool = False,
+        draw_grid_lines=True,
     ) -> Image.Image:
 
         svg = self.to_svg(ignore_config=True).toprettyxml()
@@ -529,7 +533,8 @@ class World:
         image = image.convert("RGBA")
         background = background.convert("RGBA")
         image.alpha_composite(background)
-        image = self._draw_grid_lines(image, self.map.width)
+        if draw_grid_lines:
+            image = self._draw_grid_lines(image, self.map.width)
         if grayscale:
             image = image.convert("L")
 
