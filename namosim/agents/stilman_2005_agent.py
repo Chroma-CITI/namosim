@@ -386,12 +386,7 @@ class Stilman2005Agent(Agent):
         assert agent_id not in robot_inflated_grid.cell_sets
 
         # If current robot pose is close enough to goal, return Success
-        if self.is_goal_reached(
-            robot_pose=self.pose,
-            goal_pose=goal,
-            pos_tol=self.goal_position_tolerance,
-            ang_tol=self.goal_angle_tolerance,
-        ):
+        if self.is_goal_reached(robot_pose=self.pose, goal_pose=goal):
             return ThinkResult(
                 plan=plan,
                 next_action=ba.GoalSuccess(goal),

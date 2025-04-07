@@ -288,7 +288,7 @@ def real_pose_to_fixed_precision_pose(
     Takes a regular real-valued pose and converts to an integer-valued pose with a fixed degree of precision
     determined by the given multipler values.
     """
-    angle = angle_to_360_interval(real_pose[2])
+    angle = normalize_angle_degrees(real_pose[2])
     return (
         int(real_pose[0] * trans_mult),
         int(real_pose[1] * trans_mult),
@@ -303,7 +303,7 @@ def yaw_from_direction(
     yaw = math.atan2(direction_vector[1], direction_vector[0])
     if radians:
         return yaw
-    return math.degrees(yaw) % 360
+    return math.degrees(yaw)
 
 
 def direction_from_yaw(yaw, radians=False):
@@ -373,15 +373,15 @@ def get_translation(start_pose: PoseModel, end_pose: PoseModel):
 
 
 def get_rotation(start_pose: PoseModel, end_pose: PoseModel):
-    return angle_to_360_interval(end_pose[2] - start_pose[2])
+    return normalize_angle_degrees(end_pose[2] - start_pose[2])
 
 
 def add_angles(a: float, b: float):
-    return angle_to_360_interval(a + b)
+    return normalize_angle_degrees(a + b)
 
 
 def subtract_angles(a: float, b: float):
-    return angle_to_360_interval(a - b)
+    return normalize_angle_degrees(a - b)
 
 
 def get_translation_and_rotation(start_pose: PoseModel, end_pose: PoseModel):
@@ -812,10 +812,15 @@ def coords(polygon: Polygon):
     return polygon.exterior.coords[:-1]
 
 
-def angle_to_360_interval(angle: float):
-    final_angle = angle % 360.0
-    final_angle = final_angle if final_angle >= 0.0 else final_angle + 360.0
-    return final_angle
+def normalize_angle_radians(radians: float):
+    """Normalize angle to [-pi, pi]"""
+    return math.atan2(math.sin(radians), math.cos(radians))
+
+
+def normalize_angle_degrees(degrees: float):
+    """Normalize angle to [-180, 180]"""
+    radians = math.radians(degrees)
+    return math.degrees(normalize_angle_radians(radians))
 
 
 def is_close(a: float, b: float, abs_tol: float = 1e-09):
@@ -823,11 +828,8 @@ def is_close(a: float, b: float, abs_tol: float = 1e-09):
 
 
 def angle_is_close(a: float, b: float, abs_tol: float = 1e-09):
-    return (
-        is_close(a, b, abs_tol)
-        or is_close(a - 360.0, b, abs_tol)
-        or is_close(a, b - 360.0, abs_tol)
-    )
+    diff = abs(normalize_angle_degrees(a - b))
+    return diff <= abs_tol
 
 
 class Circle:
@@ -899,7 +901,7 @@ def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]):
     if math.isnan(signed_angle):
         raise Exception("Angle is NaN")
 
-    return np.degrees(signed_angle)
+    return np.degrees(normalize_angle_radians(signed_angle))
 
 
 def get_angle_to_turn(a: t.Sequence[float], b: t.Sequence[float]) -> float:
@@ -1016,3 +1018,34 @@ def get_box_orientation(box: Polygon) -> float:
     angle = np.arctan2(edges[0, 1], edges[0, 0])
 
     return angle
+
+
+def distance_between_poses(a: PoseModel, b: PoseModel) -> float:
+    """
+    Calculate the distance between two poses, considering position and orientation.
+
+    Args:
+        pose1: Tuple of (x, y, theta) where theta is in degrees
+        pose2: Tuple of (x, y, theta) where theta is in degrees
+
+    Returns:
+        float: Weighted distance combining position and orientation differences
+    """
+    # Extract coordinates and angles
+    x1, y1, theta1 = a
+    x2, y2, theta2 = b
+
+    # Euclidean distance between positions
+    position_distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+    # Calculate smallest angle difference (in radians)
+    theta1_rad = math.radians(theta1)
+    theta2_rad = math.radians(theta2)
+    angle_diff = abs((theta1_rad - theta2_rad + math.pi) % (2 * math.pi) - math.pi)
+
+    # Combine position and orientation distances with weights
+    # Weight of 0.1 for angle (in radians) balances it with position (in meters)
+    total_distance = position_distance + 0.0 * angle_diff
+
+    return total_distance
+
