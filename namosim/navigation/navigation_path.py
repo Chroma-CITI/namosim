@@ -842,7 +842,9 @@ class TransitPath:
 
                 dist = utils.euclidean_distance(pose, next_pose)
                 if np.abs(turn_towards_angle) > 90:
-                    turn_towards_angle = utils.normalize_angle_degrees(turn_towards_angle + 180) # turn away
+                    turn_towards_angle = utils.normalize_angle_degrees(
+                        turn_towards_angle + 180
+                    )  # turn away
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
                     updated_poses.append((pose[0], pose[1], current_angle))

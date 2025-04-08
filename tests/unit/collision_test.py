@@ -222,9 +222,3 @@ class TestCollision:
                 print("actual", actual_points_rounded)
 
             assert len(expected_points_rounded.difference(actual_points_rounded)) == 0
-
-
-if __name__ == "__main__":
-    unittest.main()
-    unittest.main()
-    unittest.main()

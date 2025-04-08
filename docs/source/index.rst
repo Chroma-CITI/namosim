@@ -8,7 +8,7 @@ NAMOSIM
 
 NAMOSIM is a mobile robot motion planner for the problem of navigation of movable obstacles (NAMO).
 
-.. image:: _static/namo-sim.jpg
+.. image:: _static/namo.gif
   :width: 600
   :alt: NAMO Simulator
 

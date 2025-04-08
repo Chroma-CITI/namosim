@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 from dataclasses import dataclass
 from typing import Tuple, List, Optional
 import random
@@ -67,8 +66,8 @@ class DiffDriveRRT:
         theta0_rad = utils.normalize_angle_radians(math.radians(theta0))
 
         # Define ranges of linear and angular velocities
-        linear_vels = np.linspace(-self.max_vel, self.max_vel, 5)
-        angular_vels = np.linspace(-np.pi / 8, np.pi / 8, 13)
+        linear_vels = np.linspace(-self.max_vel, self.max_vel, 3)
+        angular_vels = np.linspace(-np.pi / 8, np.pi / 8, 5)
 
         # Create combinations of control inputs
         control_inputs = [(v, w) for v in linear_vels for w in angular_vels]
@@ -83,17 +82,13 @@ class DiffDriveRRT:
 
             # Calculate new pose based on velocity inputs
             if abs(w) < 1e-6:  # Straight line motion
-                x_new = x0 + v * math.cos(theta0_rad) 
-                y_new = y0 + v * math.sin(theta0_rad) 
+                x_new = x0 + v * math.cos(theta0_rad)
+                y_new = y0 + v * math.sin(theta0_rad)
                 theta_new_rad = theta0_rad
             else:  # Arc motion
-                x_new = x0 + (v / w) * (
-                    math.sin(theta0_rad + w ) - math.sin(theta0_rad)
-                )
-                y_new = y0 - (v / w) * (
-                    math.cos(theta0_rad + w ) - math.cos(theta0_rad)
-                )
-                theta_new_rad = theta0_rad + w   # Don't normalize here yet
+                x_new = x0 + (v / w) * (math.sin(theta0_rad + w) - math.sin(theta0_rad))
+                y_new = y0 - (v / w) * (math.cos(theta0_rad + w) - math.cos(theta0_rad))
+                theta_new_rad = theta0_rad + w  # Don't normalize here yet
 
             # Normalize the new angle relative to the target to avoid 180-degree flips
             theta_new_rad = utils.normalize_angle_radians(theta_new_rad)
@@ -149,7 +144,7 @@ class DiffDriveRRT:
             if self.collision_free(new_node):
                 self.tree.append(new_node)
 
-                if self.near_goal(new_node) and n > 3000:
+                if self.near_goal(new_node) and n > 5000:
                     path = self._get_path(new_node)
                     return path
 
@@ -166,7 +161,7 @@ class DiffDriveRRT:
 
     def plot(self, path: Optional[List[Node]] = None):
         """Visualize the RRT and path"""
-        plt.figure(figsize=(10, 10))
+        fig = plt.figure(figsize=(10, 10))
 
         # Plot tree
         for node in self.tree:
@@ -194,3 +189,4 @@ class DiffDriveRRT:
         plt.axis("equal")
         plt.title("RRT Path Planning for Differential Drive Robot")
         plt.show()
+        plt.close(fig)

@@ -299,7 +299,9 @@ def real_pose_to_fixed_precision_pose(
 def yaw_from_direction(
     direction_vector: t.Tuple[float, float], radians: bool = False
 ) -> float:
-    """Takes an (x,y) direction vector and converts it to a `yaw` angle in either degrees or radians"""
+    """
+    Takes an (x,y) direction vector and converts it to a `yaw` angle in either degrees or radians
+    """
     yaw = math.atan2(direction_vector[1], direction_vector[0])
     if radians:
         return yaw
@@ -1048,4 +1050,3 @@ def distance_between_poses(a: PoseModel, b: PoseModel) -> float:
     total_distance = position_distance + 0.0 * angle_diff
 
     return total_distance
-

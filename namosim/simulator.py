@@ -621,7 +621,6 @@ class Simulator:
                     think_result.plan.pop_next_action()
                 )
 
-            print(agent_uid_to_next_action.get(agent_uid))
         return agent_uid_to_next_action
 
     def think(
