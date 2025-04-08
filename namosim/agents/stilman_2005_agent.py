@@ -124,7 +124,7 @@ class Stilman2005Agent(Agent):
         else:
             self.manip_search_procedure = self.manip_search
 
-        self.w_social, self.w_dist, self.w_goal = 20.0, 10.0, 10.0
+        self.w_social, self.w_dist, self.w_goal = 20.0, 5.0, 2.0
         self.w_sum = self.w_social + self.w_dist + self.w_goal
         self.TRANSLATION_DISCRETIZATION_FACTOR = (
             self.cell_size
