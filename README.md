@@ -43,7 +43,6 @@ You should be all set to start.
 The best way is to open the repo in VSCode and use the pythong test explorer to run the `e2e` tests.
 
 Alternativley you can launch a test from the command line like so:
-
 ```bash
 pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
@@ -84,19 +83,19 @@ The poetry shell will need to be activated.
 
 ## Authors
 
-- Benoit Renault
-- Jacques Saraydaryan
-- David Brown
-- Olivier Simonin
+* Benoit Renault
+* Jacques Saraydaryan
+* David Brown
+* Olivier Simonin
 
 ## Affiliated Teams and Organisations
 
-|                                                 | Org/Team                                      |
-| ----------------------------------------------- | --------------------------------------------- |
-| ![Inria Logo](docs/source/_static/inria.png)    | [Inria](https://inria.fr/fr)                  |
-| ![INSA Lyon Logo](docs/source/_static/insa.png) | [INSA Lyon](https://www.insa-lyon.fr/)        |
+|          | Org/Team |
+|----------|----------------------------------------------------------------------------------------|
+| ![Inria Logo](docs/source/_static/inria.png)    | [Inria](https://inria.fr/fr)   |
+| ![INSA Lyon Logo](docs/source/_static/insa.png) | [INSA Lyon](https://www.insa-lyon.fr/)  |
 | ![CITI Logo](docs/source/_static/citi.png)      | [CITI Laboratory](https://www.citi-lab.fr/)   |
-| CHROMA                                          | [CHROMA Team](https://www.inria.fr/en/chroma) |
+|  CHROMA                                         | [CHROMA Team](https://www.inria.fr/en/chroma)   |
 
 ## Cite Us
 
