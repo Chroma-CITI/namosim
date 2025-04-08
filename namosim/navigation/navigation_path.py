@@ -839,12 +839,22 @@ class TransitPath:
 
             if has_translation:
                 turn_towards_angle = utils.get_angle_to_turn(pose, next_pose)
-                if np.abs(turn_towards_angle) > 1e-6:
+
+                dist = utils.euclidean_distance(pose, next_pose)
+                if np.abs(turn_towards_angle) > 90:
+                    turn_towards_angle = utils.normalize_angle_degrees(
+                        turn_towards_angle + 180
+                    )  # turn away
+                    current_angle = utils.add_angles(current_angle, turn_towards_angle)
+                    actions.append(ba.Rotation(angle=turn_towards_angle))
+                    updated_poses.append((pose[0], pose[1], current_angle))
+                    dist = -dist
+                elif np.abs(turn_towards_angle) > 1e-6:
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
                     updated_poses.append((pose[0], pose[1], current_angle))
 
-                actions.append(ba.Advance(utils.euclidean_distance(pose, next_pose)))
+                actions.append(ba.Advance(dist))
                 updated_poses.append((next_pose[0], next_pose[1], current_angle))
 
             has_rotation = not utils.angle_is_close(

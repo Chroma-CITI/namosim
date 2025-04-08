@@ -643,6 +643,7 @@ class Simulator:
                         think_result = agent.think(
                             ros_publisher=self.ros_publisher, input=self.teleop_input
                         )
+
                 except CustomTimeoutError as e:
                     assert isinstance(e, CustomTimeoutError)
                     if not agent_goal:

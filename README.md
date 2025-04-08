@@ -1,8 +1,8 @@
-# NAMO Planner
+# NAMOSIM
 
-A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable Obstacles.
+NAMOSIM is a robot motion-planning simulator designed for the problem of navigation among movable obstacles (NAMO).
 
-![NAMO Simulator](docs/source/_static/namo-sim.jpg)
+![NAMO Simulator](docs/source/_static/namo.gif)
 
 ## System Requirements
 
@@ -81,9 +81,43 @@ To build the docs site locally, run:
 
 The poetry shell will need to be activated.
 
-## Credits
+## Authors
 
-If you reuse any of the provided data/code, please cite the associated paper:
+* Benoit Renault
+* Jacques Saraydaryan
+* David Brown
+* Olivier Simonin
+
+## Affiliated Teams and Organisations
+
+|          | Org/Team |
+|----------|----------------------------------------------------------------------------------------|
+| ![Inria Logo](docs/source/_static/inria.png)    | [Inria](https://inria.fr/fr)   |
+| ![INSA Lyon Logo](docs/source/_static/insa.png) | [INSA Lyon](https://www.insa-lyon.fr/)  |
+| ![CITI Logo](docs/source/_static/citi.png)      | [CITI Laboratory](https://www.citi-lab.fr/)   |
+|  CHROMA                                         | [CHROMA Team](https://www.inria.fr/en/chroma)   |
+
+## Cite Us
+
+If you reuse any of the provided data/code, please cite the associated papers:
+
+```bibtex
+@inproceedings{renault:hal-04705395,
+  TITLE = {{Multi-Robot Navigation among Movable Obstacles: Implicit Coordination to Deal with Conflicts and Deadlocks}},
+  AUTHOR = {Renault, Benoit and Saraydaryan, Jacques and Brown, David and Simonin, Olivier},
+  URL = {https://hal.science/hal-04705395},
+  BOOKTITLE = {{IROS 2024 - IEEE/RSJ International Conference on Intelligent Robots and Systems}},
+  ADDRESS = {Abu DHABI, United Arab Emirates},
+  PUBLISHER = {{IEEE}},
+  PAGES = {1-7},
+  YEAR = {2024},
+  MONTH = Oct,
+  KEYWORDS = {Planning ; Scheduling and Coordination ; Path Planning for Multiple Mobile Robots or Agents ; Multi-Robot Systems},
+  PDF = {https://hal.science/hal-04705395v1/file/IROS24_1134_FI.pdf},
+  HAL_ID = {hal-04705395},
+  HAL_VERSION = {v1},
+}
+```
 
 ```bibtex
 @inproceedings{renault:hal-02912925,

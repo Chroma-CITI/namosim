@@ -81,7 +81,7 @@ class Rotation(BaseAction):
             origin=(robot_pose[0], robot_pose[1]),  # type: ignore
             use_radians=False,
         ).coords[0]
-        orientation = utils.angle_to_360_interval(pose[2] + self.angle)
+        orientation = utils.normalize_angle_degrees(pose[2] + self.angle)
         return (next_position[0], next_position[1], orientation)
 
     def apply_to_point(

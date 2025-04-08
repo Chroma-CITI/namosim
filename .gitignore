@@ -128,3 +128,4 @@ wandb
 *.mp4
 *.prof
 !tests/**/*.png
+!docs/source/_static/*
