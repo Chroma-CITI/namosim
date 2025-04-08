@@ -1,6 +1,6 @@
-# NAMO Planner
+# NAMOSIM
 
-A simulator for NAMO problems. NAMO is an acronym for Navigation Among Movable Obstacles.
+NAMOSIM is a robot motion-planning simulator designed for the problem of navigation among movable obstacles (NAMO).
 
 ![NAMO Simulator](docs/source/_static/namo.gif)
 
