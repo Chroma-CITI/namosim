@@ -230,7 +230,7 @@ class PPOAgent(Agent):
         return (
             self.pose[0] / self.world.map.width,
             self.pose[1] / self.world.map.height,
-            utils.angle_to_360_interval(self.pose[2]) / 360,
+            (utils.normalize_angle_degrees(self.pose[2]) + 180) / 360,
         )
 
     def get_normalized_goal_pose(self) -> t.Tuple[float, float]:

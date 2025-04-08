@@ -118,10 +118,12 @@ class Stilman2005Agent(Agent):
         # - S-NAMO parameters
         self.use_social_cost = config.parameters.use_social_cost
         self.bound_percentage = config.parameters.manip_search_bound_percentage
+
         if self.use_social_cost:
             self.manip_search_procedure = self.focused_manip_search
         else:
             self.manip_search_procedure = self.manip_search
+
         self.w_social, self.w_dist, self.w_goal = 20.0, 5.0, 2.0
         self.w_sum = self.w_social + self.w_dist + self.w_goal
         self.TRANSLATION_DISCRETIZATION_FACTOR = (
@@ -386,12 +388,7 @@ class Stilman2005Agent(Agent):
         assert agent_id not in robot_inflated_grid.cell_sets
 
         # If current robot pose is close enough to goal, return Success
-        if self.is_goal_reached(
-            robot_pose=self.pose,
-            goal_pose=goal,
-            pos_tol=self.goal_position_tolerance,
-            ang_tol=self.goal_angle_tolerance,
-        ):
+        if self.is_goal_reached(robot_pose=self.pose, goal_pose=goal):
             return ThinkResult(
                 plan=plan,
                 next_action=ba.GoalSuccess(goal),

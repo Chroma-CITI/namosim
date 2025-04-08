@@ -289,6 +289,20 @@ class World:
                     cell_size=cell_size,
                     logger=logger,
                 )
+            elif agent.behavior.type == "rrt":
+                new_robot = agts.RRTAgent(
+                    navigation_goals=goals,
+                    config=agent.behavior,
+                    logs_dir=logs_dir,
+                    full_geometry_acquired=True,
+                    uid=agent.agent_id,
+                    polygon=robot_polygon,
+                    style=agent_style,
+                    pose=init_pose,
+                    sensors=[OmniscientSensor()],
+                    cell_size=cell_size,
+                    logger=logger,
+                )
             elif agent.behavior.type == "teleop_behavior":
                 new_robot = agts.TeleopAgent(
                     navigation_goals=goals,

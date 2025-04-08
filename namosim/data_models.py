@@ -24,6 +24,10 @@ class NavigationOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["navigation_only_behavior"] = attr()
 
 
+class RRTAgentConfigModel(BaseBehaviorConfigModel):
+    type: t.Literal["rrt"] = attr()
+
+
 class TeleopBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["teleop_behavior"] = attr()
 
@@ -42,7 +46,7 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     activate_grids_logging: bool = attr(default=False)
     push_only: bool = attr(default=False)
     robot_rotation_unit_angle: float = attr(default=30)
-    manip_search_bound_percentage: float = attr(default=0.1)
+    manip_search_bound_percentage: float = attr(default=0.15)
     use_social_cost: bool = attr(default=True)
     resolve_conflicts: bool = attr(default=True)
     resolve_deadlocks: bool = attr(default=True)
@@ -71,6 +75,7 @@ class WuLevihnBehaviorConfigModel(BaseBehaviorConfigModel):
 AgentBehaviorConfig = t.Union[
     WuLevihnBehaviorConfigModel,
     NavigationOnlyBehaviorConfigModel,
+    RRTAgentConfigModel,
     TeleopBehaviorConfigModel,
     StilmanBehaviorConfigModel,
     PPOAgentConfigModel,
