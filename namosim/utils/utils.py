@@ -851,23 +851,6 @@ def cmp(a: float | int, b: float | int):
     return (a > b) - (a < b)
 
 
-def get_ros_version():
-    import rospkg
-
-    # Initialize the ROS package database
-    rospack = rospkg.RosPack()
-
-    # Check if the 'rospy' package (ROS1) is available
-    if rospack.get_manifest("rospy"):
-        return "ROS1"
-
-    # Check if the 'rclpy' package (ROS2) is available
-    if rospack.get_manifest("rclpy"):
-        return "ROS2"
-
-    return None
-
-
 def rotate_2d_vector(vector: t.Tuple[float, float], degrees: float):
     radians = math.radians(degrees)
     a, b = vector
@@ -973,19 +956,6 @@ def generate_distinct_colors(num_colors: int):
     hex_colors = [colors.to_hex(color) for color in rgb_colors]  # type: ignore
 
     return hex_colors
-
-
-def grid_to_image(grid: npt.NDArray[t.Any]) -> Image.Image:
-    grid = grid.astype(np.float32)
-    grid = np.transpose(grid)  # (x ,y) -> (y, x)
-    grid[grid == -1] = 1
-    grid = grid - np.min(grid)
-    grid /= np.max(grid)
-    grid *= 255
-    grid = grid.astype(np.uint8)
-    grid = grid.ex
-
-    return Image.fromarray(grid, "L")
 
 
 def hash_to_32_bit_int(s: str) -> int:

@@ -1,0 +1,18 @@
+{
+  "include": ["namosim", "tests"],
+  "exclude": ["**/__pycache__"],
+  "ignore": [],
+  "defineConstant": {
+    "DEBUG": true
+  },
+  "reportMissingImports": "error",
+  "reportMissingTypeStubs": false,
+  "reportIncompatibleMethodOverride": false,
+  "pythonVersion": "3.10",
+  "pythonPlatform": "Linux",
+  "executionEnvironments": [
+    {
+      "root": "namosim"
+    }
+  ]
+}
