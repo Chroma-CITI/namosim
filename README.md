@@ -21,22 +21,11 @@ sudo apt install ros-humble-grid-map
 
 ## Quickstart
 
-This project uses [poetry](https://python-poetry.org/) for packaging and dependency management. If you
-don't already have it, please install it before proceeding.
+Install the dependencies.
 
-Install dependencies:
-
-```bash
-poetry install
 ```
-
-Activate the poetry environment:
-
-```bash
-poetry shell
+pip install -r requirements.txt
 ```
-
-You should be all set to start.
 
 ## Examples
 
@@ -136,12 +125,4 @@ If you reuse any of the provided data/code, please cite the associated papers:
   HAL_ID = {hal-02912925},
   HAL_VERSION = {v1},
 }
-```
-
-## Contributing
-
-To contribute to this project, please make your changes in a new branch and open a merge request when ready. Don't forget to run the lint checks, type checks, and unit tests:
-
-```bash
-poetry run poe all_checks
 ```

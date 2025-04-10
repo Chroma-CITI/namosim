@@ -1,0 +1,8 @@
+#!/bin/bash
+
+DIR=$(dirname "$0")
+cd $DIR/..
+
+export NAMO_NO_DISPLAY_WINDOW="TRUE"
+export NAMO_DEACTIVATE_RVIZ="TRUE"
+python -m pytest tests/e2e
