@@ -6,22 +6,18 @@ NAMOSIM is a robot motion-planning simulator designed for the problem of navigat
 
 ## System Requirements
 
-- Python 3.10
-- ROS2 (we have tested ros-humble but others may work too)
-- RVIZ2
+- Ubuntu 22.04
+- ROS2 Humble
 
-You might also need the following apt packages
+## Installing Dependencies
 
-```bash
-sudo apt install python3-tk
-sudo apt install libcairo2-dev
-sudo apt install libopencv-dev
-sudo apt install ros-humble-grid-map
+You can install the dependencies listed in the `package.xml` with `rosdep`:
+
+```
+rosdep install --from-paths . -r -y
 ```
 
-## Quickstart
-
-Install the dependencies.
+If any of the python dependencies fail to install with `rosdep` you can install them with `pip` instead:
 
 ```
 pip install -r requirements.txt
