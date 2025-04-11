@@ -5,8 +5,19 @@ from xml.dom import minidom
 import numpy as np
 import numpy.typing as npt
 from shapely import affinity
-from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry import (
+    LineString,
+    Point,
+    Polygon,
+    MultiPoint,
+    MultiLineString,
+    MultiPolygon,
+)
+from shapely.ops import polygonize, unary_union
 from svgpath2mpl import parse_path
+import triangle
+
+from namosim.display.conversions import polygon_to_triangle_vertices
 
 SVG_PATH_ATTRIBUTES_WHITELIST = ["id", "d", "style", "type"]
 
@@ -247,3 +258,47 @@ def rgb_tuple_to_hex(rgb):
     return "#{0:02x}{1:02x}{2:02x}".format(
         color_clamp(rgb[0]), color_clamp(rgb[1]), color_clamp(rgb[2])
     )
+
+
+def concave_hull_polygon(
+    polygon: Polygon, alpha: float
+) -> t.Union[Polygon, MultiPolygon]:
+    # Get triangulation from your function (shape: n, 3, 2)
+    triangles = np.array(polygon_to_triangle_vertices(polygon))
+
+    # Check if triangulation is empty or insufficient
+    if triangles.shape[0] == 0:
+        return polygon.convex_hull  # type: ignore
+
+    # Extract unique edges from triangles
+    edges = set()
+    for tri in triangles:
+        # Each triangle has 3 edges: (0-1), (1-2), (2-0)
+        for i in range(3):
+            pt1 = tuple(tri[i])  # (x, y)
+            pt2 = tuple(tri[(i + 1) % 3])  # (x, y)
+            # Sort to ensure (pt1, pt2) and (pt2, pt1) are treated as the same edge
+            edge = tuple(sorted([pt1, pt2]))
+            edges.add(edge)
+
+    # Filter edges by length <= alpha
+    edge_points = []
+    for edge in edges:
+        pt1, pt2 = np.array(edge[0]), np.array(edge[1])
+        if np.linalg.norm(pt1 - pt2) <= alpha:
+            edge_points.append([pt1, pt2])
+
+    # Create Shapely geometry
+    if not edge_points:
+        return polygon.convex_hull  # type: ignore # Fallback if no valid edges
+
+    lines = [LineString([pt[0], pt[1]]) for pt in edge_points]
+    merged = unary_union(lines)
+    hulls = list(polygonize(merged))
+
+    result = unary_union(hulls) if hulls else polygon.convex_hull
+
+    # Ensure output is a Polygon or MultiPolygon
+    if result.is_empty:
+        return polygon.convex_hull  # type: ignore
+    return result  # type: ignore
