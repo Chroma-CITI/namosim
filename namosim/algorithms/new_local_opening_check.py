@@ -26,7 +26,7 @@ def check_new_local_opening(
     # Build inflated polygons
     old_obstacle_inflated_polygon = t.cast(
         Polygon,
-        old_osbtacle_polygon.buffer(2.0 * robot_radius, JOIN_STYLE.mitre),
+        old_osbtacle_polygon.buffer(2.0 * robot_radius, join_style=JOIN_STYLE.mitre),
     )
     if old_obstacle_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
         # Exit early if goal in old_obstacle_inflated_polygon
