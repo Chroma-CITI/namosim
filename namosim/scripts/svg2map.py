@@ -63,7 +63,7 @@ def run(
 
     img_name = f"{name}.png"
     img.save(img_name)
-    mesh.save(f"{name}_walls.stl") # type: ignore
+    mesh.save(f"{name}_walls.stl")  # type: ignore
 
     data = {
         "image": img_name,

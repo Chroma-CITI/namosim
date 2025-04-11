@@ -92,7 +92,7 @@ def svg_to_mesh(svg_file: str, wall_height_meters: float):
     stl_mesh = mesh.Mesh(np.zeros(len(faces), dtype=mesh.Mesh.dtype))
     for i, face in enumerate(faces):
         for j in range(3):
-            stl_mesh.vectors[i][j] = face[j] # type: ignore
+            stl_mesh.vectors[i][j] = face[j]  # type: ignore
 
     return stl_mesh
 
