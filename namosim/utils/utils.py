@@ -430,10 +430,6 @@ def append_suffix(filename, suffix):
     return "{0}_{2}{1}".format(*os.path.splitext(filename) + (suffix,))
 
 
-def is_convex(polygon: Polygon):
-    return polygon.convex_hull.equals(polygon)
-
-
 def find_circle_terms(x1, y1, x2, y2, x3, y3):
     """
     Computes the circle's center coordinates and radius from three points on the circle.

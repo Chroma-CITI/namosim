@@ -12,6 +12,7 @@ from namosim.data_models import NamoConfigModel
 from namosim.mapgen import utils
 from namosim.mapgen.connected_components import ConnectedComponents
 from namosim.mapgen.types import FLOOR, PERM_WALL, WALL, GridCell
+from namosim.utils.conversion import concave_hull_polygon
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.entity import Movability, Style
 from namosim.world.obstacle import Obstacle
@@ -173,13 +174,13 @@ class MapGen:
 
             if not full_poly.interiors:
                 # pass
-                full_poly = shapely.concave_hull(full_poly, ratio=0.03)
+                full_poly = concave_hull_polygon(full_poly, alpha=0.03)
             else:
                 smoothed_holes = []
                 for hole in full_poly.interiors:
                     smoothed = Polygon(hole.coords).exterior.coords
-                    smoothed = shapely.concave_hull(
-                        Polygon(hole.coords), ratio=0.02
+                    smoothed = concave_hull_polygon(
+                        Polygon(hole.coords), alpha=0.02
                     ).exterior.coords
                     smoothed_holes.append(smoothed)
                 full_poly = Polygon(full_poly.exterior.coords, holes=smoothed_holes)
