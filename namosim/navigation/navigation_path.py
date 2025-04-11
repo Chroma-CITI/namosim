@@ -2,7 +2,7 @@ import typing as t
 
 import numpy as np
 from aabbtree import AABBTree
-from shapely import GeometryCollection, Polygon
+from shapely.geometry import Polygon
 
 import namosim.agents.agent as agent
 import namosim.display.ros2_publisher as ros2
@@ -22,6 +22,7 @@ from namosim.navigation.conflict import (
 from namosim.navigation.path_type import PathType
 from namosim.utils import collision, utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
+from shapely.geometry import JOIN_STYLE
 
 
 class RawPath:
@@ -232,7 +233,7 @@ class TransferPath:
                         obstacle_id=self.obstacle_uid,
                     )
                     grab_zone = robot.polygon.centroid.buffer(
-                        radius, join_style="mitre"
+                        radius, join_style=JOIN_STYLE.mitre
                     )
                     collides_with = collision.get_collisions_for_entity(
                         grab_zone,
@@ -264,7 +265,7 @@ class TransferPath:
                                         self.obstacle_uid
                                     ].pose,
                                     other_robot_transfered_obstacle_uid=(
-                                        other_robot_obstacle.id
+                                        other_robot_obstacle.uid
                                         if other_robot_obstacle
                                         else None
                                     ),
@@ -283,7 +284,7 @@ class TransferPath:
                 if look_ahead_index < check_horizon and has_first_action:
                     grab_zone = world.dynamic_entities[
                         self.obstacle_uid
-                    ].polygon.buffer(grab_start_distance, join_style="mitre")
+                    ].polygon.buffer(grab_start_distance, join_style=JOIN_STYLE.mitre)
                     collides_with, _ = collision.get_collisions_for_entity(
                         grab_zone,
                         collision_polygons,

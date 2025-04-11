@@ -8,9 +8,9 @@ from xml.dom import minidom
 
 import cairosvg
 import numpy as np
-from bidict import bidict
+from bidict import bidict  # type: ignore[reportPrivateImportUsage]
 from PIL import Image, ImageDraw
-from shapely import Point
+from shapely.geometry import Point
 from shapely.geometry import LineString, Polygon
 from typing_extensions import Self
 
@@ -57,7 +57,7 @@ class World:
         random_seed: int = 0,
     ):
         self.svg_config = svg_config
-        self.dynamic_entities = dynamic_entities or dict()
+        self.dynamic_entities: t.Dict[str, Entity] = dynamic_entities or {}
         self.map = map
         self.collision_margin = collision_margin
         self.agents: t.Dict[str, "agts.Agent"] = agents if agents else {}
@@ -425,7 +425,8 @@ class World:
             if not self.svg_config:
                 raise Exception("World has no svg config")
             config = minidom.parseString(self.svg_config.to_xml()).documentElement
-            svg.appendChild(config)
+            if config:
+                svg.appendChild(config)
         doc.appendChild(svg)
         return doc
 
@@ -542,7 +543,7 @@ class World:
 
         image = Image.open(io.BytesIO(image_data))
         background = self.map.to_image()
-        background = background.resize(image.size, resample=Image.Resampling.NEAREST)
+        background = background.resize(image.size, resample=Image.NEAREST)
 
         image = image.convert("RGBA")
         background = background.convert("RGBA")
@@ -671,7 +672,6 @@ class World:
                 ):
                     if obstacle.polygon.buffer(
                         robot.cell_size,
-                        join_style="mitre",
                     ).intersects(robot.polygon):
                         conflict_radius = radius_for_grab_or_release
                         break

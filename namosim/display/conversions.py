@@ -3,13 +3,11 @@ from __future__ import annotations
 import math
 import typing as t
 
-import mapbox_earcut as earcut
 import numpy as np
 import numpy.typing as npt
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Point, Pose, Quaternion, Vector3
 from grid_map_msgs.msg import GridMap
-from shapely import affinity
 from shapely.geometry import Polygon
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.entity import Style
@@ -30,6 +28,7 @@ from namosim.data_models import PoseModel
 from namosim.display import tf_replacement
 from namosim.navigation.path_type import PathType
 from namosim.utils import utils
+import triangle
 
 
 def plan_to_markerarray(
@@ -116,6 +115,54 @@ def real_path_to_linestrip(
     return marker
 
 
+def polygon_to_triangle_vertices(shapely_polygon: Polygon):
+    # Extract exterior coordinates (excluding the last point, which repeats the first)
+    exterior_coords = np.array(shapely_polygon.exterior.coords)[:-1]
+
+    # Create a dictionary for the triangulation input
+    vertices = exterior_coords
+    segments = np.array(
+        [[i, (i + 1) % len(exterior_coords)] for i in range(len(exterior_coords))]
+    )
+
+    # Handle holes if the polygon has any
+    holes = []
+    if shapely_polygon.interiors:
+        for interior in shapely_polygon.interiors:
+            # Compute a point inside the hole (centroid of interior)
+            interior_coords = np.array(interior.coords)[:-1]
+            N = vertices.shape[0]
+            vertices = np.concatenate((vertices, interior_coords))
+            interior_segments = np.array(
+                [
+                    [N + i, N + (i + 1) % len(interior_coords)]
+                    for i in range(len(interior_coords))
+                ]
+            )
+            segments = np.concatenate((segments, interior_segments), axis=0)
+            holes.append(np.array([interior.centroid.x, interior.centroid.y]))
+
+    # Prepare triangulation input
+    tri_input = {"vertices": vertices, "segments": segments}
+    if holes:
+        tri_input["holes"] = np.array(holes)
+
+    # Perform triangulation
+    tri_output = triangle.triangulate(tri_input, "p")
+
+    # Extract triangles (each triangle is defined by indices of vertices)
+    triangles = tri_output.get("triangles", [])
+
+    # Convert triangle indices to vertex coordinates
+    triangle_vertices = []
+    for tri in triangles:
+        # Get the vertices for this triangle
+        tri_coords = vertices[tri]
+        triangle_vertices.append(tri_coords.tolist())
+
+    return triangle_vertices
+
+
 def polygon_to_triangle_list(
     *,
     polygon: Polygon,
@@ -155,13 +202,7 @@ def polygon_to_triangle_list(
         ns=namespace,
     )
     if isinstance(polygon, Polygon):
-        verts = list(zip(*polygon.exterior.coords.xy))[:-1]
-        verts = np.array(verts)
-        rings = np.array([verts.shape[0]])
-        triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
-        triangles = [
-            triangles_vertices[n : n + 3] for n in range(0, len(triangles_vertices), 3)
-        ]
+        triangles = polygon_to_triangle_vertices(polygon)
         marker.points = [
             Point(x=point[0], y=point[1], z=z_index)
             for triangle in triangles

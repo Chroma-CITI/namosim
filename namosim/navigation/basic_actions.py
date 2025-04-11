@@ -2,9 +2,9 @@ import typing as t
 from abc import ABC
 
 import numpy as np
-from shapely import Polygon, affinity
+from shapely.geometry import Polygon
 from shapely.geometry import LineString, Point
-
+from shapely import affinity
 from namosim.data_models import PoseModel
 from namosim.utils import utils
 

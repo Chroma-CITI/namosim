@@ -7,9 +7,10 @@ from collections import OrderedDict
 import numpy as np
 import numpy.typing as npt
 from aabbtree import AABBTree
-from shapely import Polygon, affinity
+from shapely.geometry import Polygon
 from shapely.geometry import Point
 from typing_extensions import Self
+from shapely import affinity
 
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.action_result as ar

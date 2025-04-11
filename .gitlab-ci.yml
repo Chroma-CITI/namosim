@@ -13,11 +13,10 @@ build-and-test-job:
   stage: build-and-test
   script:
     - apt-get update -y
-    - apt-get install -y swig curl ros-humble-tf2 ros-humble-grid-map
-    - curl -sSL https://install.python-poetry.org | python3 -
-    - export PATH="/root/.local/bin:$PATH"
-    - poetry install
-    - poetry run poe all_checks
+    - apt-get install -y swig curl python3-pip
+    - rosdep install --from-paths . -r -y
+    - pip install -r requirements.txt
+    - ./scripts/test_all.sh
   except:
     - tags
 
@@ -25,12 +24,10 @@ pages:
   stage: build-and-test
   script:
     - apt-get update -y
-    - apt-get install -y swig curl ros-humble-tf2 ros-humble-grid-map
-    - curl -sSL https://install.python-poetry.org | python3 -
-    - export PATH="/root/.local/bin:$PATH"
-    - poetry install
+    - apt-get install -y swig curl ros-humble-tf2 ros-humble-grid-map python3-pip
+    - pip install -r requirements.txt
     - cd docs
-    - poetry run make html
+    - make html
     - mv build/html ../public
   artifacts:
     paths:

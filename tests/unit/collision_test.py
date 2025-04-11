@@ -1,9 +1,7 @@
 import math
 import typing as t
-import unittest
-
 import matplotlib.pyplot as plt
-
+from matplotlib import patches
 from namosim.utils.collision import arc_bounding_box
 
 
@@ -204,9 +202,9 @@ class TestCollision:
                     (params.point_a[0] - params.center[0]) ** 2
                     + (params.point_a[1] - params.center[1]) ** 2
                 )
-                plt_circle = plt.Circle(
-                    (params.center[0], params.center[1]), r, fill=False
-                )
+                plt_circle = patches.Circle(
+                    (params.center[0], params.center[1]), radius=r, fill=False
+                )  # type: ignore
                 ax.add_artist(plt_circle)
 
                 ax.axis("equal")

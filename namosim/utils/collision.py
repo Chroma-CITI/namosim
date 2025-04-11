@@ -3,7 +3,7 @@ import typing as t
 
 import numpy as np
 from aabbtree import AABB, AABBTree
-from shapely import Polygon
+from shapely.geometry import Polygon
 from shapely.geometry import MultiPoint
 
 import namosim.navigation.basic_actions as ba

@@ -1,7 +1,7 @@
 import typing as t
 
 import numpy as np
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.basic_actions as ba

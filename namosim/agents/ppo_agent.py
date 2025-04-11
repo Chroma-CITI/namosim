@@ -10,8 +10,9 @@ import numpy.typing as npt
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
-from shapely import Point, Polygon, affinity
-from transformers import AutoImageProcessor
+from shapely.geometry import Point, Polygon
+from shapely import affinity
+from transformers.models.auto.image_processing_auto import AutoImageProcessor
 from typing_extensions import Self
 
 import namosim.display.ros2_publisher as rp
@@ -118,7 +119,7 @@ class PPOAgent(Agent):
         super().init(world)
         self._compute_occupancy_grids()
         self.word_diagonal = math.sqrt(
-            self.static_obstacle_grid.r_width**2 + self.static_obstacle_grid.r_height**2
+            self.static_obstacle_grid.width**2 + self.static_obstacle_grid.height**2
         )
 
     def action_idx_to_action(self, idx: int) -> ba.Action:
@@ -207,7 +208,7 @@ class PPOAgent(Agent):
                 transforms.Normalize(0.0, 1.0),
             ]
         )
-        img: npt.NDArray[np.float_] = img_transform(img).squeeze().numpy()
+        img: npt.NDArray[np.float_] = img_transform(img).squeeze().numpy()  # type: ignore
 
         goal_state = State(
             grid=img,  # type: ignore

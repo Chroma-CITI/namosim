@@ -42,7 +42,7 @@ class RobotRobotConflict(BaseConflict):
             robot_pose, 100.0, 1.0
         )
 
-        self.other_agent_id = other_agent_id
+        self.other_agent_id: str = other_agent_id
         self.other_robot_pose = utils.real_pose_to_fixed_precision_pose(
             other_robot_pose, 100.0, 1.0
         )

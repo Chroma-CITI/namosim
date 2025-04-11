@@ -3,7 +3,7 @@ import re
 import typing as t
 from enum import Enum
 
-from shapely import Polygon
+from shapely.geometry import Polygon
 from typing_extensions import Self
 
 import namosim.utils.utils as utils
