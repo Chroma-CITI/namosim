@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformers import DeiTModel
+from transformers.models.deit import DeiTModel
 
 DEIT_MODEL_CHECKPOINT = "facebook/deit-tiny-distilled-patch16-224"
 

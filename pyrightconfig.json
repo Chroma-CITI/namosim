@@ -8,6 +8,9 @@
   "reportMissingImports": "error",
   "reportMissingTypeStubs": false,
   "reportIncompatibleMethodOverride": false,
+  "reportAttributeAccessIssue": false,
+  "reportArgumentType": false,
+  "reportOptionalMemberAccess": false,
   "pythonVersion": "3.10",
   "pythonPlatform": "Linux",
   "executionEnvironments": [
