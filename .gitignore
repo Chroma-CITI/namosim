@@ -129,3 +129,6 @@ wandb
 *.prof
 !tests/**/*.png
 !docs/source/_static/*
+
+install/
+log/

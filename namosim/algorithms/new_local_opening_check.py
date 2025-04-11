@@ -6,6 +6,7 @@ from shapely.geometry import MultiPolygon, Point, Polygon
 import namosim.display.ros2_publisher as rp
 import namosim.utils.collision as collision
 from namosim.data_models import PoseModel
+from shapely.geometry import JOIN_STYLE
 
 
 def check_new_local_opening(
@@ -25,17 +26,17 @@ def check_new_local_opening(
     # Build inflated polygons
     old_obstacle_inflated_polygon = t.cast(
         Polygon,
-        old_osbtacle_polygon.buffer(2.0 * robot_radius, join_style="mitre"),
+        old_osbtacle_polygon.buffer(2.0 * robot_radius, join_style=JOIN_STYLE.mitre),
     )
     if old_obstacle_inflated_polygon.intersects(Point(goal_pose[0], goal_pose[1])):
         # Exit early if goal in old_obstacle_inflated_polygon
         return True
 
     new_obtacle_inflated_by_robot_diameter = new_obstacle_polygon.buffer(
-        2.0 * robot_radius, join_style="mitre"
+        2.0 * robot_radius, join_style=JOIN_STYLE.mitre
     )
     new_obstacle_inflated_by_robot_radius = new_obstacle_polygon.buffer(
-        robot_radius, join_style="mitre"
+        robot_radius, join_style=JOIN_STYLE.mitre
     )
     if new_obstacle_inflated_by_robot_radius.intersects(
         Point(goal_pose[0], goal_pose[1])

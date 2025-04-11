@@ -7,7 +7,7 @@ from collections import OrderedDict
 
 import numpy as np
 import numpy.typing as npt
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 from namosim.agents.stilman_configurations import RCHConfiguration
 import namosim.display.ros_publisher_config as cfg

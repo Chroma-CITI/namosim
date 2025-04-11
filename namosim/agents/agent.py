@@ -3,7 +3,7 @@ import copy
 import typing as t
 from collections import OrderedDict
 
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 from namosim import svg_styles
 import namosim.display.ros2_publisher as rp
@@ -78,7 +78,7 @@ class RLThinkResult(ThinkResult):
         self.did_replan = did_replan
         self.did_postpone = did_postpone
         self.agent_id = agent_id
-        self.conflicts = conflicts if conflicts else []
+        self.conflicts = conflicts if conflicts else set()
 
 
 class Agent(Entity):

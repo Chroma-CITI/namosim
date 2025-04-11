@@ -5,11 +5,11 @@ import typer
 from namosim.utils.utils import NamosimLogger
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.world import World
-from shapely import GeometryCollection, affinity
+from shapely import affinity
 from shapely.ops import triangulate
 from stl import mesh
 import cv2
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 app = typer.Typer()
 
@@ -92,7 +92,7 @@ def svg_to_mesh(svg_file: str, wall_height_meters: float):
     stl_mesh = mesh.Mesh(np.zeros(len(faces), dtype=mesh.Mesh.dtype))
     for i, face in enumerate(faces):
         for j in range(3):
-            stl_mesh.vectors[i][j] = face[j]
+            stl_mesh.vectors[i][j] = face[j]  # type: ignore
 
     return stl_mesh
 

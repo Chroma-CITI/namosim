@@ -6,7 +6,6 @@ import typing as t
 from collections.abc import MutableSet
 from datetime import datetime
 
-import mapbox_earcut as earcut
 import numpy as np
 import numpy.typing as npt
 import shapely.affinity as affinity
@@ -431,41 +430,6 @@ def append_suffix(filename, suffix):
     return "{0}_{2}{1}".format(*os.path.splitext(filename) + (suffix,))
 
 
-def shapely_polygon_to_shapely_triangles(polygon):
-    return [
-        Polygon(triangle_coords)
-        for triangle_coords in shapely_polygon_to_triangles_coords(polygon)
-    ]
-
-
-def shapely_polygon_to_triangles_coords(polygon):
-    return polygon_coords_to_triangles_coords(list(polygon.exterior.coords))
-
-
-def polygon_coords_to_triangles_coords(polygon):
-    verts = np.array(polygon).reshape(-1, 2)
-    rings = np.array([verts.shape[0]])
-    triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
-    triangles_vertices_as_tuples = [
-        tuple(triangle_vertices) for triangle_vertices in triangles_vertices
-    ]
-    triangles = [
-        triangles_vertices_as_tuples[n : n + 3]
-        for n in range(0, len(triangles_vertices_as_tuples), 3)
-    ]
-    return triangles
-
-
-def is_convex(polygon: Polygon):
-    return polygon.convex_hull.equals(polygon)
-
-
-def convert_to_convex_polygons_list(polygon):
-    if is_convex(polygon):
-        return [polygon]
-    return shapely_polygon_to_shapely_triangles(polygon)
-
-
 def find_circle_terms(x1, y1, x2, y2, x3, y3):
     """
     Computes the circle's center coordinates and radius from three points on the circle.
@@ -851,23 +815,6 @@ def cmp(a: float | int, b: float | int):
     return (a > b) - (a < b)
 
 
-def get_ros_version():
-    import rospkg
-
-    # Initialize the ROS package database
-    rospack = rospkg.RosPack()
-
-    # Check if the 'rospy' package (ROS1) is available
-    if rospack.get_manifest("rospy"):
-        return "ROS1"
-
-    # Check if the 'rclpy' package (ROS2) is available
-    if rospack.get_manifest("rclpy"):
-        return "ROS2"
-
-    return None
-
-
 def rotate_2d_vector(vector: t.Tuple[float, float], degrees: float):
     radians = math.radians(degrees)
     a, b = vector
@@ -928,7 +875,6 @@ class JsonEncoder(json.JSONEncoder):
 def path_to_polygon(
     points: t.List[npt.NDArray[np.float_]],
     line_width: float,
-    cap_stype: t.Literal["round"] | t.Literal["square"] | t.Literal["flat"] = "round",
 ) -> Polygon:
     """Converts a sequence of points representing a navigation path into a polygonal "line strip".
 
@@ -957,7 +903,7 @@ def path_to_polygon(
             dedup_points.append(p)
 
     linestr = LineString(coordinates=dedup_points)
-    buf = linestr.buffer(distance=line_width / 2.0, cap_style=cap_stype)
+    buf = linestr.buffer(distance=line_width / 2.0)
     return buf
 
 
@@ -973,19 +919,6 @@ def generate_distinct_colors(num_colors: int):
     hex_colors = [colors.to_hex(color) for color in rgb_colors]  # type: ignore
 
     return hex_colors
-
-
-def grid_to_image(grid: npt.NDArray[t.Any]) -> Image.Image:
-    grid = grid.astype(np.float32)
-    grid = np.transpose(grid)  # (x ,y) -> (y, x)
-    grid[grid == -1] = 1
-    grid = grid - np.min(grid)
-    grid /= np.max(grid)
-    grid *= 255
-    grid = grid.astype(np.uint8)
-    grid = grid.ex
-
-    return Image.fromarray(grid, "L")
 
 
 def hash_to_32_bit_int(s: str) -> int:

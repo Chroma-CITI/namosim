@@ -4,7 +4,7 @@ import random
 import typing as t
 from xml.dom import minidom
 
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 from namosim.data_models import (
     AgentConfigModel,
