@@ -203,8 +203,8 @@ class TestCollision:
                     + (params.point_a[1] - params.center[1]) ** 2
                 )
                 plt_circle = patches.Circle(
-                    (params.center[0], params.center[1]), r, fill=False
-                )
+                    (params.center[0], params.center[1]), radius=r, fill=False
+                )  # type: ignore
                 ax.add_artist(plt_circle)
 
                 ax.axis("equal")

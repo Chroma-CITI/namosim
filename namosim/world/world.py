@@ -8,7 +8,7 @@ from xml.dom import minidom
 
 import cairosvg
 import numpy as np
-from bidict import bidict
+from bidict import bidict  # type: ignore[reportPrivateImportUsage]
 from PIL import Image, ImageDraw
 from shapely.geometry import Point
 from shapely.geometry import LineString, Polygon
@@ -425,7 +425,8 @@ class World:
             if not self.svg_config:
                 raise Exception("World has no svg config")
             config = minidom.parseString(self.svg_config.to_xml()).documentElement
-            svg.appendChild(config)
+            if config:
+                svg.appendChild(config)
         doc.appendChild(svg)
         return doc
 

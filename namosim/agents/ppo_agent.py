@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 from PIL import Image
 from shapely.geometry import Point, Polygon
 from shapely import affinity
-from transformers import AutoImageProcessor
+from transformers.models.auto.image_processing_auto import AutoImageProcessor
 from typing_extensions import Self
 
 import namosim.display.ros2_publisher as rp
