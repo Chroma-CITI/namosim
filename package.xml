@@ -7,7 +7,10 @@
   <maintainer email="david.brown@inria.fr">chroma</maintainer>
   <license>MIT</license>
   <depend>black</depend>
+  <depend>grid_map</depend>
   <depend>jupyter-notebook</depend>
+  <depend>libcairo2-dev</depend>
+  <depend>libopencv-dev</depend>
   <depend>python-numpy-stl-pip</depend>
   <depend>python3-aabbtree-pip</depend>
   <depend>python3-bidict</depend>
@@ -31,6 +34,7 @@
   <depend>python3-sphinx-rtd-theme</depend>
   <depend>python3-sphinx</depend>
   <depend>python3-svgpath2mpl-pip</depend>
+  <depend>python3-tk</depend>
   <depend>python3-transformers-pip</depend>
   <depend>python3-triangle-pip</depend>
   <depend>python3-typer</depend>
