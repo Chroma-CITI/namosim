@@ -264,7 +264,7 @@ class TransferPath:
                                         self.obstacle_uid
                                     ].pose,
                                     other_robot_transfered_obstacle_uid=(
-                                        other_robot_obstacle.id
+                                        other_robot_obstacle.uid
                                         if other_robot_obstacle
                                         else None
                                     ),

@@ -307,6 +307,7 @@ class Plan:
                 for conflict in conflicts:
                     if (
                         isinstance(conflict, RobotRobotConflict)
+                        and isinstance(evasion_conflict, RobotRobotConflict)
                         and conflict.other_agent_id == evasion_conflict.other_agent_id
                     ):
                         conflicts_to_ignore.add(conflict)
