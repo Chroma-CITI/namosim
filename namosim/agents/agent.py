@@ -78,7 +78,7 @@ class RLThinkResult(ThinkResult):
         self.did_replan = did_replan
         self.did_postpone = did_postpone
         self.agent_id = agent_id
-        self.conflicts = conflicts if conflicts else []
+        self.conflicts = conflicts if conflicts else set()
 
 
 class Agent(Entity):
