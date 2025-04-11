@@ -7,32 +7,34 @@
   <maintainer email="david.brown@inria.fr">chroma</maintainer>
   <license>MIT</license>
   <depend>black</depend>
+  <depend>jupyter-notebook</depend>
+  <depend>python-numpy-stl-pip</depend>
   <depend>python3-aabbtree-pip</depend>
   <depend>python3-bidict</depend>
   <depend>python3-cairosvg</depend>
   <depend>python3-jsonpickle</depend>
-  <depend>jupyter-notebook</depend>
   <depend>python3-matplotlib</depend>
+  <depend>python3-numpy</depend>
   <depend>python3-opencv-python-headless-pip</depend>
   <depend>python3-pandas</depend>
   <depend>python3-pil</depend>
   <depend>python3-pre-commit</depend>
-  <depend>python3-pydantic</depend>
   <depend>python3-pydantic-xml-pip</depend>
+  <depend>python3-pydantic</depend>
   <depend>python3-pyright-pip</depend>
   <depend>python3-pytest-cov</depend>
   <depend>python3-pytest</depend>
-  <depend>python3-skimage</depend>
+  <depend>python3-pytorch-pip</depend>
   <depend>python3-shapely</depend>
-  <depend>python3-sphinx</depend>
+  <depend>python3-skimage</depend>
   <depend>python3-sphinx-copybutton-pip</depend>
   <depend>python3-sphinx-rtd-theme</depend>
+  <depend>python3-sphinx</depend>
   <depend>python3-svgpath2mpl-pip</depend>
-  <depend>python3-pytorch-pip</depend>
   <depend>python3-transformers-pip</depend>
+  <depend>python3-triangle-pip</depend>
   <depend>python3-typer</depend>
   <depend>python3-typing-extensions</depend>
-  <depend>python3-triangle-pip</depend>
   <depend>python3-wandb-pip</depend>
   <export>
     <build_type>ament_python</build_type>
