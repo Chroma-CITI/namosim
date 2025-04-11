@@ -26,4 +26,5 @@ torchvision
 transformers
 typer
 typing-extensions
+triangle
 wandb
