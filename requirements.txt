@@ -6,6 +6,7 @@ jsonpickle
 jupyter
 matplotlib
 numpy
+numpy-stl
 opencv-python-headless
 pandas
 pillow
