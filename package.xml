@@ -6,8 +6,6 @@
   <description>TODO: Package description</description>
   <maintainer email="david.brown@inria.fr">chroma</maintainer>
   <license>MIT</license>
-
-
   <depend>black</depend>
   <depend>python3-aabbtree-pip</depend>
   <depend>python3-bidict</depend>
@@ -34,8 +32,8 @@
   <depend>python3-transformers-pip</depend>
   <depend>python3-typer</depend>
   <depend>python3-typing-extensions</depend>
+  <depend>python3-triangle-pip</depend>
   <depend>python3-wandb-pip</depend>
-
   <export>
     <build_type>ament_python</build_type>
   </export>

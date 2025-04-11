@@ -1,6 +1,6 @@
 import copy
 
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 from namosim.data_models import PoseModel
 from namosim.world.entity import Entity, Movability, Style

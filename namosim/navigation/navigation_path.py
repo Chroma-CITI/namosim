@@ -2,7 +2,7 @@ import typing as t
 
 import numpy as np
 from aabbtree import AABBTree
-from shapely import GeometryCollection, Polygon
+from shapely.geometry import Polygon
 
 import namosim.agents.agent as agent
 import namosim.display.ros2_publisher as ros2
@@ -22,6 +22,7 @@ from namosim.navigation.conflict import (
 from namosim.navigation.path_type import PathType
 from namosim.utils import collision, utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
+from shapely.geometry import JOIN_STYLE
 
 
 class RawPath:
@@ -232,7 +233,7 @@ class TransferPath:
                         obstacle_id=self.obstacle_uid,
                     )
                     grab_zone = robot.polygon.centroid.buffer(
-                        radius, join_style="mitre"
+                        radius, join_style=JOIN_STYLE.mitre
                     )
                     collides_with = collision.get_collisions_for_entity(
                         grab_zone,
@@ -283,7 +284,7 @@ class TransferPath:
                 if look_ahead_index < check_horizon and has_first_action:
                     grab_zone = world.dynamic_entities[
                         self.obstacle_uid
-                    ].polygon.buffer(grab_start_distance, join_style="mitre")
+                    ].polygon.buffer(grab_start_distance, join_style=JOIN_STYLE.mitre)
                     collides_with, _ = collision.get_collisions_for_entity(
                         grab_zone,
                         collision_polygons,
@@ -308,10 +309,7 @@ class TransferPath:
                             if exit_early_for_any_conflict:
                                 return conflicts
 
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=agent_id,
                     robot_pose=self.robot_path.poses[0],
                     robot_action=self.grab_action,
@@ -412,10 +410,7 @@ class TransferPath:
                 robot_before_release_pose = self.robot_path.poses[-2]
                 obstacle_before_release_pose = self.obstacle_path.poses[-2]
 
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=agent_id,
                     robot_pose=robot_before_release_pose,
                     robot_action=self.release_action,
@@ -511,10 +506,7 @@ class TransferPath:
                         ):
                             return conflicts
             else:
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=agent_id,
                     robot_pose=robot_pose_prior_to_action,
                     robot_action=action,
@@ -615,10 +607,7 @@ class TransferPath:
                         ):
                             return conflicts
 
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=self.obstacle_uid,
                     robot_action=action,
                     robot_pose=self.robot_path.poses[

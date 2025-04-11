@@ -12,7 +12,7 @@
   "pythonPlatform": "Linux",
   "executionEnvironments": [
     {
-      "root": "namosim"
+      "root": "."
     }
   ]
 }

@@ -6,7 +6,6 @@ import typing as t
 from collections.abc import MutableSet
 from datetime import datetime
 
-import mapbox_earcut as earcut
 import numpy as np
 import numpy.typing as npt
 import shapely.affinity as affinity
@@ -431,39 +430,8 @@ def append_suffix(filename, suffix):
     return "{0}_{2}{1}".format(*os.path.splitext(filename) + (suffix,))
 
 
-def shapely_polygon_to_shapely_triangles(polygon):
-    return [
-        Polygon(triangle_coords)
-        for triangle_coords in shapely_polygon_to_triangles_coords(polygon)
-    ]
-
-
-def shapely_polygon_to_triangles_coords(polygon):
-    return polygon_coords_to_triangles_coords(list(polygon.exterior.coords))
-
-
-def polygon_coords_to_triangles_coords(polygon):
-    verts = np.array(polygon).reshape(-1, 2)
-    rings = np.array([verts.shape[0]])
-    triangles_vertices = verts[earcut.triangulate_float64(verts, rings)]
-    triangles_vertices_as_tuples = [
-        tuple(triangle_vertices) for triangle_vertices in triangles_vertices
-    ]
-    triangles = [
-        triangles_vertices_as_tuples[n : n + 3]
-        for n in range(0, len(triangles_vertices_as_tuples), 3)
-    ]
-    return triangles
-
-
 def is_convex(polygon: Polygon):
     return polygon.convex_hull.equals(polygon)
-
-
-def convert_to_convex_polygons_list(polygon):
-    if is_convex(polygon):
-        return [polygon]
-    return shapely_polygon_to_shapely_triangles(polygon)
 
 
 def find_circle_terms(x1, y1, x2, y2, x3, y3):
@@ -911,7 +879,6 @@ class JsonEncoder(json.JSONEncoder):
 def path_to_polygon(
     points: t.List[npt.NDArray[np.float_]],
     line_width: float,
-    cap_stype: t.Literal["round"] | t.Literal["square"] | t.Literal["flat"] = "round",
 ) -> Polygon:
     """Converts a sequence of points representing a navigation path into a polygonal "line strip".
 
@@ -940,7 +907,7 @@ def path_to_polygon(
             dedup_points.append(p)
 
     linestr = LineString(coordinates=dedup_points)
-    buf = linestr.buffer(distance=line_width / 2.0, cap_style=cap_stype)
+    buf = linestr.buffer(distance=line_width / 2.0)
     return buf
 
 

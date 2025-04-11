@@ -5,11 +5,11 @@ import typer
 from namosim.utils.utils import NamosimLogger
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.world import World
-from shapely import GeometryCollection, affinity
+from shapely import affinity
 from shapely.ops import triangulate
 from stl import mesh
 import cv2
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 app = typer.Typer()
 

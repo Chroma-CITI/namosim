@@ -8,8 +8,7 @@ import numpy.typing as npt
 import shapely
 import yaml
 from PIL import Image, ImageDraw
-from shapely import GeometryCollection, MultiPolygon, box
-from shapely.geometry import Polygon, box
+from shapely.geometry import Polygon, MultiPolygon, box
 from typing_extensions import Self
 
 from namosim.data_models import (
