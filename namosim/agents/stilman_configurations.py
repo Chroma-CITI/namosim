@@ -5,7 +5,7 @@ This module contains classes describing robot and obstacle configurations used d
 import typing as t
 from abc import ABC
 
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 import namosim.navigation.basic_actions as ba
 from namosim.algorithms import graph_search

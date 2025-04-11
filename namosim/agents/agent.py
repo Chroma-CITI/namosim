@@ -3,7 +3,7 @@ import copy
 import typing as t
 from collections import OrderedDict
 
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 from namosim import svg_styles
 import namosim.display.ros2_publisher as rp
@@ -125,9 +125,9 @@ class Agent(Entity):
         )
         self.__goal: goal.Goal | None = None
 
-        self._prev_plan: t.Optional["navp.Plan"] = (
-            None  # used to check if a plan has changed
-        )
+        self._prev_plan: t.Optional[
+            "navp.Plan"
+        ] = None  # used to check if a plan has changed
         self.__p_opt: t.Optional["navp.Plan"] = None
 
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()

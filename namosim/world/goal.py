@@ -1,6 +1,6 @@
 import typing as t
 
-from shapely import Polygon
+from shapely.geometry import Polygon
 
 from namosim import svg_styles
 from namosim.data_models import PoseModel

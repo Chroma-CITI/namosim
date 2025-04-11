@@ -1,7 +1,7 @@
 import copy
 import typing as t
 
-from shapely import Polygon
+from shapely.geometry import Polygon
 from typing_extensions import Self
 
 import namosim.display.ros2_publisher as rp
