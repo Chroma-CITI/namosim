@@ -207,7 +207,7 @@ class PPOAgent(Agent):
                 transforms.Normalize(0.0, 1.0),
             ]
         )
-        img: npt.NDArray[np.float_] = img_transform(img).squeeze().numpy() # type: ignore
+        img: npt.NDArray[np.float_] = img_transform(img).squeeze().numpy()  # type: ignore
 
         goal_state = State(
             grid=img,  # type: ignore
