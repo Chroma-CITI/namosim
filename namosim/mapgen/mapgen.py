@@ -6,6 +6,7 @@ import numpy as np
 import numpy.typing as npt
 import shapely
 from shapely.geometry import Polygon
+import shapely.ops
 
 from namosim.data_models import NamoConfigModel
 from namosim.mapgen import utils
@@ -165,7 +166,7 @@ class MapGen:
                 )
 
                 comp_polygons.append(polygon)  # type: ignore
-            full_poly = shapely.union_all(comp_polygons)  # type: ignore
+            full_poly = shapely.ops.unary_union(comp_polygons)  # type: ignore
             # full_poly = svg_utils.perturb_polygon(
             #     polygon=full_poly, bounds=(0, 0, width, height)
             # )
