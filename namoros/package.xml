@@ -27,7 +27,7 @@
   <depend>python3-transforms3d</depend>
   <depend>python3-typer</depend>
   <depend>robot_state_publisher</depend>
-  <depend>ros_graph_msgs</depend>
+  <depend>rosgraph_msgs</depend>
   <depend>ros_gz</depend>
   <depend>rviz2</depend>
   <depend>topic_tools</depend>
