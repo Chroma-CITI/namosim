@@ -17,6 +17,8 @@ build-and-test-job:
     - rosdep install --from-paths . -r -y
     - pip install -r namosim/requirements.txt
     - pip install -r namoros/requirements.txt
+    - colcon build
+    - source install/setup.bash
     - ./scripts/test_all.sh
   except:
     - tags
