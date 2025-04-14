@@ -1,0 +1,4 @@
+geometry_msgs/PoseStamped start_pose
+geometry_msgs/PoseStamped goal_pose
+---
+namoros_msgs/NamoPlan plan

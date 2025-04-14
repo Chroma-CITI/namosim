@@ -1,0 +1,6 @@
+build
+install
+log
+__pycache__
+*.stil_history.log
+*.log

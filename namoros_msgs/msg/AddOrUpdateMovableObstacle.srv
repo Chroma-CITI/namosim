@@ -1,0 +1,5 @@
+string obstacle_id
+namoros_msgs/NamoPose pose
+geometry_msgs/Polygon polygon
+---
+bool result
