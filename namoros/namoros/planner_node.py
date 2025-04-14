@@ -7,7 +7,7 @@ from rclpy.parameter import Parameter as RosParam
 from std_msgs.msg import Header
 import namoros.utils as utils
 from nav_msgs.msg import OccupancyGrid
-from namoros_msgs.msg import NamoPath, NamoPlan, NamoAction, NamoConflict
+from namoros_msgs.msg import NamoAction, NamoConflict
 from namoros_msgs.srv import (
     ComputePlan,
     AddOrUpdateMovableObstacle,
@@ -137,10 +137,12 @@ class PlannerNode(Node):
         header.frame_id = "map"
         self.namo_planner.reset_robot_pose(self.namo_planner.agent, robot_pose)
         self.namo_planner.reset_goal_pose(goal_pose)
-        plan, plan_msg = self.namo_planner.compute_plan(header=header)
-        res.plan = plan_msg
-        self.current_plan = plan
-        self.get_logger().info(f"Finished computing plan")
+        plan_result = self.namo_planner.compute_plan(header=header)
+        if plan_result:
+            plan, plan_msg = plan_result
+            res.plan = plan_msg
+            self.current_plan = plan
+            self.get_logger().info(f"Finished computing plan")
         return res
 
     def message_to_action(self, msg: NamoAction) -> Action:
@@ -219,7 +221,7 @@ class PlannerNode(Node):
                 ConflictType.SIMULTAEOUS_GRAB,
                 ConflictType.STOLEN_OBSTACLE,
             ]:
-                msg.conflict_type == NamoConflict.ROBOT
+                msg.conflict_type = NamoConflict.ROBOT
             else:
                 msg.conflict_type = NamoConflict.OBSTACLE
 
@@ -232,9 +234,11 @@ class PlannerNode(Node):
         header = Header()
         header.stamp = self.get_clock().now().to_msg()
         header.frame_id = "map"
-        updated_plan, update_plan_msg = self.namo_planner.think(header)
-        self.current_plan = updated_plan
-        res.plan = update_plan_msg
+        think_result = self.namo_planner.think(header)
+        if think_result:
+            updated_plan, update_plan_msg = think_result
+            self.current_plan = updated_plan
+            res.plan = update_plan_msg
         return res
 
     def end_postpone(self, req: EndPostpone.Request, res: EndPostpone.Response):

@@ -6,6 +6,7 @@ from namosim.data_models import namo_config_from_yaml
 
 dirname = os.path.dirname(os.path.abspath(__file__))
 
+
 class TestWorld:
     def test_load_from_svg(self):
         world = World.load_from_svg(f"{dirname}/../scenarios/minimal_stilman_2005.svg")

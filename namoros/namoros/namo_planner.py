@@ -1,7 +1,6 @@
 import typing as t
 
 from namosim import agents
-import namosim.agents
 from namosim.display.ros2_publisher import RosPublisher
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.action_result import ActionSuccess
@@ -39,8 +38,6 @@ from namosim.navigation.basic_actions import (
 )
 from namosim.navigation.conflict import Conflict
 from namoros_msgs.msg import NamoEntity
-import namosim
-from namosim.data_models import NavigationOnlyBehaviorConfigModel, PoseModel
 
 
 class StepResult(t.NamedTuple):
@@ -211,7 +208,7 @@ class NamoPlanner:
         )
         self.agent.set_navigation_goals([goal])
 
-    def compute_plan(self, header: Header) -> t.Tuple[Plan, NamoPlan]:
+    def compute_plan(self, header: Header) -> t.Tuple[Plan, NamoPlan] | None:
         self.ros_publisher.clear_robot_plan(self.agent.uid)
 
         # sense
@@ -221,16 +218,17 @@ class NamoPlanner:
         think_result = self.agent.think(ros_publisher=self.ros_publisher)
         plan = think_result.plan
 
-        if plan:
+        if plan is None:
             plan.reset()
             self.ros_publisher.publish_robot_plan(plan, self.agent, map=self.world.map)
             self.logger.info("Computed namo plan")
+            return None
 
         plan_msg = plan_to_msg(plan, header)
 
         return plan, plan_msg
 
-    def think(self, header: Header) -> t.Tuple[Plan, NamoPlan]:
+    def think(self, header: Header) -> t.Tuple[Plan, NamoPlan] | None:
         self.step_count += 1
         self.ros_publisher.clear_robot_plan(self.agent.uid)
         self.world.resolve_collisions(self.agent.uid)
@@ -251,12 +249,10 @@ class NamoPlanner:
         if plan:
             self.ros_publisher.publish_robot_plan(plan, self.agent, map=self.world.map)
             self.logger.info(f"Udated namo plan: {plan.paths}")
+            plan_msg = plan_to_msg(plan, header)
+            return plan, plan_msg
 
-        plan_msg = plan_to_msg(plan, header)
-
-        return plan, plan_msg
-
-    def detect_conflicts(self) -> t.List[Conflict]:
+    def detect_conflicts(self) -> t.Set[Conflict]:
         self.agent.sense(self.world, ActionSuccess(), self.step_count)
         plan = self.agent.get_plan()
         if plan:
@@ -267,7 +263,7 @@ class NamoPlanner:
                 rp=None,
                 check_horizon=self.agent.conflict_horizon,
             )
-        return []
+        return set()
 
     def step_simulation(self, actions: t.Dict[str, ba.Action]):
         self.agent.sense(self.world, ActionSuccess(), self.step_count)

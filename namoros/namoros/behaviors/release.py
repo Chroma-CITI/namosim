@@ -88,7 +88,7 @@ class Release(py_trees.behaviour.Behaviour):
         path_msg.header = self.path.path.header
         path_msg.poses = []
         path_msg.poses.append(robot_pose)
-        path_msg.poses.append(self.path.path.poses[-1])
+        path_msg.poses.append(self.path.path.poses[-1])  # type: ignore
         return path_msg
 
     def update(self):

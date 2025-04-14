@@ -298,7 +298,7 @@ def namo_planner_bringup(context: t.Any, *args, **kwargs):  # type: ignore
             "gazebo",
             "-r",
             "--render-engine",
-            "ogre2",
+            "ogre",
             "-v",
             "4",
             LaunchConfiguration("sdf_file"),

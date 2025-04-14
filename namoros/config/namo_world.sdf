@@ -30,7 +30,7 @@
     <plugin filename="libgz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster">
     </plugin>
     <plugin filename="libgz-sim-sensors-system" name="gz::sim::systems::Sensors">
-      <render_engine>ogre2</render_engine>
+      <render_engine>ogre</render_engine>
     </plugin>
     <gui fullscreen="0">
       <!-- 3D scene -->
@@ -41,7 +41,7 @@
           <property type="string" key="state">docked</property>
         </gui>
 
-        <engine>ogre2</engine>
+        <engine>ogre</engine>
         <scene>scene</scene>
         <!-- <ambient_light>1.0 1.0 1.0 1.0</ambient_light> -->
         <background_color>0.8 0.8 0.8</background_color>
