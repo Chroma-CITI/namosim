@@ -1,0 +1,224 @@
+<?xml version="1.0"?>
+<sdf version="1.8">
+  <world name="namo_world">
+    <physics type="ode">
+      <gravity>0.000000 0.000000 -9.810000</gravity>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>20</iters>
+          <sor>1.000000</sor>
+        </solver>
+        <constraints>
+          <cfm>0.000000</cfm>
+          <erp>0.200000</erp>
+          <contact_max_correcting_vel>100.000000</contact_max_correcting_vel>
+          <contact_surface_layer>0.000000</contact_surface_layer>
+        </constraints>
+      </ode>
+      <real_time_update_rate>1000.000000</real_time_update_rate>
+      <max_step_size>0.001000</max_step_size>
+      <real_time_factor>1.000000</real_time_factor>
+      <max_contacts>20</max_contacts>
+    </physics>
+    <plugin filename="libNamo.so" name="namo::Namo">
+    </plugin>
+    <plugin filename="libgz-sim-physics-system" name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin filename="libgz-sim-user-commands-system" name="gz::sim::systems::UserCommands">
+    </plugin>
+    <plugin filename="libgz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+    <plugin filename="libgz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre</render_engine>
+    </plugin>
+    <gui fullscreen="0">
+      <!-- 3D scene -->
+      <plugin filename="GzScene3D" name="NAMO World">
+        <gui>
+          <title>3D View</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="string" key="state">docked</property>
+        </gui>
+
+        <engine>ogre</engine>
+        <scene>scene</scene>
+        <!-- <ambient_light>1.0 1.0 1.0 1.0</ambient_light> -->
+        <background_color>0.8 0.8 0.8</background_color>
+      </plugin>
+
+      <!-- World control -->
+      <plugin filename="WorldControl" name="World control">
+        <gui>
+          <title>World control</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">72</property>
+          <property type="double" key="width">121</property>
+          <property type="double" key="z">1</property>
+
+          <property type="string" key="state">floating</property>
+          <anchors target="NAMO World">
+            <line own="left" target="left" />
+            <line own="bottom" target="bottom" />
+          </anchors>
+        </gui>
+
+        <play_pause>true</play_pause>
+        <step>true</step>
+        <start_paused>false</start_paused>
+        <service>/world/namo_world/control</service>
+        <stats_topic>/world/namo_world/stats</stats_topic>
+      </plugin>
+      <plugin filename="ImageDisplay" name="Camera">
+        <gui>
+          <property key="topic" type="string">/camera</property>
+        </gui>
+      </plugin>
+      <plugin filename="TapeMeasure" name="TapeMeasure">
+      </plugin>
+      <!-- World statistics -->
+      <plugin filename="WorldStats" name="World stats">
+        <gui>
+          <title>World stats</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">110</property>
+          <property type="double" key="width">290</property>
+          <property type="double" key="z">1</property>
+
+          <property type="string" key="state">floating</property>
+          <anchors target="3D View">
+            <line own="right" target="right" />
+            <line own="bottom" target="bottom" />
+          </anchors>
+        </gui>
+
+        <sim_time>true</sim_time>
+        <real_time>true</real_time>
+        <real_time_factor>true</real_time_factor>
+        <iterations>true</iterations>
+        <topic>/world/namo_world/stats</topic>
+
+      </plugin>
+
+      <!-- Entity tree -->
+      <plugin filename="EntityTree" name="Entity tree">
+      </plugin>
+
+
+      <plugin filename="VisualizeLidar" name="Visualize Lidar">
+        <property type="string" key="topicList">scan</property>
+      </plugin>
+
+      <!-- KeyPublisher plugin-->
+      <plugin filename="KeyPublisher" name="Key Publisher" />
+
+
+      <plugin filename="TopicEcho" name="Topic Echo">
+      </plugin>
+    </gui>
+
+    <light type="point" name="sun">
+      <cast_shadows>false</cast_shadows>
+      <pose>0 0 20 0 0 0</pose>
+      <diffuse>1.0 1.0 1.0 1</diffuse>
+      <specular>0.5 0.5 0.5 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.999</constant>
+        <linear>0.001</linear>
+        <quadratic>0.0001</quadratic>
+      </attenuation>
+    </light>
+
+    <model name="ground_plane">
+      <frame name="map" attached_to="__model__">
+        <pose>0 0 0 0 0 0</pose>        <!-- Specify the origin and orientation of the "map" frame -->
+      </frame>
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>100</mu>
+                <mu2>50</mu2>
+              </ode>
+              <torsional>
+                <ode />
+              </torsional>
+            </friction>
+            <contact>
+              <ode />
+            </contact>
+            <bounce />
+          </surface>
+          <max_contacts>10</max_contacts>
+        </collision>
+        <visual name='visual'>
+          <cast_shadows>0</cast_shadows>
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+        <self_collide>0</self_collide>
+        <enable_wind>0</enable_wind>
+        <kinematic>0</kinematic>
+      </link>
+    </model> 
+    {% for box in movable_boxes %} <include>
+    <uri>
+        model://models/movable_box/model.sdf
+    </uri>
+    <name>{{ box.name }}</name>
+    <pose>{{ box.pose }}</pose>
+    <scale>{{ box.scale }} {{ box.scale }} {{ box.scale }}</scale>
+    <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">
+      <publish_link_pose>true</publish_link_pose>
+      <publish_nested_model_pose>true</publish_nested_model_pose>
+      <use_pose_vector_msg>true</use_pose_vector_msg>
+      <update_frequency>10</update_frequency>
+    </plugin>
+  </include> {% endfor %} <model name="walls">
+  <pose>0 0 0 0 0 0</pose>
+  <static>true</static>
+  <link name="walls">
+    <visual name="visual">
+      <geometry>
+        <mesh>
+          <uri>file://config/map_walls.stl</uri>
+        </mesh>
+      </geometry>
+
+      <material>
+        <ambient>0.96078431 0.6 0.16470588 1</ambient>
+        <diffuse>0.96078431 0.6 0.16470588 1</diffuse>
+        <specular>0.96078431 0.6 0.16470588 1</specular>
+      </material>
+    </visual>
+    <collision name='collision'>
+      <geometry>
+        <mesh>
+          <uri>file://config/map_walls.stl</uri>
+        </mesh>
+      </geometry>
+    </collision>
+  </link>
+</model>
+</world>
+</sdf>

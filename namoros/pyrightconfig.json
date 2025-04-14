@@ -1,0 +1,24 @@
+{
+  "include": ["namoros"],
+
+  "exclude": ["**/node_modules", "**/__pycache__", "test"],
+
+  "ignore": ["namoros/navigator.py"],
+  "defineConstant": {
+    "DEBUG": true
+  },
+
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "reportUnknownMemberType": false,
+  "reportUnknownVariableType": false,
+  "reportMissingParameterType": false,
+  "pythonVersion": "3.10",
+  "pythonPlatform": "Linux",
+
+  "executionEnvironments": [
+    {
+      "root": "src"
+    }
+  ]
+}

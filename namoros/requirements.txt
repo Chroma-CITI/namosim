@@ -1,0 +1,9 @@
+setuptools
+typer
+jinja2
+pyright
+numpy>=1,<2
+black
+transforms3d
+pytest
+keyboard

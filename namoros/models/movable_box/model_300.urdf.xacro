@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<robot name="movable_box"
+  xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:arg name="box_size" default="0.4" />
+  <xacro:property name="box_size" value="$(arg box_size)" />
+
+  <xacro:macro name="box_inertia" params="m w h d">
+    <inertial>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 ${pi/2}" />
+      <mass value="${m}" />
+      <inertia ixx="${(m/12) * (h*h + d*d)}" ixy="0.0" ixz="0.0" iyy="${(m/12) * (w*w + d*d)}"
+        iyz="0.0" izz="${(m/12) * (w*w + h*h)}" />
+    </inertial>
+  </xacro:macro>
+  <link name="box">
+    <xacro:box_inertia m="0.001" w="${box_size}" d="${box_size}" h="${box_size}" />
+    <visual>
+      <geometry>
+        <!-- new mesh -->
+        <mesh filename="package://namoros/models/movable_box/aruco_300.dae" />
+      </geometry>
+      <origin xyz="0 0 -0.2" rpy="0 0 0" />
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${box_size} ${box_size} ${box_size}" />
+      </geometry>
+    </collision>
+  </link>
+  <gazebo>
+    <plugin filename="gz-sim-pose-publisher-system"
+      name="gz::sim::systems::PosePublisher">
+      <publish_link_pose>false</publish_link_pose>
+      <publish_nested_model_pose>true</publish_nested_model_pose>
+      <use_pose_vector_msg>true</use_pose_vector_msg>
+      <update_frequency>30</update_frequency>
+    </plugin>
+  </gazebo>
+</robot>

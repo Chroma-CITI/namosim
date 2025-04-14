@@ -9,18 +9,37 @@ NAMOSIM is a robot motion-planning simulator designed for the problem of navigat
 - Ubuntu 22.04
 - ROS2 Humble
 
-## Installing Dependencies
+## Setup
 
-You can install the dependencies listed in the `package.xml` with `rosdep`:
+First, make sure to include the submodules when cloning the repo.
 
 ```
+git clone --recurse-submodules git@gitlab.inria.fr:chroma/namo/namosim.git
+```
+
+Next, use `rosdep` to install the dependencies listed in the `package.xml` files: 
+
+```bash
 rosdep install --from-paths . -r -y
 ```
 
-If any of the python dependencies fail to install with `rosdep` you can install them with `pip` instead:
+If any of the python dependencies fail to install with `rosdep` you can try to install them with `pip` instead:
 
+```bash
+pip install -r namosim/requirements.txt --ignore-installed
+pip install -r namoros/requirements.txt --ignore-installed
 ```
-pip install -r requirements.txt
+
+Compile the `namoros` Gazebo plugin:
+```bash
+./namoros/build_plugins.sh
+```
+
+Finally, build and source the project.
+
+```bash
+colcon build
+source install/setup.bash
 ```
 
 ## Examples
@@ -29,7 +48,7 @@ The best way is to open the repo in VSCode and use the pythong test explorer to 
 
 Alternativley you can launch a test from the command line like so:
 ```bash
-pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
+python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
 
 ### Run a Basic Scenario and Visualize in RVIZ
@@ -38,14 +57,14 @@ The following example runs the most basic scenario with the (Stillman,2005) algo
 
 Start rviz2:
 
-```
-rviz2 -d rviz/ROS2/basic_view.rviz
+```bash
+rviz2 -d namosim/rviz/ROS2/basic_view.rviz
 ```
 
 Then, in a new terminal, run:
 
-```
-pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
+```bash
+python3 -m pytest namosim/tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
 
 ## Run Unit Tests

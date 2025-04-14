@@ -1,0 +1,9 @@
+free_thresh: 0.1
+image: namoros_multi_map.png
+negate: 0
+occupied_thresh: 0.5
+origin:
+- 0.0
+- 0.0
+- 0.0
+resolution: 0.1
