@@ -5,19 +5,19 @@ cairosvg
 jsonpickle
 jupyter
 matplotlib
-numpy
+numpy==1.21.5
 numpy-stl
 opencv-python-headless
 pandas
-pillow
+pillow==9.0.1
 pre-commit
-pydantic
-pydantic-xml
+pydantic==2.10.6
+pydantic-xml==2.14.3
 pyright
 pytest>=6.2.5,<7
 pytest-cov
 scikit-image # Used to rasterize polygon contours and for image skeleton computation
-shapely
+shapely==1.8.0
 sphinx
 sphinx-copybutton
 sphinx-rtd-theme
