@@ -5,6 +5,9 @@ default:
     - large
     - linux
 
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  
 stages:
   - build-and-test
   - release
