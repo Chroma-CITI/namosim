@@ -6,7 +6,7 @@
   "configurations": [
     {
       "name": "Scenario Generation",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "namosim.main",
       "justMyCode": true,
@@ -20,22 +20,17 @@
     },
     {
       "name": "svg2stl",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "namosim.scripts.svg2stl",
       "justMyCode": true,
-      "args": [
-        "--svg-file",
-        "tests/e2e/scenarios/minimal_stilman_2005.svg",
-      ]
+      "args": ["--svg-file", "tests/e2e/scenarios/minimal_stilman_2005.svg"]
     },
     {
       "name": "Python: Current File",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
-      "purpose": [
-        "debug-test"
-      ],
+      "purpose": ["debug-test"],
       "program": "${file}",
       "console": "integratedTerminal",
       "justMyCode": false
