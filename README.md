@@ -51,7 +51,7 @@ pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ## Run Unit Tests
 
 ```bash
-poetry run poe test
+./scripts/test_unit.sh
 ```
 
 ## Documentation

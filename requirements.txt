@@ -14,7 +14,7 @@ pre-commit
 pydantic
 pydantic-xml
 pyright
-pytest
+pytest>=6.2.5,<7
 pytest-cov
 scikit-image # Used to rasterize polygon contours and for image skeleton computation
 shapely
