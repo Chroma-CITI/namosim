@@ -12,7 +12,7 @@ WORKDIR /workspace
 COPY . /workspace
 
 # Install ROS dependencies
-RUN rosdep install --from-paths . -r -y
+RUN rosdep install -ry --from-paths . || true
 
 # Install Python dependencies
 RUN pip install -r namosim/requirements.txt --ignore-installed && \
