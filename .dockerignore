@@ -1,0 +1,6 @@
+.git
+.pytest_cache
+build
+install
+log
+.coverage
