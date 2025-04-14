@@ -1,51 +1,37 @@
 # namoros
 
+ROS2 nodes for executing `namosim` plans on real and Gazebo-simulated robots.
+
 ## System Requirements
 
-- Python >=3.10,<3.13
+- Ubuntu 22.04
 - ROS2 Humble
-- Gazebo Fortress
 
-You may also need to install the following ros packages
+## Demo
 
+From the root of the repo run
+
+```bash
+colcon build
+source install/setup.bash
 ```
-sudo apt update && sudo apt install ros-humble-rosgraph-msgs ros-humble-grid-map
+
+Then launch the demo script.
+
+```bash
+./launch_demo.sh
 ```
 
 ## Usage
 
-First, install the dependencies:
-
-```
-pip install -r requirements.txt
-```
-
-Then you will need to convert a namo_planner svg scenario file into an Gazebo SDF + config files for nav2. To do this run
-
-```
-python3 -m namoros.scripts.scenario2sdf --svg-file config/1_robot_2_obstacles.svg --out-dir config
-```
+Take a look at the demo script code for more details.
 
 ## Compile the GZ plugins
 
 ### GZ
 
-```
-mkdir -p gz_plugin/build
-cd gz_plugin/build && cmake .. && make && cd ../..
-```
-
-### Build
-Build the namoros package
-
-```
-colcon build
-```
-
-### Run Simulation
-
-```
-./launch.sh
+```bash
+./build_plugins.sh
 ```
 
 ## Usage on a Real Robot
