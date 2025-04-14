@@ -9,7 +9,7 @@ NAMOSIM is a robot motion-planning simulator designed for the problem of navigat
 - Ubuntu 22.04
 - ROS2 Humble
 
-## Installing Dependencies
+## Setup
 
 First, make sure to include the submodules when cloning the repo.
 
@@ -19,15 +19,27 @@ git clone --recurse-submodules git@gitlab.inria.fr:chroma/namo/namosim.git
 
 Next, use `rosdep` to install the dependencies listed in the `package.xml` files: 
 
-```
+```bash
 rosdep install --from-paths . -r -y
 ```
 
 If any of the python dependencies fail to install with `rosdep` you can try to install them with `pip` instead:
 
-```
+```bash
 pip install -r namosim/requirements.txt
 pip install -r namoros/requirements.txt
+```
+
+Compile the `namoros` Gazebo plugin:
+```bash
+./namoros/build_plugins.sh
+```
+
+Finally, build and source the project.
+
+```bash
+colcon build
+source install/setup.bash
 ```
 
 ## Examples
