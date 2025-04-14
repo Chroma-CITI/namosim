@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<robot name="turtlebot_gazebo"
+  xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- Microsoft Kinect / ASUS Xtion PRO Live for simulation -->
+  <xacro:macro name="turtlebot_sim_3dsensor" params="robot_name">
+    <gazebo reference="camera_link">
+      <sensor type="camera" name="camera">
+        <always_on>true</always_on>
+        <visualize>true</visualize>
+        <update_rate>10.0</update_rate>
+        <camera>
+          <horizontal_fov>${60.0*M_PI/180.0}</horizontal_fov>
+          <visibility_mask>0x0000FFFF</visibility_mask>
+          <image>
+            <format>R8G8B8</format>
+            <width>640</width>
+            <height>480</height>
+            <anti_aliasing>2</anti_aliasing>
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>8.0</far>
+          </clip>
+        </camera>
+        <topic>${robot_name}/camera</topic>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>

@@ -1,0 +1,11 @@
+obstacles:
+  - marker_id: "300"
+    name: 'obstacle_1'
+    shape: rectangle
+    length: 0.4
+    width: 0.4
+  - marker_id: "301"
+    name: 'obstacle_2'
+    shape: rectangle
+    length: 0.4
+    width: 0.4

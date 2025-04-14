@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 4.3.2 commit date:2024-12-16, commit time:21:10, hash:32f5fdce0a0a</authoring_tool>
+    </contributor>
+    <created>2025-01-15T15:45:08</created>
+    <modified>2025-01-15T15:45:08</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="ID9-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">1 1 1 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="aruco_300-effect">
+      <profile_COMMON>
+        <newparam sid="aruco-300_jpg-surface">
+          <surface type="2D">
+            <init_from>aruco-300_jpg</init_from>
+          </surface>
+        </newparam>
+        <newparam sid="aruco-300_jpg-sampler">
+          <sampler2D>
+            <source>aruco-300_jpg-surface</source>
+          </sampler2D>
+        </newparam>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <texture texture="aruco-300_jpg-sampler" texcoord="UVMap"/>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Material_001-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">1 1 1 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images>
+    <image id="aruco-300_jpg" name="aruco-300_jpg">
+      <init_from>aruco-300.jpg</init_from>
+    </image>
+  </library_images>
+  <library_materials>
+    <material id="ID9-material" name="ID9">
+      <instance_effect url="#ID9-effect"/>
+    </material>
+    <material id="aruco_300-material" name="aruco_300">
+      <instance_effect url="#aruco_300-effect"/>
+    </material>
+    <material id="Material_001-material" name="Material.001">
+      <instance_effect url="#Material_001-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="box-mesh" name="box">
+      <mesh>
+        <source id="box-mesh-positions">
+          <float_array id="box-mesh-positions-array" count="168">-0.197458 -0.2 0.4 0.202542 -0.2 0 0.202542 -0.2 0.4 -0.197458 -0.2 0 0.202542 -0.2 0 0.202542 0.2 0.4 0.202542 -0.2 0.4 0.202542 0.2 0 0.202542 0.2 0 -0.197458 0.2 0.4 0.202542 0.2 0.4 -0.197458 0.2 0 -0.197458 0.2 0.4 -0.197458 -0.2 0 -0.197458 -0.2 0.4 -0.197458 0.2 0 -0.197458 0.2 0.4 0.202542 -0.2 0.4 0.202542 0.2 0.4 -0.197458 -0.2 0.4 0.202542 -0.2 0 -0.197458 0.2 0 0.202542 0.2 0 -0.197458 -0.2 0 0.05253881 0.2 0.1500031 0.05253881 0.2 0.2499969 -0.04745483 0.2 0.2499969 -0.04745483 0.2 0.1500031 -0.197458 0.05000394 0.250004 -0.197458 -0.05000394 0.250004 -0.197458 -0.05000394 0.149996 -0.197458 0.05000394 0.149996 -0.04768687 -0.2 0.2502289 0.05277091 -0.2 0.2502289 0.05277091 -0.2 0.149771 -0.04768687 -0.2 0.149771 0.202542 -0.05021858 0.1497814 0.202542 -0.05021858 0.2502186 0.202542 0.05021858 0.2502186 0.202542 0.05021858 0.1497814 -0.197458 0.05995661 0.2599567 -0.197458 -0.05995661 0.2599567 -0.197458 -0.05995661 0.1400433 -0.197458 0.05995661 0.1400433 0.06275355 0.2 0.1397884 0.06275355 0.2 0.2602115 -0.05766952 0.2 0.2602115 -0.05766952 0.2 0.1397884 -0.05766612 -0.2 0.2602081 0.0627501 -0.2 0.2602081 0.0627501 -0.2 0.1397918 -0.05766612 -0.2 0.1397918 0.202542 -0.05983871 0.1401612 0.202542 -0.05983871 0.2598387 0.202542 0.05983871 0.2598387 0.202542 0.05983871 0.1401612</float_array>
+          <technique_common>
+            <accessor source="#box-mesh-positions-array" count="56" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="box-mesh-normals">
+          <float_array id="box-mesh-normals-array" count="75">1 0 0 0 0 -1 -1 0 0 0 -1 0 0 0 1 0 1 0 -1 4.4367e-7 0 0 -1 2.21306e-7 0 -1 -2.21306e-7 1 -2.22085e-7 0 1 2.22085e-7 0 -1 -1.40352e-6 0 0 1 1.36771e-6 0 1 -1.36771e-6 0 -1 -3.10011e-6 1 1.44582e-6 0 1 -1.44582e-6 0 1 2.65786e-7 0 1 -2.65786e-7 0 -1 1.40352e-6 0 0 1 -3.02848e-6 0 1 3.02848e-6 0 -1 3.10011e-6 1 -3.23568e-6 0 1 3.23568e-6 0</float_array>
+          <technique_common>
+            <accessor source="#box-mesh-normals-array" count="25" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="box-mesh-map-0">
+          <float_array id="box-mesh-map-0-array" count="456">0.998405 -0.002229809 0.001594662 1.00223 -0.002230048 0.00159496 0 0 0 0 0 0 -0.002015948 0.00222522 1.002016 0.9977748 0.002225041 1.002016 0.006862699 0.00686264 0.9931369 0.993137 0.006862819 0.993137 0 0 0 0 0 0 0.9979757 0.002023994 0.002023875 0.9979764 0.002023875 0.002023994 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.08308213 0.9169175 1.00259e-4 1.00259e-4 0.08308213 0.08308225 0.9169174 0.9169176 1.00225e-4 0.9998995 0.08308213 0.9169175 0.9169174 0.08308225 0.9998995 0.9998996 0.9169174 0.9169176 0.9169174 0.08308225 1.00259e-4 1.00259e-4 0.9998995 1.00292e-4 0.08490633 0.08490645 9.99542e-5 0.9999 9.99542e-5 1.00029e-4 0.9150933 0.9150938 9.99542e-5 0.9999 0.08490633 0.9150939 0.08490633 0.08490645 0.9998997 1.00029e-4 0.9150933 0.08490645 0.9150933 0.08490645 0.9998997 0.9999 0.9150933 0.9150938 0.08295619 0.9170436 0.9998998 0.9998999 1.00024e-4 0.9998999 0.9170435 0.9170436 0.9998997 9.98758e-5 0.9998998 0.9998999 0.08295613 0.08295607 0.9998997 9.98758e-5 0.9170435 0.08295607 0.08295619 0.9170436 9.99501e-5 9.98758e-5 0.08295613 0.08295607 0.9195318 0.9195321 9.9961e-5 0.9998999 0.08046787 0.9195321 0.9195318 0.08046799 0.9998998 0.9999 0.9195318 0.9195321 0.08046787 0.9195321 9.99173e-5 1.00029e-4 0.08046787 0.08046793 0.08046787 0.08046793 0.9998998 1.00096e-4 0.9195318 0.08046799 0.998405 -0.002229809 1.00223 0.998405 0.001594662 1.00223 0 0 0 0 0 0 -0.002015948 0.00222522 0.9977746 -0.002016186 1.002016 0.9977748 0.006862699 0.00686264 0.9931369 0.00686264 0.9931369 0.993137 0 0 0 0 0 0 0.9979757 0.002023994 0.9979757 0.9979763 0.002023875 0.9979764 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.08308213 0.9169175 1.00225e-4 0.9998995 1.00259e-4 1.00259e-4 0.9169174 0.9169176 0.9998995 0.9998996 1.00225e-4 0.9998995 0.9169174 0.08308225 0.9998995 1.00292e-4 0.9998995 0.9998996 0.9169174 0.08308225 0.08308213 0.08308225 1.00259e-4 1.00259e-4 0.08490633 0.08490645 0.08490633 0.9150939 9.99542e-5 0.9999 0.9150933 0.9150938 0.9998997 0.9999 9.99542e-5 0.9999 0.08490633 0.08490645 9.99542e-5 1.00029e-4 0.9998997 1.00029e-4 0.9150933 0.08490645 0.9998997 1.00029e-4 0.9998997 0.9999 0.08295619 0.9170436 0.9170435 0.9170436 0.9998998 0.9998999 0.9170435 0.9170436 0.9170435 0.08295607 0.9998997 9.98758e-5 0.08295613 0.08295607 9.99501e-5 9.98758e-5 0.9998997 9.98758e-5 0.08295619 0.9170436 1.00024e-4 0.9998999 9.99501e-5 9.98758e-5 0.9195318 0.9195321 0.9998998 0.9999 9.9961e-5 0.9998999 0.9195318 0.08046799 0.9998998 1.00096e-4 0.9998998 0.9999 0.08046787 0.9195321 9.9961e-5 0.9998999 9.99173e-5 1.00029e-4 0.08046787 0.08046793 9.99173e-5 1.00029e-4 0.9998998 1.00096e-4</float_array>
+          <technique_common>
+            <accessor source="#box-mesh-map-0-array" count="228" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="box-mesh-vertices">
+          <input semantic="POSITION" source="#box-mesh-positions"/>
+        </vertices>
+        <triangles material="ID9-material" count="38">
+          <input semantic="VERTEX" source="#box-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#box-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#box-mesh-map-0" offset="2" set="0"/>
+          <p>39 0 0 37 0 1 36 0 2 35 3 9 33 3 10 32 3 11 27 5 15 25 5 16 24 5 17 29 2 66 40 2 67 28 2 68 30 11 69 41 11 70 29 11 71 31 2 72 42 2 73 30 2 74 31 2 75 40 2 76 43 2 77 24 5 78 45 5 79 44 5 80 26 12 81 45 12 82 25 12 83 24 13 84 47 13 85 27 13 86 27 5 87 46 5 88 26 5 89 32 14 90 49 14 91 48 14 92 33 3 93 50 3 94 49 3 95 35 3 96 50 3 97 34 3 98 32 3 99 51 3 100 35 3 101 37 15 102 52 15 103 36 15 104 38 0 105 53 0 106 37 0 107 36 0 108 55 0 109 39 0 110 39 16 111 54 16 112 38 16 113 39 0 114 38 0 115 37 0 116 35 3 123 34 3 124 33 3 125 27 5 129 26 5 130 25 5 131 29 2 180 41 2 181 40 2 182 30 2 183 42 2 184 41 2 185 31 2 186 43 2 187 42 2 188 31 19 189 28 19 190 40 19 191 24 5 192 25 5 193 45 5 194 26 20 195 46 20 196 45 20 197 24 21 198 44 21 199 47 21 200 27 5 201 47 5 202 46 5 203 32 3 204 33 3 205 49 3 206 33 3 207 34 3 208 50 3 209 35 22 210 51 22 211 50 22 212 32 3 213 48 3 214 51 3 215 37 23 216 53 23 217 52 23 218 38 0 219 54 0 220 53 0 221 36 0 222 52 0 223 55 0 224 39 24 225 55 24 226 54 24 227</p>
+        </triangles>
+        <triangles material="aruco_300-material" count="2">
+          <input semantic="VERTEX" source="#box-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#box-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#box-mesh-map-0" offset="2" set="0"/>
+          <p>31 2 6 29 2 7 28 2 8 31 2 120 30 2 121 29 2 122</p>
+        </triangles>
+        <triangles material="Material_001-material" count="36">
+          <input semantic="VERTEX" source="#box-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#box-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#box-mesh-map-0" offset="2" set="0"/>
+          <p>23 1 3 22 1 4 20 1 5 19 4 12 18 4 13 16 4 14 45 5 18 8 5 19 44 5 20 46 5 21 10 5 22 45 5 23 44 5 24 11 5 25 47 5 26 46 5 27 11 5 28 9 5 29 41 2 30 12 2 31 40 2 32 42 6 33 14 6 34 41 6 35 43 2 36 13 2 37 42 2 38 40 2 39 15 2 40 43 2 41 49 7 42 0 7 43 48 7 44 50 3 45 2 3 46 49 3 47 51 8 48 1 8 49 50 8 50 48 3 51 3 3 52 51 3 53 53 9 54 4 9 55 52 9 56 54 0 57 6 0 58 53 0 59 52 0 60 7 0 61 55 0 62 55 10 63 5 10 64 54 10 65 23 1 117 21 1 118 22 1 119 19 4 126 17 4 127 18 4 128 45 5 132 10 5 133 8 5 134 46 5 135 9 5 136 10 5 137 44 5 138 8 5 139 11 5 140 46 5 141 47 5 142 11 5 143 41 2 144 14 2 145 12 2 146 42 2 147 13 2 148 14 2 149 43 2 150 15 2 151 13 2 152 40 2 153 12 2 154 15 2 155 49 3 156 2 3 157 0 3 158 50 3 159 1 3 160 2 3 161 51 3 162 3 3 163 1 3 164 48 3 165 0 3 166 3 3 167 53 17 168 6 17 169 4 17 170 54 0 171 5 0 172 6 0 173 52 0 174 4 0 175 7 0 176 55 18 177 7 18 178 5 18 179</p>
+        </triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="ID2" name="ID2" type="NODE">
+        <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
+        <instance_geometry url="#box-mesh" name="ID2">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="ID9-material" target="#ID9-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="aruco_300-material" target="#aruco_300-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Material_001-material" target="#Material_001-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

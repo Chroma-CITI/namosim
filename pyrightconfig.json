@@ -1,6 +1,6 @@
 {
-  "include": ["namosim", "tests"],
-  "exclude": ["**/__pycache__"],
+  "include": ["namosim", "namoros"],
+  "exclude": ["**/__pycache__", "**/build", "**/install", "**/log"],
   "ignore": [],
   "defineConstant": {
     "DEBUG": true
