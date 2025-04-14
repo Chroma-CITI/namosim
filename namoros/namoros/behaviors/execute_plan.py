@@ -2,32 +2,24 @@ import copy
 import typing as t
 
 import py_trees
-import rclpy
 from kobuki_ros_interfaces.msg import Sound
 from namoros_msgs.msg._namo_path import NamoPath
-from namosim.navigation.basic_actions import Advance
 from py_trees.behaviour import Behaviour
-from py_trees.common import Status
-from py_trees.composites import Parallel, Selector, Sequence
+from py_trees.composites import Selector, Sequence
 from py_trees.trees import BehaviourTree
 
 from namoros.behavior_node import NamoBehaviorNode
 from namoros.behaviors.approach import Approach
-from namoros.behaviors.backup import BackUp
 from namoros.behaviors.clear_global_costmap import ClearGlobalCostmap
 from namoros.behaviors.clear_local_costmap import ClearLocalCostmap
 from namoros.behaviors.detect_conflicts_guard import DetectConflictsGuard
 from namoros.behaviors.face_obstacle import FaceObstacle
 from namoros.behaviors.follow_path import FollowPath
-from namoros.behaviors.grab import Grab
-from namoros.behaviors.interrupt_robot import InterruptRobot
 from namoros.behaviors.pause import Pause
 from namoros.behaviors.play_sound import PlaySound
 from namoros.behaviors.redetect_obstacle import RedetectObstacle
 from namoros.behaviors.release import Release
 from namoros.behaviors.TriggerReplan import TriggerReplan
-from namoros.behaviors.UpdatePlan import UpdatePlan
-from namoros.namo_planner import NamoRosPath
 
 
 class ExecuteNamoPlan(py_trees.behaviour.Behaviour):
@@ -108,7 +100,7 @@ class ExecuteNamoPlan(py_trees.behaviour.Behaviour):
             )
             return BehaviourTree(root)
 
-        paths: t.List[NamoPath] = self.node.plan.paths
+        paths: t.List[NamoPath] = self.node.plan.paths  # type: ignore
         for namo_path in paths:
             nav_path = copy.deepcopy(namo_path.path)
             if namo_path.is_transfer:
@@ -116,7 +108,7 @@ class ExecuteNamoPlan(py_trees.behaviour.Behaviour):
                 grab = self.create_grab_tree(namo_path)
                 root.add_child(grab)
                 # remove the pre-grab and post-release poses since those are executed manually
-                nav_path.poses = nav_path.poses[1:-1]
+                nav_path.poses = nav_path.poses[1:-1]  # type: ignore
             follow_path = FollowPath(
                 node=self.node,
                 namo_path=namo_path,

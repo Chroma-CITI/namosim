@@ -1,14 +1,16 @@
-from collections import deque
 import math
 import os
+import sys
 import typing as t
+from collections import deque
 
+import cv2
 import numpy as np
 import numpy.typing as npt
 import shapely
 import yaml
 from PIL import Image, ImageDraw
-from shapely.geometry import Polygon, MultiPolygon, box
+from shapely.geometry import MultiPolygon, Polygon, box
 from typing_extensions import Self
 
 from namosim.data_models import (
@@ -18,7 +20,6 @@ from namosim.data_models import (
     PoseModel,
 )
 from namosim.utils import utils
-import cv2
 
 
 class BinaryOccupancyGrid:
