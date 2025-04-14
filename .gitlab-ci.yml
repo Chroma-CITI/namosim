@@ -17,7 +17,7 @@ build-and-test-job:
   script:
     - apt-get update -y
     - apt-get install -y swig curl python3-pip
-    - rosdep install --from-paths . -r -y
+    - rosdep install --from-paths . -r -y || true
     - pip install -r namosim/requirements.txt --ignore-installed
     - pip install -r namoros/requirements.txt --ignore-installed
     - ./namoros/build_plugins.sh
@@ -32,7 +32,7 @@ pages:
   script:
     - apt-get update -y
     - apt-get install -y swig curl python3-pip
-    - rosdep install --from-paths . -r -y
+    - rosdep install --from-paths . -r -y || true
     - pip install -r namosim/requirements.txt
     - pip install -r namoros/requirements.txt
     - cd docs
