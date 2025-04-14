@@ -7,7 +7,7 @@
   // "python.autoComplete.extraPaths": ["./"],
   "[python]": {
     "editor.codeActionsOnSave": {
-      "source.unusedImports": "always" // Pylance removes unused imports
+      "source.unusedImports": "always" 
     }
   }
 }
