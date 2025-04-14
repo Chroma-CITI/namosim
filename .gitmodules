@@ -1,4 +1,4 @@
 [submodule "aruco_markers"]
 	path = aruco_markers
-	url = git@github.com:namo-robotics/aruco_markers.git
+	url = https://github.com/david-wb/aruco_ros.git
 	branch = humble
