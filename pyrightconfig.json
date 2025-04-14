@@ -1,5 +1,5 @@
 {
-  "include": ["namosim", "tests"],
+  "include": ["namosim", "namoros"],
   "exclude": ["**/__pycache__"],
   "ignore": [],
   "defineConstant": {

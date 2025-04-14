@@ -1,0 +1,159 @@
+
+- topic_name: "/keyboard/keypress"
+  ros_type_name: "std_msgs/msg/Int32"
+  gz_type_name: "gz.msgs.Int32"
+
+- topic_name: "/namo_grab"
+  ros_type_name: "ros_gz_interfaces/msg/ParamVec"
+  gz_type_name: "gz.msgs.Param_V"
+  direction: ROS_TO_GZ
+
+- topic_name: "/namo_release"
+  ros_type_name: "ros_gz_interfaces/msg/ParamVec"
+  gz_type_name: "gz.msgs.Param_V"
+  direction: ROS_TO_GZ
+
+- topic_name: "/namoros_msg"
+  ros_type_name: "std_msgs/msg/String"
+  gz_type_name: "gz.msgs.StringMsg"
+  direction: ROS_TO_GZ
+
+- topic_name: "/world/namo_world/clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS
+
+# robots
+
+- ros_topic_name: "/robot_0/joint_states"
+  gz_topic_name: "/world/namo_world/model/robot_0/joint_state"
+  ros_type_name: "sensor_msgs/msg/JointState"
+  gz_type_name: "gz.msgs.Model"
+  direction: GZ_TO_ROS
+- ros_topic_name: "/robot_1/joint_states"
+  gz_topic_name: "/world/namo_world/model/robot_1/joint_state"
+  ros_type_name: "sensor_msgs/msg/JointState"
+  gz_type_name: "gz.msgs.Model"
+  direction: GZ_TO_ROS
+
+- topic_name: "/clock"
+  ros_type_name: "rosgraph_msgs/msg/Clock"
+  gz_type_name: "gz.msgs.Clock"
+  direction: GZ_TO_ROS
+
+# transforms
+- gz_topic_name: "/model/robot_0/tf"
+  ros_topic_name: "/robot_0/tf"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+- gz_topic_name: "/model/robot_0/tf_static"
+  ros_topic_name: "/robot_0/tf_static"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+- gz_topic_name: "/model/robot_0/pose"
+  ros_type_name: "geometry_msgs/msg/PoseArray"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+- gz_topic_name: "/model/robot_0/odometry"
+  ros_topic_name: "/robot_0/odom"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+- ros_topic_name: "/robot_0/cmd_vel"
+  gz_topic_name: "/model/robot_0/cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ
+
+- gz_topic_name: "/model/robot_1/tf"
+  ros_topic_name: "/robot_1/tf"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+- gz_topic_name: "/model/robot_1/tf_static"
+  ros_topic_name: "/robot_1/tf_static"
+  ros_type_name: "tf2_msgs/msg/TFMessage"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+- gz_topic_name: "/model/robot_1/pose"
+  ros_type_name: "geometry_msgs/msg/PoseArray"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
+- gz_topic_name: "/model/robot_1/odometry"
+  ros_topic_name: "/robot_1/odom"
+  ros_type_name: "nav_msgs/msg/Odometry"
+  gz_type_name: "gz.msgs.Odometry"
+  direction: GZ_TO_ROS
+- ros_topic_name: "/robot_1/cmd_vel"
+  gz_topic_name: "/model/robot_1/cmd_vel"
+  ros_type_name: "geometry_msgs/msg/Twist"
+  gz_type_name: "gz.msgs.Twist"
+  direction: ROS_TO_GZ
+
+# camera
+
+- ros_topic_name: "/robot_0/camera/color/image_raw"
+  gz_topic_name: "/robot_0/camera"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/robot_1/camera/color/image_raw"
+  gz_topic_name: "/robot_1/camera"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+# camera_info
+
+- ros_topic_name: "/robot_0/camera/color/camera_info"
+  gz_topic_name: "/robot_0/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+  
+- ros_topic_name: "/robot_1/camera/color/camera_info"
+  gz_topic_name: "/robot_1/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+
+# pose info
+
+- topic_name: "/world/namo_world/dynamic_pose/info"
+  ros_type_name: "geometry_msgs/msg/PoseArray"
+  gz_type_name: "gz.msgs.Pose_V"
+
+# movables
+
+- topic_name: "/model/movable_box/pose"
+  ros_type_name: "geometry_msgs/msg/PoseArray"
+  gz_type_name: "gz.msgs.Pose_V"
+
+- topic_name: "/model/obstacle_0/pose"
+  ros_type_name: "geometry_msgs/msg/PoseArray"
+  gz_type_name: "gz.msgs.Pose_V"
+
+- topic_name: "/model/obstacle_1/pose"
+  ros_type_name: "geometry_msgs/msg/PoseArray"
+  gz_type_name: "gz.msgs.Pose_V"
+
+- topic_name: "/model/obstacle_2/pose"
+  ros_type_name: "geometry_msgs/msg/PoseArray"
+  gz_type_name: "gz.msgs.Pose_V"
+
+# scan
+
+- ros_topic_name: "/robot_0/scan"
+  gz_topic_name: "/world/namo_world/model/robot_0/link/rplidar_link/sensor/rplidar/scan"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "/robot_1/scan"
+  gz_topic_name: "/world/namo_world/model/robot_1/link/rplidar_link/sensor/rplidar/scan"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
