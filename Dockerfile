@@ -16,8 +16,8 @@ COPY . .
 RUN rosdep install -ry --from-paths . || true
 
 # Install Python dependencies
-RUN pip install -r namosim/requirements.txt --ignore-installed && \
-    pip install -r namoros/requirements.txt --ignore-installed
+RUN pip install -r namosim/requirements.txt && \
+    pip install -r namoros/requirements.txt
 
 # Build plugins
 # RUN ./namoros/build_plugins.sh
