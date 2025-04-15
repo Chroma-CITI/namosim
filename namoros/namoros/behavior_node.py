@@ -613,7 +613,7 @@ class NamoBehaviorNode(Node):
         pose_str = f"{{x: {new_box_pose.position.x}, y: {new_box_pose.position.y}, z: {new_box_pose.position.z}}}"
         orient_str = f"{{w: {new_box_pose.orientation.w}, x: {new_box_pose.orientation.x}, y: {new_box_pose.orientation.y}, z: {new_box_pose.orientation.z}}}"
 
-        shell_command = f"gz service -s /world/namo_world/set_pose --reqtype gz.msgs.Pose --reptype gz.msgs.Boolean --timeout 300 --req 'name: \"{obstacle_name}\", position: {pose_str}, orientation: {orient_str}'"
+        shell_command = f"ign service -s /world/namo_world/set_pose --reqtype ignition.msgs.Pose --reptype ignition.msgs.Boolean --timeout 300 --req 'name: \"{obstacle_name}\", position: {pose_str}, orientation: {orient_str}'"
         self.get_logger().info(f"set obstacle pose command: {shell_command}")
         # Execute the shell command synchronously
         subprocess.run(shell_command, shell=True)
