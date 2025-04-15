@@ -19,9 +19,6 @@ RUN rosdep install -ry --from-paths . || true
 RUN pip install -r namosim/requirements.txt && \
     pip install -r namoros/requirements.txt
 
-# Build plugins
-# RUN ./namoros/build_plugins.sh
-
 # Build the project
 # RUN colcon build
 
