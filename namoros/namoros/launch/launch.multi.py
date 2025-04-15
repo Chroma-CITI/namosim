@@ -2,6 +2,7 @@ import logging
 import os
 import typing as t
 
+from ament_index_python import get_package_prefix
 import xacro
 from ament_index_python.packages import get_package_share_directory  # type: ignore
 from launch import LaunchDescription
@@ -281,8 +282,8 @@ def spawn_obstacles(context: t.Any, *args, **kwargs):  # type: ignore
 
 def namo_planner_bringup(context: t.Any, *args, **kwargs):  # type: ignore
     pkg_share = get_package_share_directory("namoros")
-    plugin_path = get_package_share_directory("namoros")
-    print("package share directory: ", pkg_share)
+    plugin_prefix = get_package_prefix("namoros_gz")
+    plugin_path = os.path.join(plugin_prefix, "lib")
     default_rviz_config_path = os.path.join(pkg_share, "nav2_default_view.rviz")
     bridge_config_path = os.path.join(pkg_share, "ros_gz_bridge.yaml")
     ros_gz_bridge = Node(
