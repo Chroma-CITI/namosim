@@ -2,7 +2,7 @@ FROM osrf/ros:humble-desktop-full
 
 # Install dependencies
 RUN apt-get update -y && \
-    apt-get install -y curl python3-pip && \
+    apt-get install -y curl python3-pip ros-humble-grid-map && \
     rm -rf /var/lib/apt/lists/*
 
 # Set up workspace
