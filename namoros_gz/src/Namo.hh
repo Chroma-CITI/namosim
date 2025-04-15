@@ -23,7 +23,7 @@
 #include <gz/sim/System.hh>
 
 // It's good practice to use a custom namespace for your project.
-namespace namo
+namespace namoros_gz
 {
   // Forward declaration
   class NamoPrivate;

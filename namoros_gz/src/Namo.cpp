@@ -40,7 +40,7 @@
 using namespace gz;
 using namespace gz::sim;
 using namespace systems;
-using namespace namo;
+using namespace namoros_gz;
 
 /// \brief Velocity command.
 struct Commands
@@ -62,7 +62,7 @@ struct GrabReleaseCommand
   std::string obstacleLink;
 };
 
-class namo::NamoPrivate
+class namoros_gz::NamoPrivate
 {
 
 public:
@@ -239,8 +239,8 @@ void Namo::PostUpdate(const gz::sim::UpdateInfo &_info,
 // This is required to register the plugin. Make sure the interfaces match
 // what's in the header.
 IGNITION_ADD_PLUGIN(
-    namo::Namo,
+    namoros_gz::Namo,
     gz::sim::System,
-    namo::Namo::ISystemPreUpdate,
-    namo::Namo::ISystemPostUpdate,
-    namo::Namo::ISystemConfigure)
+    namoros_gz::Namo::ISystemPreUpdate,
+    namoros_gz::Namo::ISystemPostUpdate,
+    namoros_gz::Namo::ISystemConfigure)

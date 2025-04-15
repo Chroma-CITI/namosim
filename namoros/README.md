@@ -19,20 +19,12 @@ source install/setup.bash
 Then launch the demo script.
 
 ```bash
-./launch_demo.sh
+./namoros/launch_demo.sh
 ```
 
 ## Usage
 
 Take a look at the demo script code for more details.
-
-## Compile the GZ plugins
-
-### GZ
-
-```bash
-./build_plugins.sh
-```
 
 ## Usage on a Real Robot
 

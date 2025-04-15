@@ -21,7 +21,7 @@
       <real_time_factor>1.000000</real_time_factor>
       <max_contacts>20</max_contacts>
     </physics>
-    <plugin filename="libNamo.so" name="namo::Namo">
+    <plugin filename="libnamoros_gz.so" name="namoros_gz::Namo">
     </plugin>
     <plugin filename="libgz-sim-physics-system" name="gz::sim::systems::Physics">
     </plugin>
