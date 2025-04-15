@@ -14,7 +14,7 @@ NAMOSIM is a robot motion-planning simulator designed for the problem of navigat
 First, make sure to include the submodules when cloning the repo.
 
 ```
-git clone --recurse-submodules git@gitlab.inria.fr:chroma/namo/namosim.git
+git clone --recurse-submodules https://gitlab.inria.fr/chroma/namo/namosim.git
 ```
 
 Next, use `rosdep` to install the dependencies listed in the `package.xml` files: 
@@ -44,11 +44,11 @@ source install/setup.bash
 
 ## Examples
 
-The best way is to open the repo in VSCode and use the pythong test explorer to run the `e2e` tests.
+The best way is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
 
 Alternativley you can launch a test from the command line like so:
 ```bash
-python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
+python3 -m pytest namosim/tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
 
 ### Run a Basic Scenario and Visualize in RVIZ
