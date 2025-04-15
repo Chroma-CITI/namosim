@@ -26,8 +26,8 @@ rosdep install --from-paths . -r -y
 If any of the python dependencies fail to install with `rosdep` you can try to install them with `pip` instead:
 
 ```bash
-pip install -r namosim/requirements.txt --ignore-installed
-pip install -r namoros/requirements.txt --ignore-installed
+pip install -r namosim/requirements.txt
+pip install -r namoros/requirements.txt
 ```
 
 Compile the `namoros` Gazebo plugin:
