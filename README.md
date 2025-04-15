@@ -30,11 +30,6 @@ pip install -r namosim/requirements.txt
 pip install -r namoros/requirements.txt
 ```
 
-Compile the `namoros` Gazebo plugin:
-```bash
-./namoros/build_plugins.sh
-```
-
 Finally, build and source the project.
 
 ```bash
