@@ -16,7 +16,6 @@ data_files: list[tuple[str, list[str]]] = [
         [
             "package.xml",
             "ros_gz_bridge.yaml",
-            "gz_plugin/build/libNamo.so",
             "rviz/urdf_config.rviz",
             "rviz/nav2_default_view.rviz",
             "namoros/launch/launch.multi.py",
