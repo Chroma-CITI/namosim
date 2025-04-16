@@ -6,7 +6,7 @@ NAMOSIM is a robot motion planner designed for the problem of navigation among m
 
 This repo consists of the following ROS2 packages:
 
-- **namosim**: A Python module in which contains all of the core NAMO motion planning code
+- **namosim**: The main python package which contains all of the core motion planning code
 - **namoros**: A set of ROS2 nodes which expose services and topics for computing NAMO plans and interacting with the **namosim** planner. It also provides examples of executing NAMO plans on simulated turtlebots.
 - **namoros_msgs**: ROS2 message types used by **namoros**
 - **namoros_gz**: A Gazebo plugin for simulating grab and release actions. It works by dynamically creating a fixed joint between specified links on the robot and obstacle.
