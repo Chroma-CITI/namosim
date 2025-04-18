@@ -171,6 +171,8 @@ def spawn_robots(context: t.Any, *args, **kwargs):  # type: ignore
                     f"/namosim/social_costmap",
                     f"namosim/{agent.uid}/social_costmap",
                 ),
+                ("/namosim/robot_0/manip_search", "namosim/robot_0/manip_search"),
+                ("/namosim/robot_1/manip_search", "namosim/robot_1/manip_search"),
             ],
         )
 
