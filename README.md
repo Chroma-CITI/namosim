@@ -60,7 +60,7 @@ The following example runs the most basic scenario with the (Stillman,2005) algo
 Start rviz2:
 
 ```bash
-rviz2 -d namosim/rviz/ROS2/basic_view.rviz
+rviz2 -d namosim/rviz/basic_view.rviz
 ```
 
 Then, in a new terminal, run:
@@ -84,8 +84,6 @@ To build the docs site locally, run:
 ```bash
 ./scripts/make_docs.sh
 ```
-
-The poetry shell will need to be activated.
 
 ## Authors
 
