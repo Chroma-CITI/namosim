@@ -2,7 +2,7 @@ setuptools
 typer
 jinja2
 pyright
-numpy>=1,<2
+numpy==1.21.5
 black
 transforms3d
 pytest
