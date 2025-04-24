@@ -724,10 +724,9 @@ class NamoBehaviorNode(Node):
         return future
 
     def update_robot_footprint_for_grab(self, obs_marker_id: str):
-        (
-            _,
-            obstacle_polygon,
-        ) = self.movable_obstacle_tracker.get_obstacle_pose_and_polygon(obs_marker_id)
+        obstacle_polygon = self.movable_obstacle_tracker.get_obstacle_polygon(
+            obs_marker_id
+        )
         if obstacle_polygon is None:
             raise Exception("Obstacle not found in namosim world")
         robot_pose = self.lookup_robot_pose()

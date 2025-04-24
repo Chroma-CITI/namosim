@@ -166,11 +166,7 @@ class World:
             if not id:
                 continue
 
-            if (
-                el.tagName in ["svg:path", "path"]
-                and type_ == "movable"
-                and config.auto_create_movable_obstacles
-            ):
+            if el.tagName in ["svg:path", "path"] and type_ == "movable":
                 polygon = shapes[id]
                 style = Style.from_string(el.getAttribute("style"))
                 pose = (

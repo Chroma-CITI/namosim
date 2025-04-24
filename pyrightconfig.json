@@ -1,5 +1,5 @@
 {
-  "include": ["namosim", "namoros"],
+  "include": ["namosim/namosim", "namoros"],
   "exclude": ["**/__pycache__", "**/build", "**/install", "**/log"],
   "ignore": [],
   "defineConstant": {
@@ -15,7 +15,11 @@
   "pythonPlatform": "Linux",
   "executionEnvironments": [
     {
-      "root": "."
+      "root": "./namosim",
+    },
+    {
+      "root": "./namoros",
+      "extraPaths": ["./namosim"]
     }
   ]
 }
