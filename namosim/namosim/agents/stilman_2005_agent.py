@@ -151,7 +151,7 @@ class Stilman2005Agent(Agent):
                 [self.rotation_unit_angle, -self.rotation_unit_angle]
             )
         self._all_rot_angles = self.rotation_unit_angle * np.array(
-            range(1, 360 // int(self.rotation_unit_angle))
+            range(360 // int(self.rotation_unit_angle))
         )
 
         if (
@@ -2018,6 +2018,7 @@ class Stilman2005Agent(Agent):
 
             # 1. Find the best obstacle transfer end configuration, that is, the one with the best compromise cost
             best_transfer_end_configuration = self.find_best_transfer_end_configuration(
+                map_grid=w_t.map,
                 robot_pose=robot_pose,
                 robot_polygon=robot_polygon,
                 agent_id=agent_id,
@@ -2113,6 +2114,7 @@ class Stilman2005Agent(Agent):
                 #   (because we assume the A Star search to have completed, giving us the paths to ALL reachable
                 #   configurations.
                 best_transfer_end_configuration = self.find_best_transfer_end_configuration(
+                    map_grid=w_t.map,
                     robot_pose=robot_pose,
                     robot_polygon=robot_polygon,
                     agent_id=agent_id,
@@ -2523,6 +2525,7 @@ class Stilman2005Agent(Agent):
     def find_best_transfer_end_configuration(
         self,
         *,
+        map_grid: BinaryOccupancyGrid,
         robot_pose: PoseModel,
         robot_polygon: Polygon,
         agent_id: str,
@@ -2651,10 +2654,10 @@ class Stilman2005Agent(Agent):
                     continue
 
                 # For that, we:
-                for rot in [0.0] + self._all_rot_angles:
+                for angle in self._all_rot_angles:
                     # Iterate over the possible obstacle rotations in this cell
                     obstacle_pose_at_transfer_end = utils.grid_pose_to_real_pose(
-                        list(current_cell) + [rot],
+                        [current_cell[0], current_cell[1], angle],
                         robot_inflated_grid.cell_size,
                         robot_inflated_grid.grid_pose,
                     )
@@ -2668,8 +2671,9 @@ class Stilman2005Agent(Agent):
                         other_entities_polygons,
                         other_entities_aabb_tree,
                     )
-
                     if collides_with:
+                        continue
+                    if map_grid.polygon_has_collisions(obstacle_transfer_end_poly):
                         continue
 
                     for init_robot_manip_config in init_robot_manip_configs:
