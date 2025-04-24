@@ -1,8 +1,15 @@
 # NAMOSIM
 
-NAMOSIM is a robot motion-planning simulator designed for the problem of navigation among movable obstacles (NAMO).
-
 ![NAMO Simulator](docs/source/_static/namo.gif)
+
+NAMOSIM is a robot motion planner designed for the problem of navigation among movable obstacles (NAMO). It simulates mobile robots navigating in 2D polygonal environments in which certain obstacles can be grabbed and relocated. It currently supports **holonomic** and **differential drive** motion models and provides ROS2 nodes which can be used to easily execute NAMO plans on real or simulated robots. A variety of agent types are implemented, including primarily our **Stilman2005** baseline agent. New agents utilizing alternative algorithmic approaches can be created and plugged into the planner in a straightforward manner by implementing the **Agent** base class.
+
+This repo consists of the following ROS2 packages:
+
+- **namosim**: The main python package which contains all of the core motion planning code
+- **namoros**: A set of ROS2 nodes which expose services and topics for computing NAMO plans and interacting with the **namosim** planner. It also provides examples of executing NAMO plans on simulated turtlebots.
+- **namoros_msgs**: ROS2 message types used by **namoros**
+- **namoros_gz**: A Gazebo plugin for simulating grab and release actions. It works by dynamically creating a fixed joint between specified links on the robot and obstacle.
 
 ## System Requirements
 
@@ -48,12 +55,12 @@ python3 -m pytest namosim/tests/e2e/e2e_test.py::TestE2E::test_social_dr_success
 
 ### Run a Basic Scenario and Visualize in RVIZ
 
-The following example runs the most basic scenario with the (Stillman,2005) algorithm and assumes you have `ros2` and `rviz2` installed.
+The following example runs the most basic scenario with the (Stillman,2005) algorithm and assumes you have `ROS2` and `RViz2` installed.
 
 Start rviz2:
 
 ```bash
-rviz2 -d namosim/rviz/ROS2/basic_view.rviz
+rviz2 -d namosim/rviz/basic_view.rviz
 ```
 
 Then, in a new terminal, run:
@@ -77,8 +84,6 @@ To build the docs site locally, run:
 ```bash
 ./scripts/make_docs.sh
 ```
-
-The poetry shell will need to be activated.
 
 ## Authors
 
