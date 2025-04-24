@@ -4,7 +4,6 @@ from collections import deque
 import numpy as np
 import shapely.geometry as geom
 from aruco_markers_msgs.msg import Marker, MarkerArray
-import rclpy
 from tf2_geometry_msgs import (
     PoseStamped,
     TransformStamped,
@@ -16,8 +15,6 @@ from namoros import utils
 from namoros.config import Config
 from namoros.utils import Pose2D
 from namoros.data_models import ShapeEnum
-import rclpy.time
-import rclpy.duration
 
 
 class MovableObstacleTracker:
@@ -81,7 +78,7 @@ class MovableObstacleTracker:
             == Config.MOVABLE_OBSTACLE_DETECTION_AVG_N
         )
 
-    def get_averaged_marker_pose(self, marker_id: str) -> PoseStamped:
+    def get_averaged_marker_pose(self, marker_id: str) -> PoseStamped | None:
         if marker_id not in self.detected_movables:
             raise Exception("Provided aruco id was not found")
 
@@ -91,6 +88,9 @@ class MovableObstacleTracker:
 
         # Iterate over the poses and sum their components
         pose_list = self.detected_movables[marker_id]
+        num_poses = len(pose_list)
+        if num_poses == 0:
+            return
 
         for pose in pose_list:
             pos_x += pose.pose.position.x
@@ -102,7 +102,7 @@ class MovableObstacleTracker:
             quat_w += pose.pose.orientation.w
 
         # Compute the averages
-        num_poses = len(pose_list)
+
         avg_position = [pos_x / num_poses, pos_y / num_poses, pos_z / num_poses]
         avg_orientation = [
             quat_x / num_poses,
@@ -215,6 +215,8 @@ class MovableObstacleTracker:
     def update_obstacle_polygons(self):
         for marker_id in self.detected_movables.keys():
             marker_pose = self.get_averaged_marker_pose(marker_id)
+            if marker_pose is None:
+                continue
             polygon_in_marker_frame = self._get_estimated_obstacle_polygon(marker_id)
             polygon_in_map = self.transform_polygon_to_map_frame(
                 marker_id, marker_pose, polygon_in_marker_frame
@@ -224,11 +226,12 @@ class MovableObstacleTracker:
                 uid=marker_id, pose=pose2d, polygon=polygon_in_map
             )
 
-    def get_obstacle_pose_and_polygon(self, marker_id: str):
+    def get_obstacle_polygon(self, marker_id: str) -> geom.Polygon | None:
         marker_pose = self.get_averaged_marker_pose(marker_id)
+        if marker_pose is None:
+            return
         polygon_in_marker_frame = self._get_estimated_obstacle_polygon(marker_id)
         polygon_in_map = self.transform_polygon_to_map_frame(
             marker_id, marker_pose, polygon_in_marker_frame
         )
-        pose2d = Pose2D(polygon_in_map.centroid.x, polygon_in_map.centroid.y, 0)
-        return pose2d, polygon_in_map
+        return polygon_in_map
