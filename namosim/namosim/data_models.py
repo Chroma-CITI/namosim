@@ -2,7 +2,6 @@ import typing as t
 
 from pydantic_xml import BaseXmlModel, attr, element
 import yaml
-from typing import List, Optional
 from pydantic import BaseModel
 
 PoseModel = t.Tuple[float, float, float]
@@ -94,6 +93,7 @@ class NamoConfigModel(BaseXmlModel, tag="namo_config"):
     random_seed: int = attr(default=10)
     generate_report: bool = attr(default=True)
     agents: t.List[AgentConfigModel] = element("agent", default=[])
+    auto_create_movable_obstacles: bool = attr(default=True)
 
 
 class GoalYamlModel(BaseModel):

@@ -1,8 +1,6 @@
 import copy
 import io
-import math
 import os
-import random
 import typing as t
 from xml.dom import minidom
 
@@ -11,7 +9,7 @@ import numpy as np
 from bidict import bidict  # type: ignore[reportPrivateImportUsage]
 from PIL import Image, ImageDraw
 from shapely.geometry import Point
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import Polygon
 from typing_extensions import Self
 
 from namosim import svg_styles
@@ -37,7 +35,6 @@ from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.data_models import namo_config_from_yaml
-from collections import deque
 
 
 class World:
@@ -169,7 +166,11 @@ class World:
             if not id:
                 continue
 
-            if el.tagName in ["svg:path", "path"] and type_ == "movable":
+            if (
+                el.tagName in ["svg:path", "path"]
+                and type_ == "movable"
+                and config.auto_create_movable_obstacles
+            ):
                 polygon = shapes[id]
                 style = Style.from_string(el.getAttribute("style"))
                 pose = (
