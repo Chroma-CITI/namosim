@@ -6,6 +6,7 @@
   <description>TODO: Package description</description>
   <maintainer email="david.brown@inria.fr">David Brown</maintainer>
   <license>MIT</license>
+  <depend>aruco_markers</depend>
   <depend>black</depend>
   <depend>geometry_msgs</depend>
   <depend>grid_map</depend>
