@@ -202,7 +202,7 @@ class Stilman2005Agent(Agent):
                 entity.movability = self.deduce_movability(entity.type_)
 
         self.action_space_reduction = (
-            "only_r_acc_then_c_1_x"  # ['none', 'only_r_acc', 'only_r_acc_then_c_1_x']
+            "none"  # ['none', 'only_r_acc', 'only_r_acc_then_c_1_x']
         )
 
         # Initialize static obstacles occupation grid, since it is not supposed to change
@@ -967,9 +967,9 @@ class Stilman2005Agent(Agent):
                 isinstance(conflict, ConcurrentGrabConflict)
                 and conflict.obstacle_uid not in new_w_t_no_dyn.entity_to_agent
             ):
-                new_w_t_no_dyn.entity_to_agent[conflict.obstacle_uid] = (
-                    conflict.other_agent_id
-                )
+                new_w_t_no_dyn.entity_to_agent[
+                    conflict.obstacle_uid
+                ] = conflict.other_agent_id
         robot_inflated_grid.deactivate_entities(new_dynamic_entities)
         # Iterate over each conflicting robot uid, and change its polygon to an encompassing circle
         # encounting for all likely states at at t+1
@@ -1096,7 +1096,7 @@ class Stilman2005Agent(Agent):
         prev_list: t.Set[str],
         ccs_data: connectivity.CCSData | None = None,
         neighborhood: t.Sequence[GridCellModel] = utils.CHESSBOARD_NEIGHBORHOOD,
-        action_space_reduction: str = "only_r_acc_then_c_1_x",
+        action_space_reduction: str = "none",
         depth=0,
     ):
         """
@@ -2018,7 +2018,6 @@ class Stilman2005Agent(Agent):
 
             # 1. Find the best obstacle transfer end configuration, that is, the one with the best compromise cost
             best_transfer_end_configuration = self.find_best_transfer_end_configuration(
-                map_grid=w_t.map,
                 robot_pose=robot_pose,
                 robot_polygon=robot_polygon,
                 agent_id=agent_id,
@@ -2080,9 +2079,9 @@ class Stilman2005Agent(Agent):
 
             if path_found and transfer_end_configuration:
                 # 3. If a path is found, return it
-                raw_path: t.List[RobotObstacleConfiguration] = (
-                    graph_search.reconstruct_path(came_from, transfer_end_configuration)
-                )
+                raw_path: t.List[
+                    RobotObstacleConfiguration
+                ] = graph_search.reconstruct_path(came_from, transfer_end_configuration)
                 robot_config_after_release = self.get_robot_config_after_release(
                     robot_inflated_grid,
                     raw_path[-1].robot.floating_point_pose,
@@ -2114,7 +2113,6 @@ class Stilman2005Agent(Agent):
                 #   (because we assume the A Star search to have completed, giving us the paths to ALL reachable
                 #   configurations.
                 best_transfer_end_configuration = self.find_best_transfer_end_configuration(
-                    map_grid=w_t.map,
                     robot_pose=robot_pose,
                     robot_polygon=robot_polygon,
                     agent_id=agent_id,
@@ -2525,7 +2523,6 @@ class Stilman2005Agent(Agent):
     def find_best_transfer_end_configuration(
         self,
         *,
-        map_grid: BinaryOccupancyGrid,
         robot_pose: PoseModel,
         robot_polygon: Polygon,
         agent_id: str,
@@ -2672,8 +2669,6 @@ class Stilman2005Agent(Agent):
                         other_entities_aabb_tree,
                     )
                     if collides_with:
-                        continue
-                    if map_grid.polygon_has_collisions(obstacle_transfer_end_poly):
                         continue
 
                     for init_robot_manip_config in init_robot_manip_configs:
@@ -2827,10 +2822,7 @@ class Stilman2005Agent(Agent):
             return None
 
         # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-        (
-            collides_with,
-            csv_polygon,
-        ) = collision.get_csv_collisions(
+        (collides_with, csv_polygon,) = collision.get_csv_collisions(
             agent_id=agent_id,
             robot_pose=robot_pose,
             robot_action=release_action,
@@ -3115,10 +3107,7 @@ class Stilman2005Agent(Agent):
                 continue
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            (
-                collides_with,
-                robot_csv_polygon,
-            ) = collision.get_csv_collisions(
+            (collides_with, robot_csv_polygon,) = collision.get_csv_collisions(
                 agent_id=agent_id,
                 robot_pose=current_configuration.robot.floating_point_pose,
                 robot_action=action,
@@ -3131,10 +3120,7 @@ class Stilman2005Agent(Agent):
                 continue
 
             # TODO Refactor collision.csv_check_collisions to check for any number of attached polygons or make new function
-            (
-                collides_with,
-                obstacle_csv_polygon,
-            ) = collision.get_csv_collisions(
+            (collides_with, obstacle_csv_polygon,) = collision.get_csv_collisions(
                 agent_id=obstacle_uid,
                 robot_pose=current_configuration.robot.floating_point_pose,
                 robot_action=action,
@@ -3455,13 +3441,13 @@ class Stilman2005Agent(Agent):
         for i in range(len(acc_cells_for_obs)):
             cell = acc_cells_for_obs[i]
             normalized_social_cost_costmap[cell[0]][cell[1]] = normalized_social_cost[i]
-            normalized_distance_from_obs_costmap[cell[0]][cell[1]] = (
-                normalized_distance_cost[i]
-            )
+            normalized_distance_from_obs_costmap[cell[0]][
+                cell[1]
+            ] = normalized_distance_cost[i]
             if normalized_distance_to_goal is not None:
-                normalized_distance_from_goal_costmap[cell[0]][cell[1]] = (
-                    normalized_distance_to_goal[i]
-                )
+                normalized_distance_from_goal_costmap[cell[0]][
+                    cell[1]
+                ] = normalized_distance_to_goal[i]
 
         stocg.display_or_log(
             grid=normalized_social_cost_costmap,

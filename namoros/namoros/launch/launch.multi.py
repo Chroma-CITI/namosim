@@ -122,6 +122,9 @@ def spawn_robots(context: t.Any, *args, **kwargs):  # type: ignore
                 {
                     "scenario_file": LaunchConfiguration("scenario_file"),
                     "config_file": LaunchConfiguration("config_file"),
+                    "omniscient_obstacle_perception": LaunchConfiguration(
+                        "omniscient_obstacle_perception"
+                    ),
                     "agent_id": agent.uid,
                     "is_sim": True,
                     "use_sim_time": True,
@@ -148,6 +151,7 @@ def spawn_robots(context: t.Any, *args, **kwargs):  # type: ignore
                 ("/tf_static", "tf_static"),
                 ("/map", "map"),
                 ("/initialpose", "initialpose"),
+                ("/trajectories", "trajectories"),
                 ("/plan", "plan"),
                 ("/goal_pose", "goal_pose"),
                 ("/scan", "scan"),
