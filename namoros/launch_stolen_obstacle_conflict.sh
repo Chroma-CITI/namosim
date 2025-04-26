@@ -11,4 +11,5 @@ ros2 launch namoros launch.multi.py \
     scenario_file:=${DIR}/config/stolen_obstacle_conflict.svg \
     config_file:=${DIR}/config/namoros_config.yaml \
     sdf_file:=${DIR}/config/namo_world.sdf \
-    map_yaml:=${DIR}/config/stolen_obstacle_conflict.yaml
+    map_yaml:=${DIR}/config/stolen_obstacle_conflict.yaml \
+    omniscient_obstacle_perception:="true"
