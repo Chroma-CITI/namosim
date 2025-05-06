@@ -2,7 +2,7 @@
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "ros.distro": "humble",
-  "python.testing.pytestArgs": ["namosim/tests", "namoros/test"],
+  "python.testing.pytestArgs": ["tests"],
   "python.testing.pytestPath": "pytest",
   "[python]": {
     "editor.codeActionsOnSave": {
