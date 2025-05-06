@@ -115,7 +115,7 @@ class MovableObstacleTracker:
         ]
 
         # Normalize the averaged quaternion to make it valid
-        norm = np.sqrt(sum(x ** 2 for x in avg_orientation))
+        norm = np.sqrt(sum(x**2 for x in avg_orientation))
         avg_orientation = [x / norm for x in avg_orientation]
 
         # Create the averaged PoseStamped
