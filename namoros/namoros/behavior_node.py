@@ -126,14 +126,14 @@ class NamoBehaviorNode(Node):
             # subscriptions
             self.obstacle_pose_subscriptions = {}
             for obstacle in self.namoros_config.obstacles:
-                self.obstacle_pose_subscriptions[
-                    obstacle.name
-                ] = self.create_subscription(
-                    PoseArray,
-                    f"/model/{obstacle.name}/pose",
-                    self.create_obstacle_pose_callback(obstacle.name),
-                    10,
-                    callback_group=self.main_cb_group,
+                self.obstacle_pose_subscriptions[obstacle.name] = (
+                    self.create_subscription(
+                        PoseArray,
+                        f"/model/{obstacle.name}/pose",
+                        self.create_obstacle_pose_callback(obstacle.name),
+                        10,
+                        callback_group=self.main_cb_group,
+                    )
                 )
 
         # publishers

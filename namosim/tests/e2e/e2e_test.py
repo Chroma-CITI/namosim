@@ -42,7 +42,7 @@ class TestE2E:
                 self.scenarios_folder, "minimal_nav_only.svg"
             )
         )
-        sim.run().join(self.scenarios_folder, "minimal_nav_only.svg")
+        sim.run()
         assert any(
             [
                 x.message == "Agent robot_0 finished executing all its goals."
