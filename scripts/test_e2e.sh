@@ -3,6 +3,6 @@
 DIR=$(dirname "$0")
 cd $DIR/..
 
-set -eo pipefail
-
-./namosim/scripts/test_e2e.sh
+export NAMO_NO_DISPLAY_WINDOW="TRUE"
+export NAMO_DEACTIVATE_RVIZ="TRUE"
+python3 -m pytest -s tests/e2e
