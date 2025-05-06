@@ -11,7 +11,6 @@ import numpy.typing as npt
 import shapely.affinity as affinity
 import typing_extensions as tx
 from matplotlib import colors
-from PIL import Image, ImageDraw
 from shapely.geometry import LineString, Polygon
 from rclpy.impl.rcutils_logger import RcutilsLogger
 
