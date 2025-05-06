@@ -41,14 +41,19 @@ class PlannerNode(Node):
             parameters=[
                 ("scenario_file", RosParam.Type.STRING),
                 ("agent_id", RosParam.Type.STRING),
+                ("omniscient_obstacle_perception", RosParam.Type.BOOL),
             ],
         )
         self.scenario_file = t.cast(str, self.get_parameter("scenario_file").value)
         self.agent_id = t.cast(str, self.get_parameter("agent_id").value)
+        self.omniscient_obstacle_perception = t.cast(
+            bool, self.get_parameter("omniscient_obstacle_perception").value
+        )
         self.namo_planner = NamoPlanner(
             ros_node=self,
             scenario_file=self.scenario_file,
             agent_id=self.agent_id,
+            omniscient_obstacle_perception=self.omniscient_obstacle_perception,
             logger=self.get_logger(),
         )
         self.namo_planner.publish_world()

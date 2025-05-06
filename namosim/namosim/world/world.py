@@ -1,8 +1,6 @@
 import copy
 import io
-import math
 import os
-import random
 import typing as t
 from xml.dom import minidom
 
@@ -11,7 +9,7 @@ import numpy as np
 from bidict import bidict  # type: ignore[reportPrivateImportUsage]
 from PIL import Image, ImageDraw
 from shapely.geometry import Point
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import Polygon
 from typing_extensions import Self
 
 from namosim import svg_styles
@@ -37,7 +35,6 @@ from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.data_models import namo_config_from_yaml
-from collections import deque
 
 
 class World:
@@ -229,7 +226,7 @@ class World:
 
             # make robot polygon a perfect circle
             robot_radius = utils.get_circumscribed_radius(robot_polygon)
-            robot_polygon = Point(init_pose[0], init_pose[1]).buffer(robot_radius)
+            robot_polygon = robot_polygon
             goals: t.List[Goal] = []
 
             for goal in agent.goals:

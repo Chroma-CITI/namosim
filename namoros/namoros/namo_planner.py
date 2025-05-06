@@ -138,13 +138,22 @@ def action_to_message(action: Action) -> NamoAction:
 
 class NamoPlanner:
     def __init__(
-        self, ros_node: Node, scenario_file: str, agent_id: str, logger: RcutilsLogger
+        self,
+        ros_node: Node,
+        scenario_file: str,
+        agent_id: str,
+        omniscient_obstacle_perception: bool,
+        logger: RcutilsLogger,
     ):
         nammosim_logger = NamosimLogger(printout=True, ros2_logger=logger)
         if scenario_file.strip().lower().endswith(".svg"):
             self.world = World.load_from_svg(scenario_file, logger=nammosim_logger)
         else:
             self.world = World.load_from_yaml(scenario_file, logger=nammosim_logger)
+
+        if not omniscient_obstacle_perception:
+            for obstacle in self.world.get_movable_obstacles():
+                self.world.remove_entity(obstacle.uid)
 
         agent = self.world.agents[agent_id]
         if not isinstance(agent, agents.Stilman2005Agent):

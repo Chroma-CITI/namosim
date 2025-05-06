@@ -33,6 +33,10 @@ class FaceObstacle(py_trees.behaviour.Behaviour):
         obstacle_pose = self.node.movable_obstacle_tracker.get_averaged_marker_pose(
             marker_id=self.obstacle_id
         )
+        if obstacle_pose is None:
+            self._status = Status.SUCCESS
+            return
+
         obstacle_pose = self.node.transform_pose(obstacle_pose, f"base_link")
         if obstacle_pose is None:
             raise Exception("Failed to transform obstacle pose")

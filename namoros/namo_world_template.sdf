@@ -180,45 +180,32 @@
         <enable_wind>0</enable_wind>
         <kinematic>0</kinematic>
       </link>
-    </model> 
-    {% for box in movable_boxes %} <include>
-    <uri>
-        model://models/movable_box/model.sdf
-    </uri>
-    <name>{{ box.name }}</name>
-    <pose>{{ box.pose }}</pose>
-    <scale>{{ box.scale }} {{ box.scale }} {{ box.scale }}</scale>
-    <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">
-      <publish_link_pose>true</publish_link_pose>
-      <publish_nested_model_pose>true</publish_nested_model_pose>
-      <use_pose_vector_msg>true</use_pose_vector_msg>
-      <update_frequency>10</update_frequency>
-    </plugin>
-  </include> {% endfor %} <model name="walls">
-  <pose>0 0 0 0 0 0</pose>
-  <static>true</static>
-  <link name="walls">
-    <visual name="visual">
-      <geometry>
-        <mesh>
-          <uri>file://config/map_walls.stl</uri>
-        </mesh>
-      </geometry>
+    </model>
+    <model name="walls">
+      <pose>0 0 0 0 0 0</pose>
+      <static>true</static>
+      <link name="walls">
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>file://config/map_walls.stl</uri>
+            </mesh>
+          </geometry>
 
-      <material>
-        <ambient>0.96078431 0.6 0.16470588 1</ambient>
-        <diffuse>0.96078431 0.6 0.16470588 1</diffuse>
-        <specular>0.96078431 0.6 0.16470588 1</specular>
-      </material>
-    </visual>
-    <collision name='collision'>
-      <geometry>
-        <mesh>
-          <uri>file://config/map_walls.stl</uri>
-        </mesh>
-      </geometry>
-    </collision>
-  </link>
-</model>
-</world>
+          <material>
+            <ambient>0.96078431 0.6 0.16470588 1</ambient>
+            <diffuse>0.96078431 0.6 0.16470588 1</diffuse>
+            <specular>0.96078431 0.6 0.16470588 1</specular>
+          </material>
+        </visual>
+        <collision name='collision'>
+          <geometry>
+            <mesh>
+              <uri>file://config/map_walls.stl</uri>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+  </world>
 </sdf>

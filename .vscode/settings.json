@@ -4,7 +4,6 @@
   "ros.distro": "humble",
   "python.testing.pytestArgs": ["namosim/tests", "namoros/test"],
   "python.testing.pytestPath": "pytest",
-  // "python.autoComplete.extraPaths": ["./"],
   "[python]": {
     "editor.codeActionsOnSave": {
       "source.unusedImports": "always" 
