@@ -1,3 +1,0 @@
-string entity_id
-geometry_msgs/Polygon polygon
-namoros_msgs/NamoPose pose

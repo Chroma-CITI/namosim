@@ -16,8 +16,7 @@ COPY . .
 RUN rosdep install -ry --from-paths . || true
 
 # Install Python dependencies
-RUN pip install -r namosim/requirements.txt && \
-    pip install -r namoros/requirements.txt
+RUN pip install -r requirements.txt
 
 # Build the project
 # RUN colcon build
