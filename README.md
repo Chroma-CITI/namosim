@@ -4,13 +4,6 @@
 
 NAMOSIM is a robot motion planner designed for the problem of navigation among movable obstacles (NAMO). It simulates mobile robots navigating in 2D polygonal environments in which certain obstacles can be grabbed and relocated. It currently supports **holonomic** and **differential drive** motion models and provides ROS2 nodes which can be used to easily execute NAMO plans on real or simulated robots. A variety of agent types are implemented, including primarily our **Stilman2005** baseline agent. New agents utilizing alternative algorithmic approaches can be created and plugged into the planner in a straightforward manner by implementing the **Agent** base class.
 
-This repo consists of the following ROS2 packages:
-
-- **namosim**: The main python package which contains all of the core motion planning code
-- **namoros**: A set of ROS2 nodes which expose services and topics for computing NAMO plans and interacting with the **namosim** planner. It also provides examples of executing NAMO plans on simulated turtlebots.
-- **namoros_msgs**: ROS2 message types used by **namoros**
-- **namoros_gz**: A Gazebo plugin for simulating grab and release actions. It works by dynamically creating a fixed joint between specified links on the robot and obstacle.
-
 ## System Requirements
 
 - Ubuntu 22.04
@@ -25,7 +18,7 @@ git clone https://gitlab.inria.fr/chroma/namo/namosim.git
 cd namosim
 ```
 
-Next, use `rosdep` to install the dependencies listed in the `package.xml` files: 
+Next, use `rosdep` to install the dependencies listed in the `package.xml` file: 
 
 ```bash
 rosdep install --from-paths . -r -y
@@ -34,15 +27,7 @@ rosdep install --from-paths . -r -y
 If any of the python dependencies fail to install with `rosdep` you can try to install them with `pip` instead:
 
 ```bash
-pip install -r namosim/requirements.txt
-pip install -r namoros/requirements.txt
-```
-
-Finally, build and source the project.
-
-```bash
-colcon build
-source install/setup.bash
+pip install -r requirements.txt
 ```
 
 ## Examples
@@ -51,7 +36,7 @@ The best way is to open the repo in VSCode and use the python test explorer to r
 
 Alternativley you can launch a test from the command line like so:
 ```bash
-python3 -m pytest namosim/tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
+python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
 
 ### Run a Basic Scenario and Visualize in RVIZ
@@ -61,13 +46,13 @@ The following example runs the most basic scenario with the (Stillman,2005) algo
 Start rviz2:
 
 ```bash
-rviz2 -d namosim/rviz/basic_view.rviz
+rviz2 -d rviz/basic_view.rviz
 ```
 
 Then, in a new terminal, run:
 
 ```bash
-python3 -m pytest namosim/tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
+python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
 
 ## Run Unit Tests
