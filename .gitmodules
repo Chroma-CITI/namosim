@@ -1,4 +1,0 @@
-[submodule "aruco_markers"]
-	path = aruco_markers
-	url = https://github.com/namo-robotics/aruco_markers.git
-	branch = humble
