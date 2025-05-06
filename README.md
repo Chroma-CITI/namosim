@@ -18,10 +18,11 @@ This repo consists of the following ROS2 packages:
 
 ## Setup
 
-First, make sure to include the submodules when cloning the repo.
+First, clone the repo.
 
-```
-git clone --recurse-submodules https://gitlab.inria.fr/chroma/namo/namosim.git
+```bash
+git clone https://gitlab.inria.fr/chroma/namo/namosim.git
+cd namosim
 ```
 
 Next, use `rosdep` to install the dependencies listed in the `package.xml` files: 

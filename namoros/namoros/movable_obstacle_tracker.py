@@ -41,6 +41,9 @@ class MovableObstacleTracker:
             self.process_marker(marker)
 
     def process_marker(self, marker: Marker):
+        if self.node.omniscient_obstacle_perception:
+            return
+
         marker_id = str(marker.id)
         if marker_id not in self.possible_marker_ids:
             return
@@ -80,7 +83,7 @@ class MovableObstacleTracker:
 
     def get_averaged_marker_pose(self, marker_id: str) -> PoseStamped | None:
         if marker_id not in self.detected_movables:
-            raise Exception("Provided aruco id was not found")
+            return None
 
         # Initialize accumulators for position and orientation
         pos_x, pos_y, pos_z = 0.0, 0.0, 0.0
@@ -112,7 +115,7 @@ class MovableObstacleTracker:
         ]
 
         # Normalize the averaged quaternion to make it valid
-        norm = np.sqrt(sum(x**2 for x in avg_orientation))
+        norm = np.sqrt(sum(x ** 2 for x in avg_orientation))
         avg_orientation = [x / norm for x in avg_orientation]
 
         # Create the averaged PoseStamped

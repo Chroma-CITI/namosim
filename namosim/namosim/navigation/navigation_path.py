@@ -309,10 +309,7 @@ class TransferPath:
                             if exit_early_for_any_conflict:
                                 return conflicts
 
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=agent_id,
                     robot_pose=self.robot_path.poses[0],
                     robot_action=self.grab_action,
@@ -413,10 +410,7 @@ class TransferPath:
                 robot_before_release_pose = self.robot_path.poses[-2]
                 obstacle_before_release_pose = self.obstacle_path.poses[-2]
 
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=agent_id,
                     robot_pose=robot_before_release_pose,
                     robot_action=self.release_action,
@@ -512,10 +506,7 @@ class TransferPath:
                         ):
                             return conflicts
             else:
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=agent_id,
                     robot_pose=robot_pose_prior_to_action,
                     robot_action=action,
@@ -616,10 +607,7 @@ class TransferPath:
                         ):
                             return conflicts
 
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=self.obstacle_uid,
                     robot_action=action,
                     robot_pose=self.robot_path.poses[
