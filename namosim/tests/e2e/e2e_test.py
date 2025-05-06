@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from namosim.simulator import Simulator, create_sim_from_file
+from namosim.simulator import create_sim_from_file
 import cProfile
 
 
@@ -42,7 +42,7 @@ class TestE2E:
                 self.scenarios_folder, "minimal_nav_only.svg"
             )
         )
-        sim.run()
+        sim.run().join(self.scenarios_folder, "minimal_nav_only.svg")
         assert any(
             [
                 x.message == "Agent robot_0 finished executing all its goals."

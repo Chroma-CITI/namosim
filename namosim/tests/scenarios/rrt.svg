@@ -15,6 +15,10 @@
    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
    xmlns:cc="http://creativecommons.org/ns#"
    xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <svg:path
+     id="robot_0"
+     style="fill:#0000ff;fill-rule:evenodd;stroke-width:0.0209148"
+     d="M 38.318207,45.58991 H 119.76816 V 67.52082 H 38.318207 Z" />
   <svg:metadata
      id="metadata41">
     <rdf:RDF>
@@ -52,8 +56,8 @@
      id="namedview37"
      showgrid="false"
      inkscape:zoom="0.04"
-     inkscape:cx="11412.5"
-     inkscape:cy="5562.5"
+     inkscape:cx="9037.5"
+     inkscape:cy="4037.5"
      inkscape:current-layer="svg2"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -88,21 +92,4 @@
      inkscape:connector-curvature="0"
      sodipodi:nodetypes="ccccccccccccc"
      inkscape:label="#path4149" />
-  <svg:path
-     sodipodi:type="star"
-     style="fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
-     id="robot_0"
-     type="shape"
-     sodipodi:sides="16"
-     sodipodi:cx="50.045689"
-     sodipodi:cy="54.244644"
-     sodipodi:r1="19.513119"
-     sodipodi:r2="19.138178"
-     sodipodi:arg1="-0.10272987"
-     sodipodi:arg2="0.093619673"
-     inkscape:flatsided="true"
-     inkscape:rounded="0"
-     inkscape:randomized="0"
-     d="m 69.455933,52.243588 -0.711746,7.5803 -3.558423,6.730911 -5.863362,4.856801 -7.275657,2.243288 -7.5803,-0.711746 -6.730911,-3.558422 -4.856802,-5.863362 -2.243288,-7.275658 0.711746,-7.5803 3.558423,-6.730911 5.863362,-4.856801 7.275657,-2.243288 7.580301,0.711746 6.730911,3.558423 4.856801,5.863361 z"
-     inkscape:label="#path4172" />
 </svg:svg>

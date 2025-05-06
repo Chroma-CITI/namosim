@@ -1,16 +1,14 @@
 import math
 import os
-import sys
 import typing as t
 from collections import deque
 
 import cv2
 import numpy as np
 import numpy.typing as npt
-import shapely
 import yaml
 from PIL import Image, ImageDraw
-from shapely.geometry import MultiPolygon, Polygon, box
+from shapely.geometry import Polygon, box
 from typing_extensions import Self
 
 from namosim.data_models import (
@@ -341,3 +339,35 @@ class BinaryOccupancyGrid:
         width = d_width * config.resolution
         height = d_height * config.resolution
         return cls(cell_size=config.resolution, width=width, height=height, grid=grid)
+
+    def draw_polygon_on_map(
+        self,
+        polygon: Polygon,
+        polygon_color: tuple = (255, 0, 0),
+    ) -> Image.Image:
+        """
+        Draw a Shapely polygon (coordinates in meters) on a Pillow image.
+
+        Args:
+            polygon (Polygon): Shapely Polygon with coordinates in meters.
+            image_size (tuple): Width and height of the output image in pixels (default: (500, 500)).
+            polygon_color (tuple): RGB color for the polygon (default: red).
+            background_color (tuple): RGB color for the background (default: white).
+
+        Returns:
+            Image.Image: Pillow image with the drawn polygon.
+        """
+        # Create a new blank image
+        image = self.to_image()
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)
+        draw = ImageDraw.Draw(image)
+
+        poly_coordinates_in_image = [
+            self.pose_to_cell(x, y) for (x, y) in polygon.exterior.coords
+        ]
+
+        # Draw the polygon
+        draw.polygon(poly_coordinates_in_image, fill=polygon_color, outline=(0, 0, 0))
+        image = image.transpose(Image.FLIP_TOP_BOTTOM)
+
+        return image

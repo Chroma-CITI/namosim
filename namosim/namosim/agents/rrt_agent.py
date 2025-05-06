@@ -57,7 +57,7 @@ class RRTAgent(Agent):
     def init(self, world: "w.World"):
         super().init(world)
         self.robot_inflated_grid = copy.deepcopy(world.map).inflate_map_destructive(
-            self.circumscribed_radius + world.map.cell_size
+            world.map.cell_size
         )
 
         # TODO Make sure static and generalist grid share same width and height (occurs naturally if map borders are static, but not otherwise)
@@ -169,7 +169,7 @@ class RRTAgent(Agent):
         )
 
         plan = rrt.plan()
-        # rrt.plot(plan)
+        rrt.plot(plan)
         if not plan:
             return None
         poses = [x.pose for x in plan]

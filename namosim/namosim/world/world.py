@@ -226,7 +226,7 @@ class World:
 
             # make robot polygon a perfect circle
             robot_radius = utils.get_circumscribed_radius(robot_polygon)
-            robot_polygon = Point(init_pose[0], init_pose[1]).buffer(robot_radius)
+            robot_polygon = robot_polygon
             goals: t.List[Goal] = []
 
             for goal in agent.goals:
