@@ -9,13 +9,13 @@ Panels:
         - /TF1/Tree1
         - /Global Planner1/Path1
         - /Controller1
+        - /Controller1/Trajectories1
         - /NAMO1
         - /NAMO1/obstacles1
         - /Current NAMO Path1
         - /Aruco Result1
         - /namosim1
         - /namosim1/robot_0 manip search1
-        - /namosim1/robot_0 manip search1/Status1
         - /namosim1/Social Costmap1
         - /Namespace1
         - /Namespace1/Topic1
@@ -540,7 +540,7 @@ Visualization Manager:
             Durability Policy: Volatile
             History Policy: Keep Last
             Reliability Policy: Reliable
-            Value: /marker
+            Value: /trajectories
           Value: true
         - Alpha: 1
           Class: rviz_default_plugins/Polygon
@@ -752,7 +752,14 @@ Visualization Manager:
           Enabled: true
           Name: robot_0 manip search
           Namespaces:
-            {}
+            /current_cell: true
+            /diameter_inflated_polygon/init: true
+            /diameter_inflated_polygon/target: true
+            /manip_search/obstacle/polygon: true
+            /manip_search/obstacle/pose: true
+            /manip_search/robot/polygon: true
+            /manip_search/robot/pose: true
+            /visited_cells: true
           Topic:
             Depth: 5
             Durability Policy: Volatile
@@ -855,7 +862,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: -50.215641021728516
+      Scale: -19.816614151000977
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
       X: 9.826303482055664

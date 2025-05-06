@@ -52,7 +52,6 @@ from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.entity import Movability
 from namosim.world.goal import Goal
-from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 
 
@@ -125,7 +124,7 @@ class Stilman2005Agent(Agent):
         else:
             self.manip_search_procedure = self.manip_search
 
-        self.w_social, self.w_dist, self.w_goal = 20.0, 5.0, 2.0
+        self.w_social, self.w_dist, self.w_goal = 20.0, 10.0, 2.0
         self.w_sum = self.w_social + self.w_dist + self.w_goal
         self.TRANSLATION_DISCRETIZATION_FACTOR = (
             self.cell_size
@@ -152,7 +151,7 @@ class Stilman2005Agent(Agent):
                 [self.rotation_unit_angle, -self.rotation_unit_angle]
             )
         self._all_rot_angles = self.rotation_unit_angle * np.array(
-            range(1, 360 // int(self.rotation_unit_angle))
+            range(360 // int(self.rotation_unit_angle))
         )
 
         if (
@@ -203,7 +202,7 @@ class Stilman2005Agent(Agent):
                 entity.movability = self.deduce_movability(entity.type_)
 
         self.action_space_reduction = (
-            "only_r_acc_then_c_1_x"  # ['none', 'only_r_acc', 'only_r_acc_then_c_1_x']
+            "none"  # ['none', 'only_r_acc', 'only_r_acc_then_c_1_x']
         )
 
         # Initialize static obstacles occupation grid, since it is not supposed to change
@@ -1097,7 +1096,7 @@ class Stilman2005Agent(Agent):
         prev_list: t.Set[str],
         ccs_data: connectivity.CCSData | None = None,
         neighborhood: t.Sequence[GridCellModel] = utils.CHESSBOARD_NEIGHBORHOOD,
-        action_space_reduction: str = "only_r_acc_then_c_1_x",
+        action_space_reduction: str = "none",
         depth=0,
     ):
         """
@@ -2652,10 +2651,10 @@ class Stilman2005Agent(Agent):
                     continue
 
                 # For that, we:
-                for rot in [0.0] + self._all_rot_angles:
+                for angle in self._all_rot_angles:
                     # Iterate over the possible obstacle rotations in this cell
                     obstacle_pose_at_transfer_end = utils.grid_pose_to_real_pose(
-                        list(current_cell) + [rot],
+                        [current_cell[0], current_cell[1], angle],
                         robot_inflated_grid.cell_size,
                         robot_inflated_grid.grid_pose,
                     )
@@ -2669,7 +2668,6 @@ class Stilman2005Agent(Agent):
                         other_entities_polygons,
                         other_entities_aabb_tree,
                     )
-
                     if collides_with:
                         continue
 

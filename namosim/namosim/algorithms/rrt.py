@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from dataclasses import dataclass
-from typing import Tuple, List, Optional
+from typing import List, Optional
 import random
 import math
 
@@ -44,7 +44,7 @@ class DiffDriveRRT:
         self.tree: List[Node] = [self.start]
 
         # Robot parameters
-        self.max_vel = self.map.cell_size
+        self.max_vel = self.map.cell_size * 2
 
     def random_pose(self) -> PoseModel:
         """Generate random configuration in workspace"""
@@ -118,9 +118,12 @@ class DiffDriveRRT:
         new_polygon = affinity.translate(self.polygon, xoff=dx, yoff=dy)
         new_polygon = affinity.rotate(new_polygon, angle=dtheta)
 
-        cell = self.map.pose_to_cell(node.pose[0], node.pose[1])
-        occupied = self.map.grid[cell[0]][cell[1]]
-        return occupied == 0
+        occupied = self.map.polygon_has_collisions(new_polygon)
+
+        # debug_img = self.map.draw_polygon_on_map(polygon=new_polygon)
+        # debug_img.save('debug_img.png')
+
+        return occupied == False
 
     def near_goal(self, node: Node) -> bool:
         """Check if node is near goal"""
@@ -180,8 +183,8 @@ class DiffDriveRRT:
             plt.plot(path_x, path_y, "g-", linewidth=2)
 
         # Plot start and goal
-        plt.plot(self.start.pose[0], self.start.pose[1], "bo", markersize=10)
-        plt.plot(self.goal.pose[0], self.goal.pose[1], "go", markersize=10)
+        # plt.plot(self.start.pose[0], self.start.pose[1], "bo", markersize=10)
+        # plt.plot(self.goal.pose[0], self.goal.pose[1], "go", markersize=10)
 
         plt.xlim(0, self.map.width)
         plt.ylim(0, self.map.height)

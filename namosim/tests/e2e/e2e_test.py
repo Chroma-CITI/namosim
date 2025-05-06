@@ -1,7 +1,7 @@
 import os
 import unittest
 
-from namosim.simulator import Simulator, create_sim_from_file
+from namosim.simulator import create_sim_from_file
 import cProfile
 
 

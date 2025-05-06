@@ -71,6 +71,7 @@ class NamoBehaviorNode(Node):
                 ("scenario_file", RosParam.Type.STRING),
                 ("config_file", RosParam.Type.STRING),
                 ("agent_id", RosParam.Type.STRING),
+                ("omniscient_obstacle_perception", RosParam.Type.BOOL),
             ],
         )
         self.declare_parameter("is_sim", False)
@@ -78,6 +79,9 @@ class NamoBehaviorNode(Node):
         self.agent_id = t.cast(str, self.get_parameter("agent_id").value)
         self.namoros_config = load_namoros_config(
             t.cast(str, self.get_parameter("config_file").value)
+        )
+        self.omniscient_obstacle_perception = t.cast(
+            bool, self.get_parameter("omniscient_obstacle_perception").value
         )
         self.is_sim = t.cast(bool, self.get_parameter("is_sim").value)
 
@@ -122,11 +126,11 @@ class NamoBehaviorNode(Node):
             # subscriptions
             self.obstacle_pose_subscriptions = {}
             for obstacle in self.namoros_config.obstacles:
-                self.obstacle_pose_subscriptions[obstacle.marker_id] = (
+                self.obstacle_pose_subscriptions[obstacle.name] = (
                     self.create_subscription(
                         PoseArray,
                         f"/model/{obstacle.name}/pose",
-                        self.create_obstacle_pose_callback(obstacle.marker_id),
+                        self.create_obstacle_pose_callback(obstacle.name),
                         10,
                         callback_group=self.main_cb_group,
                     )
@@ -234,14 +238,6 @@ class NamoBehaviorNode(Node):
 
         # Set covariance (example: low uncertainty)
         msg.pose.covariance = [
-            0.25,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.25,
             0.0,
             0.0,
             0.0,
@@ -269,7 +265,15 @@ class NamoBehaviorNode(Node):
             0.0,
             0.0,
             0.0,
-            0.06853891945200942,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
         ]
 
         self.pub_init_pose.publish(msg)
@@ -307,9 +311,9 @@ class NamoBehaviorNode(Node):
                 x=goal.pose[0], y=goal.pose[1], z=0.0, theta=goal.pose[2], header=header
             )
 
-    def create_obstacle_pose_callback(self, marker_id: str):
+    def create_obstacle_pose_callback(self, obstacle_name: str):
         def cb(msg: PoseArray):
-            self.obstacle_poses[marker_id] = msg.poses[0]  # type: ignore
+            self.obstacle_poses[obstacle_name] = msg.poses[0]  # type: ignore
 
         return cb
 
@@ -554,18 +558,16 @@ class NamoBehaviorNode(Node):
         for obs in self.namoros_config.obstacles:
             if obs.marker_id == marker_id:
                 return obs.name
-        raise Exception(
-            f"No obstacle for marker_id {marker_id} found in namoros config"
-        )
+        return None
 
     def grab(self, obs_marker_id: str):
         self.grabbed = True
         self.get_logger().info(f"Grabbing obstacle {obs_marker_id}.")
         obstacle_name = self.obstacle_marker_id_to_name(obs_marker_id)
+        if obstacle_name is None:
+            obstacle_name = obs_marker_id
         if self.is_sim:
-            self.set_obstacle_pose(
-                obs_marker_id=obs_marker_id, obstacle_name=obstacle_name
-            )
+            self.set_obstacle_pose(obstacle_name=obstacle_name)
 
         params = ParamVec()
         robot_id_param = Parameter(name="robot_name")
@@ -603,10 +605,10 @@ class NamoBehaviorNode(Node):
         for pose in msg.poses:
             self.get_logger().info(str(pose))
 
-    def set_obstacle_pose(self, obs_marker_id: str, obstacle_name: str) -> Pose | None:
-        if obs_marker_id not in self.obstacle_poses:
+    def set_obstacle_pose(self, obstacle_name: str) -> Pose | None:
+        if obstacle_name not in self.obstacle_poses:
             return
-        new_box_pose = self.obstacle_poses[obs_marker_id]
+        new_box_pose = self.obstacle_poses[obstacle_name]
         new_box_pose.position.z += 0.4
 
         # Define the shell command
@@ -724,10 +726,13 @@ class NamoBehaviorNode(Node):
         return future
 
     def update_robot_footprint_for_grab(self, obs_marker_id: str):
-        (
-            _,
-            obstacle_polygon,
-        ) = self.movable_obstacle_tracker.get_obstacle_pose_and_polygon(obs_marker_id)
+        if self.omniscient_obstacle_perception:
+            # TODO
+            return
+
+        obstacle_polygon = self.movable_obstacle_tracker.get_obstacle_polygon(
+            obs_marker_id
+        )
         if obstacle_polygon is None:
             raise Exception("Obstacle not found in namosim world")
         robot_pose = self.lookup_robot_pose()

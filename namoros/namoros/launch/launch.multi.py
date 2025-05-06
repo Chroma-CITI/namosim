@@ -18,9 +18,7 @@ from launch.substitutions import (
     LaunchConfiguration,
 )
 from launch_ros.actions import Node
-import namosim
-import namosim.world
-import namosim.world.world
+from namosim.world import world as _world
 from launch.logging import get_logger
 
 
@@ -32,9 +30,9 @@ def spawn_robots(context: t.Any, *args, **kwargs):  # type: ignore
         "models/turtlebot_description/robots/kobuki_hexagons_astra.urdf.xacro",
     )
     scenario_file = LaunchConfiguration("scenario_file").perform(context)
-    world = namosim.world.world.World.load_from_svg(scenario_file)
+    w = _world.World.load_from_svg(scenario_file)
     robots = []
-    for agent in world.agents.values():
+    for agent in w.agents.values():
         try:
             robot_description = xacro.process_file(
                 urdf_path, mappings={"robot_name": agent.uid}
@@ -102,6 +100,9 @@ def spawn_robots(context: t.Any, *args, **kwargs):  # type: ignore
             parameters=[
                 {
                     "scenario_file": LaunchConfiguration("scenario_file"),
+                    "omniscient_obstacle_perception": LaunchConfiguration(
+                        "omniscient_obstacle_perception"
+                    ),
                     "agent_id": agent.uid,
                 }
             ],
@@ -121,6 +122,9 @@ def spawn_robots(context: t.Any, *args, **kwargs):  # type: ignore
                 {
                     "scenario_file": LaunchConfiguration("scenario_file"),
                     "config_file": LaunchConfiguration("config_file"),
+                    "omniscient_obstacle_perception": LaunchConfiguration(
+                        "omniscient_obstacle_perception"
+                    ),
                     "agent_id": agent.uid,
                     "is_sim": True,
                     "use_sim_time": True,
@@ -147,6 +151,7 @@ def spawn_robots(context: t.Any, *args, **kwargs):  # type: ignore
                 ("/tf_static", "tf_static"),
                 ("/map", "map"),
                 ("/initialpose", "initialpose"),
+                ("/trajectories", "trajectories"),
                 ("/plan", "plan"),
                 ("/goal_pose", "goal_pose"),
                 ("/scan", "scan"),
@@ -235,51 +240,40 @@ def spawn_robots(context: t.Any, *args, **kwargs):  # type: ignore
 
 def spawn_obstacles(context: t.Any, *args, **kwargs):  # type: ignore
     scenario_file = LaunchConfiguration("scenario_file").perform(context)
-    world = namosim.world.world.World.load_from_svg(scenario_file)
-    agent_ids = list(world.agents.values())
+    w = _world.World.load_from_svg(scenario_file)
+    agent_ids = list(w.agents.values())
     robot_start_pose = agent_ids[0].pose
     pkg_share = get_package_share_directory("namoros")
-    box1_urdf = os.path.join(pkg_share, "models/movable_box/model_300.urdf")
-    box2_urdf = os.path.join(pkg_share, "models/movable_box/model_301.urdf")
-    box1 = Node(
-        package="ros_gz_sim",
-        executable="create",
-        arguments=[
-            "-world",
-            "namo_world",
-            "-file",
-            box1_urdf,
-            "-name",
-            "obstacle_1",
-            "-x",
-            str(5),
-            "-y",
-            str(5),
-            "-z",
-            "0.5",
-        ],
-        output="screen",
-    )
-    box2 = Node(
-        package="ros_gz_sim",
-        executable="create",
-        arguments=[
-            "-world",
-            "namo_world",
-            "-file",
-            box2_urdf,
-            "-name",
-            "obstacle_2",
-            "-x",
-            str(7),
-            "-y",
-            str(5),
-            "-z",
-            "0.5",
-        ],
-        output="screen",
-    )
-    return [box1, box2]
+
+    urdfs = [
+        os.path.join(pkg_share, "models/movable_box/model_300.urdf"),
+        os.path.join(pkg_share, "models/movable_box/model_301.urdf"),
+    ]
+
+    actions = []
+    for i, obstacle in enumerate(w.get_movable_obstacles()):
+        obs_node = Node(
+            package="ros_gz_sim",
+            executable="create",
+            arguments=[
+                "-world",
+                "namo_world",
+                "-file",
+                urdfs[i],
+                "-name",
+                obstacle.uid,
+                "-x",
+                str(obstacle.pose[0]),
+                "-y",
+                str(obstacle.pose[1]),
+                "-z",
+                "0.5",
+            ],
+            output="screen",
+        )
+        actions.append(obs_node)
+
+    return actions
 
 
 def namo_planner_bringup(context: t.Any, *args, **kwargs):  # type: ignore
@@ -332,6 +326,11 @@ def generate_launch_description() -> LaunchDescription:
     declare_map_arg = DeclareLaunchArgument(
         "map_yaml", description="Path to map yaml file"
     )
+    declare_perception_arg = DeclareLaunchArgument(
+        "omniscient_obstacle_perception",
+        default_value="false",
+        choices=["true", "false"],
+    )
     namo_planner_bringup_launch = OpaqueFunction(function=namo_planner_bringup)
 
     ld = LaunchDescription()
@@ -339,6 +338,7 @@ def generate_launch_description() -> LaunchDescription:
     ld.add_action(declare_scenario_arg)
     ld.add_action(declare_config_arg)
     ld.add_action(declare_map_arg)
+    ld.add_action(declare_perception_arg)
     ld.add_action(namo_planner_bringup_launch)
 
     ld.add_action(OpaqueFunction(function=spawn_robots))

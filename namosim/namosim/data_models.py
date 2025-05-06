@@ -2,7 +2,6 @@ import typing as t
 
 from pydantic_xml import BaseXmlModel, attr, element
 import yaml
-from typing import List, Optional
 from pydantic import BaseModel
 
 PoseModel = t.Tuple[float, float, float]
@@ -46,7 +45,7 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     activate_grids_logging: bool = attr(default=False)
     push_only: bool = attr(default=False)
     robot_rotation_unit_angle: float = attr(default=30)
-    manip_search_bound_percentage: float = attr(default=0.15)
+    manip_search_bound_percentage: float = attr(default=0.3)
     use_social_cost: bool = attr(default=True)
     resolve_conflicts: bool = attr(default=True)
     resolve_deadlocks: bool = attr(default=True)
