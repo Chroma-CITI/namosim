@@ -10,6 +10,8 @@ from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from shapely import affinity
 from shapely.geometry import Polygon
+from namosim.algorithms.kd_tree import KDTree
+import typing as t
 
 
 @dataclass
@@ -42,6 +44,10 @@ class DiffDriveRRT:
         self.max_iter = max_iter
         self.goal_tolerance = goal_tolerance
         self.tree: List[Node] = [self.start]
+        self.kd_tree = KDTree(dimensions=3)
+        self.pose_to_node: t.Dict[PoseModel, Node] = {self.start.pose: self.start}
+
+        self.kd_tree.add(self.start.pose)
 
         # Robot parameters
         self.max_vel = self.map.cell_size * 2
@@ -55,10 +61,9 @@ class DiffDriveRRT:
 
     def nearest_node(self, pose: PoseModel) -> Node:
         """Find nearest node in tree to given pose"""
-        distances = [
-            utils.distance_between_poses(pose, node.pose) for node in self.tree
-        ]
-        return self.tree[np.argmin(distances)]
+        nearest_pose = tuple(self.kd_tree.query(pose)[0])
+        nearest_node = self.pose_to_node[nearest_pose]
+        return nearest_node
 
     def steer(self, from_node: Node, target: PoseModel) -> Node:
         """Steer by testing ranges of linear and angular velocities towards target"""
@@ -143,11 +148,13 @@ class DiffDriveRRT:
 
             nearest = self.nearest_node(rand_config)
             new_node = self.steer(nearest, rand_config)
+            self.kd_tree.add(new_node.pose)
+            self.pose_to_node[new_node.pose] = new_node
 
             if self.collision_free(new_node):
                 self.tree.append(new_node)
 
-                if self.near_goal(new_node) and n > 5000:
+                if self.near_goal(new_node) and n > 2000:
                     path = self._get_path(new_node)
                     return path
 
