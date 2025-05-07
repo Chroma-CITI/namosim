@@ -15,11 +15,7 @@
   "pythonPlatform": "Linux",
   "executionEnvironments": [
     {
-      "root": "./namosim",
+      "root": ".",
     },
-    {
-      "root": "./namoros",
-      "extraPaths": ["./namosim"]
-    }
   ]
 }
