@@ -19,6 +19,10 @@
      id="robot_0"
      style="fill:#0000ff;fill-rule:evenodd;stroke-width:0.0209148"
      d="M 38.318207,45.58991 H 119.76816 V 67.52082 H 38.318207 Z" />
+  <svg:path
+     id="goal_0"
+     style="fill:none;fill-rule:evenodd;stroke:#0000ff;stroke-width:2;stroke-linecap:square;stroke-miterlimit:10;stroke-dasharray:none"
+     d="m 269.91364,321.61599 h 81.44995 v 21.93091 h -81.44995 z" />
   <svg:metadata
      id="metadata41">
     <rdf:RDF>
@@ -77,13 +81,6 @@
      sodipodi:nodetypes="ccccc"
      inkscape:label="#path3336-6-3"
      type="wall" />
-  <svg:path
-     d="m 320.60736,331.78333 v 0 c 0,-10.26221 8.31916,-18.58137 18.58137,-18.58137 v 0 c 4.92807,0 9.6543,1.9577 13.13899,5.44237 3.48467,3.48467 5.44232,8.21092 5.44232,13.139 v 0 c 0,10.26218 -8.31913,18.58132 -18.58131,18.58132 v 0 c -10.26221,0 -18.58137,-8.31914 -18.58137,-18.58132 z"
-     id="goal_0"
-     type="shape"
-     style="fill:none;fill-rule:evenodd;stroke:#1155cc;stroke-width:2.6458;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
-     inkscape:connector-curvature="0"
-     inkscape:label="#path29-7" />
   <svg:path
      style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:2.6458px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
      d="M 153.40563,111.74924 H 15.463288 V 372.41611 H 385.60038 V 110.76745 H 247.65805 V 96.040507 H 401.80002 V 389.59754 H 0.73634719 V 95.549607 H 153.37585 Z"
