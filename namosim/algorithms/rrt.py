@@ -1,17 +1,16 @@
-import numpy as np
-import matplotlib.pyplot as plt
 from dataclasses import dataclass
-from typing import List, Optional
 import random
-import math
+from typing import List, Optional
 
 from namosim.data_models import PoseModel
-from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
-from shapely import affinity
 from shapely.geometry import Polygon
 from namosim.algorithms.kd_tree import KDTree
-import typing as t
+import math
+from namosim.utils import utils
+import matplotlib.pyplot as plt
+from shapely import affinity
+import numpy as np
 
 
 @dataclass
@@ -30,6 +29,7 @@ class DiffDriveRRT:
         map: BinaryOccupancyGrid,
         max_iter: int = 10000,
         goal_tolerance=0.1,
+        use_kd_tree: bool = True,
     ):
         """
         Initialize RRT planner for differential drive robot
@@ -44,10 +44,13 @@ class DiffDriveRRT:
         self.max_iter = max_iter
         self.goal_tolerance = goal_tolerance
         self.tree: List[Node] = [self.start]
-        self.kd_tree = KDTree(dimensions=3)
-        self.pose_to_node: t.Dict[PoseModel, Node] = {self.start.pose: self.start}
+        self.use_kd_tree = use_kd_tree
 
-        self.kd_tree.add(self.start.pose)
+        def point_getter(node: Node):
+            return (node.pose[0], node.pose[1])
+
+        self.kd_tree = KDTree(dimensions=2, point_getter=point_getter)
+        self.kd_tree.add(self.start)
 
         # Robot parameters
         self.max_vel = self.map.cell_size * 2
@@ -61,9 +64,15 @@ class DiffDriveRRT:
 
     def nearest_node(self, pose: PoseModel) -> Node:
         """Find nearest node in tree to given pose"""
-        nearest_pose = tuple(self.kd_tree.query(pose)[0])
-        nearest_node = self.pose_to_node[nearest_pose]
-        return nearest_node
+
+        if self.use_kd_tree:
+            nearest_node = self.kd_tree.query((pose[0], pose[1]))[0]
+            return nearest_node
+
+        distances = [
+            utils.distance_between_poses(pose, node.pose) for node in self.tree
+        ]
+        return self.tree[np.argmin(distances)]
 
     def steer(self, from_node: Node, target: PoseModel) -> Node:
         """Steer by testing ranges of linear and angular velocities towards target"""
@@ -148,8 +157,9 @@ class DiffDriveRRT:
 
             nearest = self.nearest_node(rand_config)
             new_node = self.steer(nearest, rand_config)
-            self.kd_tree.add(new_node.pose)
-            self.pose_to_node[new_node.pose] = new_node
+
+            if self.use_kd_tree:
+                self.kd_tree.add(new_node)
 
             if self.collision_free(new_node):
                 self.tree.append(new_node)
