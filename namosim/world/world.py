@@ -8,7 +8,7 @@ import cairosvg
 import numpy as np
 from bidict import bidict  # type: ignore[reportPrivateImportUsage]
 from PIL import Image, ImageDraw
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 from typing_extensions import Self
 
 from namosim import svg_styles
@@ -982,9 +982,11 @@ class World:
                     agent_config.initial_pose[1],
                     agent_config.initial_pose[2],
                 )
+                agent_polygon = Point(pose[0], pose[1]).buffer(agent_config.radius)
             elif agent_config.id in agent_poses:
                 pose = agent_poses[agent_config.id]
-            agent_polygon = agent_polygons[agent_config.id]
+                agent_polygon = agent_polygons[agent_config.id]
+
             agent = agts.Stilman2005Agent(
                 navigation_goals=[],
                 config=StilmanBehaviorConfigModel(
