@@ -1,5 +1,5 @@
 {
-  "include": ["namosim/namosim", "namoros"],
+  "include": ["namosim"],
   "exclude": ["**/__pycache__", "**/build", "**/install", "**/log"],
   "ignore": [],
   "defineConstant": {
@@ -9,7 +9,8 @@
   "reportMissingTypeStubs": false,
   "reportIncompatibleMethodOverride": false,
   "reportAttributeAccessIssue": false,
-  "reportArgumentType": false,
+  "reportArgumentType": "warning",
+  "reportAssignmentType": "warning",
   "reportOptionalMemberAccess": false,
   "pythonVersion": "3.10",
   "pythonPlatform": "Linux",

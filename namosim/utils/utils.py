@@ -903,7 +903,7 @@ def path_to_polygon(
 
     linestr = LineString(coordinates=dedup_points)
     buf = linestr.buffer(distance=line_width / 2.0)
-    return buf
+    return t.cast(Polygon, buf)
 
 
 def generate_distinct_colors(num_colors: int):

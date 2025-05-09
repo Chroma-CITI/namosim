@@ -976,6 +976,7 @@ class World:
         agents: t.List["agts.Agent"] = []
         for agent_config in config.agents:
             pose: PoseModel = (0, 0, 0)
+            agent_polygon = Point(pose[0], pose[1]).buffer(agent_config.radius)
             if agent_config.initial_pose:
                 pose = (
                     agent_config.initial_pose[0],
