@@ -166,6 +166,7 @@ class RRTAgent(Agent):
             start=robot_pose,
             goal=goal_pose,
             map=robot_inflated_grid,
+            use_kd_tree=self.config.use_kd_tree,
         )
 
         plan = rrt.plan()

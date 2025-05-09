@@ -74,6 +74,25 @@ class TestE2E:
             ]
         )
 
+    def test_rrt_without_kd_tree(self):
+        sim = create_sim_from_file(
+            simulation_file_path=os.path.join(self.scenarios_folder, "rrt.svg")
+        )
+        sim.ref_world.agents["robot_0"].config.use_kd_tree = False
+        sim.run()
+        assert any(
+            [
+                x.message == "Agent robot_0 finished executing all its goals."
+                for x in sim.logger
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.logger
+            ]
+        )
+
     def test_1_robot_2_goals(self):
         sim = create_sim_from_file(
             simulation_file_path=os.path.join(

@@ -25,6 +25,7 @@ class NavigationOnlyBehaviorConfigModel(BaseBehaviorConfigModel):
 
 class RRTAgentConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["rrt"] = attr()
+    use_kd_tree: bool = attr(default=True)
 
 
 class TeleopBehaviorConfigModel(BaseBehaviorConfigModel):
