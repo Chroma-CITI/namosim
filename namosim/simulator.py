@@ -1,6 +1,5 @@
 import atexit
 import copy
-import io
 import json
 import os
 import random
@@ -471,7 +470,7 @@ class Simulator:
         self,
         world: World,
     ) -> WorldStepReport:
-        all_movables_uids = [x.uid for x in world.get_movable_obstacles()]
+        all_movables_uids = list(world.get_movable_obstacles().keys())
         (
             nb_components,
             biggest_component_size,

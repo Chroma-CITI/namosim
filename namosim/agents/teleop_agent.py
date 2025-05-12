@@ -87,7 +87,7 @@ class TeleopAgent(Agent):
         )
 
     def _grab(self) -> ba.Grab | None:
-        movables = self.world.get_movable_obstacles()
+        movables = self.world.get_movable_obstacles().values()
         for m in movables:
             d = m.polygon.distance(self.polygon)
 
