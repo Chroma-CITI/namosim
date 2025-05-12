@@ -681,11 +681,11 @@ class World:
         )
         return collisions
 
-    def get_movable_obstacles(self) -> t.List[Obstacle]:
-        result = []
+    def get_movable_obstacles(self) -> t.Dict[str, Obstacle]:
+        result: t.Dict[str, Obstacle] = {}
         for e in self.dynamic_entities.values():
             if isinstance(e, Obstacle) and e.movability == Movability.MOVABLE:
-                result.append(e)
+                result[e.uid] = e
         return result
 
     def get_all_obstacles(self) -> t.List[Obstacle]:
