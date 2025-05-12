@@ -2,7 +2,6 @@ import os
 import unittest
 
 from namosim.world.world import World
-from namosim.data_models import namo_config_from_yaml
 
 dirname = os.path.dirname(os.path.abspath(__file__))
 
