@@ -121,6 +121,14 @@ class Plan:
                 idx += path.action_index
         return idx
 
+    def get_last_index_of_current_path(self):
+        idx = 0
+        for path in self.paths[0 : self.component_index + 1]:
+            idx += len(path.actions)
+            if not path.is_fully_executed():
+                break
+        return idx - 1
+
     def get_current_pose_index(self):
         return self.get_current_action_index()
 
