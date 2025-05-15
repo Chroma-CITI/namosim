@@ -47,15 +47,24 @@ class RawPath:
 
     # TODO Have these trans and rot precision values be passed from calling functions !
     def is_start_pose(
-        self, pose: PoseModel, trans_mult: float = 100.0, rot_mult: float = 1.0
+        self,
+        pose: PoseModel,
+        cell_size: float,
     ):
         """
         Returns `True` if the given pose is equivalen to the first pose in the path,
         up to a fixed degree of precision, otherwise `False`.
         """
-        other_pose = utils.real_pose_to_fixed_precision_pose(pose, trans_mult, rot_mult)
+
+        translation_discretization_factor = 2 / cell_size
+        rotation_discretization_factor = 1 / 3
+        other_pose = utils.real_pose_to_fixed_precision_pose(
+            pose, translation_discretization_factor, rotation_discretization_factor
+        )
         start_pose = utils.real_pose_to_fixed_precision_pose(
-            self.poses[0], trans_mult, rot_mult
+            self.poses[0],
+            translation_discretization_factor,
+            rotation_discretization_factor,
         )
         return other_pose == start_pose
 
@@ -188,7 +197,7 @@ class TransferPath:
                 # Check that obstacle is at the expected pose (except if it supposed to be moved before that)
                 current_obstacle_pose = world.dynamic_entities[self.obstacle_uid].pose
                 obstacle_at_start_pose = self.obstacle_path.is_start_pose(
-                    current_obstacle_pose
+                    current_obstacle_pose, cell_size=world.map.cell_size
                 )
 
                 already_grabbed_by_current_robot = (
@@ -218,7 +227,13 @@ class TransferPath:
                     not obstacle_at_start_pose
                     and self.obstacle_uid not in previously_moved_entities_uids
                 ):
-                    conflicts.add(StolenMovableConflict(self.obstacle_uid))
+                    conflicts.add(
+                        StolenMovableConflict(
+                            self.obstacle_uid,
+                            expected_pose=self.obstacle_path.poses[0],
+                            actual_pose=current_obstacle_pose,
+                        )
+                    )
                     if (
                         exit_early_only_for_long_term_conflicts
                         or exit_early_for_any_conflict

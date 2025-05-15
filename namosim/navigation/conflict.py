@@ -160,11 +160,15 @@ class StolenMovableConflict(BaseConflict):
     # If Movable is in grabbed state, postpone, else immediate replan
     conflict_type = ConflictType.STOLEN_OBSTACLE
 
-    def __init__(self, obstacle_uid: str):
+    def __init__(
+        self, obstacle_uid: str, expected_pose: PoseModel, actual_pose: PoseModel
+    ):
         self.obstacle_uid = obstacle_uid
+        self.expected_pose = expected_pose
+        self.actual_pose = actual_pose
 
     def __str__(self):
-        return f"StolenMovableConflict({self.obstacle_uid})."
+        return f"StolenMovableConflict({self.obstacle_uid}, expected_pose={self.expected_pose}, actual_pose={self.actual_pose})."
 
 
 class StealingMovableConflict(BaseConflict):
