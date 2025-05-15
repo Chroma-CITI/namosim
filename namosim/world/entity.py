@@ -72,13 +72,11 @@ class Entity:
         uid: str,
         polygon: Polygon,
         pose: PoseModel,
-        full_geometry_acquired: bool,
         movability: Movability = Movability.UNKNOWN,
     ):
         self.uid = uid
         self.polygon = polygon
         self.pose = pose
-        self.full_geometry_acquired = full_geometry_acquired
         self.is_being_manipulated = False
         self.movability = movability
         self.type_ = type_
@@ -93,7 +91,6 @@ class Entity:
             type_=self.type_,
             polygon=copy.deepcopy(self.polygon),
             pose=self.pose,
-            full_geometry_acquired=self.full_geometry_acquired,
         )
 
     def move_to_pose(self, new_pose: PoseModel):

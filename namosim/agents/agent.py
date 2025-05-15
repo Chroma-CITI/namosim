@@ -89,7 +89,6 @@ class Agent(Entity):
         navigation_goals: t.List[goal.Goal],
         logs_dir: str,
         uid: str,
-        full_geometry_acquired: bool,
         polygon: Polygon,
         pose: PoseModel,
         sensors: t.List[OmniscientSensor],
@@ -102,7 +101,6 @@ class Agent(Entity):
         super().__init__(
             polygon=polygon,
             pose=pose,
-            full_geometry_acquired=full_geometry_acquired,
             movability=movability,
             uid=uid,
             type_="robot",
@@ -144,7 +142,6 @@ class Agent(Entity):
             navigation_goals=copy.deepcopy(self._navigation_goals),
             logs_dir=self.logs_dir,
             uid=self.uid,
-            full_geometry_acquired=self.full_geometry_acquired,
             polygon=copy.deepcopy(self.polygon),
             pose=self.pose,
             sensors=copy.deepcopy(self.sensors),

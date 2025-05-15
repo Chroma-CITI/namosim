@@ -6,7 +6,7 @@
   "python.testing.pytestPath": "pytest",
   "[python]": {
     "editor.codeActionsOnSave": {
-      "source.unusedImports": "always" 
+      // "source.unusedImports": "explicit"
     }
   }
 }

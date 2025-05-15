@@ -82,7 +82,6 @@ class PPOAgent(Agent):
         config: PPOAgentConfigModel,
         logs_dir: str,
         uid: str,
-        full_geometry_acquired: bool,
         polygon: Polygon,
         pose: PoseModel,
         sensors: t.List[OmniscientSensor],
@@ -96,7 +95,6 @@ class PPOAgent(Agent):
             navigation_goals=navigation_goals,
             config=config,
             logs_dir=logs_dir,
-            full_geometry_acquired=full_geometry_acquired,
             polygon=polygon,
             pose=pose,
             sensors=sensors,  # type: ignore
@@ -438,7 +436,6 @@ class PPOAgent(Agent):
             navigation_goals=copy.deepcopy(self._navigation_goals),
             config=self.config,
             logs_dir=self.logs_dir,
-            full_geometry_acquired=self.full_geometry_acquired,
             polygon=copy.deepcopy(self.polygon),
             style=copy.deepcopy(self.agent_style),
             pose=copy.deepcopy(self.pose),
