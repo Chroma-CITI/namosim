@@ -246,7 +246,6 @@ def get_trajectory(idx: int, actor: PPOActor) -> Trajectory | None:
             navigation_goals=[],
             logs_dir="namo_logs",
             uid="robot_0",
-            full_geometry_acquired=True,
             polygon=agent_polygon,
             pose=(0, 0, 0),
             sensors=[OmniscientSensor()],

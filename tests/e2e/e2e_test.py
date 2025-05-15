@@ -35,6 +35,30 @@ class TestE2E:
         profiler.disable()
         profiler.dump_stats(file="stats.prof")
 
+    def test_minimal_stilman_rrt(self):
+        profiler = cProfile.Profile()
+        profiler.enable()
+        sim = create_sim_from_file(
+            simulation_file_path=os.path.join(
+                self.scenarios_folder, "minimal_stilman_rrt.svg"
+            )
+        )
+        sim.run()
+        assert any(
+            [
+                x.message == "Agent robot_0 finished executing all its goals."
+                for x in sim.logger
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.logger
+            ]
+        )
+        profiler.disable()
+        profiler.dump_stats(file="stats.prof")
+
     def test_minimal_nav_only(self):
         """Tests a minimal scenario with navigation-only behavior"""
         sim = create_sim_from_file(

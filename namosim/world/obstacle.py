@@ -12,7 +12,6 @@ class Obstacle(Entity):
         uid: str,
         polygon: Polygon,
         pose: PoseModel,
-        full_geometry_acquired: bool,
         type_: str,
         movability: Movability,
         style: Style,
@@ -23,7 +22,6 @@ class Obstacle(Entity):
             type_=type_,
             polygon=polygon,
             pose=pose,
-            full_geometry_acquired=full_geometry_acquired,
             movability=movability,
         )
         self.style = style
@@ -37,7 +35,6 @@ class Obstacle(Entity):
             uid=self.uid,
             polygon=None if not copy_polygon else copy.deepcopy(self.polygon),  # type: ignore
             pose=self.pose,
-            full_geometry_acquired=self.full_geometry_acquired,
             type_=self.type_,
             style=self.style,
             movability=self.movability,

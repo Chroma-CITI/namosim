@@ -23,7 +23,6 @@ class TeleopAgent(Agent):
         config: TeleopBehaviorConfigModel,
         logs_dir: str,
         uid: str,
-        full_geometry_acquired: bool,
         polygon: Polygon,
         pose: PoseModel,
         sensors: t.List[OmniscientSensor],
@@ -37,7 +36,6 @@ class TeleopAgent(Agent):
             navigation_goals=navigation_goals,
             config=config,
             logs_dir=logs_dir,
-            full_geometry_acquired=full_geometry_acquired,
             polygon=polygon,
             pose=pose,
             sensors=sensors,  # type: ignore

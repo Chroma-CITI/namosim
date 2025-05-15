@@ -62,6 +62,11 @@ class StilmanBehaviorConfigModel(BaseBehaviorConfigModel):
     parameters: StilmanBehaviorParametersModel = element()
 
 
+class StilmanRRTBehaviorConfigModel(BaseBehaviorConfigModel):
+    type: t.Literal["stilman_rrt"] = attr()
+    parameters: StilmanBehaviorParametersModel = element()
+
+
 class WuLevihnBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["wu_levihn_2014_behavior"] = attr()
     check_new_opening_activated: bool = attr()
@@ -78,6 +83,7 @@ AgentBehaviorConfig = t.Union[
     RRTAgentConfigModel,
     TeleopBehaviorConfigModel,
     StilmanBehaviorConfigModel,
+    StilmanRRTBehaviorConfigModel,
     PPOAgentConfigModel,
 ]
 
