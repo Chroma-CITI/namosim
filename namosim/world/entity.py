@@ -102,7 +102,8 @@ class Entity:
             new_pose[1] - self.pose[1],
             new_pose[2] - self.pose[2],
         )
+        angle = utils.normalize_angle_degrees(new_pose[2])
         new_polygon = affinity.translate(self.polygon, xoff=dx, yoff=dy)
         new_polygon = affinity.rotate(new_polygon, angle=dtheta)
         self.polygon = new_polygon
-        self.pose = (new_pose[0], new_pose[1], new_pose[2])
+        self.pose = (new_pose[0], new_pose[1], angle)
