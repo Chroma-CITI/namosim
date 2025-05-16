@@ -616,9 +616,9 @@ class Simulator:
             if think_result.next_action:
                 agent_uid_to_next_action[agent_uid] = think_result.next_action
             elif think_result.plan:
-                agent_uid_to_next_action[agent_uid] = (
-                    think_result.plan.pop_next_action()
-                )
+                agent_uid_to_next_action[
+                    agent_uid
+                ] = think_result.plan.pop_next_action()
 
         return agent_uid_to_next_action
 

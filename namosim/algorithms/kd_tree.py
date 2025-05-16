@@ -74,7 +74,7 @@ class KDTree(Generic[T]):
             _query_recursive(near_subtree, depth + 1)
 
             # Check if we need to search the far subtree
-            if len(nearest) < k or (diff**2) < nearest[-1][0]:
+            if len(nearest) < k or (diff ** 2) < nearest[-1][0]:
                 _query_recursive(far_subtree, depth + 1)
 
         _query_recursive(self.root, 0)
