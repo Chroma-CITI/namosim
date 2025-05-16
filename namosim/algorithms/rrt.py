@@ -28,7 +28,7 @@ class DiffDriveRRT:
         goal: PoseModel,
         map: BinaryOccupancyGrid,
         max_iter: int = 10000,
-        goal_tolerance=0.1,
+        goal_tolerance=0.2,
         use_kd_tree: bool = True,
     ):
         """
@@ -105,8 +105,11 @@ class DiffDriveRRT:
                 theta_new_rad = theta0_rad + w  # Don't normalize here yet
 
             # Normalize the new angle relative to the target to avoid 180-degree flips
-            theta_new_rad = utils.normalize_angle_radians(theta_new_rad)
-            new_pose = (x_new, y_new, math.degrees(theta_new_rad))
+            # theta_new_rad = utils.normalize_angle_radians(theta_new_rad)
+            theta_new_degrees = utils.normalize_angle_degrees(
+                math.degrees(theta_new_rad)
+            )
+            new_pose = (x_new, y_new, theta_new_degrees)
 
             # Calculate distance to target with proper angle difference
             distance_to_target = utils.distance_between_poses(new_pose, target)
@@ -129,8 +132,10 @@ class DiffDriveRRT:
             node.pose[1] - self.start.pose[1],
             node.pose[2] - self.start.pose[2],
         )
-        new_polygon = affinity.translate(self.polygon, xoff=dx, yoff=dy)
-        new_polygon = affinity.rotate(new_polygon, angle=dtheta)
+        new_polygon = affinity.rotate(
+            self.polygon, origin=(self.start.pose[0], self.start.pose[1]), angle=dtheta
+        )
+        new_polygon = affinity.translate(new_polygon, xoff=dx, yoff=dy)
 
         occupied = self.map.polygon_has_collisions(new_polygon)
 
@@ -164,7 +169,7 @@ class DiffDriveRRT:
             if self.collision_free(new_node):
                 self.tree.append(new_node)
 
-                if self.near_goal(new_node) and n > 2000:
+                if self.near_goal(new_node):
                     path = self._get_path(new_node)
                     return path
 
