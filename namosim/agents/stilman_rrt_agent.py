@@ -967,9 +967,9 @@ class StilmanRRTAgent(Agent):
                 isinstance(conflict, ConcurrentGrabConflict)
                 and conflict.obstacle_uid not in new_w_t_no_dyn.entity_to_agent
             ):
-                new_w_t_no_dyn.entity_to_agent[
-                    conflict.obstacle_uid
-                ] = conflict.other_agent_id
+                new_w_t_no_dyn.entity_to_agent[conflict.obstacle_uid] = (
+                    conflict.other_agent_id
+                )
         robot_inflated_grid.deactivate_entities(new_dynamic_entities)
         # Iterate over each conflicting robot uid, and change its polygon to an encompassing circle
         # encounting for all likely states at at t+1
@@ -2793,7 +2793,10 @@ class StilmanRRTAgent(Agent):
             return None
 
         # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-        (collides_with, csv_polygon,) = collision.get_csv_collisions(
+        (
+            collides_with,
+            csv_polygon,
+        ) = collision.get_csv_collisions(
             agent_id=agent_id,
             robot_pose=robot_pose,
             robot_action=release_action,
@@ -3078,7 +3081,10 @@ class StilmanRRTAgent(Agent):
                 continue
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            (collides_with, robot_csv_polygon,) = collision.get_csv_collisions(
+            (
+                collides_with,
+                robot_csv_polygon,
+            ) = collision.get_csv_collisions(
                 agent_id=agent_id,
                 robot_pose=current_configuration.robot.floating_point_pose,
                 robot_action=action,
@@ -3091,7 +3097,10 @@ class StilmanRRTAgent(Agent):
                 continue
 
             # TODO Refactor collision.csv_check_collisions to check for any number of attached polygons or make new function
-            (collides_with, obstacle_csv_polygon,) = collision.get_csv_collisions(
+            (
+                collides_with,
+                obstacle_csv_polygon,
+            ) = collision.get_csv_collisions(
                 agent_id=obstacle_uid,
                 robot_pose=current_configuration.robot.floating_point_pose,
                 robot_action=action,
@@ -3412,13 +3421,13 @@ class StilmanRRTAgent(Agent):
         for i in range(len(acc_cells_for_obs)):
             cell = acc_cells_for_obs[i]
             normalized_social_cost_costmap[cell[0]][cell[1]] = normalized_social_cost[i]
-            normalized_distance_from_obs_costmap[cell[0]][
-                cell[1]
-            ] = normalized_distance_cost[i]
+            normalized_distance_from_obs_costmap[cell[0]][cell[1]] = (
+                normalized_distance_cost[i]
+            )
             if normalized_distance_to_goal is not None:
-                normalized_distance_from_goal_costmap[cell[0]][
-                    cell[1]
-                ] = normalized_distance_to_goal[i]
+                normalized_distance_from_goal_costmap[cell[0]][cell[1]] = (
+                    normalized_distance_to_goal[i]
+                )
 
         stocg.display_or_log(
             grid=normalized_social_cost_costmap,
