@@ -1,9 +1,9 @@
 #!/bin/bash
 
+set -eo pipefail
+
 DIR=$(dirname "$0")
 cd $DIR
-
-set -eo pipefail
 
 ./format.sh
 ./test_types.sh
