@@ -195,9 +195,9 @@ class Plan:
             # TODO Get inflation from largest robot
             encompassing_circle = other_robot_center.buffer(radius)
             temp_uid = f"{other_robot.uid}_conflict_circle"
-            other_entities_polygons_with_encompassing_circles[
-                temp_uid
-            ] = encompassing_circle
+            other_entities_polygons_with_encompassing_circles[temp_uid] = (
+                encompassing_circle
+            )
             other_entities_with_encompassing_circles_aabb_tree.add(
                 collision.polygon_to_aabb(encompassing_circle), temp_uid
             )

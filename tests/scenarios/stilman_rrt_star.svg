@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg:svg
+   version="1.1"
+   viewBox="0 0 151.86302 147.25102"
+   stroke-miterlimit="10"
+   id="svg2"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   sodipodi:docname="stilman_rrt_star.svg"
+   width="4.0180426cm"
+   height="3.8960166cm"
+   style="fill:none;stroke:none;stroke-linecap:square;stroke-miterlimit:10"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <svg:metadata
+     id="metadata41">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </svg:metadata>
+  <svg:defs
+     id="defs39" />
+  <namo_config
+     cell_size_cm="3.0">
+    <agent
+       agent_id="robot_0">
+      <goal
+         goal_id="goal_0" />
+      <behavior
+         type="stilman_rrt_star_behavior">
+        <parameters
+           use_social_cost="true" />
+      </behavior>
+    </agent>
+  </namo_config>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="2490"
+     inkscape:window-height="1376"
+     id="namedview37"
+     showgrid="false"
+     inkscape:zoom="4"
+     inkscape:cx="28.125"
+     inkscape:cy="29.125"
+     inkscape:current-layer="svg2"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     units="cm"
+     inkscape:document-units="cm" />
+  <svg:path
+     inkscape:label="#path3336-6-0"
+     style="fill:#f1c232;fill-opacity:1;stroke:none;stroke-width:0.806407px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="m 63.027053,20.770784 h -15.11811 v 15.11811 h 15.11811 z"
+     id="movable_box"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="ccccc"
+     type="movable" />
+  <svg:path
+     style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="M 151.85619,0 H 0 v 5.5861 h 151.85619 z"
+     id="wall_top"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="ccccc"
+     inkscape:label="#path3336-6-3"
+     type="wall" />
+  <svg:path
+     d="m 121.17572,125.39975 v 0 c 0,-3.87867 3.14428,-7.02295 7.02295,-7.02295 v 0 c 1.8626,0 3.64891,0.73992 4.96597,2.05698 1.31706,1.31705 2.05697,3.10337 2.05697,4.96597 v 0 c 0,3.87866 -3.14428,7.02294 -7.02294,7.02294 v 0 c -3.87867,0 -7.02295,-3.14428 -7.02295,-7.02294 z"
+     id="goal_0"
+     type="shape"
+     style="fill:none;fill-rule:evenodd;stroke:#1155cc;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
+     inkscape:connector-curvature="0"
+     inkscape:label="#path29-7" />
+  <svg:path
+     style="fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.913109px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+     d="M 57.980695,59.69316 H 5.8444541 v 82.14351 H 145.74027 V 59.383769 H 93.604034 V 54.742893 H 151.86303 V 147.25102 H 0.2783074 V 54.588197 H 57.96944 Z"
+     id="wall_bottom"
+     type="wall"
+     inkscape:connector-curvature="0"
+     sodipodi:nodetypes="ccccccccccccc"
+     inkscape:label="#path4149" />
+  <svg:path
+     sodipodi:type="star"
+     style="fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1"
+     id="robot_0"
+     type="shape"
+     sodipodi:sides="16"
+     sodipodi:cx="16.754114"
+     sodipodi:cy="28.062744"
+     sodipodi:r1="7.3751149"
+     sodipodi:r2="7.2334037"
+     sodipodi:arg1="-0.10272987"
+     sodipodi:arg2="0.093619673"
+     inkscape:flatsided="true"
+     inkscape:rounded="0"
+     inkscape:randomized="0"
+     inkscape:label="#path4172"
+     d="m 24.090347,27.306431 -0.269009,2.865026 -1.34493,2.543993 -2.216097,1.835661 -2.749884,0.847866 -2.865026,-0.269009 -2.543993,-1.34493 -1.835661,-2.216097 -0.8478656,-2.749884 0.2690091,-2.865026 1.3449295,-2.543993 2.216098,-1.835661 2.749883,-0.847866 2.865026,0.26901 2.543993,1.344929 1.835661,2.216098 z" />
+</svg:svg>

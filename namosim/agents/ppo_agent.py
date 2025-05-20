@@ -117,7 +117,7 @@ class PPOAgent(Agent):
         super().init(world)
         self._compute_occupancy_grids()
         self.word_diagonal = math.sqrt(
-            self.static_obstacle_grid.width ** 2 + self.static_obstacle_grid.height ** 2
+            self.static_obstacle_grid.width**2 + self.static_obstacle_grid.height**2
         )
 
     def action_idx_to_action(self, idx: int) -> ba.Action:
@@ -285,7 +285,7 @@ class PPOAgent(Agent):
         # reward = 1e-3 * (d - d_next) / self.cell_size - 5e-4
 
         d_next = utils.euclidean_distance(next_state.normalized_robot_pose, next_state.normalized_goal_pose)  # type: ignore
-        reward = -(d_next ** 2)
+        reward = -(d_next**2)
         if isinstance(action_result, ar.ActionFailure):
             logger.warn("Action failed")
             reward -= 10
@@ -519,7 +519,7 @@ class PPOAgent(Agent):
                     #     continue
 
                 neighbors.append(neighbor)
-                tentative_gscores.append(current_gscore + math.sqrt(i ** 2 + j ** 2))
+                tentative_gscores.append(current_gscore + math.sqrt(i**2 + j**2))
 
             return neighbors, tentative_gscores
 

@@ -45,8 +45,8 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     check_new_local_opening_before_global: bool = attr(default=True)
     activate_grids_logging: bool = attr(default=False)
     push_only: bool = attr(default=False)
-    robot_rotation_unit_angle: float = attr(default=30)
-    manip_search_bound_percentage: float = attr(default=0.3)
+    robot_rotation_unit_angle: float = attr(default=15)
+    manip_search_bound_percentage: float = attr(default=0.05)
     use_social_cost: bool = attr(default=True)
     resolve_conflicts: bool = attr(default=True)
     resolve_deadlocks: bool = attr(default=True)
@@ -67,6 +67,11 @@ class StilmanRRTBehaviorConfigModel(BaseBehaviorConfigModel):
     parameters: StilmanBehaviorParametersModel = element()
 
 
+class StilmanRRTStarBehaviorConfigModel(BaseBehaviorConfigModel):
+    type: t.Literal["stilman_rrt_star_behavior"] = attr()
+    parameters: StilmanBehaviorParametersModel = element()
+
+
 class WuLevihnBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["wu_levihn_2014_behavior"] = attr()
     check_new_opening_activated: bool = attr()
@@ -84,6 +89,7 @@ AgentBehaviorConfig = t.Union[
     TeleopBehaviorConfigModel,
     StilmanBehaviorConfigModel,
     StilmanRRTBehaviorConfigModel,
+    StilmanRRTStarBehaviorConfigModel,
     PPOAgentConfigModel,
 ]
 

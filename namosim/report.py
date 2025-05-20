@@ -57,6 +57,10 @@ class GoalStats(BaseModel):
     """The number of times the robot computed a plan
     """
 
+    initial_planning_time: float = 0.0
+    """The amount of time the robot spent planning on the first step.
+    """
+
     planning_time: float = 0.0
     """The total amount of time the robot spent in planning
     """
@@ -88,8 +92,11 @@ class GoalStats(BaseModel):
         action_result: ar.ActionResult,
         planning_time: float,
     ):
-        self.n_steps += 1
         self.planning_time += planning_time
+        if self.n_steps == 0:
+            self.initial_planning_time = planning_time
+
+        self.n_steps += 1
 
         if think_result.did_replan:
             self.replans += 1
