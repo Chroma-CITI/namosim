@@ -37,7 +37,6 @@
          type="stilman_2005_behavior">
         <parameters
            use_social_cost="true"
-           
            drive_type="differential" />
       </behavior>
     </agent>
@@ -66,8 +65,8 @@
      fit-margin-right="0"
      fit-margin-bottom="0"
      inkscape:pagecheckerboard="true"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:window-x="70"
+     inkscape:window-y="27"
      inkscape:window-maximized="1"
      inkscape:showpageshadow="false"
      showguides="false"
@@ -82,7 +81,7 @@
        type="xygrid"
        id="grid3436"
        originx="170"
-       originy="-9.9999993e-07"
+       originy="-9.9999992e-07"
        dotted="false"
        snapvisiblegridlinesonly="true"
        units="cm"
