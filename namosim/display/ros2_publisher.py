@@ -10,6 +10,7 @@ import numpy.typing as npt
 from shapely.geometry import Polygon
 
 from namosim.agents.stilman_configurations import RCHConfiguration
+from namosim.algorithms.rrt_node import RRTNode
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.world as world
@@ -76,6 +77,7 @@ class RosPublisher:  # noqa: F821
         self.robot_conflict_horizon_publishers: t.Dict[str, ros_nodes.Publisher] = {}
         self.robot_swept_area_publishers: t.Dict[str, ros_nodes.Publisher] = {}
         self.robot_rch_publishers: t.Dict[str, ros_nodes.Publisher] = {}
+        self.robot_rrt_publishers: t.Dict[str, ros_nodes.RRTPublisher] = {}
         self.robot_connected_components_publishers: t.Dict[
             str, ros_nodes.GridMapPublisher
         ] = {}
@@ -142,6 +144,11 @@ class RosPublisher:  # noqa: F821
                     f"{ns}/connected_components",
                     callback_group=callback_group,
                 )
+            )
+            self.robot_rrt_publishers[agent_id] = ros_nodes.RRTPublisher(
+                node=self.ros_node,
+                topic=f"{ns}/rrt",
+                callback_group=callback_group,
             )
 
         # Setup Static Transform for grid map (Hack so that it is properly placed in view)
@@ -620,6 +627,16 @@ class RosPublisher:  # noqa: F821
     def clear_robot_plan(self, agent_id: str):
 
         self.robot_plan_publishers[agent_id].reset()
+
+    # endregion
+
+    # region RRT
+
+    def publish_robot_rrt(self, agent_id: str, rrt_nodes: t.List[RRTNode]):
+        self.robot_rrt_publishers[agent_id].publish(rrt_nodes=rrt_nodes)
+
+    def clear_robot_rrt(self, agent_id: str):
+        self.robot_rrt_publishers[agent_id].reset()
 
     # endregion
 

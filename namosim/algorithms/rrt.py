@@ -11,13 +11,7 @@ from namosim.utils import utils
 import matplotlib.pyplot as plt
 from shapely import affinity
 import numpy as np
-
-
-@dataclass
-class Node:
-    pose: PoseModel
-    parent: Optional["Node"] = None
-    cost: float = 0.0
+from namosim.algorithms.rrt_node import RRTNode
 
 
 class DiffDriveRRT:
@@ -38,15 +32,15 @@ class DiffDriveRRT:
         bounds: (x_min, x_max, y_min, y_max) workspace boundaries
         """
         self.polygon = polygon
-        self.start = Node(start)
-        self.goal = Node(goal)
+        self.start = RRTNode(start)
+        self.goal = RRTNode(goal)
         self.map = map
         self.max_iter = max_iter
         self.goal_tolerance = goal_tolerance
-        self.tree: List[Node] = [self.start]
+        self.tree: List[RRTNode] = [self.start]
         self.use_kd_tree = use_kd_tree
 
-        def point_getter(node: Node):
+        def point_getter(node: RRTNode):
             return (node.pose[0], node.pose[1])
 
         self.kd_tree = KDTree(dimensions=2, point_getter=point_getter)
@@ -62,7 +56,7 @@ class DiffDriveRRT:
         theta = random.uniform(-180, 180)
         return (x, y, theta)
 
-    def nearest_node(self, pose: PoseModel) -> Node:
+    def nearest_node(self, pose: PoseModel) -> RRTNode:
         """Find nearest node in tree to given pose"""
 
         if self.use_kd_tree:
@@ -74,7 +68,7 @@ class DiffDriveRRT:
         ]
         return self.tree[np.argmin(distances)]
 
-    def steer(self, from_node: Node, target: PoseModel) -> Node:
+    def steer(self, from_node: RRTNode, target: PoseModel) -> RRTNode:
         """Steer by testing ranges of linear and angular velocities towards target"""
         x0, y0, theta0 = from_node.pose
         theta0_rad = utils.normalize_angle_radians(math.radians(theta0))
@@ -115,18 +109,18 @@ class DiffDriveRRT:
             distance_to_target = utils.distance_between_poses(new_pose, target)
 
             # Create temporary node for collision checking
-            temp_node = Node(new_pose)
+            temp_node = RRTNode(new_pose)
 
             if distance_to_target < best_distance and self.collision_free(temp_node):
                 best_distance = distance_to_target
-                best_node = Node(new_pose, from_node)
+                best_node = RRTNode(new_pose, from_node)
                 best_node.cost = from_node.cost + utils.distance_between_poses(
                     from_node.pose, new_pose
                 )
 
         return best_node
 
-    def collision_free(self, node: Node) -> bool:
+    def collision_free(self, node: RRTNode) -> bool:
         dx, dy, dtheta = (
             node.pose[0] - self.start.pose[0],
             node.pose[1] - self.start.pose[1],
@@ -144,14 +138,14 @@ class DiffDriveRRT:
 
         return occupied == False
 
-    def near_goal(self, node: Node) -> bool:
+    def near_goal(self, node: RRTNode) -> bool:
         """Check if node is near goal"""
         return (
             utils.distance_between_poses(node.pose, self.goal.pose)
             <= self.goal_tolerance
         )
 
-    def plan(self) -> Optional[List[Node]]:
+    def plan(self) -> Optional[List[RRTNode]]:
         """Main RRT planning algorithm"""
         for n in range(self.max_iter):
             rand_config = self.random_pose()
@@ -175,7 +169,7 @@ class DiffDriveRRT:
 
         return None  # No path found
 
-    def _get_path(self, node: Node) -> List[Node]:
+    def _get_path(self, node: RRTNode) -> List[RRTNode]:
         """Extract path from goal to start"""
         path = []
         current = node
@@ -184,7 +178,7 @@ class DiffDriveRRT:
             current = current.parent
         return path[::-1]
 
-    def plot(self, path: Optional[List[Node]] = None):
+    def plot(self, path: Optional[List[RRTNode]] = None):
         """Visualize the RRT and path"""
         fig = plt.figure(figsize=(10, 10))
 
