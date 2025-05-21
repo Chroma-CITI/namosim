@@ -283,7 +283,8 @@ class BinaryOccupancyGrid:
         """Computes the grid cell corresponding to a real-valued (x, y) position"""
         img = Image.new("L", (self.d_width, self.d_height), 0)
         poly_coordinates_in_image = [
-            self.pose_to_cell(x, y) for (x, y) in polygon.exterior.coords
+            (x / self.cell_size, y / self.cell_size)
+            for (x, y) in polygon.exterior.coords
         ]
         ImageDraw.Draw(img).polygon(poly_coordinates_in_image, outline=1, fill=1)
         polygon_grid = np.transpose(np.array(img, dtype=np.uint8))  # (y, x) -> (x, y)

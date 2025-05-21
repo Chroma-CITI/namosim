@@ -4,7 +4,7 @@ from typing import List, Optional
 
 from namosim.data_models import PoseModel
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, box
 from namosim.algorithms.kd_tree import KDTree
 import math
 from namosim.utils import utils
@@ -25,16 +25,11 @@ class DiffDriveRRT:
         goal_tolerance=0.2,
         use_kd_tree: bool = True,
     ):
-        """
-        Initialize RRT planner for differential drive robot
-        start: (x, y, theta) initial pose
-        goal: (x, y, theta) goal pose
-        bounds: (x_min, x_max, y_min, y_max) workspace boundaries
-        """
         self.polygon = polygon
         self.start = RRTNode(start)
         self.goal = RRTNode(goal)
         self.map = map
+        self.map_box = box(0, 0, self.map.width, self.map.height)
         self.max_iter = max_iter
         self.goal_tolerance = goal_tolerance
         self.tree: List[RRTNode] = [self.start]
@@ -47,7 +42,7 @@ class DiffDriveRRT:
         self.kd_tree.add(self.start)
 
         # Robot parameters
-        self.max_vel = self.map.cell_size * 2
+        self.max_vel = self.map.cell_size
 
     def random_pose(self) -> PoseModel:
         """Generate random configuration in workspace"""
@@ -131,6 +126,9 @@ class DiffDriveRRT:
         )
         new_polygon = affinity.translate(new_polygon, xoff=dx, yoff=dy)
 
+        if not self.map_box.contains(new_polygon):
+            return False
+
         occupied = self.map.polygon_has_collisions(new_polygon)
 
         # debug_img = self.map.draw_polygon_on_map(polygon=new_polygon)
@@ -163,7 +161,7 @@ class DiffDriveRRT:
             if self.collision_free(new_node):
                 self.tree.append(new_node)
 
-                if self.near_goal(new_node):
+                if self.near_goal(new_node) and n > 1000:
                     path = self._get_path(new_node)
                     return path
 

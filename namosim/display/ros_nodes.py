@@ -131,7 +131,7 @@ class BasePublisher:
         self._publisher = create_publisher(
             node, msg_type, topic, callback_group=callback_group
         )
-        self.is_active = is_active
+        self.is_active = is_active and not DEACTIVATE_RVIZ
         self._rate = rate
 
         self._duration = 1.0 / self.rate
@@ -370,20 +370,13 @@ class WorldMapPublisher(BasePublisher):
         )
 
     def publish(self, world: "world.World", agent_id: str | None = None):
+        if not self.is_active:
+            return
         msg = self.world_to_costmap(world, agent_id)
         super().publish(msg)
 
     def world_to_costmap(self, world: "world.World", agent_id: str | None = None):
-        if agent_id:
-            robot_max_inflation_radius = utils.get_circumscribed_radius(
-                world.dynamic_entities[agent_id].polygon
-            )
-            grid = copy.deepcopy(world.map).inflate_map_destructive(
-                robot_max_inflation_radius
-            )
-        else:
-            grid = copy.deepcopy(world.map)
-
+        grid = world.map
         costmap = OccupancyGrid(header=init_header(self.get_timestamp()))
         costmap.info.map_load_time = costmap.header.stamp
         costmap.info.resolution = grid.cell_size
@@ -649,7 +642,7 @@ class RRTPublisher(BasePublisher):
         lines_marker = self._create_marker(
             marker_type=Marker.LINE_LIST,
             marker_id=1,
-            scale=0.01,  # Line thickness
+            scale=0.003,  # Line thickness
             r=0.0,
             g=0.0,
             b=0.0,
