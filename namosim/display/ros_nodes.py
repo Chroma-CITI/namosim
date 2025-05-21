@@ -7,6 +7,7 @@ import time
 import typing as t
 
 import numpy as np
+from namosim.algorithms.rrt_node import RRTNode
 import rclpy
 from builtin_interfaces.msg import Time
 from geometry_msgs.msg import (
@@ -575,6 +576,104 @@ class PlanPublisher(BasePublisher):
                 stamp=self.get_timestamp(),
             )
         )
+
+    def reset(self):
+        super().reset(make_delete_all_marker(cfg.main_frame_id))
+
+
+class RRTPublisher(BasePublisher):
+    def __init__(
+        self,
+        node: Node,
+        topic: str,
+        is_active: bool = True,
+        rate: int = cfg.rate,
+        callback_group: t.Optional["CallbackGroup"] = None,
+    ):
+        super().__init__(
+            msg_type=MarkerArray,
+            node=node,
+            topic=topic,
+            is_active=is_active,
+            rate=rate,
+            callback_group=callback_group,
+        )
+
+    def _create_marker(
+        self,
+        marker_type: int,
+        marker_id: int,
+        scale: float,
+        r: float,
+        g: float,
+        b: float,
+        a: float,
+    ) -> Marker:
+        marker = Marker()
+        marker.header.frame_id = cfg.main_frame_id
+        marker.header.stamp = self.node.get_clock().now().to_msg()
+        marker.id = marker_id
+        marker.type = marker_type
+        marker.action = Marker.ADD
+        marker.scale.x = scale
+        marker.scale.y = scale
+        marker.scale.z = scale
+        marker.color.r = r
+        marker.color.g = g
+        marker.color.b = b
+        marker.color.a = a
+        return marker
+
+    def publish(self, rrt_nodes: t.List[RRTNode]):
+        # Create MarkerArray
+        marker_array = MarkerArray()
+
+        # # Create points marker for nodes
+        # points_marker = self._create_marker(
+        #     marker_type=Marker.POINTS,
+        #     marker_id=0,
+        #     scale=0.02,  # Size of points
+        #     r=1.0,
+        #     g=1.0,
+        #     b=1.0,
+        #     a=1.0,  # Green color
+        # )
+        # for node in rrt_nodes:
+        #     point = Point()
+        #     point.x = float(node.pose[0])
+        #     point.y = float(node.pose[1])
+        #     point.z = float(0)
+        #     points_marker.points.append(point)
+
+        # Create lines marker for edges
+        lines_marker = self._create_marker(
+            marker_type=Marker.LINE_LIST,
+            marker_id=1,
+            scale=0.01,  # Line thickness
+            r=0.0,
+            g=0.0,
+            b=0.0,
+            a=1.0,  # Blue color
+        )
+        for node in rrt_nodes:
+            if node.parent is not None:
+                # Add start point (parent)
+                start = Point()
+                start.x = float(node.parent.pose[0])
+                start.y = float(node.parent.pose[1])
+                start.z = float(0)
+                lines_marker.points.append(start)
+                # Add end point (current node)
+                end = Point()
+                end.x = float(node.pose[0])
+                end.y = float(node.pose[1])
+                end.z = float(0)
+                lines_marker.points.append(end)
+
+        # Add both markers to the MarkerArray
+        marker_array.markers.append(lines_marker)
+
+        super().publish(marker_array)
 
     def reset(self):
         super().reset(make_delete_all_marker(cfg.main_frame_id))
