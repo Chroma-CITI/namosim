@@ -2103,6 +2103,7 @@ class StilmanRRTStarAgent(Agent):
         goal_cell: GridCellModel,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ) -> TransferPath | None:
+        c1_cells = copy.deepcopy(c1_cells)
         map = copy.deepcopy(map)
         map.update_polygons(other_entities_polygons)
 
