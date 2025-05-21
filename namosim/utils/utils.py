@@ -822,14 +822,13 @@ def rotate_2d_vector(vector: t.Tuple[float, float], degrees: float):
     return (x, y)
 
 
-def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]):
+def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]) -> float:
     # Normalize the vectors
-
     norm_v1 = np.linalg.norm(v1)
     norm_v2 = np.linalg.norm(v2)
 
     if norm_v1 == 0 or norm_v2 == 0:
-        return 0
+        return 0.0
 
     v1_norm = v1 / norm_v1
     v2_norm = v2 / norm_v2
@@ -841,6 +840,14 @@ def signed_angle_between(v1: npt.NDArray[t.Any], v2: npt.NDArray[t.Any]):
     cross = np.cross(v1_norm, v2_norm)
 
     # Determine the sign of the angle
+    if abs(cross) < 1e-10:  # Handle collinear vectors
+        if dot < -0.999999:  # Vectors are opposite
+            return 180.0
+        elif dot > 0.999999:  # Vectors are aligned
+            return 0.0
+        else:
+            return 0.0  # Fallback for numerical stability
+
     sign = np.sign(cross)
 
     # Combine the dot product and sign to get the signed angle
@@ -982,3 +989,15 @@ def distance_between_poses(a: PoseModel, b: PoseModel) -> float:
     total_distance = position_distance + 0.1 * angle_diff
 
     return total_distance
+
+
+def save_image(image, path):
+    # Extract the directory path from the full file path
+    directory = os.path.dirname(path)
+
+    # Create directories if they don't exist
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+
+    # Save the image
+    image.save(path)
