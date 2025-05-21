@@ -979,6 +979,6 @@ def distance_between_poses(a: PoseModel, b: PoseModel) -> float:
 
     # Combine position and orientation distances with weights
     # Weight of 0.1 for angle (in radians) balances it with position (in meters)
-    total_distance = position_distance + 0.5 * angle_diff
+    total_distance = position_distance + 0.1 * angle_diff
 
     return total_distance
