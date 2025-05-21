@@ -55,6 +55,7 @@ from namosim.world.entity import Movability
 from namosim.world.goal import Goal
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.algorithms.rrt_star import DiffDriveRRTStar, RRTNode
+from shapely.geometry import JOIN_STYLE
 
 
 class StilmanRRTStarAgent(Agent):
@@ -2120,7 +2121,7 @@ class StilmanRRTStarAgent(Agent):
             )
             robot_obstacle_polygon: Polygon = t.cast(
                 Polygon, combined_polygon.convex_hull
-            ).buffer(self.collision_margin * 1)
+            ).buffer(map.cell_size * 2, join_style=JOIN_STYLE.mitre)
 
             robot_collision_rrt = DiffDriveRRTStar(
                 polygon=robot_obstacle_polygon,
@@ -2137,9 +2138,12 @@ class StilmanRRTStarAgent(Agent):
             )
 
             def early_exit_condition(node: RRTNode, iteration: int) -> bool:
+                robot_pose_after_release = release_action.predict_pose(
+                    node.pose, node.pose
+                )
                 can_release = robot_collision_rrt.collision_free(
                     RRTNode(
-                        release_action.predict_pose(node.pose, node.pose),
+                        robot_pose_after_release,
                         None,
                         node.cost,
                     )
@@ -2147,7 +2151,9 @@ class StilmanRRTStarAgent(Agent):
                 new_obstacle_polygon = rrt.predict_polygon_for_node(
                     node, obstacle_polygon
                 )
-                robot_cell = map.pose_to_cell(node.pose[0], node.pose[1])
+                robot_cell = map.pose_to_cell(
+                    robot_pose_after_release[0], robot_pose_after_release[1]
+                )
                 has_opening = can_release and self.is_there_opening_to_c1(
                     check_for_local_opening=check_for_local_opening,
                     agent_id=agent_id,
@@ -2196,6 +2202,7 @@ class StilmanRRTStarAgent(Agent):
                         best_compromise = node
 
                 path_nodes = rrt._get_path(best_compromise)
+                # rrt.debug_plan(path_nodes)
                 poses = [x.pose for x in path_nodes]
                 path = TransitPath.from_poses(
                     poses, robot_polygon_after_grab, robot_pose_after_grab

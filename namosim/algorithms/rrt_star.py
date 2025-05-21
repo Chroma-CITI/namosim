@@ -104,8 +104,12 @@ class DiffDriveRRTStar:
         self.elapsed_time: Optional[float] = None
 
     def _is_collision_free(self, pose: PoseModel) -> bool:
+        key = (round(pose[0], 4), round(pose[1], 4), round(pose[2], 2))
+        if key in self._collision_cache:
+            return self._collision_cache[key]
         node = RRTNode(pose)
         free = self.collision_free(node)
+        self._collision_cache[key] = free
         return free
 
     def random_pose(self) -> PoseModel:
@@ -134,10 +138,12 @@ class DiffDriveRRTStar:
         dists = [self.cost_calc(pose, n.pose) for n in self.tree]
         return self.tree[int(np.argmin(dists))]
 
-    def steer(self, from_node: RRTNode, target: PoseModel, step_size=0.02) -> RRTNode:
+    def steer(
+        self, from_node: RRTNode, target: PoseModel, step_size=0.01
+    ) -> RRTNode | None:
         x0, y0, th0 = from_node.pose
         th0_rad = utils.normalize_angle_radians(math.radians(th0))
-        best_node = from_node
+        best_node: RRTNode | None = None
         best_d = float("inf")
 
         for v, w in self.control_inputs:
@@ -174,10 +180,7 @@ class DiffDriveRRTStar:
                     best_node.cost = from_node.cost + self.cost_calc(
                         from_node.pose, new_pose
                     )
-        if best_node.pose == from_node.pose:
-            pass  # self.rejected.append(target)
-        else:
-            pass  # self.accepted.append(target)
+
         return best_node
 
     def collision_free(self, node: RRTNode) -> bool:
@@ -211,6 +214,14 @@ class DiffDriveRRTStar:
         polygon = affinity.translate(polygon, xoff=dx, yoff=dy)
         return polygon
 
+    def get_polygon_at_node(self, node: RRTNode) -> Polygon:
+        dx = node.pose[0] - self.start.pose[0]
+        dy = node.pose[1] - self.start.pose[1]
+        dth = node.pose[2] - self.start.pose[2]
+        polygon = affinity.rotate(self.polygon, dth, origin=self.start.pose[:2])
+        polygon = affinity.translate(polygon, xoff=dx, yoff=dy)
+        return polygon
+
     def near_goal(self, node: RRTNode) -> bool:
         return self.cost_calc(node.pose, self.goal.pose) <= self.goal_tolerance
 
@@ -240,7 +251,7 @@ class DiffDriveRRTStar:
                 cfg = self.goal.pose
             n0 = self.nearest_node(cfg)
             n1 = self.steer(n0, cfg)
-            if not self.collision_free(n1):
+            if n1 is None or not self.collision_free(n1):
                 continue
             near = self.get_near_nodes(n1)
             cost = n0.cost + self.cost_calc(n0.pose, n1.pose)
@@ -277,6 +288,12 @@ class DiffDriveRRTStar:
                 return self.tree
         self.elapsed_time = time.time() - t0
         return best_path if self.informed else None
+
+    def debug_plan(self, path: List[RRTNode]):
+        for i, node in enumerate(path):
+            polygon = self.get_polygon_at_node(node)
+            debug_img = self.map.draw_polygon_on_map(polygon=polygon)
+            utils.save_image(debug_img, f"rrt_plan/robot_in_map_{i}.png")
 
     def smooth_path(self, path: List[RRTNode], max_trials: int = 100) -> List[RRTNode]:
         if len(path) < 3:
