@@ -51,7 +51,7 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     resolve_conflicts: bool = attr(default=True)
     resolve_deadlocks: bool = attr(default=True)
     deadlock_strategy: t.Literal["SOCIAL", "DISTANCE", ""] = attr(default="")
-    drive_type: t.Literal["holonomic", "differential"] = attr(default="holonomic")
+    drive_type: t.Literal["holonomic", "differential"] = attr(default="differential")
     grab_start_distance: float | None = attr(default=None)
     grab_end_distance: float | None = attr(default=None)
     conflict_horizon: int = attr(default=15)
