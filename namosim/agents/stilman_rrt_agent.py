@@ -2046,11 +2046,13 @@ class StilmanRRTAgent(Agent):
                 return w_t_next, None
 
             transfer_path = self.rrt_for_manip_search(
+                agent_id=agent_id,
                 grab_configs=grab_configs,
                 obstacle_uid=obstacle_uid,
                 goal=best_transfer_end_configuration,
                 other_entities_polygons=other_entities_polygons,
                 map=w_t.map,
+                ros_publisher=ros_publisher,
             )
 
             # Don't forget to update w_t_next with transfer end state
@@ -2160,11 +2162,14 @@ class StilmanRRTAgent(Agent):
 
     def rrt_for_manip_search(
         self,
+        *,
+        agent_id: str,
         grab_configs: t.List[RobotObstacleConfiguration],
         obstacle_uid: str,
         goal: RobotObstacleConfiguration,
         map: BinaryOccupancyGrid,
         other_entities_polygons: t.Dict[str, Polygon],
+        ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ) -> TransferPath | None:
         map = copy.deepcopy(map)
         map.update_polygons(other_entities_polygons)
@@ -2236,6 +2241,11 @@ class StilmanRRTAgent(Agent):
 
                 robot_path = RawPath(robot_poses, robot_polygons)
                 obstacle_path = RawPath(obstacle_poses, obstacle_polygons)
+
+                if ros_publisher:
+                    ros_publisher.publish_robot_rrt(
+                        agent_id=agent_id, rrt_nodes=rrt.tree
+                    )
 
                 return TransferPath(
                     robot_path=robot_path,

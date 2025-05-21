@@ -2103,7 +2103,6 @@ class StilmanRRTStarAgent(Agent):
         goal_cell: GridCellModel,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ) -> TransferPath | None:
-        c1_cells = copy.deepcopy(c1_cells)
         map = copy.deepcopy(map)
         map.update_polygons(other_entities_polygons)
 
@@ -2123,7 +2122,7 @@ class StilmanRRTStarAgent(Agent):
             ).buffer(self.collision_margin * 1)
 
             robot_collision_rrt = DiffDriveRRTStar(
-                polygon=robot_polygon_after_grab,
+                polygon=robot_obstacle_polygon,
                 start=robot_pose_after_grab,
                 goal=None,
                 map=map,
@@ -2236,7 +2235,8 @@ class StilmanRRTStarAgent(Agent):
                 robot_path = RawPath(robot_poses, robot_polygons)
                 obstacle_path = RawPath(obstacle_poses, obstacle_polygons)
 
-                ros_publisher.publish_robot_rrt(agent_id=agent_id, rrt_nodes=tree)
+                if ros_publisher:
+                    ros_publisher.publish_robot_rrt(agent_id=agent_id, rrt_nodes=tree)
 
                 return TransferPath(
                     robot_path=robot_path,
