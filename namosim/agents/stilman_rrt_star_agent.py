@@ -2284,7 +2284,7 @@ class StilmanRRTStarAgent(Agent):
             )
             robot_obstacle_polygon: Polygon = t.cast(
                 Polygon, combined_polygon.convex_hull
-            )
+            ).buffer(self.collision_margin, join_style=JOIN_STYLE.mitre)
 
             rrt = DiffDriveRRTStar(
                 polygon=robot_obstacle_polygon,
