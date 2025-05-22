@@ -1,5 +1,6 @@
 from typing import Iterable, List, Optional, Callable, TypeVar, Generic
 import heapq
+import math
 
 T = TypeVar("T")  # Type variable for generic objects
 
@@ -13,11 +14,24 @@ class KDNode(Generic[T]):
         self.right = None
 
 
+def default_distance_func(A: Iterable[float], B: Iterable[float]):
+    x = sum((a - b) ** 2 for (a, b) in zip(A, B))
+    return math.sqrt(x)
+
+
 class KDTree(Generic[T]):
-    def __init__(self, dimensions: int, point_getter: Callable[[T], Iterable[float]]):
+    def __init__(
+        self,
+        dimensions: int,
+        point_getter: Callable[[T], Iterable[float]],
+        distance_func: Callable[
+            [Iterable[float], Iterable[float]], float
+        ] = default_distance_func,
+    ):
         self.root = None
         self.dimensions = dimensions
         self.point_getter = point_getter
+        self.distance_func = distance_func
 
     def add(self, object: T) -> None:
         """Add an object to the KDTree."""
@@ -47,9 +61,6 @@ class KDTree(Generic[T]):
         if k < 1:
             raise ValueError("k must be positive")
 
-        def squared_distance(p1: Iterable[float], p2: Iterable[float]) -> float:
-            return sum((a - b) ** 2 for a, b in zip(p1, p2))
-
         # Use a max-heap for k nearest neighbors (negative distance, object)
         nearest = []
 
@@ -57,7 +68,7 @@ class KDTree(Generic[T]):
             if node is None:
                 return
 
-            dist = squared_distance(point_list, node.point)
+            dist = self.distance_func(point_list, node.point)
             if len(nearest) < k:
                 heapq.heappush(nearest, (-dist, node.object))
             else:
@@ -101,7 +112,7 @@ class KDTree(Generic[T]):
                     _search(node.right, depth + 1)
                 return
             # Test real distance
-            dist2 = sum((a - b) ** 2 for a, b in zip(target, node.point))
+            dist2 = self.distance_func(target, node.point)
             if dist2 <= r2:
                 result.append(node.object)
             _search(node.left, depth + 1)

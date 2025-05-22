@@ -23,7 +23,9 @@ def default_cost_calc(p1: PoseModel, p2: PoseModel) -> float:
     return utils.distance_between_poses(p1, p2)
 
 
-def default_exit_condition(pose: RRTNode, iteration: int) -> bool:
+def default_exit_condition(
+    tree: t.List[RRTNode], node: RRTNode, iteration: int
+) -> bool:
     return False
 
 
@@ -35,8 +37,10 @@ class DiffDriveRRTStar:
         goal: PoseModel | None,
         map: BinaryOccupancyGrid,
         cost_calc=default_cost_calc,
-        early_exit_condition=default_exit_condition,
-        max_iter: int = 5000,
+        early_exit_condition: t.Callable[
+            [t.List[RRTNode], RRTNode, int], bool
+        ] = default_exit_condition,
+        max_iter: int = 10000,
         goal_tolerance=0.1,
         use_kdtree: bool = True,
         informed: bool = True,
@@ -59,17 +63,29 @@ class DiffDriveRRTStar:
         self.exit_interval = exit_check_interval
 
         self.max_vel = self.map.cell_size
-        self.search_radius = self.map.cell_size * 5
+        self.max_angular_vel = np.pi / 8
+
+        self.search_radius = self.map.cell_size * 3
         self.informed = informed
         # Precompute reduced control inputs
         linear_vels = [-self.max_vel, 0, self.max_vel]
-        angular_vels = np.linspace(-np.pi / 8, np.pi / 8, 3)
+        angular_vels = np.linspace(-self.max_angular_vel, self.max_angular_vel, 3)
+
+        # Arc actions
         self.control_inputs = [
             (v, w)
             for v in linear_vels
             for w in angular_vels
             if not (abs(v) < 1e-6 and abs(w) < 1e-6)
         ]
+
+        # Translations and in-place rotations.
+        # self.control_inputs = [
+        #     (-self.max_vel, 0),
+        #     (self.max_vel, 0),
+        #     (0, -self.max_angular_vel),
+        #     (0, self.max_angular_vel),
+        # ]
 
         # Collision cache
         self._collision_cache = {}
@@ -99,8 +115,14 @@ class DiffDriveRRTStar:
             self.C = np.array([[dx, -dy], [dy, dx]])
 
         if self.use_kdtree:
-            self._kdtree = CustomKDTree(
-                dimensions=2, point_getter=lambda node: node.pose[:2]
+
+            def distance_func(a: t.Iterable[float], b: t.Iterable[float]):
+                return self.cost_calc(a, b)
+
+            self._kdtree = CustomKDTree[RRTNode](
+                dimensions=3,
+                point_getter=lambda node: node.pose,
+                distance_func=distance_func,
             )
             self._kdtree.add(self.start)
 
@@ -135,7 +157,7 @@ class DiffDriveRRTStar:
 
     def nearest_node(self, pose: PoseModel) -> RRTNode:
         if self.use_kdtree and self._kdtree:
-            res = self._kdtree.query(pose[:2], k=1)
+            res = self._kdtree.query(pose, k=1)
             if res:
                 return res[0]
         dists = [self.cost_calc(pose, n.pose) for n in self.tree]
@@ -164,17 +186,18 @@ class DiffDriveRRTStar:
             dth = utils.normalize_angle_radians(th1_rad - th0_rad)
             dist = np.hypot(dx, dy)
             n_steps = max(1, int(dist / step_size))
-            free_path = True
+            # free_path = True
 
-            for i in range(n_steps + 1):
-                t = i / n_steps
-                xi = x0 + t * dx
-                yi = y0 + t * dy
-                thi = utils.normalize_angle_radians(th0_rad + t * dth)
-                if not self._is_collision_free((xi, yi, math.degrees(thi))):
-                    free_path = False
-                    break
+            # for i in range(n_steps + 1):
+            #     t = i / n_steps
+            #     xi = x0 + t * dx
+            #     yi = y0 + t * dy
+            #     thi = utils.normalize_angle_radians(th0_rad + t * dth)
+            #     if not self._is_collision_free((xi, yi, math.degrees(thi))):
+            #         free_path = False
+            #         break
 
+            free_path = self._is_collision_free(new_pose)
             if free_path:
                 d = self.cost_calc(new_pose, target)
                 if d < best_d:
@@ -230,7 +253,7 @@ class DiffDriveRRTStar:
 
     def get_near_nodes(self, node: RRTNode) -> List[RRTNode]:
         if self.use_kdtree and self._kdtree:
-            cands = self._kdtree.query_radius(node.pose[:2], self.search_radius)
+            cands = self._kdtree.query_radius(node.pose, self.search_radius)
             return [n for n in cands if n is not node]
         poses = np.array([n.pose for n in self.tree])
         d = np.linalg.norm(poses[:, :2] - np.array(node.pose)[:2], axis=1)
@@ -266,7 +289,7 @@ class DiffDriveRRTStar:
             cost = n0.cost + self.cost_calc(n0.pose, n1.pose)
             for neighbor in near:
                 dth = abs(neighbor.pose[2] - n1.pose[2])
-                if dth > np.pi / 8:
+                if dth > self.max_angular_vel:
                     continue
                 c2 = neighbor.cost + self.cost_calc(neighbor.pose, n1.pose)
                 if c2 < cost:
@@ -294,7 +317,9 @@ class DiffDriveRRTStar:
                     else:
                         self.elapsed_time = time.time() - t0
                         return path
-            elif i % self.exit_interval == 0 and self.early_exit_condition(n1, i):
+            elif i % self.exit_interval == 0 and self.early_exit_condition(
+                self.tree, n1, i
+            ):
                 return self.tree
         self.elapsed_time = time.time() - t0
         return best_path if self.informed else None
@@ -406,5 +431,5 @@ class DiffDriveRRTStar:
         return utils.real_pose_to_fixed_precision_pose(
             pose,
             1 / self.map.cell_size,
-            1 / math.degrees(np.pi / 8),
+            1 / math.degrees(self.max_angular_vel),
         )
