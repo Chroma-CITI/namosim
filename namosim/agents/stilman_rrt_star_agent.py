@@ -2137,7 +2137,9 @@ class StilmanRRTStarAgent(Agent):
                 distance=-(self.grab_start_distance - self.grab_end_distance),
             )
 
-            def early_exit_condition(node: RRTNode, iteration: int) -> bool:
+            def early_exit_condition(
+                tree: t.List[RRTNode], node: RRTNode, iteration: int
+            ) -> bool:
                 robot_pose_after_release = release_action.predict_pose(
                     node.pose, node.pose
                 )
