@@ -58,14 +58,13 @@ class DiffDriveRRTStar:
         self.accepted = []
         self.use_kdtree = use_kdtree
         self._kdtree = None
-        self.cost_calc = cost_calc
         self.early_exit_condition = early_exit_condition
         self.exit_interval = exit_check_interval
 
         self.max_vel = self.map.cell_size
         self.max_angular_vel = np.pi / 8
 
-        self.search_radius = self.map.cell_size * 3
+        self.search_radius = self.map.cell_size * 5
         self.informed = informed
         # Precompute reduced control inputs
         linear_vels = [-self.max_vel, 0, self.max_vel]
@@ -95,7 +94,7 @@ class DiffDriveRRTStar:
         if goal is not None:
             self.best_cost = float("inf")
             self.c_best = None
-            self.c_min = self.cost_calc(self.start.pose, self.goal.pose)
+            self.c_min = self.cost(self.start.pose, self.goal.pose)
             self.x_center = np.array(
                 [
                     (self.start.pose[0] + self.goal.pose[0]) / 2,
@@ -117,7 +116,7 @@ class DiffDriveRRTStar:
         if self.use_kdtree:
 
             def distance_func(a: t.Iterable[float], b: t.Iterable[float]):
-                return self.cost_calc(a, b)
+                return self.cost(a, b)  # type: ignore
 
             self._kdtree = CustomKDTree[RRTNode](
                 dimensions=3,
@@ -127,6 +126,26 @@ class DiffDriveRRTStar:
             self._kdtree.add(self.start)
 
         self.elapsed_time: Optional[float] = None
+
+    def cost(self, a: PoseModel, b: PoseModel) -> float:
+        # Extract coordinates and angles
+        x1, y1, theta1 = a
+        x2, y2, theta2 = b
+
+        # Euclidean distance between positions
+        position_distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+        # Calculate smallest angle difference (in radians)
+        theta1_rad = math.radians(theta1)
+        theta2_rad = math.radians(theta2)
+        angle_diff = abs((theta1_rad - theta2_rad + math.pi) % (2 * math.pi) - math.pi)
+
+        angle_cost = angle_diff / self.max_angular_vel
+        linear_cost = position_distance / self.max_vel
+
+        cost = linear_cost + 2 * angle_cost
+
+        return cost
 
     def _is_collision_free(self, pose: PoseModel) -> bool:
         key = (round(pose[0], 4), round(pose[1], 4), round(pose[2], 2))
@@ -160,7 +179,7 @@ class DiffDriveRRTStar:
             res = self._kdtree.query(pose, k=1)
             if res:
                 return res[0]
-        dists = [self.cost_calc(pose, n.pose) for n in self.tree]
+        dists = [self.cost(pose, n.pose) for n in self.tree]
         return self.tree[int(np.argmin(dists))]
 
     def steer(
@@ -199,11 +218,11 @@ class DiffDriveRRTStar:
 
             free_path = self._is_collision_free(new_pose)
             if free_path:
-                d = self.cost_calc(new_pose, target)
+                d = self.cost(new_pose, target)
                 if d < best_d:
                     best_d = d
                     best_node = RRTNode(new_pose, from_node)
-                    best_node.cost = from_node.cost + self.cost_calc(
+                    best_node.cost = from_node.cost + self.cost(
                         from_node.pose, new_pose
                     )
 
@@ -249,7 +268,7 @@ class DiffDriveRRTStar:
         return polygon
 
     def near_goal(self, node: RRTNode) -> bool:
-        return self.cost_calc(node.pose, self.goal.pose) <= self.goal_tolerance
+        return self.cost(node.pose, self.goal.pose) <= self.goal_tolerance
 
     def get_near_nodes(self, node: RRTNode) -> List[RRTNode]:
         if self.use_kdtree and self._kdtree:
@@ -286,12 +305,12 @@ class DiffDriveRRTStar:
                 continue
 
             near = self.get_near_nodes(n1)
-            cost = n0.cost + self.cost_calc(n0.pose, n1.pose)
+            cost = n0.cost + self.cost(n0.pose, n1.pose)
             for neighbor in near:
                 dth = abs(neighbor.pose[2] - n1.pose[2])
                 if dth > self.max_angular_vel:
                     continue
-                c2 = neighbor.cost + self.cost_calc(neighbor.pose, n1.pose)
+                c2 = neighbor.cost + self.cost(neighbor.pose, n1.pose)
                 if c2 < cost:
                     n1.parent = neighbor
                     n1.cost = c2
@@ -301,7 +320,7 @@ class DiffDriveRRTStar:
             for neighbor in near:
                 if neighbor == n1.parent:
                     continue
-                c2 = n1.cost + self.cost_calc(n1.pose, neighbor.pose)
+                c2 = n1.cost + self.cost(n1.pose, neighbor.pose)
                 if c2 < neighbor.cost:
                     neighbor.parent = n1
                     neighbor.cost = c2
@@ -430,6 +449,6 @@ class DiffDriveRRTStar:
     def _pose_to_fixed_precision(self, pose: PoseModel) -> t.Tuple[int, int, int]:
         return utils.real_pose_to_fixed_precision_pose(
             pose,
-            1 / self.map.cell_size,
+            2 / self.max_vel,
             1 / math.degrees(self.max_angular_vel),
         )
