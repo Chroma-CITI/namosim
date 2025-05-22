@@ -2131,7 +2131,7 @@ class StilmanRRTStarAgent(Agent):
             )
 
             self.found_opening = False
-            self.has_local_openings = []
+            self.has_local_openings: t.List[RRTNode] = []
             release_action = ba.Release(
                 entity_uid=obstacle_uid,
                 distance=-(self.grab_start_distance - self.grab_end_distance),
@@ -2189,14 +2189,17 @@ class StilmanRRTStarAgent(Agent):
             if tree is not None and len(self.has_local_openings) > 0:
                 # Compute best compromise cost among poses with local openings
                 best_compromise = self.has_local_openings[0]
+                best_compromise_cell = map.pose_to_cell(
+                    best_compromise.pose[0], best_compromise.pose[1]
+                )
                 # 2 obstacle test only works with no node distance cost added, minimal test only works with + best_compromise.cost there
                 best_compromise_total_cost = sorted_cell_to_combined_cost.get(
-                    self.pose_to_fixed_precision(best_compromise.pose)[:2], 1000.0
+                    best_compromise_cell, float("inf")
                 )
                 for node in self.has_local_openings:
-                    key = self.pose_to_fixed_precision(node.pose)[:2]
+                    node_cell = map.pose_to_cell(node.pose[0], node.pose[1])
                     # and + best_compromise.cost here
-                    cost = sorted_cell_to_combined_cost.get(key, 1000.0)
+                    cost = sorted_cell_to_combined_cost.get(node_cell, float("inf"))
                     if cost < best_compromise_total_cost:
                         best_compromise_total_cost = cost
                         best_compromise = node
