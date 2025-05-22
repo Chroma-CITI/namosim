@@ -16,6 +16,7 @@ from visualization_msgs.msg import Marker
 from std_msgs.msg import ColorRGBA
 from geometry_msgs.msg import Point
 from namosim.algorithms.rrt_node import RRTNode
+import typing as t
 
 
 def default_cost_calc(p1: PoseModel, p2: PoseModel) -> float:
@@ -39,7 +40,7 @@ class DiffDriveRRTStar:
         goal_tolerance=0.1,
         use_kdtree: bool = True,
         informed: bool = True,
-        exit_check_interval: int = 10,
+        exit_check_interval: int = 3,
     ):
         self.polygon = polygon
         self.start = RRTNode(start)
@@ -72,6 +73,8 @@ class DiffDriveRRTStar:
 
         # Collision cache
         self._collision_cache = {}
+
+        self._visited_poses: t.Set[t.Tuple[int, int, int]] = set()
 
         if goal is not None:
             self.best_cost = float("inf")
@@ -251,8 +254,14 @@ class DiffDriveRRTStar:
                 cfg = self.goal.pose
             n0 = self.nearest_node(cfg)
             n1 = self.steer(n0, cfg)
+
             if n1 is None or not self.collision_free(n1):
                 continue
+
+            n1_discretized_pose = self._pose_to_fixed_precision(n1.pose)
+            if n1_discretized_pose in self._visited_poses:
+                continue
+
             near = self.get_near_nodes(n1)
             cost = n0.cost + self.cost_calc(n0.pose, n1.pose)
             for neighbor in near:
@@ -261,9 +270,7 @@ class DiffDriveRRTStar:
                     n1.parent = neighbor
                     n1.cost = c2
 
-            self.tree.append(n1)
-            if self.use_kdtree:
-                self._kdtree.add(n1)
+            self.add_new_node(n1)
 
             for neighbor in near:
                 if neighbor == n1.parent:
@@ -288,6 +295,13 @@ class DiffDriveRRTStar:
                 return self.tree
         self.elapsed_time = time.time() - t0
         return best_path if self.informed else None
+
+    def add_new_node(self, node: RRTNode):
+        discretized_pose = self._pose_to_fixed_precision(node.pose)
+        self._visited_poses.add(discretized_pose)
+        self.tree.append(node)
+        if self.use_kdtree:
+            self._kdtree.add(node)
 
     def debug_plan(self, path: List[RRTNode]):
         for i, node in enumerate(path):
@@ -384,3 +398,10 @@ class DiffDriveRRTStar:
                 p2 = Point(x=node.parent.pose[0], y=node.parent.pose[1], z=0)
                 marker.points.extend([p1, p2])
         return marker
+
+    def _pose_to_fixed_precision(self, pose: PoseModel) -> t.Tuple[int, int, int]:
+        return utils.real_pose_to_fixed_precision_pose(
+            pose,
+            1 / self.map.cell_size,
+            1 / math.degrees(np.pi / 8),
+        )
