@@ -9,12 +9,9 @@ from namosim.data_models import PoseModel
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from shapely import affinity
-from shapely.geometry import Polygon, box
+from shapely.geometry import Polygon, box, Point
 
 from namosim.algorithms.kd_tree import KDTree as CustomKDTree
-from visualization_msgs.msg import Marker
-from std_msgs.msg import ColorRGBA
-from geometry_msgs.msg import Point
 from namosim.algorithms.rrt_node import RRTNode
 import typing as t
 
@@ -36,7 +33,6 @@ class DiffDriveRRTStar:
         start: PoseModel,
         goal: PoseModel | None,
         map: BinaryOccupancyGrid,
-        cost_calc=default_cost_calc,
         early_exit_condition: t.Callable[
             [t.List[RRTNode], RRTNode, int], bool
         ] = default_exit_condition,
@@ -259,6 +255,30 @@ class DiffDriveRRTStar:
         polygon = affinity.translate(polygon, xoff=dx, yoff=dy)
         return polygon
 
+    def predict_pose_for_node(self, node: RRTNode, pose: PoseModel) -> PoseModel:
+        """
+        For a given pose that is fixed relative to the robot's start pose, this function computes where
+        that pose should be given robot's pose at the given node.
+        """
+        dx = node.pose[0] - self.start.pose[0]
+        dy = node.pose[1] - self.start.pose[1]
+        dth = node.pose[2] - self.start.pose[2]
+
+        next_position = affinity.translate(
+            geom=Point((pose[0], pose[1])),
+            xoff=dx,
+            yoff=dy,
+            zoff=0.0,
+        ).coords[0]
+        next_position = affinity.rotate(
+            geom=Point((next_position[0], next_position[1])),
+            angle=dth,
+            origin=(node.pose[0], node.pose[1]),  # type: ignore
+            use_radians=False,
+        ).coords[0]
+        orientation = utils.normalize_angle_degrees(pose[2] + dth)
+        return (next_position[0], next_position[1], orientation)
+
     def get_polygon_at_node(self, node: RRTNode) -> Polygon:
         dx = node.pose[0] - self.start.pose[0]
         dy = node.pose[1] - self.start.pose[1]
@@ -429,22 +449,6 @@ class DiffDriveRRTStar:
         plt.title(title)
         plt.show()
         plt.close(fig)
-
-    def get_tree_marker(self, color=(0.0, 0.0, 1.0, 0.2)):
-        marker = Marker()
-        marker.header.frame_id = "map"
-        marker.id = 0
-        marker.type = Marker.LINE_LIST
-        marker.action = Marker.ADD
-        marker.scale.x = 0.01  # line width
-        marker.color = ColorRGBA(*color)
-        marker.points = []
-        for node in self.tree:
-            if node.parent:
-                p1 = Point(x=node.pose[0], y=node.pose[1], z=0)
-                p2 = Point(x=node.parent.pose[0], y=node.parent.pose[1], z=0)
-                marker.points.extend([p1, p2])
-        return marker
 
     def _pose_to_fixed_precision(self, pose: PoseModel) -> t.Tuple[int, int, int]:
         return utils.real_pose_to_fixed_precision_pose(

@@ -2190,23 +2190,23 @@ class StilmanRRTStarAgent(Agent):
             # rrt.plot()
             if tree is not None and len(self.has_local_openings) > 0:
                 # Compute best compromise cost among poses with local openings
-                best_compromise = self.has_local_openings[0]
-                best_compromise_cell = map.pose_to_cell(
-                    best_compromise.pose[0], best_compromise.pose[1]
-                )
+                best_node = self.has_local_openings[0]
+                best_obs_pose = rrt.predict_pose_for_node(best_node, obstacle_pose)
+                best_obs_cell = map.pose_to_cell(best_obs_pose[0], best_obs_pose[1])
                 # 2 obstacle test only works with no node distance cost added, minimal test only works with + best_compromise.cost there
-                best_compromise_total_cost = sorted_cell_to_combined_cost.get(
-                    best_compromise_cell, float("inf")
+                best_node_cost = sorted_cell_to_combined_cost.get(
+                    best_obs_cell, float("inf")
                 )
                 for node in self.has_local_openings:
-                    node_cell = map.pose_to_cell(node.pose[0], node.pose[1])
+                    obs_pose = rrt.predict_pose_for_node(node, obstacle_pose)
+                    obs_cell = map.pose_to_cell(obs_pose[0], obs_pose[1])
                     # and + best_compromise.cost here
-                    cost = sorted_cell_to_combined_cost.get(node_cell, float("inf"))
-                    if cost < best_compromise_total_cost:
-                        best_compromise_total_cost = cost
-                        best_compromise = node
+                    cost = sorted_cell_to_combined_cost.get(obs_cell, float("inf"))
+                    if cost < best_node_cost:
+                        best_node_cost = cost
+                        best_node = node
 
-                path_nodes = rrt._get_path(best_compromise)
+                path_nodes = rrt._get_path(best_node)
                 # rrt.debug_plan(path_nodes)
                 poses = [x.pose for x in path_nodes]
                 path = TransitPath.from_poses(
