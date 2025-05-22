@@ -265,6 +265,9 @@ class DiffDriveRRTStar:
             near = self.get_near_nodes(n1)
             cost = n0.cost + self.cost_calc(n0.pose, n1.pose)
             for neighbor in near:
+                dth = abs(neighbor.pose[2] - n1.pose[2])
+                if dth > np.pi / 8:
+                    continue
                 c2 = neighbor.cost + self.cost_calc(neighbor.pose, n1.pose)
                 if c2 < cost:
                     n1.parent = neighbor
