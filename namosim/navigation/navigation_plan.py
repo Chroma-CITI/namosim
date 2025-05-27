@@ -150,7 +150,7 @@ class Plan:
         grab_start_distance,
         rp: t.Optional["rp.RosPublisher"] = None,
         check_horizon: int = 0,
-        apply_strict_horizon: bool = True,
+        apply_strict_horizon: bool = False,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
     ) -> t.Set[Conflict]:
