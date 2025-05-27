@@ -269,20 +269,6 @@ class World:
                     collision_margin=collision_margin,
                     logger=logger,
                 )
-            elif agent.behavior.type == "stilman_rrt":
-                new_robot = agts.StilmanRRTAgent(
-                    navigation_goals=goals,
-                    config=agent.behavior,
-                    logs_dir=logs_dir,
-                    uid=agent.agent_id,
-                    polygon=robot_polygon,
-                    style=agent_style,
-                    pose=init_pose,
-                    sensors=[OmniscientSensor()],
-                    cell_size=cell_size,
-                    collision_margin=collision_margin,
-                    logger=logger,
-                )
             elif agent.behavior.type == "stilman_rrt_star_behavior":
                 new_robot = agts.StilmanRRTStarAgent(
                     navigation_goals=goals,
