@@ -51,6 +51,7 @@ class RRTAgent(Agent):
         self.config = config
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
+        self.goal_tolerance = 0.2
 
     def init(self, world: "w.World"):
         super().init(world)
@@ -88,7 +89,7 @@ class RRTAgent(Agent):
                 a=self.world.dynamic_entities[self.uid].pose,
                 b=self._goal.pose,
             )
-            <= 0.1
+            <= self.goal_tolerance
         ):
             result = ThinkResult(
                 plan=None,
@@ -166,7 +167,7 @@ class RRTAgent(Agent):
             goal=goal_pose,
             map=robot_inflated_grid,
             use_kdtree=self.config.use_kd_tree,
-            goal_tolerance=0.2,
+            goal_tolerance=self.goal_tolerance,
         )
 
         plan = rrt.plan()
