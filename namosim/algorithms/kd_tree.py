@@ -96,7 +96,6 @@ class KDTree(Generic[T]):
     def query_radius(self, point: Iterable[float], radius: float) -> List[T]:
         """Renvoie tous les objets dont la distance euclidienne au 'point' est ≤ radius."""
         target = list(point)
-        r2 = radius * radius
         result: List[T] = []
 
         def _search(node: Optional[KDNode[T]], depth: int):
@@ -105,15 +104,15 @@ class KDTree(Generic[T]):
             axis = depth % self.dimensions
             diff = target[axis] - node.point[axis]
             # Pruning: skip subtree if axis difference alone is greater than radius
-            if diff * diff > r2:
+            if abs(diff) > radius:
                 if diff < 0:
                     _search(node.left, depth + 1)
                 else:
                     _search(node.right, depth + 1)
                 return
             # Test real distance
-            dist2 = self.distance_func(target, node.point)
-            if dist2 <= r2:
+            dist = self.distance_func(target, node.point)
+            if dist <= radius:
                 result.append(node.object)
             _search(node.left, depth + 1)
             _search(node.right, depth + 1)

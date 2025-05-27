@@ -1939,7 +1939,7 @@ class StilmanRRTStarAgent(Agent):
             map_copy = copy.deepcopy(w_t.map)
             map_copy.update_polygons(other_entities_polygons)
             map_copy.deactivate_entities([obstacle_uid])
-            map_copy.to_image().save(f"map{obstacle_uid}.png")
+
             # Get potentially accessible cells for obstacle ordered by associated combined costs
             (
                 cells_sorted_by_combined_cost,
