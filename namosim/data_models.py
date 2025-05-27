@@ -46,7 +46,7 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     activate_grids_logging: bool = attr(default=False)
     push_only: bool = attr(default=False)
     robot_rotation_unit_angle: float = attr(default=15)
-    manip_search_bound_percentage: float = attr(default=0.05)
+    manip_search_bound_percentage: float = attr(default=0.1)
     use_social_cost: bool = attr(default=True)
     resolve_conflicts: bool = attr(default=True)
     resolve_deadlocks: bool = attr(default=True)
