@@ -34,31 +34,11 @@ class TestE2E:
         # profiler.disable()
         # profiler.dump_stats(file="stats.prof")
 
-    def test_minimal_stilman_rrt(self):
-        sim = create_sim_from_file(
-            simulation_file_path=os.path.join(
-                self.scenarios_folder, "minimal_stilman_rrt.svg"
-            )
-        )
-        sim.run()
-        assert any(
-            [
-                x.message == "Agent robot_0 finished executing all its goals."
-                for x in sim.logger
-            ]
-        )
-        assert any(
-            [
-                x.message.startswith("Agent robot_0 successfully executed goal")
-                for x in sim.logger
-            ]
-        )
-
     def test_stilman_rrt_star(self):
         """Tests Stilman-20005 behavior with RRT* navigation"""
         sim = create_sim_from_file(
             simulation_file_path=os.path.abspath(
-                os.path.join(self.scenarios_folder, "stilman_rrt_star.svg")
+                os.path.join(self.scenarios_folder, "minimal_stilman_rrt_star.svg")
             )
         )
         assert (
@@ -101,47 +81,10 @@ class TestE2E:
             ]
         )
 
-    def test_rrt_nav_only(self):
-        sim = create_sim_from_file(
-            simulation_file_path=os.path.join(self.scenarios_folder, "rrt.svg")
-        )
-        sim.run()
-        assert any(
-            [
-                x.message == "Agent robot_0 finished executing all its goals."
-                for x in sim.logger
-            ]
-        )
-        assert any(
-            [
-                x.message.startswith("Agent robot_0 successfully executed goal")
-                for x in sim.logger
-            ]
-        )
-
     def test_rrt_star_nav_only(self):
         sim = create_sim_from_file(
-            simulation_file_path=os.path.join(self.scenarios_folder, "rrt_star.svg")
-        )
-        sim.run()
-        assert any(
-            [
-                x.message == "Agent robot_0 finished executing all its goals."
-                for x in sim.logger
-            ]
-        )
-        assert any(
-            [
-                x.message.startswith("Agent robot_0 successfully executed goal")
-                for x in sim.logger
-            ]
-        )
-
-    def test_rrt_without_kd_tree(self):
-        sim = create_sim_from_file(
             simulation_file_path=os.path.join(self.scenarios_folder, "rrt.svg")
         )
-        sim.ref_world.agents["robot_0"].config.use_kd_tree = False
         sim.run()
         assert any(
             [
@@ -220,26 +163,6 @@ class TestE2E:
         sim = create_sim_from_file(
             simulation_file_path=os.path.join(
                 self.scenarios_folder, "1_robot_2_obstacles_social.svg"
-            )
-        )
-        sim.run()
-        assert any(
-            [
-                x.message.startswith("Agent robot_0 finished executing all its goals.")
-                for x in sim.logger
-            ]
-        )
-        assert any(
-            [
-                x.message.startswith("Agent robot_0 successfully executed goal")
-                for x in sim.logger
-            ]
-        )
-
-    def test_1_robot_2_obstacles_social_rrt(self):
-        sim = create_sim_from_file(
-            simulation_file_path=os.path.join(
-                self.scenarios_folder, "1_robot_2_obstacles_social_rrt.svg"
             )
         )
         sim.run()

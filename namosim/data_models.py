@@ -88,7 +88,6 @@ AgentBehaviorConfig = t.Union[
     RRTAgentConfigModel,
     TeleopBehaviorConfigModel,
     StilmanBehaviorConfigModel,
-    StilmanRRTBehaviorConfigModel,
     StilmanRRTStarBehaviorConfigModel,
     PPOAgentConfigModel,
 ]

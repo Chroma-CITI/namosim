@@ -4,7 +4,7 @@ import typing as t
 from shapely.geometry import Polygon
 from typing_extensions import Self
 
-from namosim.algorithms.rrt import DiffDriveRRT
+from namosim.algorithms.rrt_star import DiffDriveRRTStar
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.basic_actions as ba
 from namosim.navigation.navigation_path import TransitPath
@@ -116,13 +116,15 @@ class RRTAgent(Agent):
         )
 
         if path is None:
-            return ThinkResult(
+            result = ThinkResult(
                 plan=None,
                 next_action=ba.GoalFailed(self._goal.pose),
                 goal_pose=self._goal.pose,
                 did_replan=False,
                 agent_id=self.uid,
             )
+            self._goal = None
+            return result
 
         self._p_opt = nav_plan.Plan(
             paths=[path], goal=self._goal.pose, agent_id=self.uid
@@ -158,16 +160,17 @@ class RRTAgent(Agent):
         robot_inflated_grid: BinaryOccupancyGrid,
         robot_polygon: Polygon,
     ) -> TransitPath | None:
-        rrt = DiffDriveRRT(
+        rrt = DiffDriveRRTStar(
             polygon=robot_polygon,
             start=robot_pose,
             goal=goal_pose,
             map=robot_inflated_grid,
-            use_kd_tree=self.config.use_kd_tree,
+            use_kdtree=self.config.use_kd_tree,
+            goal_tolerance=0.2,
         )
 
         plan = rrt.plan()
-        rrt.plot(plan)
+        # rrt.plot(plan)
         if not plan:
             return None
         poses = [x.pose for x in plan]

@@ -288,7 +288,10 @@ class DiffDriveRRTStar:
         return polygon
 
     def near_goal(self, node: RRTNode) -> bool:
-        return self.cost(node.pose, self.goal.pose) <= self.goal_tolerance
+        return (
+            utils.distance_between_poses(node.pose, self.goal.pose)
+            <= self.goal_tolerance
+        )
 
     def get_near_nodes(self, node: RRTNode) -> List[RRTNode]:
         if self.use_kdtree and self._kdtree:
