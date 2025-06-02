@@ -120,8 +120,8 @@ class TransferPath:
         self.actions = actions
         self.action_index = 0
 
-    def reset(self):
-        self.action_index = 0
+    def reset(self, action_index: int = 0):
+        self.action_index = action_index
 
     def is_fully_executed(self):
         return self.action_index >= len(self.actions)
@@ -793,8 +793,8 @@ class TransitPath:
         self.actions = actions
         self.action_index = 0
 
-    def reset(self):
-        self.action_index = 0
+    def reset(self, action_index: int = 0):
+        self.action_index = action_index
 
     def __str__(self):
         if len(self.actions) < 5:

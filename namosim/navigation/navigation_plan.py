@@ -97,6 +97,25 @@ class Plan:
         for path in self.paths:
             path.reset()
 
+    def set_current_action_index(self, new_idx: int):
+        path_start_idx = 0
+        for path_idx, path in enumerate(self.paths):
+            path_end_idx = path_start_idx + len(path.actions)
+
+            if new_idx < path_start_idx:
+                path.reset()
+            elif new_idx >= path_end_idx:
+                # go to end
+                path.reset(len(path.actions))
+                assert path.is_fully_executed()
+            else:
+                self.component_index = path_idx
+                path.reset(new_idx)
+                assert not path.is_fully_executed()
+
+            path_start_idx = path_end_idx
+        return new_idx
+
     def get_current_path(self):
         return self.paths[self.component_index]
 
