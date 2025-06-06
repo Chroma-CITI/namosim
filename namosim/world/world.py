@@ -1073,6 +1073,11 @@ class World:
         grid.update_polygons(polygons)
         return grid
 
+    def drop_obstacle(self, agent_id: str):
+        if agent_id in self.entity_to_agent.inverse:
+            del self.entity_to_agent.inverse[agent_id]
+        self.resolve_collisions(agent_id)
+
     def resolve_collisions(self, entity_id: str):
         entity = self.dynamic_entities[entity_id]
         grid = self.get_inflated_grid_for_entity(entity_id)
