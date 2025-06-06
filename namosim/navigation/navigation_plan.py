@@ -102,7 +102,7 @@ class Plan:
         for path_idx, path in enumerate(self.paths):
             path_end_idx = path_start_idx + len(path.actions)
 
-            if new_idx < path_start_idx:
+            if new_idx <= path_start_idx:
                 path.reset()
             elif new_idx >= path_end_idx:
                 # go to end
@@ -110,8 +110,8 @@ class Plan:
                 assert path.is_fully_executed()
             else:
                 self.component_index = path_idx
-                path.reset(new_idx)
-                assert not path.is_fully_executed()
+                path.reset(new_idx - path_start_idx)
+                # assert not path.is_fully_executed()
 
             path_start_idx = path_end_idx
         return new_idx
@@ -214,9 +214,9 @@ class Plan:
             # TODO Get inflation from largest robot
             encompassing_circle = other_robot_center.buffer(radius)
             temp_uid = f"{other_robot.uid}_conflict_circle"
-            other_entities_polygons_with_encompassing_circles[temp_uid] = (
-                encompassing_circle
-            )
+            other_entities_polygons_with_encompassing_circles[
+                temp_uid
+            ] = encompassing_circle
             other_entities_with_encompassing_circles_aabb_tree.add(
                 collision.polygon_to_aabb(encompassing_circle), temp_uid
             )
