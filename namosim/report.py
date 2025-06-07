@@ -6,7 +6,7 @@ from pydantic import BaseModel
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.agents.agent import ThinkResult
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.navigation.conflict import RobotRobotConflict
 
 
@@ -19,7 +19,7 @@ class WorldStepReport(BaseModel):
 
 
 class GoalStats(BaseModel):
-    goal_pose: PoseModel
+    goal_pose: Pose2D
     """The goal pose"""
 
     succeeded: bool | None = None

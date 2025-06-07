@@ -10,7 +10,7 @@ import namosim.navigation.basic_actions as ba
 import namosim.world.world as w
 from namosim.log import logger
 from namosim.utils import utils
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 
 
 def bounds(points: t.Iterable[t.Tuple[float, float]]):
@@ -108,7 +108,7 @@ def arc_bounding_box(
 
 
 def bounding_boxes_vertices(
-    robot_pose: PoseModel, robot_action: ba.BaseAction, polygon: Polygon
+    robot_pose: Pose2D, robot_action: ba.BaseAction, polygon: Polygon
 ) -> t.List[t.List[t.Tuple[float, float]]]:
     """
     Returns for each action the pointclouds of the bounding boxes that cover each polygon's point trajectory
@@ -222,7 +222,7 @@ def merge_collides_with(
 def get_csv_collisions(
     *,
     agent_id: str,
-    robot_pose: PoseModel,
+    robot_pose: Pose2D,
     robot_action: ba.Action,
     polygon: Polygon,
     other_polygons: t.Dict[str, Polygon],

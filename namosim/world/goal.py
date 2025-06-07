@@ -3,7 +3,7 @@ import typing as t
 from shapely.geometry import Polygon
 
 from namosim import svg_styles
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 
 
 class Goal:
@@ -11,7 +11,7 @@ class Goal:
         self,
         uid: str,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         svg_style: svg_styles.AgentStyle | None = None,
     ):
         self.uid = uid

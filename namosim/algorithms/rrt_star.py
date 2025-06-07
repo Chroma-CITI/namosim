@@ -5,7 +5,7 @@ import random
 import math
 import time
 
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from shapely import affinity
@@ -16,7 +16,7 @@ from namosim.algorithms.rrt_node import RRTNode
 import typing as t
 
 
-def default_cost_calc(p1: PoseModel, p2: PoseModel) -> float:
+def default_cost_calc(p1: Pose2D, p2: Pose2D) -> float:
     return utils.distance_between_poses(p1, p2)
 
 
@@ -30,8 +30,8 @@ class DiffDriveRRTStar:
     def __init__(
         self,
         polygon: Polygon,
-        start: PoseModel,
-        goal: PoseModel | None,
+        start: Pose2D,
+        goal: Pose2D | None,
         map: BinaryOccupancyGrid,
         early_exit_condition: t.Callable[
             [t.List[RRTNode], RRTNode, int], bool
@@ -123,7 +123,7 @@ class DiffDriveRRTStar:
 
         self.elapsed_time: Optional[float] = None
 
-    def cost(self, a: PoseModel, b: PoseModel) -> float:
+    def cost(self, a: Pose2D, b: Pose2D) -> float:
         # Extract coordinates and angles
         x1, y1, theta1 = a
         x2, y2, theta2 = b
@@ -143,7 +143,7 @@ class DiffDriveRRTStar:
 
         return cost
 
-    def _is_collision_free(self, pose: PoseModel) -> bool:
+    def _is_collision_free(self, pose: Pose2D) -> bool:
         key = (round(pose[0], 4), round(pose[1], 4), round(pose[2], 2))
         if key in self._collision_cache:
             return self._collision_cache[key]
@@ -152,7 +152,7 @@ class DiffDriveRRTStar:
         self._collision_cache[key] = free
         return free
 
-    def random_pose(self) -> PoseModel:
+    def random_pose(self) -> Pose2D:
         if self.goal and self.informed and self.c_best not in (None, float("inf")):
             a = self.c_best / 2.0
             b = math.sqrt(max(self.c_best ** 2 - self.c_min ** 2, 1e-6)) / 2.0
@@ -162,15 +162,15 @@ class DiffDriveRRTStar:
                 x, y = (self.C @ np.array([a * x_ball, b * y_ball])) + self.x_center
                 if 0 <= x <= self.map.width and 0 <= y <= self.map.height:
                     theta = random.uniform(-180, 180)
-                    return PoseModel(float(x), float(y), theta)
+                    return Pose2D(float(x), float(y), theta)
         # tirage uniforme global (cas non informé ou avant 1er chemin)
-        return PoseModel(
+        return Pose2D(
             random.uniform(0, self.map.width),
             random.uniform(0, self.map.height),
             random.uniform(-180, 180),
         )
 
-    def nearest_node(self, pose: PoseModel) -> RRTNode:
+    def nearest_node(self, pose: Pose2D) -> RRTNode:
         if self.use_kdtree and self._kdtree:
             res = self._kdtree.query(pose, k=1)
             if res:
@@ -179,7 +179,7 @@ class DiffDriveRRTStar:
         return self.tree[int(np.argmin(dists))]
 
     def steer(
-        self, from_node: RRTNode, target: PoseModel, step_size=0.01
+        self, from_node: RRTNode, target: Pose2D, step_size=0.01
     ) -> RRTNode | None:
         x0, y0, th0 = from_node.pose
         th0_rad = utils.normalize_angle_radians(math.radians(th0))
@@ -196,7 +196,7 @@ class DiffDriveRRTStar:
                 y1 = y0 - (v / w) * (math.cos(th0_rad + w) - math.cos(th0_rad))
                 th1_rad = th0_rad + w
 
-            new_pose = PoseModel(
+            new_pose = Pose2D(
                 x1, y1, math.degrees(utils.normalize_angle_radians(th1_rad))
             )
             dx, dy = x1 - x0, y1 - y0
@@ -257,7 +257,7 @@ class DiffDriveRRTStar:
         polygon = affinity.translate(polygon, xoff=dx, yoff=dy)
         return polygon
 
-    def predict_pose_for_node(self, node: RRTNode, pose: PoseModel) -> PoseModel:
+    def predict_pose_for_node(self, node: RRTNode, pose: Pose2D) -> Pose2D:
         """
         For a given pose that is fixed relative to the robot's start pose, this function computes where
         that pose should be given robot's pose at the given node.
@@ -279,7 +279,7 @@ class DiffDriveRRTStar:
             use_radians=False,
         ).coords[0]
         orientation = utils.normalize_angle_degrees(pose[2] + dth)
-        return PoseModel(next_position[0], next_position[1], orientation)
+        return Pose2D(next_position[0], next_position[1], orientation)
 
     def get_polygon_at_node(self, node: RRTNode) -> Polygon:
         dx = node.pose[0] - self.start.pose[0]
@@ -406,7 +406,7 @@ class DiffDriveRRTStar:
             alpha = k / steps
             if not self.collision_free(
                 RRTNode(
-                    PoseModel(
+                    Pose2D(
                         x0 + alpha * (x1 - x0),
                         y0 + alpha * (y1 - y0),
                         t0 + alpha * (t1 - t0),
@@ -455,7 +455,7 @@ class DiffDriveRRTStar:
         plt.show()
         plt.close(fig)
 
-    def _pose_to_fixed_precision(self, pose: PoseModel) -> t.Tuple[int, int, int]:
+    def _pose_to_fixed_precision(self, pose: Pose2D) -> t.Tuple[int, int, int]:
         return utils.real_pose_to_fixed_precision_pose(
             pose,
             2 / self.max_vel,

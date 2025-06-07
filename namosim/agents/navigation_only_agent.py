@@ -10,7 +10,7 @@ import namosim.navigation.navigation_plan as nav_plan
 from namosim.svg_styles import AgentStyle
 import namosim.world.world as w
 from namosim.agents.agent import Agent, ThinkResult
-from namosim.data_models import NavigationOnlyBehaviorConfigModel, PoseModel
+from namosim.data_models import NavigationOnlyBehaviorConfigModel, Pose2D
 from namosim.input import Input
 from namosim.utils import utils
 from namosim.world.goal import Goal
@@ -26,7 +26,7 @@ class NavigationOnlyAgent(Agent):
         logs_dir: str,
         uid: str,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         sensors: t.List[OmniscientSensor],
         style: AgentStyle,
         logger: utils.NamosimLogger,

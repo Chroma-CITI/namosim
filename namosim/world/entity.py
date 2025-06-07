@@ -7,7 +7,7 @@ from shapely.geometry import Polygon
 from typing_extensions import Self
 
 import namosim.utils.utils as utils
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from shapely import affinity
 
 
@@ -71,7 +71,7 @@ class Entity:
         type_: str,
         uid: str,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         movability: Movability = Movability.UNKNOWN,
     ):
         self.uid = uid
@@ -93,7 +93,7 @@ class Entity:
             pose=self.pose,
         )
 
-    def move_to_pose(self, new_pose: PoseModel):
+    def move_to_pose(self, new_pose: Pose2D):
         dx, dy, dtheta = (
             new_pose[0] - self.pose[0],
             new_pose[1] - self.pose[1],
@@ -103,4 +103,4 @@ class Entity:
         new_polygon = affinity.translate(self.polygon, xoff=dx, yoff=dy)
         new_polygon = affinity.rotate(new_polygon, angle=dtheta)
         self.polygon = new_polygon
-        self.pose = PoseModel(new_pose[0], new_pose[1], angle)
+        self.pose = Pose2D(new_pose[0], new_pose[1], angle)

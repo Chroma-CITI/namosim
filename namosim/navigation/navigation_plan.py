@@ -11,7 +11,7 @@ import namosim.navigation.navigation_plan as nav_plan
 import namosim.utils.collision as collision
 import namosim.world.world as w
 import namosim.world.world as world
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.navigation.basic_actions import Action
 from namosim.navigation.conflict import (
     Conflict,
@@ -65,7 +65,7 @@ class Plan:
         *,
         agent_id: str,
         paths: t.List[t.Union[TransitPath, TransferPath]] | None = None,
-        goal: t.Optional[PoseModel] = None,
+        goal: t.Optional[Pose2D] = None,
         plan_error: t.Optional[str] = None,
     ):
         self.paths = [] if paths is None else paths
@@ -111,7 +111,7 @@ class Plan:
     def get_current_path(self):
         return self.paths[self.component_index]
 
-    def get_all_robot_poses(self) -> t.List[PoseModel]:
+    def get_all_robot_poses(self) -> t.List[Pose2D]:
         poses = []
         for path in self.paths:
             poses += path.robot_path.poses

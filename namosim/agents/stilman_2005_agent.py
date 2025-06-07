@@ -31,7 +31,7 @@ from namosim.algorithms import graph_search
 from namosim.algorithms.new_local_opening_check import check_new_local_opening
 from namosim.data_models import (
     GridCellModel,
-    PoseModel,
+    Pose2D,
     StilmanBehaviorConfigModel,
 )
 from namosim.input import Input
@@ -64,7 +64,7 @@ class Stilman2005Agent(Agent):
         logs_dir: str,
         uid: str,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         sensors: t.List[OmniscientSensor],
         style: AgentStyle,
         logger: utils.NamosimLogger,
@@ -374,7 +374,7 @@ class Stilman2005Agent(Agent):
         static_obs_inf_grid: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
-        goal: PoseModel,
+        goal: Pose2D,
         plan: "nav_plan.Plan",
         conflict_horizon: int,
         try_max: int,
@@ -509,7 +509,7 @@ class Stilman2005Agent(Agent):
         static_obs_inf_grid: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
-        goal: PoseModel,
+        goal: Pose2D,
         plan: "nav_plan.Plan",
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ) -> ThinkResult:
@@ -651,7 +651,7 @@ class Stilman2005Agent(Agent):
         w_t: "w.World",
         plan: "nav_plan.Plan",
         step_count: int,
-        goal: PoseModel,
+        goal: Pose2D,
         robot_inflated_grid: BinaryOccupancyGrid,
         potential_deadlocks: t.Set[Conflict],
         conflicts: t.Set[Conflict],
@@ -737,7 +737,7 @@ class Stilman2005Agent(Agent):
         w_t: "w.World",
         plan: "nav_plan.Plan",
         step_count: int,
-        goal: PoseModel,
+        goal: Pose2D,
         robot_inflated_grid: BinaryOccupancyGrid,
         potential_deadlocks: t.Set[Conflict],
         conflicts: t.Set[Conflict],
@@ -809,7 +809,7 @@ class Stilman2005Agent(Agent):
         static_obs_inf_grid: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
-        goal: PoseModel,
+        goal: Pose2D,
         plan: "nav_plan.Plan",
         conflict_horizon: int,
         max_tries: int,
@@ -1089,7 +1089,7 @@ class Stilman2005Agent(Agent):
         w_t: "w.World",
         static_obs_inf_grid: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
-        r_f: PoseModel,
+        r_f: Pose2D,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         prev_list: t.Set[str],
         ccs_data: connectivity.CCSData | None = None,
@@ -1394,7 +1394,6 @@ class Stilman2005Agent(Agent):
         avoid_list: t.Set[t.Tuple[str, str]],
         prev_list: t.Set[str],
         g_function: t.Callable[[RCHConfiguration, RCHConfiguration, bool], float],
-        traversed_obstacles_ids: utils.OrderedSet,
         forbidden_obstacles: t.Set[str],
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         neighborhood: t.Sequence[GridCellModel] = utils.TAXI_NEIGHBORHOOD,
@@ -1531,19 +1530,6 @@ class Stilman2005Agent(Agent):
                         > 0,
                     )
                 )
-                traversed_obstacles_ids.add(neighbor.first_obstacle_uid)
-
-        # if ros_publisher:
-        #     ros_publisher.publish_rch_data(
-        #         map=self.world.map,
-        #         current=current,
-        #         came_from=came_from,
-        #         neighbors=neighbors,
-        #         traversed_obstacles_ids=traversed_obstacles_ids,
-        #         res=inflated_robot_grid.cell_size,
-        #         grid_pose=inflated_robot_grid.grid_pose,
-        #         ns=self.uid,
-        #     )
 
         return neighbors, tentative_gscores
 
@@ -1662,8 +1648,6 @@ class Stilman2005Agent(Agent):
             )
             return translation_cost
 
-        traversed_obstacles_ids = utils.OrderedSet()
-
         def rch_get_neighbors_instance(
             current: RCHConfiguration,
             gscore: t.Dict[RCHConfiguration, float],
@@ -1683,7 +1667,6 @@ class Stilman2005Agent(Agent):
                 avoid_list,
                 prev_list,
                 g_function,
-                traversed_obstacles_ids,
                 forbidden_obstacles,
                 ros_publisher,
                 neighborhood,
@@ -1719,7 +1702,7 @@ class Stilman2005Agent(Agent):
         c_1: str,
         ccs_data: connectivity.CCSData,
         r_acc_cells: t.Set[GridCellModel],
-        r_f: PoseModel,
+        r_f: Pose2D,
         robot_inflated_grid: BinaryOccupancyGrid,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         check_new_local_opening_before_global: bool = True,
@@ -1903,7 +1886,7 @@ class Stilman2005Agent(Agent):
         c_1: str,
         ccs_data: connectivity.CCSData,
         r_acc_cells: t.Set[GridCellModel],
-        r_f: PoseModel,
+        r_f: Pose2D,
         robot_inflated_grid: BinaryOccupancyGrid,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         check_new_local_opening_before_global: bool = True,
@@ -2203,7 +2186,7 @@ class Stilman2005Agent(Agent):
         c_1_cells_set: t.Set[GridCellModel],
         ccs_data: connectivity.CCSData,
         check_new_local_opening_before_global: bool,
-        overall_goal_pose: PoseModel,
+        overall_goal_pose: Pose2D,
         overall_goal_cell: GridCellModel,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         obstacle_can_intrude_r_acc: bool = True,
@@ -2291,7 +2274,7 @@ class Stilman2005Agent(Agent):
         sorted_cell_to_combined_cost: OrderedDict[GridCellModel, float],
         bound_quantile: float,
         check_for_local_opening: bool,
-        overall_goal_pose: PoseModel,
+        overall_goal_pose: Pose2D,
         overall_goal_cell: GridCellModel,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         obstacle_can_intrude_r_acc: bool = True,
@@ -2394,7 +2377,7 @@ class Stilman2005Agent(Agent):
         obstacle_polygon: Polygon,
         robot_inflated_grid: BinaryOccupancyGrid,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
-    ) -> t.List[PoseModel]:
+    ) -> t.List[Pose2D]:
         """
         For the given obstacle polygon, computes the valid transit end poses and
         corresponding valid transfer start poses:
@@ -2431,14 +2414,14 @@ class Stilman2005Agent(Agent):
     def get_transfer_start_configs(
         self,
         robot_polygon: Polygon,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         agent_id: str,
         obstacle_uid: str,
         other_entities_polygons: t.Dict[str, Polygon],
         other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
-        obstacle_pose: PoseModel,
+        obstacle_pose: Pose2D,
         obstacle_polygon: Polygon,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ) -> t.List[RobotObstacleConfiguration]:
@@ -2521,13 +2504,13 @@ class Stilman2005Agent(Agent):
     def find_best_transfer_end_configuration(
         self,
         *,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         robot_polygon: Polygon,
         agent_id: str,
         obstacle_uid: str,
-        obstacle_pose: PoseModel,
+        obstacle_pose: Pose2D,
         obstacle_polygon: Polygon,
-        goal_pose: PoseModel,
+        goal_pose: Pose2D,
         goal_cell: GridCellModel,
         other_entities_polygons: t.Dict[str, Polygon],
         other_entities_aabb_tree: AABBTree,
@@ -2788,7 +2771,7 @@ class Stilman2005Agent(Agent):
     def get_robot_config_after_release(
         self,
         grid: BinaryOccupancyGrid,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         robot_polygon: Polygon,
         agent_id: str,
         obstacle_uid: str,
@@ -2799,7 +2782,7 @@ class Stilman2005Agent(Agent):
             entity_uid=obstacle_uid,
             distance=-(self.grab_start_distance - self.grab_end_distance),
         )
-        robot_pose = PoseModel(robot_pose[0], robot_pose[1], robot_pose[2])
+        robot_pose = Pose2D(robot_pose[0], robot_pose[1], robot_pose[2])
         new_robot_pose, new_robot_polygon = release_action.apply(
             robot_pose, robot_polygon
         )
@@ -2858,7 +2841,7 @@ class Stilman2005Agent(Agent):
         other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         c1_cells: t.Set[GridCellModel],
-        goal_pose: PoseModel,
+        goal_pose: Pose2D,
         goal_cell: GridCellModel,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         neighborhood: t.Iterable[t.Iterable[int]] = utils.CHESSBOARD_NEIGHBORHOOD,
@@ -3241,8 +3224,8 @@ class Stilman2005Agent(Agent):
 
     @staticmethod
     def deduce_robot_goal_pose(
-        robot_manip_pose: PoseModel, obs_init_pose: PoseModel, obs_goal_pose: PoseModel
-    ) -> PoseModel:
+        robot_manip_pose: Pose2D, obs_init_pose: Pose2D, obs_goal_pose: Pose2D
+    ) -> Pose2D:
         translation, rotation = utils.get_translation_and_rotation(
             obs_init_pose, obs_goal_pose
         )
@@ -3255,7 +3238,7 @@ class Stilman2005Agent(Agent):
         )
         orientation = (robot_manip_pose[2] + rotation) % 360.0
         orientation = orientation if orientation >= 0.0 else orientation + 360.0
-        return PoseModel(robot_goal_point[0], robot_goal_point[1], orientation)
+        return Pose2D(robot_goal_point[0], robot_goal_point[1], orientation)
 
     @staticmethod
     def dijkstra_cc_and_cost(
@@ -3293,9 +3276,9 @@ class Stilman2005Agent(Agent):
         self,
         inflated_grid_by_obstacle: BinaryOccupancyGrid,
         robot_polygon: Polygon,
-        robot_pose: PoseModel,
-        obstacle_pose: PoseModel,
-        goal_pose: PoseModel,
+        robot_pose: Pose2D,
+        obstacle_pose: Pose2D,
+        goal_pose: Pose2D,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
         if self._social_costmap is None:
@@ -3960,12 +3943,12 @@ class Stilman2005Agent(Agent):
 
         return evasion_cell_cost, evasion_transit_path
 
-    def h(self, r_i: PoseModel, r_j: PoseModel):
+    def h(self, r_i: Pose2D, r_j: Pose2D):
         translation_cost = self.translation_factor * utils.euclidean_distance(r_j, r_i)
         # rotation_cost = self.rotation_factor * (abs(r_j[2] - r_i[2]) % 180.)
         return translation_cost  # + rotation_cost
 
-    def g(self, r_i: PoseModel, r_j: PoseModel, is_transfer: float = False):
+    def g(self, r_i: Pose2D, r_j: Pose2D, is_transfer: float = False):
         translation_cost = self.translation_factor * utils.euclidean_distance(r_j, r_i)
         rotation_cost = self.rotation_factor * abs(r_j[2] - r_i[2])
         return (translation_cost + rotation_cost) * (
@@ -4062,7 +4045,7 @@ class Stilman2005Agent(Agent):
             logger=self.logger,
         )
 
-    def pose_to_fixed_precision(self, pose: PoseModel) -> t.Tuple[int, int, int]:
+    def pose_to_fixed_precision(self, pose: Pose2D) -> t.Tuple[int, int, int]:
         return utils.real_pose_to_fixed_precision_pose(
             pose,
             1 / self.TRANSLATION_DISCRETIZATION_FACTOR,

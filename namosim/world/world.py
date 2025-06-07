@@ -23,7 +23,7 @@ from namosim.data_models import (
     NamoAgentYamlModel,
     NamoConfigYamlModel,
     NamoConfigModel,
-    PoseModel,
+    Pose2D,
     StilmanBehaviorConfigModel,
     StilmanBehaviorParametersModel,
 )
@@ -66,7 +66,7 @@ class World:
             conversion.clean_attributes(init_geometry_file)
         self.init_geometry_file = init_geometry_file
         self._goals: t.Dict[str, Goal] = goals if goals else dict()
-        self._goal_pose_to_goal: t.Dict[PoseModel, Goal] = {}
+        self._goal_pose_to_goal: t.Dict[Pose2D, Goal] = {}
         for goal in self._goals.values():
             self._goal_pose_to_goal[goal.pose] = goal
 
@@ -104,7 +104,7 @@ class World:
     @classmethod
     def load_from_svg(
         cls,
-        world_svg_path: str,
+        svg_path: str,
         logs_dir: str = "namo_logs",
         logger: utils.NamosimLogger | None = None,
     ) -> Self:
@@ -112,7 +112,9 @@ class World:
             logger = utils.NamosimLogger()
 
         # Import entire world from svg file
-        svg_doc = minidom.parse(world_svg_path)
+        svg_doc = minidom.parse(svg_path)
+        if not svg_doc or not svg_doc.documentElement:
+            raise Exception("SVG document is empty or not found")
         conversion.set_all_id_attributes_as_ids(svg_doc)
         conversion.clean_attributes(svg_doc)
         config = NamoConfigModel.from_xml(
@@ -168,7 +170,7 @@ class World:
             if el.tagName in ["svg:path", "path"] and type_ == "movable":
                 polygon = shapes[id]
                 style = Style.from_string(el.getAttribute("style"))
-                pose = PoseModel(
+                pose = Pose2D(
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
                     t.cast(float, list(polygon.centroid.coords)[0][1]),
                     0.0,
@@ -185,7 +187,7 @@ class World:
             if el.tagName in ["svg:path", "path"] and type_ == "wall":
                 polygon = shapes[id]
                 style = Style.from_string(el.getAttribute("style"))
-                pose = PoseModel(
+                pose = Pose2D(
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
                     t.cast(float, list(polygon.centroid.coords)[0][1]),
                     0.0,
@@ -216,7 +218,7 @@ class World:
                 orientation="",
             )
 
-            init_pose = PoseModel(
+            init_pose = Pose2D(
                 t.cast(float, list(robot_polygon.centroid.coords)[0][0]),
                 t.cast(float, list(robot_polygon.centroid.coords)[0][1]),
                 robot_angle,
@@ -347,7 +349,7 @@ class World:
             agents.append(new_robot)
 
         goals_node = svg_doc.getElementById("goals")
-        if goals_node:
+        if goals_node and goals_node.parentNode:
             goals_node.parentNode.removeChild(goals_node)
 
         map = BinaryOccupancyGrid(
@@ -381,16 +383,17 @@ class World:
     def get_wall_polygons_from_svg(
         svg_path: str,
     ) -> t.List[Polygon]:
-        svg_doc = minidom.parse(svg_path)
+        svg_doc = minidom.parse(svg_path).documentElement
+        if not svg_doc:
+            raise Exception("SVG document is empty or not found")
         conversion.set_all_id_attributes_as_ids(svg_doc)
         conversion.clean_attributes(svg_doc)
-        if not svg_doc.documentElement.hasAttribute("viewBox"):
+        if not svg_doc.hasAttribute("viewBox"):
             raise Exception("svg has no viewBox attribute")
 
         # Split the viewbox attribute into its components
         viewbox_values = [
-            float(x) / 100
-            for x in svg_doc.documentElement.getAttribute("viewBox").split()
+            float(x) / 100 for x in svg_doc.getAttribute("viewBox").split()
         ]
 
         assert viewbox_values[0] == 0
@@ -850,7 +853,7 @@ class World:
                     svg_path=path_data, ymax_meters=height, scale=map.cell_size
                 )
                 style = Style.from_string(el.getAttribute("style"))
-                pose = PoseModel(
+                pose = Pose2D(
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
                     t.cast(float, list(polygon.centroid.coords)[0][1]),
                     0.0,
@@ -906,7 +909,7 @@ class World:
                 polygon: Polygon = conversion.svg_pathd_to_shapely_geometry(  # type: ignore
                     svg_path=path_data, ymax_meters=height, scale=map.cell_size
                 )
-                pose = PoseModel(
+                pose = Pose2D(
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
                     t.cast(float, list(polygon.centroid.coords)[0][1]),
                     0.0,
@@ -954,7 +957,7 @@ class World:
             x.id: x for x in config.agents
         }
 
-        agent_poses: t.Dict[str, PoseModel] = {}
+        agent_poses: t.Dict[str, Pose2D] = {}
         agent_polygons: t.Dict[str, Polygon] = {}
 
         robots_layer = svg_doc.getElementById("robots_layer")
@@ -969,7 +972,7 @@ class World:
                         svg_path=path_data, ymax_meters=height, scale=map.cell_size
                     )
                     agent_polygons[agent_id] = polygon
-                    agent_poses[agent_id] = PoseModel(
+                    agent_poses[agent_id] = Pose2D(
                         t.cast(float, list(polygon.centroid.coords)[0][0]),
                         t.cast(float, list(polygon.centroid.coords)[0][1]),
                         0,
@@ -982,10 +985,10 @@ class World:
                     )
         agents: t.List["agts.Agent"] = []
         for agent_config in config.agents:
-            pose: PoseModel = PoseModel(0, 0, 0)
+            pose: Pose2D = Pose2D(0, 0, 0)
             agent_polygon = Point(pose[0], pose[1]).buffer(agent_config.radius)
             if agent_config.initial_pose:
-                pose = PoseModel(
+                pose = Pose2D(
                     agent_config.initial_pose[0],
                     agent_config.initial_pose[1],
                     agent_config.initial_pose[2],
@@ -1091,7 +1094,7 @@ class World:
         if nearest is None:
             return
         x, y = grid.get_cell_center(nearest)
-        entity.move_to_pose(PoseModel(x, y, entity.pose[2]))
+        entity.move_to_pose(Pose2D(x, y, entity.pose[2]))
 
         # re-init all agents
         for agent in self.agents.values():

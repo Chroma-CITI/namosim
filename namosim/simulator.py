@@ -17,7 +17,7 @@ import namosim.config as config
 import namosim.navigation.action_result as ar
 import namosim.navigation.basic_actions as ba
 from namosim.agents.agent import Agent, ThinkResult
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.exceptions import CustomTimeoutError, timeout
 from namosim.input import Input
 from namosim.report import AgentStats, SimulationReport, WorldStepReport
@@ -115,7 +115,7 @@ class Simulator:
             goal.uid: goal.pose for goal in self.init_ref_world.get_goals().values()
         }
 
-        self.saved_goals: t.Dict[str, t.List[PoseModel]]
+        self.saved_goals: t.Dict[str, t.List[Pose2D]]
         """
         Maps an agent uid to a list of goal poses
         """
@@ -502,9 +502,9 @@ class Simulator:
 
     def initialize_agents_goals(
         self,
-        goals_geometries: t.Dict[str, PoseModel],
+        goals_geometries: t.Dict[str, Pose2D],
         max_nb_goals: float = float("inf"),
-    ) -> t.Dict[str, t.List[PoseModel]]:
+    ) -> t.Dict[str, t.List[Pose2D]]:
         """
         Contructs and returns a dictionary that maps an agent uid to a list of nativation goal poses. Each
         agent may multiple navigation goals.
@@ -518,7 +518,7 @@ class Simulator:
                     )
                 )
             else:
-                agent_navigation_goals: t.List[PoseModel] = []
+                agent_navigation_goals: t.List[Pose2D] = []
 
                 for count, config_goal in enumerate(agent_config.goals):
                     if count > max_nb_goals:

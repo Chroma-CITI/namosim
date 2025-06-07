@@ -8,7 +8,7 @@ import namosim.navigation.basic_actions as ba
 from namosim.svg_styles import AgentStyle
 import namosim.world.world as w
 from namosim.agents.agent import Agent, ThinkResult
-from namosim.data_models import PoseModel, TeleopBehaviorConfigModel
+from namosim.data_models import Pose2D, TeleopBehaviorConfigModel
 from namosim.input import Input
 from namosim.utils import utils
 from namosim.world.goal import Goal
@@ -24,7 +24,7 @@ class TeleopAgent(Agent):
         logs_dir: str,
         uid: str,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         sensors: t.List[OmniscientSensor],
         style: AgentStyle,
         logger: utils.NamosimLogger,

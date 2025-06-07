@@ -11,7 +11,7 @@ from namosim.data_models import (
     GoalConfigModel,
     GridCellModel,
     NamoConfigModel,
-    PoseModel,
+    Pose2D,
     StilmanBehaviorConfigModel,
     StilmanBehaviorParametersModel,
 )
@@ -34,11 +34,11 @@ def reinit_svg(doc: minidom.Document) -> minidom.Document:
 
 def sample_poses_uniform(
     robot_polygon: Polygon,
-    robot_pose: PoseModel,
+    robot_pose: Pose2D,
     grid: BinaryOccupancyGrid,
     nb_poses: int = 1,
     min_distance_between: float = 0.0,
-) -> t.List[PoseModel]:
+) -> t.List[Pose2D]:
     """Samples robot poses which do not collide with any of the provided obstacle polygons"""
     # Make AABB Tree from polygons
     accessible_cells: t.Set[GridCellModel] = set()
@@ -50,13 +50,13 @@ def sample_poses_uniform(
     if len(accessible_cells) == 0:
         raise Exception("No accessible cells")
 
-    generated_poses: t.Set[PoseModel] = set()
+    generated_poses: t.Set[Pose2D] = set()
     generated_polygons: t.List[Polygon] = []
 
     while len(generated_poses) < nb_poses:
         rand_cell = random.choice(tuple(accessible_cells))
         cell_center = grid.get_cell_center(rand_cell)
-        rand_pose = PoseModel(
+        rand_pose = Pose2D(
             cell_center[0],
             cell_center[1],
             random.uniform(0.0, 360.0),
@@ -151,7 +151,7 @@ def generate_alternative_scenarios(
     base_robot_polygon: Polygon = conversion.svg_pathd_to_shapely_geometry(
         svg_path=svg_base_robot.getAttribute("d"), ymax_meters=height
     )  # type: ignore
-    base_robot_pose: PoseModel = PoseModel(
+    base_robot_pose: Pose2D = Pose2D(
         base_robot_polygon.centroid.coords[0][0],
         base_robot_polygon.centroid.coords[0][1],
         0,
@@ -160,7 +160,7 @@ def generate_alternative_scenarios(
     base_goal_polygon: Polygon = conversion.svg_pathd_to_shapely_geometry(
         svg_path=svg_base_goal.getAttribute("d"), ymax_meters=height
     )  # type: ignore
-    base_goal_pose: PoseModel = PoseModel(
+    base_goal_pose: Pose2D = Pose2D(
         base_goal_polygon.centroid.coords[0][0],
         base_goal_polygon.centroid.coords[0][1],
         0,
@@ -194,7 +194,7 @@ def generate_alternative_scenarios(
         namo_config.cell_size_cm = cell_size_cm
         namo_config.agents = []
 
-        goals_poses_for_robots: t.List[t.List[PoseModel]] = []
+        goals_poses_for_robots: t.List[t.List[Pose2D]] = []
         for i in range(nb_robots):
             poses = sample_poses_uniform(
                 robot_polygon=base_goal_polygon,
@@ -243,7 +243,7 @@ def generate_alternative_scenarios(
             namo_config.agents.append(agent_config)
 
         svg_data.documentElement.appendChild(
-            minidom.parseString(namo_config.to_xml()).documentElement
+            minidom.parseString(namo_config.to_xml()).documentElement  # type: ignore
         )
 
         robot_radius = utils.get_circumscribed_radius(base_robot_polygon)

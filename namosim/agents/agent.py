@@ -11,7 +11,7 @@ import namosim.navigation.navigation_plan as navp
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 import namosim.world.world as w
 from namosim.algorithms import graph_search
-from namosim.data_models import AgentBehaviorConfig, PoseModel
+from namosim.data_models import AgentBehaviorConfig, Pose2D
 from namosim.input import Input
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import Action
@@ -29,7 +29,7 @@ class ThinkResult:
         self,
         *,
         plan: t.Union["navp.Plan", None],
-        goal_pose: PoseModel | None,
+        goal_pose: Pose2D | None,
         did_replan: bool,
         did_postpone: bool = False,
         agent_id: str,
@@ -52,7 +52,7 @@ class RLThinkResult(ThinkResult):
         self,
         *,
         next_action: Action | None,
-        goal_pose: PoseModel | None,
+        goal_pose: Pose2D | None,
         did_replan: bool,
         did_postpone: bool = False,
         agent_id: str,
@@ -90,7 +90,7 @@ class Agent(Entity):
         logs_dir: str,
         uid: str,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         sensors: t.List[OmniscientSensor],
         cell_size: float,
         movability: Movability = Movability.UNKNOWN,
@@ -239,8 +239,8 @@ class Agent(Entity):
 
     def is_goal_reached(
         self,
-        goal_pose: PoseModel,
-        robot_pose: PoseModel,
+        goal_pose: Pose2D,
+        robot_pose: Pose2D,
         pos_tol: float = 0.05,
         ang_tol: float = 0.1,
     ):
@@ -254,8 +254,8 @@ class Agent(Entity):
 
     def find_path(
         self,
-        robot_pose: PoseModel,
-        goal_pose: PoseModel,
+        robot_pose: Pose2D,
+        goal_pose: Pose2D,
         robot_inflated_grid: BinaryOccupancyGrid,
         robot_polygon: Polygon,
     ) -> TransitPath | None:
@@ -264,7 +264,7 @@ class Agent(Entity):
         )
         if real_path:
 
-            def g(a: PoseModel, b: PoseModel):
+            def g(a: Pose2D, b: Pose2D):
                 translation_cost = utils.euclidean_distance(a, b)
                 rotation_cost = abs(a[2] - b[2])
                 return translation_cost + rotation_cost

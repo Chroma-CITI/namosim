@@ -13,7 +13,7 @@ from namosim.svg_styles import AgentStyle
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 import namosim.world.world as w
 from namosim.agents.agent import Agent, ThinkResult
-from namosim.data_models import RRTAgentConfigModel, PoseModel
+from namosim.data_models import RRTAgentConfigModel, Pose2D
 from namosim.input import Input
 from namosim.utils import utils
 from namosim.world.goal import Goal
@@ -29,7 +29,7 @@ class RRTAgent(Agent):
         logs_dir: str,
         uid: str,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         sensors: t.List[OmniscientSensor],
         style: AgentStyle,
         logger: utils.NamosimLogger,
@@ -156,8 +156,8 @@ class RRTAgent(Agent):
 
     def find_path_rrt(
         self,
-        robot_pose: PoseModel,
-        goal_pose: PoseModel,
+        robot_pose: Pose2D,
+        goal_pose: Pose2D,
         robot_inflated_grid: BinaryOccupancyGrid,
         robot_polygon: Polygon,
     ) -> TransitPath | None:
