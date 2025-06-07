@@ -2799,7 +2799,7 @@ class Stilman2005Agent(Agent):
             entity_uid=obstacle_uid,
             distance=-(self.grab_start_distance - self.grab_end_distance),
         )
-        robot_pose = (robot_pose[0], robot_pose[1], robot_pose[2])
+        robot_pose = PoseModel(robot_pose[0], robot_pose[1], robot_pose[2])
         new_robot_pose, new_robot_polygon = release_action.apply(
             robot_pose, robot_polygon
         )
@@ -3255,7 +3255,7 @@ class Stilman2005Agent(Agent):
         )
         orientation = (robot_manip_pose[2] + rotation) % 360.0
         orientation = orientation if orientation >= 0.0 else orientation + 360.0
-        return robot_goal_point[0], robot_goal_point[1], orientation
+        return PoseModel(robot_goal_point[0], robot_goal_point[1], orientation)
 
     @staticmethod
     def dijkstra_cc_and_cost(

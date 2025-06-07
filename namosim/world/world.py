@@ -168,7 +168,7 @@ class World:
             if el.tagName in ["svg:path", "path"] and type_ == "movable":
                 polygon = shapes[id]
                 style = Style.from_string(el.getAttribute("style"))
-                pose = (
+                pose = PoseModel(
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
                     t.cast(float, list(polygon.centroid.coords)[0][1]),
                     0.0,
@@ -185,7 +185,7 @@ class World:
             if el.tagName in ["svg:path", "path"] and type_ == "wall":
                 polygon = shapes[id]
                 style = Style.from_string(el.getAttribute("style"))
-                pose = (
+                pose = PoseModel(
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
                     t.cast(float, list(polygon.centroid.coords)[0][1]),
                     0.0,
@@ -216,7 +216,7 @@ class World:
                 orientation="",
             )
 
-            init_pose = (
+            init_pose = PoseModel(
                 t.cast(float, list(robot_polygon.centroid.coords)[0][0]),
                 t.cast(float, list(robot_polygon.centroid.coords)[0][1]),
                 robot_angle,
@@ -850,7 +850,7 @@ class World:
                     svg_path=path_data, ymax_meters=height, scale=map.cell_size
                 )
                 style = Style.from_string(el.getAttribute("style"))
-                pose = (
+                pose = PoseModel(
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
                     t.cast(float, list(polygon.centroid.coords)[0][1]),
                     0.0,
@@ -906,7 +906,7 @@ class World:
                 polygon: Polygon = conversion.svg_pathd_to_shapely_geometry(  # type: ignore
                     svg_path=path_data, ymax_meters=height, scale=map.cell_size
                 )
-                pose = (
+                pose = PoseModel(
                     t.cast(float, list(polygon.centroid.coords)[0][0]),
                     t.cast(float, list(polygon.centroid.coords)[0][1]),
                     0.0,
@@ -969,7 +969,7 @@ class World:
                         svg_path=path_data, ymax_meters=height, scale=map.cell_size
                     )
                     agent_polygons[agent_id] = polygon
-                    agent_poses[agent_id] = (
+                    agent_poses[agent_id] = PoseModel(
                         t.cast(float, list(polygon.centroid.coords)[0][0]),
                         t.cast(float, list(polygon.centroid.coords)[0][1]),
                         0,
@@ -982,10 +982,10 @@ class World:
                     )
         agents: t.List["agts.Agent"] = []
         for agent_config in config.agents:
-            pose: PoseModel = (0, 0, 0)
+            pose: PoseModel = PoseModel(0, 0, 0)
             agent_polygon = Point(pose[0], pose[1]).buffer(agent_config.radius)
             if agent_config.initial_pose:
-                pose = (
+                pose = PoseModel(
                     agent_config.initial_pose[0],
                     agent_config.initial_pose[1],
                     agent_config.initial_pose[2],
@@ -1073,10 +1073,11 @@ class World:
         grid.update_polygons(polygons)
         return grid
 
-    def drop_obstacle(self, agent_id: str):
+    def drop_obstacle(self, agent_id: str, resolve_collisions: bool):
         if agent_id in self.entity_to_agent.inverse:
             del self.entity_to_agent.inverse[agent_id]
-        self.resolve_collisions(agent_id)
+        if resolve_collisions:
+            self.resolve_collisions(agent_id)
 
     def resolve_collisions(self, entity_id: str):
         entity = self.dynamic_entities[entity_id]
@@ -1090,7 +1091,7 @@ class World:
         if nearest is None:
             return
         x, y = grid.get_cell_center(nearest)
-        entity.move_to_pose((x, y, entity.pose[2]))
+        entity.move_to_pose(PoseModel(x, y, entity.pose[2]))
 
         # re-init all agents
         for agent in self.agents.values():

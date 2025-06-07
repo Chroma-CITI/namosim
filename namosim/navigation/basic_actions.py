@@ -82,7 +82,7 @@ class Rotation(BaseAction):
             use_radians=False,
         ).coords[0]
         orientation = utils.normalize_angle_degrees(pose[2] + self.angle)
-        return (next_position[0], next_position[1], orientation)
+        return PoseModel(next_position[0], next_position[1], orientation)
 
     def apply_to_point(
         self, center: t.Tuple[float, float], point: t.Tuple[float, float]
@@ -122,7 +122,7 @@ class Translation(BaseAction):
             yoff=self.v[1],
             zoff=0.0,
         ).coords[0]
-        next_pose = next_position[0], next_position[1], pose[2]
+        next_pose = PoseModel(next_position[0], next_position[1], pose[2])
         return next_pose
 
 

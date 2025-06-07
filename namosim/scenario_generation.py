@@ -56,7 +56,7 @@ def sample_poses_uniform(
     while len(generated_poses) < nb_poses:
         rand_cell = random.choice(tuple(accessible_cells))
         cell_center = grid.get_cell_center(rand_cell)
-        rand_pose = (
+        rand_pose = PoseModel(
             cell_center[0],
             cell_center[1],
             random.uniform(0.0, 360.0),
@@ -151,7 +151,7 @@ def generate_alternative_scenarios(
     base_robot_polygon: Polygon = conversion.svg_pathd_to_shapely_geometry(
         svg_path=svg_base_robot.getAttribute("d"), ymax_meters=height
     )  # type: ignore
-    base_robot_pose: PoseModel = (
+    base_robot_pose: PoseModel = PoseModel(
         base_robot_polygon.centroid.coords[0][0],
         base_robot_polygon.centroid.coords[0][1],
         0,
@@ -160,7 +160,7 @@ def generate_alternative_scenarios(
     base_goal_polygon: Polygon = conversion.svg_pathd_to_shapely_geometry(
         svg_path=svg_base_goal.getAttribute("d"), ymax_meters=height
     )  # type: ignore
-    base_goal_pose: PoseModel = (
+    base_goal_pose: PoseModel = PoseModel(
         base_goal_polygon.centroid.coords[0][0],
         base_goal_polygon.centroid.coords[0][1],
         0,

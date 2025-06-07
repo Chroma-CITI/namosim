@@ -272,7 +272,7 @@ def real_pose_to_grid_pose(real_pose, res, grid_pose, clamp_angle=None):
 
 
 def grid_pose_to_real_pose(grid_pose, res, parent_grid_pose):
-    return (
+    return PoseModel(
         res * float(grid_pose[0]) + parent_grid_pose[0] + res * 0.5,
         res * float(grid_pose[1]) + parent_grid_pose[1] + res * 0.5,
         float(grid_pose[2]),

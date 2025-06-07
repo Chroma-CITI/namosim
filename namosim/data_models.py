@@ -4,7 +4,13 @@ from pydantic_xml import BaseXmlModel, attr, element
 import yaml
 from pydantic import BaseModel
 
-PoseModel = t.Tuple[float, float, float]
+
+class PoseModel(t.NamedTuple):
+    x: float
+    y: float
+    degrees: float
+
+
 FixedPrecisionPoseModel = t.Tuple[int, int, int]
 GridCellModel = t.Tuple[int, int]
 GridCellSet = t.Set[GridCellModel]
