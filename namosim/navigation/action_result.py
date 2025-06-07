@@ -1,6 +1,6 @@
 import typing as t
 
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.navigation.basic_actions import Action
 
 
@@ -13,7 +13,7 @@ class ActionSuccess(ActionResult):
     def __init__(
         self,
         action: Action | None = None,
-        robot_pose: PoseModel | None = None,
+        robot_pose: Pose2D | None = None,
         is_transfer: bool = False,
         obstacle_uid: t.Optional[str] = None,
     ):

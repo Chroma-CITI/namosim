@@ -5,24 +5,22 @@ import numpy as np
 from shapely.geometry import Polygon
 from shapely.geometry import LineString, Point
 from shapely import affinity
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.utils import utils
 
 
 class BaseAction(ABC):
     """`Absolute` actions are actions that can be applied without knowing the robot's current pose."""
 
-    def apply(
-        self, robot_pose: PoseModel, polygon: Polygon
-    ) -> t.Tuple[PoseModel, Polygon]:
+    def apply(self, robot_pose: Pose2D, polygon: Polygon) -> t.Tuple[Pose2D, Polygon]:
         return self.predict_pose(
             robot_pose=robot_pose, pose=robot_pose
         ), self.predict_polygon(robot_pose=robot_pose, polygon=polygon)
 
-    def predict_polygon(self, robot_pose: PoseModel, polygon: Polygon) -> Polygon:
+    def predict_polygon(self, robot_pose: Pose2D, polygon: Polygon) -> Polygon:
         raise NotImplementedError()
 
-    def predict_pose(self, robot_pose: PoseModel, pose: PoseModel) -> PoseModel:
+    def predict_pose(self, robot_pose: Pose2D, pose: Pose2D) -> Pose2D:
         raise NotImplementedError()
 
 
@@ -32,7 +30,7 @@ class GoalsFinished(BaseAction):
 
 
 class GoalSuccess(BaseAction):
-    def __init__(self, goal: PoseModel):
+    def __init__(self, goal: Pose2D):
         self.goal = goal
 
     def __str__(self):
@@ -40,7 +38,7 @@ class GoalSuccess(BaseAction):
 
 
 class GoalFailed(BaseAction):
-    def __init__(self, goal: PoseModel, is_timeout: bool = False):
+    def __init__(self, goal: Pose2D, is_timeout: bool = False):
         self.goal = goal
         self.is_timeout = is_timeout
 
@@ -62,7 +60,7 @@ class Rotation(BaseAction):
     def __str__(self):
         return f"Rotation(angle={self.angle})"
 
-    def predict_polygon(self, robot_pose: PoseModel, polygon: Polygon) -> Polygon:
+    def predict_polygon(self, robot_pose: Pose2D, polygon: Polygon) -> Polygon:
         next_polygon = t.cast(
             Polygon,
             affinity.rotate(
@@ -74,7 +72,7 @@ class Rotation(BaseAction):
         )
         return next_polygon
 
-    def predict_pose(self, robot_pose: PoseModel, pose: PoseModel) -> PoseModel:
+    def predict_pose(self, robot_pose: Pose2D, pose: Pose2D) -> Pose2D:
         next_position = affinity.rotate(
             geom=Point((pose[0], pose[1])),
             angle=self.angle,
@@ -82,7 +80,7 @@ class Rotation(BaseAction):
             use_radians=False,
         ).coords[0]
         orientation = utils.normalize_angle_degrees(pose[2] + self.angle)
-        return PoseModel(next_position[0], next_position[1], orientation)
+        return Pose2D(next_position[0], next_position[1], orientation)
 
     def apply_to_point(
         self, center: t.Tuple[float, float], point: t.Tuple[float, float]
@@ -106,7 +104,7 @@ class Translation(BaseAction):
         self.v = v
         self.length = np.linalg.norm(v)
 
-    def predict_polygon(self, robot_pose: PoseModel, polygon: Polygon) -> Polygon:
+    def predict_polygon(self, robot_pose: Pose2D, polygon: Polygon) -> Polygon:
         next_polygon = affinity.translate(
             geom=polygon,
             xoff=self.v[0],
@@ -115,14 +113,14 @@ class Translation(BaseAction):
         )
         return next_polygon
 
-    def predict_pose(self, robot_pose: PoseModel, pose: PoseModel) -> PoseModel:
+    def predict_pose(self, robot_pose: Pose2D, pose: Pose2D) -> Pose2D:
         next_position = affinity.translate(
             geom=Point((pose[0], pose[1])),
             xoff=self.v[0],
             yoff=self.v[1],
             zoff=0.0,
         ).coords[0]
-        next_pose = PoseModel(next_position[0], next_position[1], pose[2])
+        next_pose = Pose2D(next_position[0], next_position[1], pose[2])
         return next_pose
 
 
@@ -145,12 +143,12 @@ class Advance(BaseAction):
         translation_vector: t.Tuple[float, float] = rotated_linestring.coords[1]  # type: ignore
         return Translation(v=translation_vector)
 
-    def predict_polygon(self, robot_pose: PoseModel, polygon: Polygon) -> Polygon:
+    def predict_polygon(self, robot_pose: Pose2D, polygon: Polygon) -> Polygon:
         return self.to_translation(angle=robot_pose[2]).predict_polygon(
             robot_pose, polygon
         )
 
-    def predict_pose(self, robot_pose: PoseModel, pose: PoseModel) -> PoseModel:
+    def predict_pose(self, robot_pose: Pose2D, pose: Pose2D) -> Pose2D:
         return self.to_translation(angle=robot_pose[2]).predict_pose(robot_pose, pose)
 
 

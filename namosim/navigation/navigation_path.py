@@ -8,7 +8,7 @@ import namosim.agents.agent as agent
 import namosim.display.ros2_publisher as ros2
 import namosim.world.world as world
 from namosim.agents.stilman_configurations import RobotConfiguration
-from namosim.data_models import GridCellModel, PoseModel
+from namosim.data_models import GridCellModel, Pose2D
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -32,7 +32,7 @@ class RawPath:
 
     def __init__(
         self,
-        poses: t.List[PoseModel],
+        poses: t.List[Pose2D],
         polygons: t.List[Polygon],
     ):
         if len(poses) != len(polygons):
@@ -48,7 +48,7 @@ class RawPath:
     # TODO Have these trans and rot precision values be passed from calling functions !
     def is_start_pose(
         self,
-        pose: PoseModel,
+        pose: Pose2D,
         cell_size: float,
     ):
         """
@@ -798,9 +798,9 @@ class TransitPath:
     @classmethod
     def from_poses(
         cls,
-        poses: t.List[PoseModel],
+        poses: t.List[Pose2D],
         robot_polygon: Polygon,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         phys_cost: float | None = None,
         social_cost: float = 0.0,
         weight: float = 1.0,
@@ -851,17 +851,15 @@ class TransitPath:
                     )  # turn away
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
-                    updated_poses.append(PoseModel(pose[0], pose[1], current_angle))
+                    updated_poses.append(Pose2D(pose[0], pose[1], current_angle))
                     dist = -dist
                 elif np.abs(turn_towards_angle) > 1e-6:
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
-                    updated_poses.append(PoseModel(pose[0], pose[1], current_angle))
+                    updated_poses.append(Pose2D(pose[0], pose[1], current_angle))
 
                 actions.append(ba.Advance(dist))
-                updated_poses.append(
-                    PoseModel(next_pose[0], next_pose[1], current_angle)
-                )
+                updated_poses.append(Pose2D(next_pose[0], next_pose[1], current_angle))
 
             has_rotation = not utils.angle_is_close(
                 current_angle, next_pose[2], abs_tol=1e-6
@@ -1140,9 +1138,9 @@ class EvasionTransitPath(TransitPath):
     @classmethod
     def from_poses(
         cls,
-        poses: t.List[PoseModel],
+        poses: t.List[Pose2D],
         robot_polygon: Polygon,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         conflicts: t.Set[Conflict],
     ):
         path = TransitPath.from_poses(

@@ -14,7 +14,7 @@ from matplotlib import colors
 from shapely.geometry import LineString, Polygon
 from rclpy.impl.rcutils_logger import RcutilsLogger
 
-from namosim.data_models import PoseModel, VertexModel
+from namosim.data_models import Pose2D, VertexModel
 
 # Constants
 SQRT_OF_2 = math.sqrt(2.0)
@@ -37,64 +37,6 @@ CHESSBOARD_NEIGHBORHOOD_EXTRAS_SET = set(CHESSBOARD_NEIGHBORHOOD_EXTRAS)
 
 def timestamp_string():
     return datetime.now().strftime("%Y-%m-%d-%Hh%Mm%Ss_%f")
-
-
-class OrderedSet(MutableSet):
-    def __init__(self, iterable=None):
-        self.end = end = []
-        end += [None, end, end]  # sentinel node for doubly linked list
-        self.map = {}  # key --> [key, prev, next]
-        if iterable is not None:
-            self |= iterable
-
-    def __len__(self):
-        return len(self.map)
-
-    def __contains__(self, key):
-        return key in self.map
-
-    def add(self, key):
-        if key not in self.map:
-            end = self.end
-            curr = end[1]
-            curr[2] = end[1] = self.map[key] = [key, curr, end]
-
-    def discard(self, key):
-        if key in self.map:
-            key, prev, next = self.map.pop(key)
-            prev[2] = next
-            next[1] = prev
-
-    def __iter__(self):
-        end = self.end
-        curr = end[2]
-        while curr is not end:
-            yield curr[0]
-            curr = curr[2]
-
-    def __reversed__(self):
-        end = self.end
-        curr = end[1]
-        while curr is not end:
-            yield curr[0]
-            curr = curr[1]
-
-    def pop(self, last=True):
-        if not self:
-            raise KeyError("set is empty")
-        key = self.end[1][0] if last else self.end[2][0]
-        self.discard(key)
-        return key
-
-    def __repr__(self):
-        if not self:
-            return "%s()" % (self.__class__.__name__,)
-        return "%s(%r)" % (self.__class__.__name__, list(self))
-
-    def __eq__(self, other: tx.Self | t.Iterable[t.Any]):
-        if isinstance(other, OrderedSet):
-            return len(self) == len(other) and list(self) == list(other)
-        return set(self) == set(other)
 
 
 class NamosimLog:
@@ -241,14 +183,14 @@ def is_in_matrix(cell, width, height):
     return 0 <= cell[0] < width and 0 <= cell[1] < height
 
 
-def real_to_grid(real_x: float, real_y: float, res: float, grid_pose: PoseModel):
+def real_to_grid(real_x: float, real_y: float, res: float, grid_pose: Pose2D):
     return int(math.floor((real_x - grid_pose[0]) / res)), int(
         math.floor((real_y - grid_pose[1]) / res)
     )
 
 
 def grid_to_real(
-    cell_x: int, cell_y: int, res: float, grid_pose: PoseModel
+    cell_x: int, cell_y: int, res: float, grid_pose: Pose2D
 ) -> t.Tuple[float, float]:
     """
     Converts a grid cell's (x,y) coordinates into continuous world (x,y) coordinates
@@ -272,7 +214,7 @@ def real_pose_to_grid_pose(real_pose, res, grid_pose, clamp_angle=None):
 
 
 def grid_pose_to_real_pose(grid_pose, res, parent_grid_pose):
-    return PoseModel(
+    return Pose2D(
         res * float(grid_pose[0]) + parent_grid_pose[0] + res * 0.5,
         res * float(grid_pose[1]) + parent_grid_pose[1] + res * 0.5,
         float(grid_pose[2]),
@@ -280,7 +222,7 @@ def grid_pose_to_real_pose(grid_pose, res, parent_grid_pose):
 
 
 def real_pose_to_fixed_precision_pose(
-    real_pose: PoseModel, trans_mult: float, rot_mult: float
+    real_pose: Pose2D, trans_mult: float, rot_mult: float
 ) -> t.Tuple[int, int, int]:
     """
     Takes a regular real-valued pose and converts to an integer-valued pose with a fixed degree of precision
@@ -368,11 +310,11 @@ def get_inscribed_radius(polygon: Polygon) -> float:
     return polygon.centroid.distance(LineString(polygon.exterior.coords))
 
 
-def get_translation(start_pose: PoseModel, end_pose: PoseModel):
+def get_translation(start_pose: Pose2D, end_pose: Pose2D):
     return end_pose[0] - start_pose[0], end_pose[1] - start_pose[1]
 
 
-def get_rotation(start_pose: PoseModel, end_pose: PoseModel):
+def get_rotation(start_pose: Pose2D, end_pose: Pose2D):
     return normalize_angle_degrees(end_pose[2] - start_pose[2])
 
 
@@ -384,7 +326,7 @@ def subtract_angles(a: float, b: float):
     return normalize_angle_degrees(a - b)
 
 
-def get_translation_and_rotation(start_pose: PoseModel, end_pose: PoseModel):
+def get_translation_and_rotation(start_pose: Pose2D, end_pose: Pose2D):
     translation = get_translation(start_pose, end_pose)
     rotation = get_rotation(start_pose, end_pose)
     if math.isnan(rotation):
@@ -394,8 +336,8 @@ def get_translation_and_rotation(start_pose: PoseModel, end_pose: PoseModel):
 
 def set_polygon_pose(
     polygon: Polygon,
-    init_polygon_pose: PoseModel,
-    end_polygon_pose: PoseModel,
+    init_polygon_pose: Pose2D,
+    end_polygon_pose: Pose2D,
     rotation_center: t.Union[str, t.Tuple[float, float]] = "center",
 ) -> Polygon:
     translation, rotation = get_translation_and_rotation(
@@ -576,7 +518,7 @@ def are_points_on_opposite_sides(ax, ay, bx, by, x1, y1, x2, y2):
 
 def sample_poses_at_middle_of_inflated_sides(
     polygon: Polygon, dist_from_sides: float, close_to_zero_atol: float = 1e-06
-) -> t.List[PoseModel]:
+) -> t.List[Pose2D]:
     """
     Computes and returns the manipulation poses that are at a distance dist_from_border from the sides,
     and facing their middle.
@@ -961,7 +903,7 @@ def get_box_orientation(box: Polygon) -> float:
     return angle
 
 
-def distance_between_poses(a: PoseModel, b: PoseModel) -> float:
+def distance_between_poses(a: Pose2D, b: Pose2D) -> float:
     """
     Calculate the distance between two poses, considering position and orientation.
 

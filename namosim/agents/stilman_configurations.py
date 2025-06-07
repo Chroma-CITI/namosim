@@ -9,7 +9,7 @@ from shapely.geometry import Polygon
 
 import namosim.navigation.basic_actions as ba
 from namosim.algorithms import graph_search
-from namosim.data_models import FixedPrecisionPoseModel, GridCellModel, PoseModel
+from namosim.data_models import FixedPrecisionPose2D, GridCellModel, Pose2D
 
 
 class BaseConfiguration(ABC):
@@ -46,10 +46,10 @@ class RobotConfiguration(BaseConfiguration):
     def __init__(
         self,
         *,
-        floating_point_pose: PoseModel,
+        floating_point_pose: Pose2D,
         polygon: Polygon,
         cell_in_grid: t.Tuple[int, int],
-        fixed_precision_pose: FixedPrecisionPoseModel,
+        fixed_precision_pose: FixedPrecisionPose2D,
         action: ba.Action | None = None,
         csv_polygon: Polygon | None = None,
     ):
@@ -78,17 +78,17 @@ class RobotObstacleConfiguration(BaseConfiguration):
     def __init__(
         self,
         *,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         robot_polygon: Polygon,
         robot_cell_in_grid: GridCellModel,
-        robot_fixed_precision_pose: FixedPrecisionPoseModel,
-        obstacle_floating_point_pose: PoseModel,
+        robot_fixed_precision_pose: FixedPrecisionPose2D,
+        obstacle_floating_point_pose: Pose2D,
         obstacle_polygon: Polygon,
         obstacle_cell_in_grid: GridCellModel,
-        obstacle_fixed_precision_pose: FixedPrecisionPoseModel,
+        obstacle_fixed_precision_pose: FixedPrecisionPose2D,
         manip_pose_id: int,
         action: ba.Action,
-        prev_robot_pose: PoseModel,
+        prev_robot_pose: Pose2D,
         prev_robot_polygon: Polygon,
         robot_csv_polygon: Polygon | None = None,
         obstacle_csv_polygon: Polygon | None = None,

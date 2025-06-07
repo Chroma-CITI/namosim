@@ -5,7 +5,7 @@ from shapely.geometry import MultiPolygon, Point, Polygon
 
 import namosim.display.ros2_publisher as rp
 import namosim.utils.collision as collision
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from shapely.geometry import JOIN_STYLE
 
 
@@ -15,7 +15,7 @@ def check_new_local_opening(
     other_entities_polygons: t.Dict[str, Polygon],
     other_entities_aabb_tree: AABBTree,
     robot_radius: float,
-    goal_pose: PoseModel,
+    goal_pose: Pose2D,
     agent_id: str,
     ros_publisher: t.Optional["rp.RosPublisher"] = None,
 ) -> bool:

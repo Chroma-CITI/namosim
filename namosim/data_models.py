@@ -5,13 +5,13 @@ import yaml
 from pydantic import BaseModel
 
 
-class PoseModel(t.NamedTuple):
+class Pose2D(t.NamedTuple):
     x: float
     y: float
     degrees: float
 
 
-FixedPrecisionPoseModel = t.Tuple[int, int, int]
+FixedPrecisionPose2D = t.Tuple[int, int, int]
 GridCellModel = t.Tuple[int, int]
 GridCellSet = t.Set[GridCellModel]
 VertexModel = t.Tuple[float, float]

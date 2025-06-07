@@ -40,7 +40,7 @@ import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.world as world
 from namosim.agents import agent
 from namosim.config import DEACTIVATE_RVIZ
-from namosim.data_models import GridCellModel, PoseModel
+from namosim.data_models import GridCellModel, Pose2D
 from namosim.display.conversions import (
     costmap_to_grid_map,
     make_delete_all_marker,
@@ -63,7 +63,7 @@ def init_header(stamp: Time = Time()):
     return Header(stamp=stamp, frame_id=cfg.main_frame_id)
 
 
-def poses_to_poses_array(poses: t.Iterable[PoseModel], stamp: Time = Time()):
+def poses_to_poses_array(poses: t.Iterable[Pose2D], stamp: Time = Time()):
     pose_array = PoseArray(header=init_header(stamp), poses=[])
     for pose in poses:
         pose_array.poses.append(pose_to_ros_pose(pose))  # type: ignore
@@ -534,7 +534,7 @@ class PosesPublisher(BasePublisher):
             callback_group=callback_group,
         )
 
-    def publish(self, poses: t.Iterable[PoseModel]):
+    def publish(self, poses: t.Iterable[Pose2D]):
         super().publish(poses_to_poses_array(poses, self.get_timestamp()))
 
     def reset(self):

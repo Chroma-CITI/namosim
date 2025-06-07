@@ -1,6 +1,6 @@
 import typing as t
 
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.utils import utils
 from enum import Enum, auto
 
@@ -24,14 +24,14 @@ class RobotRobotConflict(BaseConflict):
     def __init__(
         self,
         agent_id: str,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         other_agent_id: str,
-        other_robot_pose: PoseModel,
+        other_robot_pose: Pose2D,
         colliding_uids: t.Tuple[str, str],
         robot_transfered_obstacle_uid: str | None = None,
-        robot_transfered_obstacle_pose: PoseModel | None = None,
+        robot_transfered_obstacle_pose: Pose2D | None = None,
         other_robot_transfered_obstacle_uid: str | None = None,
-        other_robot_transfered_obstacle_pose: PoseModel | None = None,
+        other_robot_transfered_obstacle_pose: Pose2D | None = None,
         at_grab: bool = False,
         at_release: bool = False,
     ):
@@ -113,14 +113,14 @@ class SimultaneousSpaceAccess(RobotRobotConflict):
     def __init__(
         self,
         agent_id: str,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         other_agent_id: str,
-        other_robot_pose: PoseModel,
+        other_robot_pose: Pose2D,
         colliding_uids: t.Tuple[str, str],
         robot_transfered_obstacle_uid: str | None = None,
-        robot_transfered_obstacle_pose: PoseModel | None = None,
+        robot_transfered_obstacle_pose: Pose2D | None = None,
         other_robot_transfered_obstacle_uid: str | None = None,
-        other_robot_transfered_obstacle_pose: PoseModel | None = None,
+        other_robot_transfered_obstacle_pose: Pose2D | None = None,
         at_grab: bool = False,
         at_release: bool = False,
     ):
@@ -160,9 +160,7 @@ class StolenMovableConflict(BaseConflict):
     # If Movable is in grabbed state, postpone, else immediate replan
     conflict_type = ConflictType.STOLEN_OBSTACLE
 
-    def __init__(
-        self, obstacle_uid: str, expected_pose: PoseModel, actual_pose: PoseModel
-    ):
+    def __init__(self, obstacle_uid: str, expected_pose: Pose2D, actual_pose: Pose2D):
         self.obstacle_uid = obstacle_uid
         self.expected_pose = expected_pose
         self.actual_pose = actual_pose
