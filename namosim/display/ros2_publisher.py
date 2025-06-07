@@ -960,7 +960,7 @@ class RosPublisher:  # noqa: F821
     def _string_to_text_marker(
         self,
         message: str = "",
-        pose: PoseModel = (0.0, 0.0, 0.0),
+        pose: PoseModel = PoseModel(0.0, 0.0, 0.0),
         ns: str = "",
         p_id: int = 0,
         z_index: float = 0.0,

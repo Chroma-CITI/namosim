@@ -34,6 +34,7 @@ from namosim.navigation.basic_actions import Action
 from namosim.utils import utils
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.world.world import World
+from namosim.data_models import PoseModel
 
 mp.set_start_method("spawn", force=True)
 mp.set_sharing_strategy("file_system")
@@ -247,7 +248,7 @@ def get_trajectory(idx: int, actor: PPOActor) -> Trajectory | None:
             logs_dir="namo_logs",
             uid="robot_0",
             polygon=agent_polygon,
-            pose=(0, 0, 0),
+            pose=PoseModel(0, 0, 0),
             sensors=[OmniscientSensor()],
             logger=utils.NamosimLogger(),
             cell_size=world.map.cell_size,

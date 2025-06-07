@@ -226,7 +226,7 @@ class PPOAgent(Agent):
 
     def get_normalized_robot_pose(self) -> PoseModel:
         """Scales the robot pose so that x, y, and theta all lie in the range [0, 1]"""
-        return (
+        return PoseModel(
             self.pose[0] / self.world.map.width,
             self.pose[1] / self.world.map.height,
             (utils.normalize_angle_degrees(self.pose[2]) + 180) / 360,
@@ -458,7 +458,7 @@ class PPOAgent(Agent):
 
         rand_cell = random.choice(tuple(accessible_cells))
         cell_center = self.robot_inflated_grid.get_cell_center(rand_cell)
-        rand_pose = (
+        rand_pose = PoseModel(
             cell_center[0],
             cell_center[1],
             random.uniform(0.0, 360.0),
@@ -469,7 +469,7 @@ class PPOAgent(Agent):
     def sample_random_pose_from_cells(self, cells: t.List[GridCellModel]) -> PoseModel:
         rand_cell = random.choice(cells)
         cell_center = self.robot_inflated_grid.get_cell_center(rand_cell)
-        rand_pose = (
+        rand_pose = PoseModel(
             cell_center[0],
             cell_center[1],
             random.uniform(0.0, 360.0),

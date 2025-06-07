@@ -30,7 +30,7 @@ class BinaryOccupancyGrid:
         grid: npt.NDArray[np.bool_] | None = None,
         static_polygons: t.List[Polygon] | None = None,
         inflation_radius: float = 0.0,
-        grid_pose: PoseModel = (0, 0, 0),
+        grid_pose: PoseModel = PoseModel(0, 0, 0),
         neighborhood: t.Sequence[GridCellModel] = utils.CHESSBOARD_NEIGHBORHOOD,
     ):
         self.cell_size = cell_size

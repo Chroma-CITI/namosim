@@ -851,15 +851,17 @@ class TransitPath:
                     )  # turn away
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
-                    updated_poses.append((pose[0], pose[1], current_angle))
+                    updated_poses.append(PoseModel(pose[0], pose[1], current_angle))
                     dist = -dist
                 elif np.abs(turn_towards_angle) > 1e-6:
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
-                    updated_poses.append((pose[0], pose[1], current_angle))
+                    updated_poses.append(PoseModel(pose[0], pose[1], current_angle))
 
                 actions.append(ba.Advance(dist))
-                updated_poses.append((next_pose[0], next_pose[1], current_angle))
+                updated_poses.append(
+                    PoseModel(next_pose[0], next_pose[1], current_angle)
+                )
 
             has_rotation = not utils.angle_is_close(
                 current_angle, next_pose[2], abs_tol=1e-6

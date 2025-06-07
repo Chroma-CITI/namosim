@@ -103,4 +103,4 @@ class Entity:
         new_polygon = affinity.translate(self.polygon, xoff=dx, yoff=dy)
         new_polygon = affinity.rotate(new_polygon, angle=dtheta)
         self.polygon = new_polygon
-        self.pose = (new_pose[0], new_pose[1], angle)
+        self.pose = PoseModel(new_pose[0], new_pose[1], angle)

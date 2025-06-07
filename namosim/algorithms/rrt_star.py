@@ -162,9 +162,9 @@ class DiffDriveRRTStar:
                 x, y = (self.C @ np.array([a * x_ball, b * y_ball])) + self.x_center
                 if 0 <= x <= self.map.width and 0 <= y <= self.map.height:
                     theta = random.uniform(-180, 180)
-                    return (float(x), float(y), theta)
+                    return PoseModel(float(x), float(y), theta)
         # tirage uniforme global (cas non informé ou avant 1er chemin)
-        return (
+        return PoseModel(
             random.uniform(0, self.map.width),
             random.uniform(0, self.map.height),
             random.uniform(-180, 180),
@@ -196,7 +196,9 @@ class DiffDriveRRTStar:
                 y1 = y0 - (v / w) * (math.cos(th0_rad + w) - math.cos(th0_rad))
                 th1_rad = th0_rad + w
 
-            new_pose = (x1, y1, math.degrees(utils.normalize_angle_radians(th1_rad)))
+            new_pose = PoseModel(
+                x1, y1, math.degrees(utils.normalize_angle_radians(th1_rad))
+            )
             dx, dy = x1 - x0, y1 - y0
             dth = utils.normalize_angle_radians(th1_rad - th0_rad)
             dist = np.hypot(dx, dy)
@@ -277,7 +279,7 @@ class DiffDriveRRTStar:
             use_radians=False,
         ).coords[0]
         orientation = utils.normalize_angle_degrees(pose[2] + dth)
-        return (next_position[0], next_position[1], orientation)
+        return PoseModel(next_position[0], next_position[1], orientation)
 
     def get_polygon_at_node(self, node: RRTNode) -> Polygon:
         dx = node.pose[0] - self.start.pose[0]
@@ -404,7 +406,7 @@ class DiffDriveRRTStar:
             alpha = k / steps
             if not self.collision_free(
                 RRTNode(
-                    (
+                    PoseModel(
                         x0 + alpha * (x1 - x0),
                         y0 + alpha * (y1 - y0),
                         t0 + alpha * (t1 - t0),
