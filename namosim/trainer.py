@@ -34,6 +34,7 @@ from namosim.navigation.basic_actions import Action
 from namosim.utils import utils
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.world.world import World
+from namosim.data_models import Pose2D
 
 mp.set_start_method("spawn", force=True)
 mp.set_sharing_strategy("file_system")
@@ -139,72 +140,10 @@ class Trajectory:
                 )
             )
 
-        # gather pseudo trajectory examples
-        # last_non_repeated_idx = 0
-        # start_pose = utils.real_pose_to_fixed_precision_pose(
-        #     self.transitions[0].state.robot_pose, trans_mult=10, rot_mult=1
-        # )
-        # visited_poses: t.Set[PoseModel] = set([start_pose])
-
-        # for i, trans_i in enumerate(self.transitions):
-        #     next_pose = utils.real_pose_to_fixed_precision_pose(
-        #         trans_i.next_state.robot_pose, trans_mult=10, rot_mult=1
-        #     )
-        #     if next_pose in visited_poses:
-        #         break
-        #     visited_poses.add(next_pose)
-        #     last_non_repeated_idx = i
-
-        # last_non_repeated_trans = self.transitions[last_non_repeated_idx]
-        # start_transition = self.transitions[0]
-
-        # for i in range(last_non_repeated_idx + 1):
-        #     G = -np.sum(gammas[: last_non_repeated_idx - i]) + gammas[last_non_repeated_idx - i] * 100  # type: ignore
-        #     pseudo_trajectory_examples.append(
-        #         Example(
-        #             start_state=self.transitions[i].state,
-        #             goal_grid=last_non_repeated_trans.next_state.grid,
-        #             action=start_transition.action,
-        #             action_log_prob=self.transitions[i].log_prob,
-        #             G=G,
-        #         )
-        #     )
-
-        # if len(pseudo_trajectory_examples) < 4:
-        #     pseudo_trajectory_examples = []
-
         return TrajectoryExamples(
             true_trajectory_examples=true_trajectory_examples,
             pseudo_trajectory_examples=pseudo_trajectory_examples,
         )
-        # for i, trans_i in enumerate(self.transitions):
-        #     visited_poses: t.Set[PoseModel] = set()
-        #     start_pose = utils.real_pose_to_fixed_precision_pose(
-        #         trans_i.state.robot_pose, trans_mult=10, rot_mult=1
-        #     )
-        #     visited_poses.add(start_pose)
-
-        #     for j, trans_j in enumerate(self.transitions[i:]):
-        #         end_pose = utils.real_pose_to_fixed_precision_pose(
-        #             trans_j.next_state.robot_pose, trans_mult=10, rot_mult=1
-        #         )
-        #         if end_pose in visited_poses:
-        #             continue
-        #         else:
-        #             visited_poses.add(end_pose)
-
-        #         G = -np.sum(gammas[:j]) + gammas[j] * 100
-
-        #         result.append(
-        #             Example(
-        #                 start_state=trans_i.state,
-        #                 goal_state=trans_j.next_state,
-        #                 action=trans_i.action,
-        #                 action_log_prob=trans_i.log_prob,
-        #                 G=G,
-        #             )
-        #         )
-        # return result
 
 
 def render_trajectory(images: t.List[npt.NDArray[np.float32]]):
@@ -246,9 +185,8 @@ def get_trajectory(idx: int, actor: PPOActor) -> Trajectory | None:
             navigation_goals=[],
             logs_dir="namo_logs",
             uid="robot_0",
-            full_geometry_acquired=True,
             polygon=agent_polygon,
-            pose=(0, 0, 0),
+            pose=Pose2D(0, 0, 0),
             sensors=[OmniscientSensor()],
             logger=utils.NamosimLogger(),
             cell_size=world.map.cell_size,
@@ -575,8 +513,8 @@ class Trainer:
         )
 
     def memory_stats(self):
-        print("GPU Memory Allocated: ", torch.cuda.memory_allocated() / 1024**2)
-        print("GPU Memory Cached: ", torch.cuda.memory_cached() / 1024**2)
+        print("GPU Memory Allocated: ", torch.cuda.memory_allocated() / 1024 ** 2)
+        print("GPU Memory Cached: ", torch.cuda.memory_cached() / 1024 ** 2)
 
     def get_trajectories_parallel(
         self, queue: pyqueue.Queue[Trajectory]

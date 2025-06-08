@@ -24,7 +24,7 @@ import namosim.display.colors as colors
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as nav_plan
 from namosim.agents import agent
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.display import tf_replacement
 from namosim.navigation.path_type import PathType
 from namosim.utils import utils
@@ -87,7 +87,7 @@ def plan_to_markerarray(
 
 
 def real_path_to_linestrip(
-    real_path: t.List[PoseModel],
+    real_path: t.List[Pose2D],
     namespace: str,
     p_id: int,
     frame_id: str,
@@ -434,7 +434,7 @@ def geom_quat_from_yaw(yaw: float):
     )
 
 
-def pose_to_ros_pose(pose: PoseModel) -> Pose:
+def pose_to_ros_pose(pose: Pose2D) -> Pose:
     x, y, z = pose[0], pose[1], 0.0
     return Pose(
         position=(Point(x=x, y=y, z=z)),

@@ -11,7 +11,7 @@ import namosim.navigation.navigation_plan as navp
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 import namosim.world.world as w
 from namosim.algorithms import graph_search
-from namosim.data_models import AgentBehaviorConfig, PoseModel
+from namosim.data_models import AgentBehaviorConfig, Pose2D
 from namosim.input import Input
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import Action
@@ -29,7 +29,7 @@ class ThinkResult:
         self,
         *,
         plan: t.Union["navp.Plan", None],
-        goal_pose: PoseModel | None,
+        goal_pose: Pose2D | None,
         did_replan: bool,
         did_postpone: bool = False,
         agent_id: str,
@@ -52,7 +52,7 @@ class RLThinkResult(ThinkResult):
         self,
         *,
         next_action: Action | None,
-        goal_pose: PoseModel | None,
+        goal_pose: Pose2D | None,
         did_replan: bool,
         did_postpone: bool = False,
         agent_id: str,
@@ -89,9 +89,8 @@ class Agent(Entity):
         navigation_goals: t.List[goal.Goal],
         logs_dir: str,
         uid: str,
-        full_geometry_acquired: bool,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         sensors: t.List[OmniscientSensor],
         cell_size: float,
         movability: Movability = Movability.UNKNOWN,
@@ -102,7 +101,6 @@ class Agent(Entity):
         super().__init__(
             polygon=polygon,
             pose=pose,
-            full_geometry_acquired=full_geometry_acquired,
             movability=movability,
             uid=uid,
             type_="robot",
@@ -125,9 +123,9 @@ class Agent(Entity):
         )
         self.__goal: goal.Goal | None = None
 
-        self._prev_plan: t.Optional["navp.Plan"] = (
-            None  # used to check if a plan has changed
-        )
+        self._prev_plan: t.Optional[
+            "navp.Plan"
+        ] = None  # used to check if a plan has changed
         self.__p_opt: t.Optional["navp.Plan"] = None
 
         self._added_uids, self._updated_uids, self._removed_uids = set(), set(), set()
@@ -144,7 +142,6 @@ class Agent(Entity):
             navigation_goals=copy.deepcopy(self._navigation_goals),
             logs_dir=self.logs_dir,
             uid=self.uid,
-            full_geometry_acquired=self.full_geometry_acquired,
             polygon=copy.deepcopy(self.polygon),
             pose=self.pose,
             sensors=copy.deepcopy(self.sensors),
@@ -242,8 +239,8 @@ class Agent(Entity):
 
     def is_goal_reached(
         self,
-        goal_pose: PoseModel,
-        robot_pose: PoseModel,
+        goal_pose: Pose2D,
+        robot_pose: Pose2D,
         pos_tol: float = 0.05,
         ang_tol: float = 0.1,
     ):
@@ -257,8 +254,8 @@ class Agent(Entity):
 
     def find_path(
         self,
-        robot_pose: PoseModel,
-        goal_pose: PoseModel,
+        robot_pose: Pose2D,
+        goal_pose: Pose2D,
         robot_inflated_grid: BinaryOccupancyGrid,
         robot_polygon: Polygon,
     ) -> TransitPath | None:
@@ -267,7 +264,7 @@ class Agent(Entity):
         )
         if real_path:
 
-            def g(a: PoseModel, b: PoseModel):
+            def g(a: Pose2D, b: Pose2D):
                 translation_cost = utils.euclidean_distance(a, b)
                 rotation_cost = abs(a[2] - b[2])
                 return translation_cost + rotation_cost

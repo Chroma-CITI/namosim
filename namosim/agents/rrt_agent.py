@@ -4,7 +4,7 @@ import typing as t
 from shapely.geometry import Polygon
 from typing_extensions import Self
 
-from namosim.algorithms.rrt import DiffDriveRRT
+from namosim.algorithms.rrt_star import DiffDriveRRTStar
 import namosim.display.ros2_publisher as rp
 import namosim.navigation.basic_actions as ba
 from namosim.navigation.navigation_path import TransitPath
@@ -13,7 +13,7 @@ from namosim.svg_styles import AgentStyle
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 import namosim.world.world as w
 from namosim.agents.agent import Agent, ThinkResult
-from namosim.data_models import RRTAgentConfigModel, PoseModel
+from namosim.data_models import RRTAgentConfigModel, Pose2D
 from namosim.input import Input
 from namosim.utils import utils
 from namosim.world.goal import Goal
@@ -28,9 +28,8 @@ class RRTAgent(Agent):
         config: RRTAgentConfigModel,
         logs_dir: str,
         uid: str,
-        full_geometry_acquired: bool,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         sensors: t.List[OmniscientSensor],
         style: AgentStyle,
         logger: utils.NamosimLogger,
@@ -42,7 +41,6 @@ class RRTAgent(Agent):
             navigation_goals=navigation_goals,
             config=config,
             logs_dir=logs_dir,
-            full_geometry_acquired=full_geometry_acquired,
             polygon=polygon,
             pose=pose,
             sensors=sensors,  # type: ignore
@@ -53,6 +51,7 @@ class RRTAgent(Agent):
         self.config = config
         self.neighborhood = utils.CHESSBOARD_NEIGHBORHOOD
         self.robot_max_inflation_radius = utils.get_circumscribed_radius(self.polygon)
+        self.goal_tolerance = 0.2
 
     def init(self, world: "w.World"):
         super().init(world)
@@ -90,7 +89,7 @@ class RRTAgent(Agent):
                 a=self.world.dynamic_entities[self.uid].pose,
                 b=self._goal.pose,
             )
-            <= 0.1
+            <= self.goal_tolerance
         ):
             result = ThinkResult(
                 plan=None,
@@ -118,13 +117,15 @@ class RRTAgent(Agent):
         )
 
         if path is None:
-            return ThinkResult(
+            result = ThinkResult(
                 plan=None,
                 next_action=ba.GoalFailed(self._goal.pose),
                 goal_pose=self._goal.pose,
                 did_replan=False,
                 agent_id=self.uid,
             )
+            self._goal = None
+            return result
 
         self._p_opt = nav_plan.Plan(
             paths=[path], goal=self._goal.pose, agent_id=self.uid
@@ -144,7 +145,6 @@ class RRTAgent(Agent):
             navigation_goals=copy.deepcopy(self._navigation_goals),
             config=self.config,
             logs_dir=self.logs_dir,
-            full_geometry_acquired=self.full_geometry_acquired,
             uid=self.uid,
             polygon=copy.deepcopy(self.polygon),
             style=copy.deepcopy(self.agent_style),
@@ -156,21 +156,22 @@ class RRTAgent(Agent):
 
     def find_path_rrt(
         self,
-        robot_pose: PoseModel,
-        goal_pose: PoseModel,
+        robot_pose: Pose2D,
+        goal_pose: Pose2D,
         robot_inflated_grid: BinaryOccupancyGrid,
         robot_polygon: Polygon,
     ) -> TransitPath | None:
-        rrt = DiffDriveRRT(
+        rrt = DiffDriveRRTStar(
             polygon=robot_polygon,
             start=robot_pose,
             goal=goal_pose,
             map=robot_inflated_grid,
-            use_kd_tree=self.config.use_kd_tree,
+            use_kdtree=self.config.use_kd_tree,
+            goal_tolerance=self.goal_tolerance,
         )
 
         plan = rrt.plan()
-        rrt.plot(plan)
+        # rrt.plot(plan)
         if not plan:
             return None
         poses = [x.pose for x in plan]

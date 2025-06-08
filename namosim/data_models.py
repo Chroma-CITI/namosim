@@ -4,8 +4,14 @@ from pydantic_xml import BaseXmlModel, attr, element
 import yaml
 from pydantic import BaseModel
 
-PoseModel = t.Tuple[float, float, float]
-FixedPrecisionPoseModel = t.Tuple[int, int, int]
+
+class Pose2D(t.NamedTuple):
+    x: float
+    y: float
+    degrees: float
+
+
+FixedPrecisionPose2D = t.Tuple[int, int, int]
 GridCellModel = t.Tuple[int, int]
 GridCellSet = t.Set[GridCellModel]
 VertexModel = t.Tuple[float, float]
@@ -45,13 +51,13 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     check_new_local_opening_before_global: bool = attr(default=True)
     activate_grids_logging: bool = attr(default=False)
     push_only: bool = attr(default=False)
-    robot_rotation_unit_angle: float = attr(default=30)
-    manip_search_bound_percentage: float = attr(default=0.3)
+    robot_rotation_unit_angle: float = attr(default=15)
+    manip_search_bound_percentage: float = attr(default=0.1)
     use_social_cost: bool = attr(default=True)
     resolve_conflicts: bool = attr(default=True)
     resolve_deadlocks: bool = attr(default=True)
     deadlock_strategy: t.Literal["SOCIAL", "DISTANCE", ""] = attr(default="")
-    drive_type: t.Literal["holonomic", "differential"] = attr(default="holonomic")
+    drive_type: t.Literal["holonomic", "differential"] = attr(default="differential")
     grab_start_distance: float | None = attr(default=None)
     grab_end_distance: float | None = attr(default=None)
     conflict_horizon: int = attr(default=15)
@@ -59,6 +65,16 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
 
 class StilmanBehaviorConfigModel(BaseBehaviorConfigModel):
     type: t.Literal["stilman_2005_behavior"] = attr()
+    parameters: StilmanBehaviorParametersModel = element()
+
+
+class StilmanRRTBehaviorConfigModel(BaseBehaviorConfigModel):
+    type: t.Literal["stilman_rrt"] = attr()
+    parameters: StilmanBehaviorParametersModel = element()
+
+
+class StilmanRRTStarBehaviorConfigModel(BaseBehaviorConfigModel):
+    type: t.Literal["stilman_rrt_star_behavior"] = attr()
     parameters: StilmanBehaviorParametersModel = element()
 
 
@@ -78,6 +94,7 @@ AgentBehaviorConfig = t.Union[
     RRTAgentConfigModel,
     TeleopBehaviorConfigModel,
     StilmanBehaviorConfigModel,
+    StilmanRRTStarBehaviorConfigModel,
     PPOAgentConfigModel,
 ]
 

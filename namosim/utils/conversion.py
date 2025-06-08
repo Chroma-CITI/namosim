@@ -13,6 +13,7 @@ from shapely.geometry import (
     MultiLineString,
     MultiPolygon,
 )
+from shapely.geometry.base import BaseGeometry
 from shapely.ops import polygonize, unary_union
 from svgpath2mpl import parse_path
 import triangle
@@ -261,7 +262,7 @@ def rgb_tuple_to_hex(rgb):
 
 
 def concave_hull_polygon(
-    polygon: Polygon, alpha: float
+    polygon: BaseGeometry, alpha: float
 ) -> t.Union[Polygon, MultiPolygon]:
     # Get triangulation from your function (shape: n, 3, 2)
     triangles = np.array(polygon_to_triangle_vertices(polygon))

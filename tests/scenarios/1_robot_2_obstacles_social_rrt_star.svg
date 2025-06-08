@@ -17,7 +17,7 @@
    <namo_config cell_size_cm="3.0" collision_margin_cm="3.0">
       <agent agent_id="robot_0">
          <goal goal_id="goal_0" />
-         <behavior type="stilman_2005_behavior">
+         <behavior type="stilman_rrt_star_behavior">
             <parameters use_social_cost="true" />
          </behavior>
       </agent>

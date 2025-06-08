@@ -23,7 +23,7 @@ import namosim.world.world as w
 from namosim.agents.agent import Agent, RLThinkResult
 from namosim.agents.models import DEIT_MODEL_CHECKPOINT, PPOActor
 from namosim.algorithms import graph_search
-from namosim.data_models import GridCellModel, PoseModel, PPOAgentConfigModel
+from namosim.data_models import GridCellModel, Pose2D, PPOAgentConfigModel
 from namosim.input import Input
 from namosim.log import logger
 from namosim.utils import utils
@@ -42,7 +42,7 @@ class State:
         *,
         grid: npt.NDArray[np.float32],
         goal_state_grid: npt.NDArray[np.float32],
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         normalized_robot_pose: npt.NDArray[np.float32],
         goal_pose: npt.NDArray[np.float32],
         normalized_goal_pose: npt.NDArray[np.float32],
@@ -82,9 +82,8 @@ class PPOAgent(Agent):
         config: PPOAgentConfigModel,
         logs_dir: str,
         uid: str,
-        full_geometry_acquired: bool,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         sensors: t.List[OmniscientSensor],
         logger: utils.NamosimLogger,
         cell_size: float,
@@ -96,7 +95,6 @@ class PPOAgent(Agent):
             navigation_goals=navigation_goals,
             config=config,
             logs_dir=logs_dir,
-            full_geometry_acquired=full_geometry_acquired,
             polygon=polygon,
             pose=pose,
             sensors=sensors,  # type: ignore
@@ -119,7 +117,7 @@ class PPOAgent(Agent):
         super().init(world)
         self._compute_occupancy_grids()
         self.word_diagonal = math.sqrt(
-            self.static_obstacle_grid.width**2 + self.static_obstacle_grid.height**2
+            self.static_obstacle_grid.width ** 2 + self.static_obstacle_grid.height ** 2
         )
 
     def action_idx_to_action(self, idx: int) -> ba.Action:
@@ -226,9 +224,9 @@ class PPOAgent(Agent):
 
         return goal_state
 
-    def get_normalized_robot_pose(self) -> PoseModel:
+    def get_normalized_robot_pose(self) -> Pose2D:
         """Scales the robot pose so that x, y, and theta all lie in the range [0, 1]"""
-        return (
+        return Pose2D(
             self.pose[0] / self.world.map.width,
             self.pose[1] / self.world.map.height,
             (utils.normalize_angle_degrees(self.pose[2]) + 180) / 360,
@@ -287,7 +285,7 @@ class PPOAgent(Agent):
         # reward = 1e-3 * (d - d_next) / self.cell_size - 5e-4
 
         d_next = utils.euclidean_distance(next_state.normalized_robot_pose, next_state.normalized_goal_pose)  # type: ignore
-        reward = -(d_next**2)
+        reward = -(d_next ** 2)
         if isinstance(action_result, ar.ActionFailure):
             logger.warn("Action failed")
             reward -= 10
@@ -438,7 +436,6 @@ class PPOAgent(Agent):
             navigation_goals=copy.deepcopy(self._navigation_goals),
             config=self.config,
             logs_dir=self.logs_dir,
-            full_geometry_acquired=self.full_geometry_acquired,
             polygon=copy.deepcopy(self.polygon),
             style=copy.deepcopy(self.agent_style),
             pose=copy.deepcopy(self.pose),
@@ -449,7 +446,7 @@ class PPOAgent(Agent):
 
     def sample_random_robot_pose(
         self,
-    ) -> PoseModel:
+    ) -> Pose2D:
         accessible_cells: t.Set[GridCellModel] = set()
         for i in range(self.robot_inflated_grid.d_width):
             for j in range(self.robot_inflated_grid.d_height):
@@ -461,7 +458,7 @@ class PPOAgent(Agent):
 
         rand_cell = random.choice(tuple(accessible_cells))
         cell_center = self.robot_inflated_grid.get_cell_center(rand_cell)
-        rand_pose = (
+        rand_pose = Pose2D(
             cell_center[0],
             cell_center[1],
             random.uniform(0.0, 360.0),
@@ -469,10 +466,10 @@ class PPOAgent(Agent):
 
         return rand_pose
 
-    def sample_random_pose_from_cells(self, cells: t.List[GridCellModel]) -> PoseModel:
+    def sample_random_pose_from_cells(self, cells: t.List[GridCellModel]) -> Pose2D:
         rand_cell = random.choice(cells)
         cell_center = self.robot_inflated_grid.get_cell_center(rand_cell)
-        rand_pose = (
+        rand_pose = Pose2D(
             cell_center[0],
             cell_center[1],
             random.uniform(0.0, 360.0),
@@ -522,7 +519,7 @@ class PPOAgent(Agent):
                     #     continue
 
                 neighbors.append(neighbor)
-                tentative_gscores.append(current_gscore + math.sqrt(i**2 + j**2))
+                tentative_gscores.append(current_gscore + math.sqrt(i ** 2 + j ** 2))
 
             return neighbors, tentative_gscores
 

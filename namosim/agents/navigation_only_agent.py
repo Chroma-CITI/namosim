@@ -10,7 +10,7 @@ import namosim.navigation.navigation_plan as nav_plan
 from namosim.svg_styles import AgentStyle
 import namosim.world.world as w
 from namosim.agents.agent import Agent, ThinkResult
-from namosim.data_models import NavigationOnlyBehaviorConfigModel, PoseModel
+from namosim.data_models import NavigationOnlyBehaviorConfigModel, Pose2D
 from namosim.input import Input
 from namosim.utils import utils
 from namosim.world.goal import Goal
@@ -25,9 +25,8 @@ class NavigationOnlyAgent(Agent):
         config: NavigationOnlyBehaviorConfigModel,
         logs_dir: str,
         uid: str,
-        full_geometry_acquired: bool,
         polygon: Polygon,
-        pose: PoseModel,
+        pose: Pose2D,
         sensors: t.List[OmniscientSensor],
         style: AgentStyle,
         logger: utils.NamosimLogger,
@@ -39,7 +38,6 @@ class NavigationOnlyAgent(Agent):
             navigation_goals=navigation_goals,
             config=config,
             logs_dir=logs_dir,
-            full_geometry_acquired=full_geometry_acquired,
             polygon=polygon,
             pose=pose,
             sensors=sensors,  # type: ignore
@@ -135,7 +133,6 @@ class NavigationOnlyAgent(Agent):
             navigation_goals=copy.deepcopy(self._navigation_goals),
             config=self.config,
             logs_dir=self.logs_dir,
-            full_geometry_acquired=self.full_geometry_acquired,
             uid=self.uid,
             polygon=copy.deepcopy(self.polygon),
             style=copy.deepcopy(self.agent_style),

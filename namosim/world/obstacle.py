@@ -2,7 +2,7 @@ import copy
 
 from shapely.geometry import Polygon
 
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.world.entity import Entity, Movability, Style
 
 
@@ -11,8 +11,7 @@ class Obstacle(Entity):
         self,
         uid: str,
         polygon: Polygon,
-        pose: PoseModel,
-        full_geometry_acquired: bool,
+        pose: Pose2D,
         type_: str,
         movability: Movability,
         style: Style,
@@ -23,7 +22,6 @@ class Obstacle(Entity):
             type_=type_,
             polygon=polygon,
             pose=pose,
-            full_geometry_acquired=full_geometry_acquired,
             movability=movability,
         )
         self.style = style
@@ -37,7 +35,6 @@ class Obstacle(Entity):
             uid=self.uid,
             polygon=None if not copy_polygon else copy.deepcopy(self.polygon),  # type: ignore
             pose=self.pose,
-            full_geometry_acquired=self.full_geometry_acquired,
             type_=self.type_,
             style=self.style,
             movability=self.movability,
