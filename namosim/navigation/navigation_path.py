@@ -8,7 +8,7 @@ import namosim.agents.agent as agent
 import namosim.display.ros2_publisher as ros2
 import namosim.world.world as world
 from namosim.agents.stilman_configurations import RobotConfiguration
-from namosim.data_models import GridCellModel, PoseModel
+from namosim.data_models import GridCellModel, Pose2D
 from namosim.navigation import basic_actions as ba
 from namosim.navigation.conflict import (
     ConcurrentGrabConflict,
@@ -32,7 +32,7 @@ class RawPath:
 
     def __init__(
         self,
-        poses: t.List[PoseModel],
+        poses: t.List[Pose2D],
         polygons: t.List[Polygon],
     ):
         if len(poses) != len(polygons):
@@ -48,7 +48,7 @@ class RawPath:
     # TODO Have these trans and rot precision values be passed from calling functions !
     def is_start_pose(
         self,
-        pose: PoseModel,
+        pose: Pose2D,
         cell_size: float,
     ):
         """
@@ -120,8 +120,8 @@ class TransferPath:
         self.actions = actions
         self.action_index = 0
 
-    def reset(self):
-        self.action_index = 0
+    def reset(self, action_index: int = 0):
+        self.action_index = action_index
 
     def is_fully_executed(self):
         return self.action_index >= len(self.actions)
@@ -324,10 +324,7 @@ class TransferPath:
                             if exit_early_for_any_conflict:
                                 return conflicts
 
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=agent_id,
                     robot_pose=self.robot_path.poses[0],
                     robot_action=self.grab_action,
@@ -428,10 +425,7 @@ class TransferPath:
                 robot_before_release_pose = self.robot_path.poses[-2]
                 obstacle_before_release_pose = self.obstacle_path.poses[-2]
 
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=agent_id,
                     robot_pose=robot_before_release_pose,
                     robot_action=self.release_action,
@@ -527,10 +521,7 @@ class TransferPath:
                         ):
                             return conflicts
             else:
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=agent_id,
                     robot_pose=robot_pose_prior_to_action,
                     robot_action=action,
@@ -631,10 +622,7 @@ class TransferPath:
                         ):
                             return conflicts
 
-                (
-                    collides_with,
-                    _,
-                ) = collision.get_csv_collisions(
+                (collides_with, _,) = collision.get_csv_collisions(
                     agent_id=self.obstacle_uid,
                     robot_action=action,
                     robot_pose=self.robot_path.poses[
@@ -793,8 +781,8 @@ class TransitPath:
         self.actions = actions
         self.action_index = 0
 
-    def reset(self):
-        self.action_index = 0
+    def reset(self, action_index: int = 0):
+        self.action_index = action_index
 
     def __str__(self):
         if len(self.actions) < 5:
@@ -810,9 +798,9 @@ class TransitPath:
     @classmethod
     def from_poses(
         cls,
-        poses: t.List[PoseModel],
+        poses: t.List[Pose2D],
         robot_polygon: Polygon,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         phys_cost: float | None = None,
         social_cost: float = 0.0,
         weight: float = 1.0,
@@ -863,15 +851,15 @@ class TransitPath:
                     )  # turn away
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
-                    updated_poses.append((pose[0], pose[1], current_angle))
+                    updated_poses.append(Pose2D(pose[0], pose[1], current_angle))
                     dist = -dist
                 elif np.abs(turn_towards_angle) > 1e-6:
                     current_angle = utils.add_angles(current_angle, turn_towards_angle)
                     actions.append(ba.Rotation(angle=turn_towards_angle))
-                    updated_poses.append((pose[0], pose[1], current_angle))
+                    updated_poses.append(Pose2D(pose[0], pose[1], current_angle))
 
                 actions.append(ba.Advance(dist))
-                updated_poses.append((next_pose[0], next_pose[1], current_angle))
+                updated_poses.append(Pose2D(next_pose[0], next_pose[1], current_angle))
 
             has_rotation = not utils.angle_is_close(
                 current_angle, next_pose[2], abs_tol=1e-6
@@ -1150,9 +1138,9 @@ class EvasionTransitPath(TransitPath):
     @classmethod
     def from_poses(
         cls,
-        poses: t.List[PoseModel],
+        poses: t.List[Pose2D],
         robot_polygon: Polygon,
-        robot_pose: PoseModel,
+        robot_pose: Pose2D,
         conflicts: t.Set[Conflict],
     ):
         path = TransitPath.from_poses(

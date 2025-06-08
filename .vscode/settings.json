@@ -2,11 +2,11 @@
   "python.testing.pytestEnabled": true,
   "python.testing.unittestEnabled": false,
   "ros.distro": "humble",
-  "python.testing.pytestArgs": ["tests"],
+  "python.testing.pytestArgs": ["tests", "-s", "-vv"],
   "python.testing.pytestPath": "pytest",
   "[python]": {
     "editor.codeActionsOnSave": {
-      "source.unusedImports": "always" 
+      // "source.unusedImports": "explicit"
     }
   }
 }

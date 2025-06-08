@@ -13,7 +13,6 @@ class TestObstacle:
             uid="simple_square",
             polygon=Polygon([(-1, -1), (-1, 1), (1, 1), (1, -1)]),
             pose=(0.0, 0.0, 0.0),
-            full_geometry_acquired=True,
             type_="box",
             style=Style(),
             movability=Movability.MOVABLE,

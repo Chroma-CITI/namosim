@@ -1,4 +1,6 @@
 from typing import Iterable, List, Optional, Callable, TypeVar, Generic
+import heapq
+import math
 
 T = TypeVar("T")  # Type variable for generic objects
 
@@ -12,11 +14,24 @@ class KDNode(Generic[T]):
         self.right = None
 
 
+def default_distance_func(A: Iterable[float], B: Iterable[float]):
+    x = sum((a - b) ** 2 for (a, b) in zip(A, B))
+    return math.sqrt(x)
+
+
 class KDTree(Generic[T]):
-    def __init__(self, dimensions: int, point_getter: Callable[[T], Iterable[float]]):
+    def __init__(
+        self,
+        dimensions: int,
+        point_getter: Callable[[T], Iterable[float]],
+        distance_func: Callable[
+            [Iterable[float], Iterable[float]], float
+        ] = default_distance_func,
+    ):
         self.root = None
         self.dimensions = dimensions
         self.point_getter = point_getter
+        self.distance_func = distance_func
 
     def add(self, object: T) -> None:
         """Add an object to the KDTree."""
@@ -46,23 +61,19 @@ class KDTree(Generic[T]):
         if k < 1:
             raise ValueError("k must be positive")
 
-        def squared_distance(p1: Iterable[float], p2: Iterable[float]) -> float:
-            return sum((a - b) ** 2 for a, b in zip(p1, p2))
-
-        # Priority queue for k nearest neighbors (distance, object)
+        # Use a max-heap for k nearest neighbors (negative distance, object)
         nearest = []
 
         def _query_recursive(node: Optional[KDNode[T]], depth: int) -> None:
             if node is None:
                 return
 
-            dist = squared_distance(point_list, node.point)
+            dist = self.distance_func(point_list, node.point)
             if len(nearest) < k:
-                nearest.append((dist, node.object))
-                nearest.sort()  # Keep smallest distances first
-            elif dist < nearest[-1][0]:
-                nearest[-1] = (dist, node.object)
-                nearest.sort()
+                heapq.heappush(nearest, (-dist, node.object))
+            else:
+                if dist < -nearest[0][0]:
+                    heapq.heappushpop(nearest, (-dist, node.object))
 
             axis = depth % self.dimensions
             diff = point_list[axis] - node.point[axis]
@@ -73,9 +84,38 @@ class KDTree(Generic[T]):
 
             _query_recursive(near_subtree, depth + 1)
 
-            # Check if we need to search the far subtree
-            if len(nearest) < k or (diff**2) < nearest[-1][0]:
-                _query_recursive(far_subtree, depth + 1)
+            # Only check the far subtree if it could contain closer points
+            if len(nearest) < k or (diff ** 2) < -nearest[0][0]:
+                if far_subtree is not near_subtree and far_subtree is not None:
+                    _query_recursive(far_subtree, depth + 1)
 
         _query_recursive(self.root, 0)
-        return [obj for _, obj in nearest]
+        # Return objects sorted by distance
+        return [obj for _, obj in sorted(nearest, key=lambda x: -x[0])]
+
+    def query_radius(self, point: Iterable[float], radius: float) -> List[T]:
+        """Renvoie tous les objets dont la distance euclidienne au 'point' est ≤ radius."""
+        target = list(point)
+        result: List[T] = []
+
+        def _search(node: Optional[KDNode[T]], depth: int):
+            if node is None:
+                return
+            axis = depth % self.dimensions
+            diff = target[axis] - node.point[axis]
+            # Pruning: skip subtree if axis difference alone is greater than radius
+            if abs(diff) > radius:
+                if diff < 0:
+                    _search(node.left, depth + 1)
+                else:
+                    _search(node.right, depth + 1)
+                return
+            # Test real distance
+            dist = self.distance_func(target, node.point)
+            if dist <= radius:
+                result.append(node.object)
+            _search(node.left, depth + 1)
+            _search(node.right, depth + 1)
+
+        _search(self.root, 0)
+        return result

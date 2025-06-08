@@ -11,7 +11,7 @@ import namosim.navigation.navigation_plan as nav_plan
 import namosim.utils.collision as collision
 import namosim.world.world as w
 import namosim.world.world as world
-from namosim.data_models import PoseModel
+from namosim.data_models import Pose2D
 from namosim.navigation.basic_actions import Action
 from namosim.navigation.conflict import (
     Conflict,
@@ -65,7 +65,7 @@ class Plan:
         *,
         agent_id: str,
         paths: t.List[t.Union[TransitPath, TransferPath]] | None = None,
-        goal: t.Optional[PoseModel] = None,
+        goal: t.Optional[Pose2D] = None,
         plan_error: t.Optional[str] = None,
     ):
         self.paths = [] if paths is None else paths
@@ -97,10 +97,21 @@ class Plan:
         for path in self.paths:
             path.reset()
 
+    def set_current_action_index(self, new_path_idx: int, new_action_idx: int):
+        self.component_index = new_path_idx
+
+        for path_idx, path in enumerate(self.paths):
+            if path_idx < new_path_idx:
+                path.reset(len(path.actions))
+            elif path_idx == new_path_idx:
+                path.reset(new_action_idx)
+            else:
+                path.reset(0)
+
     def get_current_path(self):
         return self.paths[self.component_index]
 
-    def get_all_robot_poses(self) -> t.List[PoseModel]:
+    def get_all_robot_poses(self) -> t.List[Pose2D]:
         poses = []
         for path in self.paths:
             poses += path.robot_path.poses
@@ -195,9 +206,9 @@ class Plan:
             # TODO Get inflation from largest robot
             encompassing_circle = other_robot_center.buffer(radius)
             temp_uid = f"{other_robot.uid}_conflict_circle"
-            other_entities_polygons_with_encompassing_circles[temp_uid] = (
-                encompassing_circle
-            )
+            other_entities_polygons_with_encompassing_circles[
+                temp_uid
+            ] = encompassing_circle
             other_entities_with_encompassing_circles_aabb_tree.add(
                 collision.polygon_to_aabb(encompassing_circle), temp_uid
             )
@@ -290,7 +301,7 @@ class Plan:
         grab_start_distance,
         rp: t.Optional["rp.RosPublisher"] = None,
         check_horizon: int = 0,
-        apply_strict_horizon: bool = False,
+        apply_strict_horizon: bool = True,
         exit_early_for_any_conflict: bool = False,
         exit_early_only_for_long_term_conflicts: bool = True,
     ) -> t.Set[Conflict]:

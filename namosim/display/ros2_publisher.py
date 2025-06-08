@@ -10,12 +10,13 @@ import numpy.typing as npt
 from shapely.geometry import Polygon
 
 from namosim.agents.stilman_configurations import RCHConfiguration
+from namosim.algorithms.rrt_node import RRTNode
 import namosim.display.ros_publisher_config as cfg
 import namosim.navigation.navigation_plan as nav_plan
 import namosim.world.world as world
 from namosim.agents import agent
 from namosim.config import DEACTIVATE_RVIZ
-from namosim.data_models import GridCellModel, PoseModel
+from namosim.data_models import GridCellModel, Pose2D
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 
@@ -56,9 +57,9 @@ class RosPublisher:  # noqa: F821
         self.agent_ids = agent_ids
 
         # Add robot-specific publishers for each robot namespace
-        self.robot_world_publishers: t.Dict[str, ros_nodes.DynamicEntitiesPublisher] = (
-            {}
-        )
+        self.robot_world_publishers: t.Dict[
+            str, ros_nodes.DynamicEntitiesPublisher
+        ] = {}
         self.robot_map_publishers: t.Dict[str, ros_nodes.WorldMapPublisher] = {}
         self.robot_combined_costmap_publishers: t.Dict[
             str, ros_nodes.CombinedCostmapPublisher
@@ -76,6 +77,7 @@ class RosPublisher:  # noqa: F821
         self.robot_conflict_horizon_publishers: t.Dict[str, ros_nodes.Publisher] = {}
         self.robot_swept_area_publishers: t.Dict[str, ros_nodes.Publisher] = {}
         self.robot_rch_publishers: t.Dict[str, ros_nodes.Publisher] = {}
+        self.robot_rrt_publishers: t.Dict[str, ros_nodes.RRTPublisher] = {}
         self.robot_connected_components_publishers: t.Dict[
             str, ros_nodes.GridMapPublisher
         ] = {}
@@ -88,12 +90,12 @@ class RosPublisher:  # noqa: F821
             self.robot_map_publishers[agent_id] = ros_nodes.WorldMapPublisher(
                 self.ros_node, f"{ns}/map", callback_group=callback_group
             )
-            self.robot_combined_costmap_publishers[agent_id] = (
-                ros_nodes.CombinedCostmapPublisher(
-                    self.ros_node,
-                    f"{ns}/combined_costmap",
-                    callback_group=callback_group,
-                )
+            self.robot_combined_costmap_publishers[
+                agent_id
+            ] = ros_nodes.CombinedCostmapPublisher(
+                self.ros_node,
+                f"{ns}/combined_costmap",
+                callback_group=callback_group,
             )
             self.robot_social_costmap_publishers[agent_id] = ros_nodes.GridMapPublisher(
                 self.ros_node, f"{ns}/social_costmap", callback_group=callback_group
@@ -101,9 +103,9 @@ class RosPublisher:  # noqa: F821
             self.robot_goal_publishers[agent_id] = ros_nodes.GoalPublisher(
                 self.ros_node, f"{ns}/goals", callback_group=callback_group
             )
-            self.robot_manip_search_publishers[agent_id] = (
-                ros_nodes.ManipSearchPublisher(self.ros_node, f"{ns}/manip_search")
-            )
+            self.robot_manip_search_publishers[
+                agent_id
+            ] = ros_nodes.ManipSearchPublisher(self.ros_node, f"{ns}/manip_search")
             self.robot_manip_pose_publishers[agent_id] = ros_nodes.PosesPublisher(
                 self.ros_node, f"{ns}/manip_search/poses", callback_group=callback_group
             )
@@ -116,13 +118,13 @@ class RosPublisher:  # noqa: F821
                 f"{ns}/conflict_check",
                 callback_group=callback_group,
             )
-            self.robot_conflict_horizon_publishers[agent_id] = (
-                ros_nodes.create_publisher(
-                    self.ros_node,
-                    ros_nodes.MarkerArray,
-                    f"{ns}/conflict_horizon",
-                    callback_group=callback_group,
-                )
+            self.robot_conflict_horizon_publishers[
+                agent_id
+            ] = ros_nodes.create_publisher(
+                self.ros_node,
+                ros_nodes.MarkerArray,
+                f"{ns}/conflict_horizon",
+                callback_group=callback_group,
             )
             self.robot_swept_area_publishers[agent_id] = ros_nodes.create_publisher(
                 self.ros_node,
@@ -136,12 +138,17 @@ class RosPublisher:  # noqa: F821
                 f"{ns}/rch",
                 callback_group=callback_group,
             )
-            self.robot_connected_components_publishers[agent_id] = (
-                ros_nodes.GridMapPublisher(
-                    self.ros_node,
-                    f"{ns}/connected_components",
-                    callback_group=callback_group,
-                )
+            self.robot_connected_components_publishers[
+                agent_id
+            ] = ros_nodes.GridMapPublisher(
+                self.ros_node,
+                f"{ns}/connected_components",
+                callback_group=callback_group,
+            )
+            self.robot_rrt_publishers[agent_id] = ros_nodes.RRTPublisher(
+                node=self.ros_node,
+                topic=f"{ns}/rrt",
+                callback_group=callback_group,
             )
 
         # Setup Static Transform for grid map (Hack so that it is properly placed in view)
@@ -310,7 +317,7 @@ class RosPublisher:  # noqa: F821
         neighbors: t.Iterable[RCHConfiguration],
         traversed_obstacles_ids: t.List[str],
         res: float,
-        grid_pose: PoseModel,
+        grid_pose: Pose2D,
         agent_id: str,
     ):
         marker_array = ros_nodes.MarkerArray(markers=[])
@@ -403,9 +410,9 @@ class RosPublisher:  # noqa: F821
         current: GridCellModel,
         visited_cells: t.Set[GridCellModel],
         cell_size: float,
-        grid_pose: PoseModel,
-        robot_pose: PoseModel,
-        obstacle_pose: PoseModel,
+        grid_pose: Pose2D,
+        robot_pose: Pose2D,
+        obstacle_pose: Pose2D,
         robot_polygon: Polygon,
         obstacle_polygon: Polygon,
     ):
@@ -578,7 +585,7 @@ class RosPublisher:  # noqa: F821
 
         self.robot_manip_search_publishers[agent_id].reset()
 
-    def publish_obstacle_grab_poses(self, poses: t.List[PoseModel], agent_id: str):
+    def publish_obstacle_grab_poses(self, poses: t.List[Pose2D], agent_id: str):
 
         self.robot_manip_pose_publishers[agent_id].publish(poses)
 
@@ -589,8 +596,8 @@ class RosPublisher:  # noqa: F821
     # region GOAL
     def publish_goal(
         self,
-        q_init: PoseModel,
-        q_goal: PoseModel,
+        q_init: Pose2D,
+        q_goal: Pose2D,
         entity: "agent.Agent",
     ):
 
@@ -623,10 +630,20 @@ class RosPublisher:  # noqa: F821
 
     # endregion
 
+    # region RRT
+
+    def publish_robot_rrt(self, agent_id: str, rrt_nodes: t.List[RRTNode]):
+        self.robot_rrt_publishers[agent_id].publish(rrt_nodes=rrt_nodes)
+
+    def clear_robot_rrt(self, agent_id: str):
+        self.robot_rrt_publishers[agent_id].reset()
+
+    # endregion
+
     # region CONFLICTS CHECK
     def publish_transit_horizon_cells(
         self,
-        poses: t.List[PoseModel],
+        poses: t.List[Pose2D],
         start_index: int,
         check_horizon: int,
         robot_inflated_grid: BinaryOccupancyGrid,
@@ -771,7 +788,7 @@ class RosPublisher:  # noqa: F821
         self,
         grid_cells: t.Iterable[GridCellModel],
         res: float,
-        grid_pose: PoseModel,
+        grid_pose: Pose2D,
         color: t.Any,
         z_index: float = -0.5,
         cube_list: t.Any | None = None,
@@ -800,7 +817,7 @@ class RosPublisher:  # noqa: F821
         self,
         cell: GridCellModel,
         res: float,
-        grid_pose: PoseModel,
+        grid_pose: Pose2D,
         color: t.Any,
         _id: int,
         z_index: float,
@@ -889,7 +906,7 @@ class RosPublisher:  # noqa: F821
 
     def _pose_to_arrow(
         self,
-        pose: PoseModel,
+        pose: Pose2D,
         namespace: str,
         p_id: int,
         frame_id: str,
@@ -943,7 +960,7 @@ class RosPublisher:  # noqa: F821
     def _string_to_text_marker(
         self,
         message: str = "",
-        pose: PoseModel = (0.0, 0.0, 0.0),
+        pose: Pose2D = Pose2D(0.0, 0.0, 0.0),
         ns: str = "",
         p_id: int = 0,
         z_index: float = 0.0,
