@@ -189,6 +189,7 @@ class Stilman2005Agent(Agent):
             self.grab_end_distance = config.parameters.grab_end_distance
 
         self.collision_margin = collision_margin
+        self.minimum_evasion_distance = 0.5  # meters
 
     def init(self, world: "w.World"):
         super().init(world)
@@ -678,7 +679,9 @@ class Stilman2005Agent(Agent):
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
         robot_cells = robot_inflated_grid.rasterize_polygon(
-            w_t.dynamic_entities[agent_id].polygon.buffer(self.collision_margin + 0.5),
+            w_t.dynamic_entities[agent_id].polygon.buffer(
+                self.collision_margin + self.minimum_evasion_distance
+            ),
         )
         for conflict in potential_deadlocks:
             if isinstance(conflict, RobotRobotConflict):
