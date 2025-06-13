@@ -645,16 +645,16 @@ class RosPublisher:  # noqa: F821
         self,
         poses: t.List[Pose2D],
         start_index: int,
-        check_horizon: int,
+        horizon: int,
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
     ):
 
-        if check_horizon <= 0:
+        if horizon <= 0:
             return
 
         horizon_cells: t.Set[GridCellModel] = set()
-        for pose in poses[start_index : start_index + check_horizon]:
+        for pose in poses[start_index : start_index + horizon]:
             cell = utils.real_to_grid(
                 pose[0],
                 pose[1],
@@ -714,14 +714,12 @@ class RosPublisher:  # noqa: F821
         robot_polygons: t.List[Polygon],
         obstacle_polygons: t.List[Polygon],
         start_index: int,
-        check_horizon: int,
+        horizon: int,
         agent_id: str,
     ):
 
         horizon_csv_polygons = []
-        for i in range(
-            start_index, min(start_index + check_horizon, len(obstacle_polygons))
-        ):
+        for i in range(start_index, min(start_index + horizon, len(obstacle_polygons))):
             horizon_csv_polygons.append(robot_polygons[i])
             horizon_csv_polygons.append(obstacle_polygons[i])
 
