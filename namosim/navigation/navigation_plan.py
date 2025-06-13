@@ -158,9 +158,9 @@ class Plan:
         *,
         world: "world.World",
         robot_inflated_grid: BinaryOccupancyGrid,
-        grab_start_distance,
+        grab_start_distance: float,
+        horizon: int,
         rp: t.Optional["rp.RosPublisher"] = None,
-        check_horizon: int = 0,
         apply_strict_horizon: bool = False,
         exit_early: bool = False,
     ) -> t.Set[Conflict]:
@@ -168,8 +168,8 @@ class Plan:
         #     return []
 
         # Check validity of each component
-        previously_moved_entities_uids = set()
-        remaining_components = self.paths[self.component_index :]
+        previously_moved_obstacles: t.Set[str] = set()
+        remaining_paths = self.paths[self.component_index :]
         conflicts = set()
 
         other_entities_polygons = {
@@ -178,9 +178,7 @@ class Plan:
             if uid != self.agent_id and e.movability != Movability.STATIC
         }
 
-        other_entities_polygons_with_encompassing_circles = copy.copy(
-            other_entities_polygons
-        )
+        other_robot_conflict_circles = copy.copy(other_entities_polygons)
 
         conflict_circle_id_to_agent_id = {}
         for other_robot in world.agents.values():
@@ -197,19 +195,17 @@ class Plan:
             )
 
             # TODO Get inflation from largest robot
-            encompassing_circle = other_robot_center.buffer(radius)
+            conflict_circle = other_robot_center.buffer(radius)
             conflict_circle_id = f"{other_robot.uid}_conflict_circle"
-            other_entities_polygons_with_encompassing_circles[
-                conflict_circle_id
-            ] = encompassing_circle
+            other_robot_conflict_circles[conflict_circle_id] = conflict_circle
 
             conflict_circle_id_to_agent_id[conflict_circle_id] = other_robot.uid
             robot_inflated_grid.update_polygons(
-                new_or_updated_polygons={conflict_circle_id: encompassing_circle}
+                new_or_updated_polygons={conflict_circle_id: conflict_circle}
             )
 
-        for i, path in enumerate(remaining_components):
-            if check_horizon > 0 or apply_strict_horizon is False:
+        for i, path in enumerate(remaining_paths):
+            if horizon > 0 or apply_strict_horizon is False:
                 has_first_action = i == 0
                 if isinstance(path, TransitPath):
                     conflicts.update(
@@ -218,7 +214,7 @@ class Plan:
                             world=world,
                             robot_inflated_grid=robot_inflated_grid,
                             conflict_circle_id_to_agent_id=conflict_circle_id_to_agent_id,
-                            check_horizon=check_horizon,
+                            horizon=horizon,
                             has_first_action=has_first_action,
                             apply_strict_horizon=apply_strict_horizon,
                             exit_early=exit_early,
@@ -233,11 +229,9 @@ class Plan:
                             grab_start_distance=grab_start_distance,
                             robot_inflated_grid=robot_inflated_grid,
                             other_entities_polygons=other_entities_polygons,
-                            other_entities_polygons_with_encompassing_circles=other_entities_polygons_with_encompassing_circles,
-                            encompassing_circle_uid_to_agent_id=conflict_circle_id_to_agent_id,
-                            previously_moved_entities_uids=previously_moved_entities_uids,
+                            previously_moved_obstacles=previously_moved_obstacles,
                             has_first_action=has_first_action,
-                            check_horizon=check_horizon,
+                            horizon=horizon,
                             apply_strict_horizon=apply_strict_horizon,
                             exit_early=exit_early,
                             rp=rp,
@@ -248,20 +242,20 @@ class Plan:
                     # obstacles in the right place so we don't check again:
                     # - We simply deactivate collisions with them from the world representation
                     # - or if another path component needs to move them (check_start_pose)
-                    previously_moved_entities_uids.add(path.obstacle_uid)
+                    previously_moved_obstacles.add(path.obstacle_uid)
 
                     robot_inflated_grid.deactivate_entities([path.obstacle_uid])
 
                 if exit_early and conflicts:
                     break
 
-                if check_horizon:
-                    check_horizon = max(0, check_horizon - path.get_remaining_length())
+                if horizon:
+                    horizon = max(0, horizon - path.get_remaining_length())
             else:
                 break
 
         # Reactivate entities that had been deactivated during checks
-        robot_inflated_grid.activate_entities(previously_moved_entities_uids)
+        robot_inflated_grid.activate_entities(previously_moved_obstacles)
         robot_inflated_grid.update_polygons(
             removed_polygons=set(conflict_circle_id_to_agent_id.keys())
         )
@@ -273,29 +267,26 @@ class Plan:
         *,
         world: "world.World",
         robot_inflated_grid: BinaryOccupancyGrid,
-        grab_start_distance,
+        grab_start_distance: float,
+        horizon: int,
         rp: t.Optional["rp.RosPublisher"] = None,
-        check_horizon: int = 0,
         apply_strict_horizon: bool = True,
         exit_early: bool = False,
     ) -> t.Set[Conflict]:
-        conflicts = set(
-            self._get_conflicts(
-                world=world,
-                robot_inflated_grid=robot_inflated_grid,
-                grab_start_distance=grab_start_distance,
-                rp=rp,
-                check_horizon=check_horizon,
-                apply_strict_horizon=apply_strict_horizon,
-                exit_early=exit_early,
-            )
+        conflicts = self._get_conflicts(
+            world=world,
+            robot_inflated_grid=robot_inflated_grid,
+            grab_start_distance=grab_start_distance,
+            rp=rp,
+            horizon=horizon,
+            apply_strict_horizon=apply_strict_horizon,
+            exit_early=exit_early,
         )
 
         conflicts_to_ignore: t.Set[Conflict] = set()
         if self.is_evading():
             evasion_path = t.cast(EvasionTransitPath, self.get_current_path())
             for evasion_conflict in evasion_path.conflicts:
-
                 for conflict in conflicts:
                     if (
                         isinstance(conflict, RobotRobotConflict)

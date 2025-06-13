@@ -447,7 +447,7 @@ class Stilman2005Agent(Agent):
         conflicts = plan.get_conflicts(
             world=w_t,
             robot_inflated_grid=robot_inflated_grid,
-            check_horizon=conflict_horizon,
+            horizon=conflict_horizon,
             exit_early=True,
             grab_start_distance=self.grab_start_distance,
         )
@@ -905,7 +905,7 @@ class Stilman2005Agent(Agent):
         conflicts = plan.get_conflicts(
             world=w_t,
             robot_inflated_grid=robot_inflated_grid,
-            check_horizon=conflict_horizon,
+            horizon=conflict_horizon,
             grab_start_distance=self.grab_start_distance,
         )
         if not conflicts:
@@ -1059,7 +1059,7 @@ class Stilman2005Agent(Agent):
             plan.get_conflicts(
                 world=w_t,
                 robot_inflated_grid=robot_inflated_grid,
-                check_horizon=conflict_horizon,
+                horizon=conflict_horizon,
                 grab_start_distance=self.grab_start_distance,
             )
         )
