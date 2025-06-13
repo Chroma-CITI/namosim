@@ -428,6 +428,30 @@ class TestE2E:
             ]
         )
 
+    def test_three_robots(self):
+        sim = create_sim_from_file(
+            simulation_file_path="tests/scenarios/three_robots.svg"
+        )
+        sim.run()
+        assert any(
+            [
+                x.message.startswith("Agent robot_0 successfully executed goal")
+                for x in sim.logger
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_1 successfully executed goal")
+                for x in sim.logger
+            ]
+        )
+        assert any(
+            [
+                x.message.startswith("Agent robot_2 successfully executed goal")
+                for x in sim.logger
+            ]
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -454,6 +454,23 @@ class Stilman2005Agent(Agent):
                     step_count,
                 )
             )
+
+            # if plan.postpone.is_running() and not plan.postpone.is_done():
+            #     self.logger.append(
+            #         utils.NamosimLog(
+            #             f"Agent {self.uid}: Continuing postpone.",
+            #             step_count,
+            #         )
+            #     )
+            #     return ThinkResult(
+            #         plan=plan,
+            #         goal_pose=goal,
+            #         did_postpone=True,
+            #         did_replan=False,
+            #         agent_id=self.uid,
+            #         conflicts=conflicts,
+            #     )
+
             if self.config.parameters.resolve_conflicts is False:
                 self.logger.append(
                     utils.NamosimLog(
@@ -658,13 +675,15 @@ class Stilman2005Agent(Agent):
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
         robot_cells = robot_inflated_grid.rasterize_polygon(
-            w_t.dynamic_entities[agent_id].polygon,
+            w_t.dynamic_entities[agent_id].polygon.buffer(self.collision_margin),
         )
         for conflict in potential_deadlocks:
             if isinstance(conflict, RobotRobotConflict):
                 robot_cells.update(
                     robot_inflated_grid.rasterize_polygon(
-                        w_t.dynamic_entities[conflict.other_agent_id].polygon
+                        w_t.dynamic_entities[conflict.other_agent_id].polygon.buffer(
+                            self.collision_margin
+                        )
                     )
                 )
 
@@ -675,7 +694,7 @@ class Stilman2005Agent(Agent):
             w_t=w_t,
             main_agent_id=agent_id,
             potential_deadlocks=potential_deadlocks,
-            forbidden_evasion_cells=set(robot_cells),
+            forbidden_evasion_cells=robot_cells,
             ros_publisher=ros_publisher,
             always_evade=plan.is_postpone_over(),
         )
@@ -2460,7 +2479,6 @@ class Stilman2005Agent(Agent):
                 other_polygons=other_entities_polygons,
                 polygon=robot_polygon_before_grab,
                 robot_action=grab_action,
-                others_aabb_tree=other_entities_aabb_tree,
             )
 
             if obstacle_uid in collides_with:
@@ -2647,7 +2665,6 @@ class Stilman2005Agent(Agent):
                     collides_with = collision.get_collisions_for_entity(
                         obstacle_transfer_end_poly,
                         other_entities_polygons,
-                        other_entities_aabb_tree,
                     )
                     if collides_with:
                         continue
@@ -2668,7 +2685,6 @@ class Stilman2005Agent(Agent):
                         collides_with = collision.get_collisions_for_entity(
                             robot_transfer_end_poly,
                             other_entities_polygons,
-                            other_entities_aabb_tree,
                         )
 
                         if collides_with:
@@ -2809,7 +2825,6 @@ class Stilman2005Agent(Agent):
             robot_action=release_action,
             polygon=robot_polygon,
             other_polygons=other_entities_polygons,
-            others_aabb_tree=other_entities_aabb_tree,
         )
 
         if not collides_with:
@@ -3094,7 +3109,6 @@ class Stilman2005Agent(Agent):
                 robot_action=action,
                 polygon=current_configuration.robot.polygon,
                 other_polygons=other_entities_polygons,
-                others_aabb_tree=other_entities_aabb_tree,
             )
 
             if collides_with:
@@ -3107,7 +3121,6 @@ class Stilman2005Agent(Agent):
                 robot_action=action,
                 other_polygons=other_entities_polygons,
                 polygon=current_configuration.obstacle.polygon,
-                others_aabb_tree=other_entities_aabb_tree,
             )
 
             if collides_with:
@@ -3542,7 +3555,7 @@ class Stilman2005Agent(Agent):
                 w_t=w_t,
                 robot_inflated_grid=robot_inflated_grid,
                 robot=other_robot,
-                forbidden_evasion_cells=set(),
+                forbidden_evasion_cells=forbidden_evasion_cells,
                 use_combined_cost=use_combined_cost,
                 ros_publisher=ros_publisher,
                 potential_deadlocks=potential_deadlocks,

@@ -189,7 +189,7 @@ class Plan:
         other_entities_with_encompassing_circles_aabb_tree = copy.deepcopy(
             other_entities_aabb_tree
         )
-        encompassing_circle_uid_to_agent_id = {}
+        conflict_circle_id_to_agent_id = {}
         for other_robot in world.agents.values():
             if other_robot.uid == self.agent_id:
                 continue
@@ -205,16 +205,16 @@ class Plan:
 
             # TODO Get inflation from largest robot
             encompassing_circle = other_robot_center.buffer(radius)
-            temp_uid = f"{other_robot.uid}_conflict_circle"
+            conflict_circle_id = f"{other_robot.uid}_conflict_circle"
             other_entities_polygons_with_encompassing_circles[
-                temp_uid
+                conflict_circle_id
             ] = encompassing_circle
             other_entities_with_encompassing_circles_aabb_tree.add(
-                collision.polygon_to_aabb(encompassing_circle), temp_uid
+                collision.polygon_to_aabb(encompassing_circle), conflict_circle_id
             )
-            encompassing_circle_uid_to_agent_id[temp_uid] = other_robot.uid
+            conflict_circle_id_to_agent_id[conflict_circle_id] = other_robot.uid
             robot_inflated_grid.update_polygons(
-                new_or_updated_polygons={temp_uid: encompassing_circle}
+                new_or_updated_polygons={conflict_circle_id: encompassing_circle}
             )
 
         for i, path in enumerate(remaining_components):
@@ -226,7 +226,7 @@ class Plan:
                             agent_id=self.agent_id,
                             world=world,
                             robot_inflated_grid=robot_inflated_grid,
-                            encompassing_circle_uid_to_agent_id=encompassing_circle_uid_to_agent_id,
+                            conflict_circle_id_to_agent_id=conflict_circle_id_to_agent_id,
                             check_horizon=check_horizon,
                             has_first_action=has_first_action,
                             apply_strict_horizon=apply_strict_horizon,
@@ -243,10 +243,8 @@ class Plan:
                             grab_start_distance=grab_start_distance,
                             robot_inflated_grid=robot_inflated_grid,
                             other_entities_polygons=other_entities_polygons,
-                            other_entities_aabb_tree=other_entities_aabb_tree,
                             other_entities_polygons_with_encompassing_circles=other_entities_polygons_with_encompassing_circles,
-                            other_entities_with_encompassing_circles_aabb_tree=other_entities_with_encompassing_circles_aabb_tree,
-                            encompassing_circle_uid_to_agent_id=encompassing_circle_uid_to_agent_id,
+                            encompassing_circle_uid_to_agent_id=conflict_circle_id_to_agent_id,
                             previously_moved_entities_uids=previously_moved_entities_uids,
                             has_first_action=has_first_action,
                             check_horizon=check_horizon,
@@ -288,7 +286,7 @@ class Plan:
         # Reactivate entities that had been deactivated during checks
         robot_inflated_grid.activate_entities(previously_moved_entities_uids)
         robot_inflated_grid.update_polygons(
-            removed_polygons=set(encompassing_circle_uid_to_agent_id.keys())
+            removed_polygons=set(conflict_circle_id_to_agent_id.keys())
         )
 
         return conflicts
