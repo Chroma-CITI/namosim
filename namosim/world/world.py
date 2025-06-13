@@ -684,11 +684,9 @@ class World:
 
     def get_polygon_collisions(self, uid: str, others: t.Iterable[str]) -> t.Any:
         other_polygons = {uid: self.dynamic_entities[uid].polygon for uid in others}
-        others_aabb_tree = collision.polygons_to_aabb_tree(other_polygons)
         collisions = collision.get_collisions_for_entity(
             entity_polygon=self.dynamic_entities[uid].polygon,
             other_entity_polygons=other_polygons,
-            other_entities_aabb_tree=others_aabb_tree,
         )
         return collisions
 

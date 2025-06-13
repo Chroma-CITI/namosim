@@ -166,13 +166,6 @@ def polygon_to_aabb(polygon: Polygon):
     return AABB([(xmin, xmax), (ymin, ymax)])
 
 
-def polygons_to_aabb_tree(polygons: t.Dict[str, Polygon]):
-    aabb_tree = AABBTree()
-    for uid, polygon in polygons.items():
-        aabb_tree.add(polygon_to_aabb(polygon), uid)
-    return aabb_tree
-
-
 def get_collisions_for_entity(
     entity_polygon: Polygon,
     other_entity_polygons: t.Dict[str, Polygon],
