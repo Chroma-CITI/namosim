@@ -6,7 +6,6 @@ from collections import OrderedDict
 
 import numpy as np
 import numpy.typing as npt
-from aabbtree import AABBTree
 from shapely.geometry import Polygon
 from shapely.geometry import Point
 import shapely.ops
@@ -1733,9 +1732,6 @@ class StilmanRRTStarAgent(Agent):
         other_entities_polygons = {
             entity.uid: entity.polygon for entity in other_entities
         }
-        other_entities_aabb_tree = collision.polygons_to_aabb_tree(
-            other_entities_polygons
-        )
 
         robot = w_t_next.dynamic_entities[self.uid]
         agent_id, robot_pose, robot_polygon, agent_id = (
@@ -1767,7 +1763,6 @@ class StilmanRRTStarAgent(Agent):
             agent_id=agent_id,
             obstacle_uid=obstacle_uid,
             other_entities_polygons=other_entities_polygons,
-            other_entities_aabb_tree=other_entities_aabb_tree,
             robot_inflated_grid=robot_inflated_grid,
             r_acc_cells=r_acc_cells,
             obstacle_pose=obstacle_pose,
@@ -1798,7 +1793,6 @@ class StilmanRRTStarAgent(Agent):
         transfer_path = self.rrt_for_manip_search_no_goal(
             grab_configs=transfer_start_configs,
             agent_id=agent_id,
-            other_entities_aabb_tree=other_entities_aabb_tree,
             c1_cells=c_1_cells_set,
             check_for_local_opening=check_new_local_opening_before_global,
             obstacle_uid=obstacle_uid,
@@ -1865,9 +1859,6 @@ class StilmanRRTStarAgent(Agent):
         other_entities_polygons = {
             entity.uid: entity.polygon for entity in other_entities
         }
-        other_entities_aabb_tree = collision.polygons_to_aabb_tree(
-            other_entities_polygons
-        )
 
         robot = w_t_next.dynamic_entities[self.uid]
         agent_id, robot_pose, agent_id = robot.uid, robot.pose, robot.uid
@@ -1892,7 +1883,6 @@ class StilmanRRTStarAgent(Agent):
             agent_id=agent_id,
             obstacle_uid=obstacle_uid,
             other_entities_polygons=other_entities_polygons,
-            other_entities_aabb_tree=other_entities_aabb_tree,
             robot_inflated_grid=robot_inflated_grid,
             r_acc_cells=r_acc_cells,
             obstacle_pose=obstacle_pose,
@@ -1953,7 +1943,6 @@ class StilmanRRTStarAgent(Agent):
             transfer_path = self.rrt_for_manip_search_no_goal(
                 grab_configs=grab_configs,
                 agent_id=agent_id,
-                other_entities_aabb_tree=other_entities_aabb_tree,
                 c1_cells=c_1_cells_set,
                 check_for_local_opening=check_new_local_opening_before_global,
                 obstacle_uid=obstacle_uid,
@@ -1993,7 +1982,6 @@ class StilmanRRTStarAgent(Agent):
         obstacle_uid: str,
         obstacle_polygon: Polygon,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         inflated_grid_by_obstacle: BinaryOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
@@ -2029,7 +2017,6 @@ class StilmanRRTStarAgent(Agent):
                 agent_id,
                 obstacle_uid,
                 other_entities_polygons,
-                other_entities_aabb_tree,
                 ros_publisher,
                 obstacle_can_intrude_r_acc=obstacle_can_intrude_r_acc,
                 obstacle_can_intrude_c_1_x=obstacle_can_intrude_c_1_x,
@@ -2043,7 +2030,6 @@ class StilmanRRTStarAgent(Agent):
                 agent_id,
                 obstacle_uid,
                 other_entities_polygons,
-                other_entities_aabb_tree,
             )
             if robot_config_after_release:
                 #   3. ... and creates a global opening to c1
@@ -2055,7 +2041,6 @@ class StilmanRRTStarAgent(Agent):
                     old_obstacle_polygon=obstacle_polygon,
                     new_obstacle_polygon=_current.obstacle.polygon,
                     other_entities_polygons=other_entities_polygons,
-                    other_entities_aabb_tree=other_entities_aabb_tree,
                     robot_inflated_grid=robot_inflated_grid,
                     c1_cells=c_1_cells_set,
                     goal_pose=overall_goal_pose,
@@ -2079,7 +2064,6 @@ class StilmanRRTStarAgent(Agent):
         map: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         c1_cells: t.Set[GridCellModel],
         check_for_local_opening: bool,
         sorted_cell_to_combined_cost: OrderedDict[GridCellModel, float],
@@ -2147,7 +2131,6 @@ class StilmanRRTStarAgent(Agent):
                     old_obstacle_polygon=obstacle_polygon,
                     new_obstacle_polygon=new_obstacle_polygon,  # TODO : make sure this is correct
                     other_entities_polygons=other_entities_polygons,
-                    other_entities_aabb_tree=other_entities_aabb_tree,
                     robot_inflated_grid=robot_inflated_grid,
                     c1_cells=c1_cells,
                     goal_pose=goal_pose,
@@ -2341,7 +2324,6 @@ class StilmanRRTStarAgent(Agent):
         obstacle_uid: str,
         obstacle_polygon: Polygon,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         inflated_grid_by_obstacle: BinaryOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
@@ -2379,7 +2361,6 @@ class StilmanRRTStarAgent(Agent):
                 agent_id,
                 obstacle_uid,
                 other_entities_polygons,
-                other_entities_aabb_tree,
                 ros_publisher,
                 obstacle_can_intrude_r_acc=obstacle_can_intrude_r_acc,
                 obstacle_can_intrude_c_1_x=obstacle_can_intrude_c_1_x,
@@ -2416,7 +2397,6 @@ class StilmanRRTStarAgent(Agent):
                     agent_id,
                     obstacle_uid,
                     other_entities_polygons,
-                    other_entities_aabb_tree,
                 )
                 if next_transit_start_configuration:
                     #   3. ... and creates a global opening to c1
@@ -2428,7 +2408,6 @@ class StilmanRRTStarAgent(Agent):
                         old_obstacle_polygon=obstacle_polygon,
                         new_obstacle_polygon=_current.obstacle.polygon,
                         other_entities_polygons=other_entities_polygons,
-                        other_entities_aabb_tree=other_entities_aabb_tree,
                         robot_inflated_grid=robot_inflated_grid,
                         c1_cells=c1_cells,
                         goal_pose=overall_goal_pose,
@@ -2494,7 +2473,6 @@ class StilmanRRTStarAgent(Agent):
         agent_id: str,
         obstacle_uid: str,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
         obstacle_pose: Pose2D,
@@ -2536,7 +2514,6 @@ class StilmanRRTStarAgent(Agent):
                 other_polygons=other_entities_polygons,
                 polygon=robot_polygon_before_grab,
                 robot_action=grab_action,
-                others_aabb_tree=other_entities_aabb_tree,
             )
 
             if obstacle_uid in collides_with:
@@ -2585,7 +2562,6 @@ class StilmanRRTStarAgent(Agent):
         agent_id: str,
         obstacle_uid: str,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
     ) -> RobotConfiguration | None:
         release_action = ba.Release(
             entity_uid=obstacle_uid,
@@ -2618,7 +2594,6 @@ class StilmanRRTStarAgent(Agent):
             robot_action=release_action,
             polygon=robot_polygon,
             other_polygons=other_entities_polygons,
-            others_aabb_tree=other_entities_aabb_tree,
         )
 
         if not collides_with:
@@ -2647,7 +2622,6 @@ class StilmanRRTStarAgent(Agent):
         old_obstacle_polygon: Polygon,
         new_obstacle_polygon: Polygon,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         c1_cells: t.Set[GridCellModel],
         goal_pose: Pose2D,
@@ -2666,7 +2640,6 @@ class StilmanRRTStarAgent(Agent):
                 old_osbtacle_polygon=old_obstacle_polygon,
                 new_obstacle_polygon=new_obstacle_polygon,
                 other_entities_polygons=other_entities_polygons,
-                other_entities_aabb_tree=other_entities_aabb_tree,
                 robot_radius=robot_inflated_grid.inflation_radius,
                 goal_pose=goal_pose,
                 ros_publisher=ros_publisher,
@@ -2749,7 +2722,6 @@ class StilmanRRTStarAgent(Agent):
         agent_id: str,
         obstacle_uid: str,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         obstacle_can_intrude_r_acc: bool = True,
         obstacle_can_intrude_c_1_x: bool = True,
@@ -2903,7 +2875,6 @@ class StilmanRRTStarAgent(Agent):
                 robot_action=action,
                 polygon=current_configuration.robot.polygon,
                 other_polygons=other_entities_polygons,
-                others_aabb_tree=other_entities_aabb_tree,
             )
 
             if collides_with:
@@ -2916,7 +2887,6 @@ class StilmanRRTStarAgent(Agent):
                 robot_action=action,
                 other_polygons=other_entities_polygons,
                 polygon=current_configuration.obstacle.polygon,
-                others_aabb_tree=other_entities_aabb_tree,
             )
 
             if collides_with:
@@ -3430,9 +3400,6 @@ class StilmanRRTStarAgent(Agent):
                 for uid, e in w_t.dynamic_entities.items()
                 if uid not in (robot.uid, obstacle_uid)
             }
-            other_entities_aabb_tree = collision.polygons_to_aabb_tree(
-                other_entities_polygons
-            )
             transit_configuration_after_release = self.get_robot_config_after_release(
                 robot_inflated_grid,
                 robot.pose,
@@ -3440,7 +3407,6 @@ class StilmanRRTStarAgent(Agent):
                 robot.uid,
                 obstacle_uid,
                 other_entities_polygons,
-                other_entities_aabb_tree,
             )
             if not transit_configuration_after_release:
                 # Could not release obstacle during manipulation because no valid transit pose could be found.
@@ -3590,9 +3556,6 @@ class StilmanRRTStarAgent(Agent):
                 for uid, e in w_t.dynamic_entities.items()
                 if uid not in (robot.uid, obstacle_uid)
             }
-            other_entities_aabb_tree = collision.polygons_to_aabb_tree(
-                other_entities_polygons
-            )
             transit_configuration_after_release = self.get_robot_config_after_release(
                 robot_inflated_grid,
                 robot.pose,
@@ -3600,7 +3563,6 @@ class StilmanRRTStarAgent(Agent):
                 robot.uid,
                 obstacle_uid,
                 other_entities_polygons,
-                other_entities_aabb_tree,
             )
             if not transit_configuration_after_release:
                 # Could not release obstacle during manipulation because no valid transit pose could be found.

@@ -6,7 +6,6 @@ from collections import OrderedDict
 
 import numpy as np
 import numpy.typing as npt
-from aabbtree import AABBTree
 from shapely.geometry import Polygon
 from shapely.geometry import Point
 from typing_extensions import Self
@@ -1749,10 +1748,6 @@ class Stilman2005Agent(Agent):
         other_entities_polygons = {
             entity.uid: entity.polygon for entity in other_entities
         }
-        other_entities_aabb_tree = collision.polygons_to_aabb_tree(
-            other_entities_polygons
-        )
-
         robot = w_t_next.dynamic_entities[self.uid]
         agent_id, robot_pose, robot_polygon, agent_id = (
             robot.uid,
@@ -1783,7 +1778,6 @@ class Stilman2005Agent(Agent):
             agent_id=agent_id,
             obstacle_uid=obstacle_uid,
             other_entities_polygons=other_entities_polygons,
-            other_entities_aabb_tree=other_entities_aabb_tree,
             robot_inflated_grid=robot_inflated_grid,
             r_acc_cells=r_acc_cells,
             obstacle_pose=obstacle_pose,
@@ -1824,7 +1818,6 @@ class Stilman2005Agent(Agent):
             obstacle_uid=obstacle_uid,
             obstacle_polygon=obstacle_polygon,
             other_entities_polygons=other_entities_polygons,
-            other_entities_aabb_tree=other_entities_aabb_tree,
             robot_inflated_grid=robot_inflated_grid,
             inflated_grid_by_obstacle=inflated_grid_by_obstacle,
             r_acc_cells=r_acc_cells,
@@ -1855,7 +1848,6 @@ class Stilman2005Agent(Agent):
                 agent_id,
                 obstacle_uid,
                 other_entities_polygons,
-                other_entities_aabb_tree,
             )
 
             if robot_config_after_release is None:
@@ -1933,10 +1925,6 @@ class Stilman2005Agent(Agent):
         other_entities_polygons = {
             entity.uid: entity.polygon for entity in other_entities
         }
-        other_entities_aabb_tree = collision.polygons_to_aabb_tree(
-            other_entities_polygons
-        )
-
         robot = w_t_next.dynamic_entities[self.uid]
         agent_id, robot_pose, agent_id = robot.uid, robot.pose, robot.uid
         robot_polygon = robot.polygon
@@ -1960,7 +1948,6 @@ class Stilman2005Agent(Agent):
             agent_id=agent_id,
             obstacle_uid=obstacle_uid,
             other_entities_polygons=other_entities_polygons,
-            other_entities_aabb_tree=other_entities_aabb_tree,
             robot_inflated_grid=robot_inflated_grid,
             r_acc_cells=r_acc_cells,
             obstacle_pose=obstacle_pose,
@@ -2027,7 +2014,6 @@ class Stilman2005Agent(Agent):
                 goal_pose=goal_pose,
                 goal_cell=goal_cell,
                 other_entities_polygons=other_entities_polygons,
-                other_entities_aabb_tree=other_entities_aabb_tree,
                 robot_inflated_grid=robot_inflated_grid,
                 ordered_cells_by_cost=cells_sorted_by_combined_cost,
                 r_acc_cells=r_acc_cells,
@@ -2061,7 +2047,6 @@ class Stilman2005Agent(Agent):
                 obstacle_uid=obstacle_uid,
                 obstacle_polygon=obstacle_polygon,
                 other_entities_polygons=other_entities_polygons,
-                other_entities_aabb_tree=other_entities_aabb_tree,
                 robot_inflated_grid=robot_inflated_grid,
                 inflated_grid_by_obstacle=inflated_grid_by_obstacle,
                 r_acc_cells=r_acc_cells,
@@ -2089,7 +2074,6 @@ class Stilman2005Agent(Agent):
                     agent_id,
                     obstacle_uid,
                     other_entities_polygons,
-                    other_entities_aabb_tree,
                 )
 
                 if robot_config_after_release is None:
@@ -2122,7 +2106,6 @@ class Stilman2005Agent(Agent):
                     goal_pose=goal_pose,
                     goal_cell=goal_cell,
                     other_entities_polygons=other_entities_polygons,
-                    other_entities_aabb_tree=other_entities_aabb_tree,
                     robot_inflated_grid=robot_inflated_grid,
                     ordered_cells_by_cost=cells_sorted_by_combined_cost,
                     r_acc_cells=r_acc_cells,
@@ -2147,7 +2130,6 @@ class Stilman2005Agent(Agent):
                         agent_id,
                         obstacle_uid,
                         other_entities_polygons,
-                        other_entities_aabb_tree,
                     )
 
                     if robot_config_after_release is None:
@@ -2198,7 +2180,6 @@ class Stilman2005Agent(Agent):
         obstacle_uid: str,
         obstacle_polygon: Polygon,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         inflated_grid_by_obstacle: BinaryOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
@@ -2221,21 +2202,17 @@ class Stilman2005Agent(Agent):
             ],
         ):
             return self.get_manip_search_neighbors(
-                _current,
-                _gscore,
-                _close_set,
-                _open_queue,
-                _came_from,
-                start,
-                robot_inflated_grid,
-                inflated_grid_by_obstacle,
-                r_acc_cells,
-                ccs_data,
-                agent_id,
-                obstacle_uid,
-                other_entities_polygons,
-                other_entities_aabb_tree,
-                ros_publisher,
+                current_configuration=_current,
+                gscore=_gscore,
+                close_set=_close_set,
+                robot_inflated_grid=robot_inflated_grid,
+                inflated_grid_by_obstacle=inflated_grid_by_obstacle,
+                r_acc_cells=r_acc_cells,
+                ccs_data=ccs_data,
+                agent_id=agent_id,
+                obstacle_uid=obstacle_uid,
+                other_entities_polygons=other_entities_polygons,
+                ros_publisher=ros_publisher,
                 obstacle_can_intrude_r_acc=obstacle_can_intrude_r_acc,
                 obstacle_can_intrude_c_1_x=obstacle_can_intrude_c_1_x,
             )
@@ -2248,7 +2225,6 @@ class Stilman2005Agent(Agent):
                 agent_id,
                 obstacle_uid,
                 other_entities_polygons,
-                other_entities_aabb_tree,
             )
             if robot_config_after_release:
                 #   3. ... and creates a global opening to c1
@@ -2260,7 +2236,6 @@ class Stilman2005Agent(Agent):
                     old_obstacle_polygon=obstacle_polygon,
                     new_obstacle_polygon=_current.obstacle.polygon,
                     other_entities_polygons=other_entities_polygons,
-                    other_entities_aabb_tree=other_entities_aabb_tree,
                     robot_inflated_grid=robot_inflated_grid,
                     c1_cells=c_1_cells_set,
                     goal_pose=overall_goal_pose,
@@ -2284,7 +2259,6 @@ class Stilman2005Agent(Agent):
         obstacle_uid: str,
         obstacle_polygon: Polygon,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         inflated_grid_by_obstacle: BinaryOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
@@ -2309,21 +2283,17 @@ class Stilman2005Agent(Agent):
             ],
         ):
             neighbors, tentative_g_scores = self.get_manip_search_neighbors(
-                _current,
-                _gscore,
-                _close_set,
-                _open_queue,
-                _came_from,
-                start,
-                robot_inflated_grid,
-                inflated_grid_by_obstacle,
-                r_acc_cells,
-                ccs_data,
-                agent_id,
-                obstacle_uid,
-                other_entities_polygons,
-                other_entities_aabb_tree,
-                ros_publisher,
+                current_configuration=_current,
+                gscore=_gscore,
+                close_set=_close_set,
+                robot_inflated_grid=robot_inflated_grid,
+                inflated_grid_by_obstacle=inflated_grid_by_obstacle,
+                r_acc_cells=r_acc_cells,
+                ccs_data=ccs_data,
+                agent_id=agent_id,
+                obstacle_uid=obstacle_uid,
+                other_entities_polygons=other_entities_polygons,
+                ros_publisher=ros_publisher,
                 obstacle_can_intrude_r_acc=obstacle_can_intrude_r_acc,
                 obstacle_can_intrude_c_1_x=obstacle_can_intrude_c_1_x,
             )
@@ -2359,7 +2329,6 @@ class Stilman2005Agent(Agent):
                     agent_id,
                     obstacle_uid,
                     other_entities_polygons,
-                    other_entities_aabb_tree,
                 )
                 if next_transit_start_configuration:
                     #   3. ... and creates a global opening to c1
@@ -2371,7 +2340,6 @@ class Stilman2005Agent(Agent):
                         old_obstacle_polygon=obstacle_polygon,
                         new_obstacle_polygon=_current.obstacle.polygon,
                         other_entities_polygons=other_entities_polygons,
-                        other_entities_aabb_tree=other_entities_aabb_tree,
                         robot_inflated_grid=robot_inflated_grid,
                         c1_cells=c1_cells,
                         goal_pose=overall_goal_pose,
@@ -2437,7 +2405,6 @@ class Stilman2005Agent(Agent):
         agent_id: str,
         obstacle_uid: str,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
         obstacle_pose: Pose2D,
@@ -2531,7 +2498,6 @@ class Stilman2005Agent(Agent):
         goal_pose: Pose2D,
         goal_cell: GridCellModel,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         ordered_cells_by_cost: t.List[GridCellModel],
         r_acc_cells: t.Set[GridCellModel],
@@ -2599,7 +2565,6 @@ class Stilman2005Agent(Agent):
                                 agent_id,
                                 obstacle_uid,
                                 other_entities_polygons,
-                                other_entities_aabb_tree,
                             )
                         )
                         if robot_config_after_release:
@@ -2622,7 +2587,6 @@ class Stilman2005Agent(Agent):
                                     old_obstacle_polygon=obstacle_polygon,
                                     new_obstacle_polygon=configuration.obstacle.polygon,
                                     other_entities_polygons=other_entities_polygons,
-                                    other_entities_aabb_tree=other_entities_aabb_tree,
                                     robot_inflated_grid=robot_inflated_grid,
                                     c1_cells=c_1_cells_set,
                                     goal_pose=goal_pose,
@@ -2709,7 +2673,6 @@ class Stilman2005Agent(Agent):
                                 agent_id,
                                 obstacle_uid,
                                 other_entities_polygons,
-                                other_entities_aabb_tree,
                             )
                         )
                         if robot_config_after_release:
@@ -2744,7 +2707,6 @@ class Stilman2005Agent(Agent):
                                     old_obstacle_polygon=obstacle_polygon,
                                     new_obstacle_polygon=obstacle_transfer_end_poly,
                                     other_entities_polygons=other_entities_polygons,
-                                    other_entities_aabb_tree=other_entities_aabb_tree,
                                     robot_inflated_grid=robot_inflated_grid,
                                     c1_cells=c_1_cells_set,
                                     goal_pose=goal_pose,
@@ -2792,7 +2754,6 @@ class Stilman2005Agent(Agent):
         agent_id: str,
         obstacle_uid: str,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
     ) -> RobotConfiguration | None:
         release_action = ba.Release(
             entity_uid=obstacle_uid,
@@ -2853,7 +2814,6 @@ class Stilman2005Agent(Agent):
         old_obstacle_polygon: Polygon,
         new_obstacle_polygon: Polygon,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         robot_inflated_grid: BinaryOccupancyGrid,
         c1_cells: t.Set[GridCellModel],
         goal_pose: Pose2D,
@@ -2872,7 +2832,6 @@ class Stilman2005Agent(Agent):
                 old_osbtacle_polygon=old_obstacle_polygon,
                 new_obstacle_polygon=new_obstacle_polygon,
                 other_entities_polygons=other_entities_polygons,
-                other_entities_aabb_tree=other_entities_aabb_tree,
                 robot_radius=robot_inflated_grid.inflation_radius,
                 goal_pose=goal_pose,
                 ros_publisher=ros_publisher,
@@ -2940,14 +2899,10 @@ class Stilman2005Agent(Agent):
 
     def get_manip_search_neighbors(
         self,
+        *,
         current_configuration: RobotObstacleConfiguration,
         gscore: t.Dict[RobotObstacleConfiguration, float],
         close_set: t.Set[RobotObstacleConfiguration],
-        open_queue: t.List[RobotObstacleConfiguration],
-        came_from: t.Dict[
-            RobotObstacleConfiguration, RobotObstacleConfiguration | None
-        ],
-        start: t.List[RobotObstacleConfiguration],
         robot_inflated_grid: BinaryOccupancyGrid,
         inflated_grid_by_obstacle: BinaryOccupancyGrid,
         r_acc_cells: t.Set[GridCellModel],
@@ -2955,7 +2910,6 @@ class Stilman2005Agent(Agent):
         agent_id: str,
         obstacle_uid: str,
         other_entities_polygons: t.Dict[str, Polygon],
-        other_entities_aabb_tree: AABBTree,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         obstacle_can_intrude_r_acc: bool = True,
         obstacle_can_intrude_c_1_x: bool = True,
@@ -3634,9 +3588,6 @@ class Stilman2005Agent(Agent):
                 for uid, e in w_t.dynamic_entities.items()
                 if uid not in (robot.uid, obstacle_uid)
             }
-            other_entities_aabb_tree = collision.polygons_to_aabb_tree(
-                other_entities_polygons
-            )
             transit_configuration_after_release = self.get_robot_config_after_release(
                 robot_inflated_grid,
                 robot.pose,
@@ -3644,7 +3595,6 @@ class Stilman2005Agent(Agent):
                 robot.uid,
                 obstacle_uid,
                 other_entities_polygons,
-                other_entities_aabb_tree,
             )
             if not transit_configuration_after_release:
                 # Could not release obstacle during manipulation because no valid transit pose could be found.
@@ -3794,9 +3744,6 @@ class Stilman2005Agent(Agent):
                 for uid, e in w_t.dynamic_entities.items()
                 if uid not in (robot.uid, obstacle_uid)
             }
-            other_entities_aabb_tree = collision.polygons_to_aabb_tree(
-                other_entities_polygons
-            )
             transit_configuration_after_release = self.get_robot_config_after_release(
                 robot_inflated_grid,
                 robot.pose,
@@ -3804,7 +3751,6 @@ class Stilman2005Agent(Agent):
                 robot.uid,
                 obstacle_uid,
                 other_entities_polygons,
-                other_entities_aabb_tree,
             )
             if not transit_configuration_after_release:
                 # Could not release obstacle during manipulation because no valid transit pose could be found.

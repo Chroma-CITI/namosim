@@ -173,22 +173,16 @@ class Plan:
         remaining_components = self.paths[self.component_index :]
         conflicts = set()
 
-        # Define sets of polygons and associated aabb trees to check for collisions
         other_entities_polygons = {
             uid: e.polygon
             for uid, e in world.dynamic_entities.items()
             if uid != self.agent_id and e.movability != Movability.STATIC
         }
-        other_entities_aabb_tree = collision.polygons_to_aabb_tree(
-            other_entities_polygons
-        )
 
         other_entities_polygons_with_encompassing_circles = copy.copy(
             other_entities_polygons
         )
-        other_entities_with_encompassing_circles_aabb_tree = copy.deepcopy(
-            other_entities_aabb_tree
-        )
+
         conflict_circle_id_to_agent_id = {}
         for other_robot in world.agents.values():
             if other_robot.uid == self.agent_id:
@@ -209,9 +203,7 @@ class Plan:
             other_entities_polygons_with_encompassing_circles[
                 conflict_circle_id
             ] = encompassing_circle
-            other_entities_with_encompassing_circles_aabb_tree.add(
-                collision.polygon_to_aabb(encompassing_circle), conflict_circle_id
-            )
+
             conflict_circle_id_to_agent_id[conflict_circle_id] = other_robot.uid
             robot_inflated_grid.update_polygons(
                 new_or_updated_polygons={conflict_circle_id: encompassing_circle}
