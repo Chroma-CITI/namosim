@@ -139,8 +139,7 @@ class TransferPath:
         has_first_action: bool,
         grab_start_distance: float,
         apply_strict_horizon: bool = False,
-        exit_early_for_any_conflict: bool = False,
-        exit_early_only_for_long_term_conflicts: bool = True,
+        exit_early: bool = False,
         rp: t.Optional["ros2.RosPublisher"] = None,
     ) -> t.Set[Conflict]:
         conflicts: t.Set[Conflict] = set()
@@ -211,10 +210,7 @@ class TransferPath:
                             world.entity_to_agent[self.obstacle_uid],
                         )
                     )
-                    if (
-                        exit_early_only_for_long_term_conflicts
-                        or exit_early_for_any_conflict
-                    ):
+                    if exit_early:
                         return conflicts
 
                 # If the obstacle is no longer where the agent thought it would be and it wasn't previously moved by the robot, we have a stolen object conflict.
@@ -229,10 +225,7 @@ class TransferPath:
                             actual_pose=current_obstacle_pose,
                         )
                     )
-                    if (
-                        exit_early_only_for_long_term_conflicts
-                        or exit_early_for_any_conflict
-                    ):
+                    if exit_early:
                         return conflicts
 
                 # Check for SimultaneousSpace conflict that might result from the grab, since a grab instantly expands the robot's conflict radius.
@@ -286,7 +279,7 @@ class TransferPath:
                                     at_grab=True,
                                 )
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
 
                 # Check for ConcurrentGrabConflict if the first action in the path is the first action in the check horizon,
@@ -314,7 +307,7 @@ class TransferPath:
                             conflicts.add(
                                 ConcurrentGrabConflict(self.obstacle_uid, uid)
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
 
                 (collides_with, _,) = collision.get_csv_collisions(
@@ -359,7 +352,7 @@ class TransferPath:
                                     at_grab=True,
                                 )
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
                     elif (
                         isinstance(world.dynamic_entities[uid], agent.Agent)
@@ -404,14 +397,11 @@ class TransferPath:
                                     at_grab=True,
                                 )
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
                     else:
                         conflicts.add(RobotObstacleConflict(uid))
-                        if (
-                            exit_early_for_any_conflict
-                            or exit_early_only_for_long_term_conflicts
-                        ):
+                        if exit_early:
                             return conflicts
             elif action is self.release_action:
                 robot_before_release_pose = self.robot_path.poses[-2]
@@ -459,7 +449,7 @@ class TransferPath:
                                     at_release=True,
                                 )
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
                     elif (
                         isinstance(world.dynamic_entities[uid], agent.Agent)
@@ -502,14 +492,11 @@ class TransferPath:
                                     at_release=True,
                                 )
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
                     else:
                         conflicts.add(RobotObstacleConflict(uid))
-                        if (
-                            exit_early_for_any_conflict
-                            or exit_early_only_for_long_term_conflicts
-                        ):
+                        if exit_early:
                             return conflicts
             else:
                 (collides_with, _,) = collision.get_csv_collisions(
@@ -557,7 +544,7 @@ class TransferPath:
                                     ),
                                 )
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
 
                     elif (
@@ -602,14 +589,11 @@ class TransferPath:
                                     ),
                                 )
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
                     else:
                         conflicts.add(RobotObstacleConflict(uid))
-                        if (
-                            exit_early_for_any_conflict
-                            or exit_early_only_for_long_term_conflicts
-                        ):
+                        if exit_early:
                             return conflicts
 
                 (collides_with, _,) = collision.get_csv_collisions(
@@ -664,7 +648,7 @@ class TransferPath:
                                     ),
                                 )
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
                     elif (
                         isinstance(world.dynamic_entities[uid], agent.Agent)
@@ -710,14 +694,11 @@ class TransferPath:
                                     ),
                                 )
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 return conflicts
                     else:
                         conflicts.add(RobotObstacleConflict(uid))
-                        if (
-                            exit_early_for_any_conflict
-                            or exit_early_only_for_long_term_conflicts
-                        ):
+                        if exit_early:
                             return conflicts
 
         return conflicts
@@ -885,8 +866,7 @@ class TransitPath:
         check_horizon: int,
         has_first_action: bool,
         apply_strict_horizon: bool = False,
-        exit_early_for_any_conflict: bool = False,
-        exit_early_only_for_long_term_conflicts: bool = True,
+        exit_early: bool = False,
         rp: t.Optional["ros2.RosPublisher"] = None,
     ) -> t.Set[Conflict]:
         conflicts: t.Set[Conflict] = set()
@@ -967,7 +947,7 @@ class TransitPath:
                         conflicting_entities_cells.update(
                             robot_inflated_grid.cell_sets[uid]
                         )
-                        if exit_early_for_any_conflict:
+                        if exit_early:
                             if rp:
                                 rp.publish_transit_conflicting_cells(
                                     conflicting_cells,
@@ -1022,7 +1002,7 @@ class TransitPath:
                             conflicting_entities_cells.update(
                                 robot_inflated_grid.cell_sets[uid]
                             )
-                            if exit_early_for_any_conflict:
+                            if exit_early:
                                 if rp:
                                     rp.publish_transit_conflicting_cells(
                                         conflicting_cells,
@@ -1046,10 +1026,7 @@ class TransitPath:
                         conflicting_entities_cells.update(
                             robot_inflated_grid.cell_sets[uid]
                         )
-                        if (
-                            exit_early_for_any_conflict
-                            or exit_early_only_for_long_term_conflicts
-                        ):
+                        if exit_early:
                             if rp:
                                 rp.publish_transit_conflicting_cells(
                                     conflicting_cells, robot_inflated_grid, agent_id

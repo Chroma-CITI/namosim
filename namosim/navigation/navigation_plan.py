@@ -162,8 +162,7 @@ class Plan:
         rp: t.Optional["rp.RosPublisher"] = None,
         check_horizon: int = 0,
         apply_strict_horizon: bool = False,
-        exit_early_for_any_conflict: bool = False,
-        exit_early_only_for_long_term_conflicts: bool = True,
+        exit_early: bool = False,
     ) -> t.Set[Conflict]:
         # if self.postpone.is_running():
         #     return []
@@ -222,8 +221,7 @@ class Plan:
                             check_horizon=check_horizon,
                             has_first_action=has_first_action,
                             apply_strict_horizon=apply_strict_horizon,
-                            exit_early_for_any_conflict=exit_early_for_any_conflict,
-                            exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
+                            exit_early=exit_early,
                             rp=rp,
                         )
                     )
@@ -241,8 +239,7 @@ class Plan:
                             has_first_action=has_first_action,
                             check_horizon=check_horizon,
                             apply_strict_horizon=apply_strict_horizon,
-                            exit_early_for_any_conflict=exit_early_for_any_conflict,
-                            exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
+                            exit_early=exit_early,
                             rp=rp,
                         )
                     )
@@ -255,20 +252,8 @@ class Plan:
 
                     robot_inflated_grid.deactivate_entities([path.obstacle_uid])
 
-                if exit_early_for_any_conflict and conflicts:
+                if exit_early and conflicts:
                     break
-                if exit_early_only_for_long_term_conflicts and conflicts:
-                    is_there_long_term_conflict = any(
-                        [
-                            (
-                                isinstance(conflict, RobotObstacleConflict)
-                                or (isinstance(conflict, StolenMovableConflict))
-                            )
-                            for conflict in conflicts
-                        ]
-                    )
-                    if is_there_long_term_conflict:
-                        break
 
                 if check_horizon:
                     check_horizon = max(0, check_horizon - path.get_remaining_length())
@@ -292,8 +277,7 @@ class Plan:
         rp: t.Optional["rp.RosPublisher"] = None,
         check_horizon: int = 0,
         apply_strict_horizon: bool = True,
-        exit_early_for_any_conflict: bool = False,
-        exit_early_only_for_long_term_conflicts: bool = True,
+        exit_early: bool = False,
     ) -> t.Set[Conflict]:
         conflicts = set(
             self._get_conflicts(
@@ -303,8 +287,7 @@ class Plan:
                 rp=rp,
                 check_horizon=check_horizon,
                 apply_strict_horizon=apply_strict_horizon,
-                exit_early_for_any_conflict=exit_early_for_any_conflict,
-                exit_early_only_for_long_term_conflicts=exit_early_only_for_long_term_conflicts,
+                exit_early=exit_early,
             )
         )
 

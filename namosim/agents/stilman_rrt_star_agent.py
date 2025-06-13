@@ -206,19 +206,19 @@ class StilmanRRTStarAgent(Agent):
         )
 
         # Initialize static obstacles occupation grid, since it is not supposed to change
-        self.static_obs_inf_grid = copy.deepcopy(world.map).inflate_map_destructive(
-            self.circumscribed_radius + self.collision_margin
-        )
+        self.robot_inflated_static_map = copy.deepcopy(
+            world.map
+        ).inflate_map_destructive(self.circumscribed_radius + self.collision_margin)
 
         # check that goals are valid (i.e., not in static obstacles)
         for goal in self._navigation_goals:
             goal_cell = utils.real_to_grid(
                 goal.pose[0],
                 goal.pose[1],
-                self.static_obs_inf_grid.cell_size,
-                self.static_obs_inf_grid.grid_pose,
+                self.robot_inflated_static_map.cell_size,
+                self.robot_inflated_static_map.grid_pose,
             )
-            if self.static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] != 0:
+            if self.robot_inflated_static_map.grid[goal_cell[0]][goal_cell[1]] != 0:
                 raise Exception(
                     "Goal cell collides with static obstacle cell. This means the scenario file is invalid."
                 )
@@ -343,7 +343,7 @@ class StilmanRRTStarAgent(Agent):
 
         next_step = self.full_coordination_strategy(
             w_t=self.world,
-            static_obs_inf_grid=self.static_obs_inf_grid,
+            robot_inflated_static_map=self.robot_inflated_static_map,
             robot_inflated_grid=self.robot_inflated_grid,
             agent_id=self.uid,
             goal=self._goal.pose,
@@ -373,7 +373,7 @@ class StilmanRRTStarAgent(Agent):
         self,
         *,
         w_t: "w.World",
-        static_obs_inf_grid: BinaryOccupancyGrid,
+        robot_inflated_static_map: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
         goal: Pose2D,
@@ -408,7 +408,7 @@ class StilmanRRTStarAgent(Agent):
             )
             return self.replan(
                 w_t,
-                static_obs_inf_grid,
+                robot_inflated_static_map,
                 robot_inflated_grid,
                 agent_id,
                 goal,
@@ -429,7 +429,7 @@ class StilmanRRTStarAgent(Agent):
             )
             return self.replan(
                 w_t,
-                static_obs_inf_grid,
+                robot_inflated_static_map,
                 robot_inflated_grid,
                 agent_id,
                 goal,
@@ -446,7 +446,7 @@ class StilmanRRTStarAgent(Agent):
             world=w_t,
             robot_inflated_grid=robot_inflated_grid,
             check_horizon=conflict_horizon,
-            exit_early_for_any_conflict=True,
+            exit_early=True,
             grab_start_distance=self.grab_start_distance,
         )
         if len(conflicts) > 0:
@@ -477,7 +477,7 @@ class StilmanRRTStarAgent(Agent):
                 conflicts=conflicts,
                 w_t=w_t,
                 step_count=step_count,
-                static_obs_inf_grid=static_obs_inf_grid,
+                robot_inflated_static_map=robot_inflated_static_map,
                 robot_inflated_grid=robot_inflated_grid,
                 agent_id=agent_id,
                 goal=goal,
@@ -508,7 +508,7 @@ class StilmanRRTStarAgent(Agent):
         conflicts: t.Set[Conflict],
         w_t: "w.World",
         step_count: int,
-        static_obs_inf_grid: BinaryOccupancyGrid,
+        robot_inflated_static_map: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
         goal: Pose2D,
@@ -593,7 +593,7 @@ class StilmanRRTStarAgent(Agent):
             )
             return self.replan(
                 w_t=w_t,
-                static_obs_inf_grid=static_obs_inf_grid,
+                robot_inflated_static_map=robot_inflated_static_map,
                 robot_inflated_grid=robot_inflated_grid,
                 agent_id=agent_id,
                 goal=goal,
@@ -616,7 +616,7 @@ class StilmanRRTStarAgent(Agent):
             )
             return self.replan(
                 w_t=w_t,
-                static_obs_inf_grid=static_obs_inf_grid,
+                robot_inflated_static_map=robot_inflated_static_map,
                 robot_inflated_grid=robot_inflated_grid,
                 agent_id=agent_id,
                 goal=goal,
@@ -808,7 +808,7 @@ class StilmanRRTStarAgent(Agent):
     def replan(
         self,
         w_t: "w.World",
-        static_obs_inf_grid: BinaryOccupancyGrid,
+        robot_inflated_static_map: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
         goal: Pose2D,
@@ -850,7 +850,7 @@ class StilmanRRTStarAgent(Agent):
         robot_inflated_grid.deactivate_entities(dynamic_entities)
         p = self.select_connect(
             w_t=w_t_no_dyn,
-            static_obs_inf_grid=static_obs_inf_grid,
+            robot_inflated_static_map=robot_inflated_static_map,
             robot_inflated_grid=robot_inflated_grid,
             r_f=goal,
             neighborhood=neighborhood,
@@ -993,7 +993,7 @@ class StilmanRRTStarAgent(Agent):
         # Plan using this modified version of the world
         p = self.select_connect(
             w_t=new_w_t_no_dyn,
-            static_obs_inf_grid=static_obs_inf_grid,
+            robot_inflated_static_map=robot_inflated_static_map,
             robot_inflated_grid=robot_inflated_grid,
             r_f=goal,
             neighborhood=neighborhood,
@@ -1089,7 +1089,7 @@ class StilmanRRTStarAgent(Agent):
         self,
         *,
         w_t: "w.World",
-        static_obs_inf_grid: BinaryOccupancyGrid,
+        robot_inflated_static_map: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
         r_f: Pose2D,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
@@ -1116,10 +1116,16 @@ class StilmanRRTStarAgent(Agent):
         avoid_list: t.Set[t.Tuple[str, str]] = set()
 
         robot_cell = utils.real_to_grid(
-            r_t[0], r_t[1], static_obs_inf_grid.cell_size, static_obs_inf_grid.grid_pose
+            r_t[0],
+            r_t[1],
+            robot_inflated_static_map.cell_size,
+            robot_inflated_static_map.grid_pose,
         )
         goal_cell = utils.real_to_grid(
-            r_f[0], r_f[1], static_obs_inf_grid.cell_size, static_obs_inf_grid.grid_pose
+            r_f[0],
+            r_f[1],
+            robot_inflated_static_map.cell_size,
+            robot_inflated_static_map.grid_pose,
         )
 
         simple_path_to_goal = self.find_path(
@@ -1199,12 +1205,12 @@ class StilmanRRTStarAgent(Agent):
                     agent_id=self.uid,
                 )
 
-        if static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
+        if robot_inflated_static_map.grid[goal_cell[0]][goal_cell[1]] > 0:
             raise Exception(
                 "Goal cell collides with a static obstacle cell. This should never happen.",
             )
 
-        if static_obs_inf_grid.grid[robot_cell[0]][robot_cell[1]] > 0:
+        if robot_inflated_static_map.grid[robot_cell[0]][robot_cell[1]] > 0:
             raise Exception(
                 "Robot start position is in collision with a static obstacle. This should never happen."
             )
@@ -1220,7 +1226,7 @@ class StilmanRRTStarAgent(Agent):
         o_1, c_1 = self.rch(
             start_cell=robot_cell,
             goal_cell=goal_cell,
-            static_obs_inf_grid=static_obs_inf_grid,
+            robot_inflated_static_map=robot_inflated_static_map,
             connected_components_grid=connected_components_grid,
             inflated_robot_grid=robot_inflated_grid,
             avoid_list=avoid_list,
@@ -1316,7 +1322,7 @@ class StilmanRRTStarAgent(Agent):
                 )
                 future_plan = self.select_connect(
                     w_t=w_t_next,
-                    static_obs_inf_grid=static_obs_inf_grid,
+                    robot_inflated_static_map=robot_inflated_static_map,
                     robot_inflated_grid=robot_inflated_grid,
                     r_f=r_f,
                     ros_publisher=ros_publisher,
@@ -1366,7 +1372,7 @@ class StilmanRRTStarAgent(Agent):
             o_1, c_1 = self.rch(
                 start_cell=robot_cell,
                 goal_cell=goal_cell,
-                static_obs_inf_grid=static_obs_inf_grid,
+                robot_inflated_static_map=robot_inflated_static_map,
                 connected_components_grid=connected_components_grid,
                 inflated_robot_grid=robot_inflated_grid,
                 avoid_list=avoid_list,
@@ -1539,7 +1545,7 @@ class StilmanRRTStarAgent(Agent):
         self,
         start_cell: GridCellModel,
         goal_cell: GridCellModel,
-        static_obs_inf_grid: BinaryOccupancyGrid,
+        robot_inflated_static_map: BinaryOccupancyGrid,
         connected_components_grid: npt.NDArray[np.int_],
         inflated_robot_grid: BinaryOccupancyGrid,
         avoid_list: t.Set[t.Tuple[str, str]],
@@ -1553,7 +1559,7 @@ class StilmanRRTStarAgent(Agent):
         Renault's papers and thesis. The search returns the IDs of the first obstacle
         and component encountered on the path to the goal.
         """
-        if static_obs_inf_grid.grid[start_cell[0]][start_cell[1]] > 0:
+        if robot_inflated_static_map.grid[start_cell[0]][start_cell[1]] > 0:
             self.logger.append(
                 utils.NamosimLog(
                     "Agent {}: rch: The robot start cell {} is occupied by a static obstacle.".format(
@@ -1564,7 +1570,7 @@ class StilmanRRTStarAgent(Agent):
             )
             return "", ""
 
-        if static_obs_inf_grid.grid[goal_cell[0]][goal_cell[1]] > 0:
+        if robot_inflated_static_map.grid[goal_cell[0]][goal_cell[1]] > 0:
             self.logger.append(
                 utils.NamosimLog(
                     "Agent {}: rch: The robot goal cell {} is occupied by a static obstacle.".format(
@@ -1663,7 +1669,7 @@ class StilmanRRTStarAgent(Agent):
                 close_set,
                 open_queue,
                 came_from,
-                static_obs_inf_grid,
+                robot_inflated_static_map,
                 connected_components_grid,
                 inflated_robot_grid,
                 avoid_list,
