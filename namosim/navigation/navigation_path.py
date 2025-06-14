@@ -130,13 +130,10 @@ class TransferPath:
         self,
         agent_id: str,
         world: "world.World",
-        robot_inflated_grid: BinaryOccupancyGrid,
         other_entities_polygons: t.Dict[str, Polygon],
         previously_moved_obstacles: t.Set[str],
         horizon: int,
-        has_first_action: bool,
         grab_start_distance: float,
-        apply_strict_horizon: bool = False,
         exit_early: bool = False,
         rp: t.Optional["ros2.RosPublisher"] = None,
     ) -> t.Set[Conflict]:
@@ -144,7 +141,7 @@ class TransferPath:
         assert agent_id not in other_entities_polygons
 
         conflicts: t.Set[Conflict] = set()
-        if horizon <= 0 and apply_strict_horizon:
+        if horizon <= 0:
             return conflicts
 
         # Compute and display horizon convex polygons
@@ -157,7 +154,7 @@ class TransferPath:
                 agent_id=agent_id,
             )
 
-        # Check conflicts for all actions within horizon (Robot-Robot) and beyond (other conflicts)
+        # Check conflicts for all actions within horizon
         for look_ahead_index, (
             action,
             robot_pose,
@@ -173,7 +170,7 @@ class TransferPath:
                 self.obstacle_path.polygons[self.action_index :],
             )
         ):
-            if apply_strict_horizon and look_ahead_index >= horizon:
+            if look_ahead_index >= horizon:
                 break
 
             if action is self.grab_action:
@@ -618,21 +615,15 @@ class TransitPath:
         robot_inflated_grid: BinaryOccupancyGrid,
         conflict_circle_id_to_agent_id: t.Dict[str, str],
         horizon: int,
-        has_first_action: bool,
-        apply_strict_horizon: bool = False,
         exit_early: bool = False,
         rp: t.Optional["ros2.RosPublisher"] = None,
     ) -> t.Set[Conflict]:
-        conflicts: t.Set[Conflict] = set()
-
         assert agent_id not in robot_inflated_grid.cell_sets
-        if not self.actions:
-            return conflicts
+        assert len(self.actions) + 1 == len(self.robot_path.poses)
 
-        if horizon <= 0 and apply_strict_horizon:
+        conflicts: t.Set[Conflict] = set()
+        if horizon <= 0:
             return conflicts
-
-        conflicts = conflicts
 
         robot_conflict_circle_uids = set(conflict_circle_id_to_agent_id.keys())
 
@@ -646,22 +637,16 @@ class TransitPath:
                 agent_id=agent_id,
             )
 
+        robot_inflated_grid.activate_entities(robot_conflict_circle_uids)
+
         # Check for RobotRobot conflicts within horizon, and RobotObstacle conflicts even beyond
         conflicting_cells: t.Set[GridCellModel] = set()
         conflicting_entities_cells: t.Set[GridCellModel] = set()
-        for look_ahead_index, action in enumerate(self.actions[self.action_index :]):
+        for look_ahead_index, action in enumerate(
+            self.actions[self.action_index : self.action_index + horizon]
+        ):
             if isinstance(action, ba.Wait):
                 continue
-
-            if apply_strict_horizon and look_ahead_index >= horizon:
-                break
-
-            if look_ahead_index < horizon and has_first_action:
-                # If the first action in the path is the first action in the check horizon,
-                # we also check for simultaneous space conflicts types at t+1
-                robot_inflated_grid.activate_entities(robot_conflict_circle_uids)
-            else:
-                robot_inflated_grid.deactivate_entities(robot_conflict_circle_uids)
 
             pose = self.robot_path.poses[self.action_index + look_ahead_index]
             cell = utils.real_to_grid(

@@ -1,7 +1,7 @@
-import copy
 import random
 import typing as t
 
+from shapely.geometry import Polygon
 from typing_extensions import Self
 
 import namosim.display.ros2_publisher as rp
@@ -161,7 +161,6 @@ class Plan:
         grab_start_distance: float,
         horizon: int,
         rp: t.Optional["rp.RosPublisher"] = None,
-        apply_strict_horizon: bool = False,
         exit_early: bool = False,
     ) -> t.Set[Conflict]:
         # if self.postpone.is_running():
@@ -178,45 +177,34 @@ class Plan:
             if uid != self.agent_id and e.movability != Movability.STATIC
         }
 
-        other_robot_conflict_circles = copy.copy(other_entities_polygons)
+        robot_conflict_polygons: t.Dict[str, Polygon] = {}
 
-        conflict_circle_id_to_agent_id = {}
+        conflict_polygon_to_agent_id = {}
         for other_robot in world.agents.values():
             if other_robot.uid == self.agent_id:
                 continue
 
-            # Inflate all other robots and their associated obstacles by the maximum translation at t+1 to prevent
-            # SimultaneousSpaceAccess-type Conflicts
-            other_robot_center = other_robot.polygon.centroid
-            radius = (
-                world.get_robot_conflict_radius(other_robot.uid, grab_start_distance)
-                # Enlarge radius so that conflict is detected before the robot enters another robot's conflict radius, after which a dealock may occur
-                + utils.SQRT_OF_2 * world.map.cell_size
-            )
+            robot_conflict_polygon = world.get_combined_agent_obstacle_polygon(
+                other_robot.uid
+            ).buffer(grab_start_distance + utils.SQRT_OF_2 * world.map.cell_size)
+            robot_conflict_polygon_id = f"{other_robot.uid}_conflict_polygon"
+            robot_conflict_polygons[robot_conflict_polygon_id] = robot_conflict_polygon
+            conflict_polygon_to_agent_id[robot_conflict_polygon_id] = other_robot.uid
 
-            # TODO Get inflation from largest robot
-            conflict_circle = other_robot_center.buffer(radius)
-            conflict_circle_id = f"{other_robot.uid}_conflict_circle"
-            other_robot_conflict_circles[conflict_circle_id] = conflict_circle
+        robot_inflated_grid.update_polygons(
+            new_or_updated_polygons=robot_conflict_polygons
+        )
 
-            conflict_circle_id_to_agent_id[conflict_circle_id] = other_robot.uid
-            robot_inflated_grid.update_polygons(
-                new_or_updated_polygons={conflict_circle_id: conflict_circle}
-            )
-
-        for i, path in enumerate(remaining_paths):
-            if horizon > 0 or apply_strict_horizon is False:
-                has_first_action = i == 0
+        for path in remaining_paths:
+            if horizon > 0:
                 if isinstance(path, TransitPath):
                     conflicts.update(
                         path.get_conflicts(
                             agent_id=self.agent_id,
                             world=world,
                             robot_inflated_grid=robot_inflated_grid,
-                            conflict_circle_id_to_agent_id=conflict_circle_id_to_agent_id,
+                            conflict_circle_id_to_agent_id=conflict_polygon_to_agent_id,
                             horizon=horizon,
-                            has_first_action=has_first_action,
-                            apply_strict_horizon=apply_strict_horizon,
                             exit_early=exit_early,
                             rp=rp,
                         )
@@ -227,12 +215,9 @@ class Plan:
                             agent_id=self.agent_id,
                             world=world,
                             grab_start_distance=grab_start_distance,
-                            robot_inflated_grid=robot_inflated_grid,
                             other_entities_polygons=other_entities_polygons,
                             previously_moved_obstacles=previously_moved_obstacles,
-                            has_first_action=has_first_action,
                             horizon=horizon,
-                            apply_strict_horizon=apply_strict_horizon,
                             exit_early=exit_early,
                             rp=rp,
                         )
@@ -257,7 +242,7 @@ class Plan:
         # Reactivate entities that had been deactivated during checks
         robot_inflated_grid.activate_entities(previously_moved_obstacles)
         robot_inflated_grid.update_polygons(
-            removed_polygons=set(conflict_circle_id_to_agent_id.keys())
+            removed_polygons=set(conflict_polygon_to_agent_id.keys())
         )
 
         return conflicts
@@ -270,7 +255,6 @@ class Plan:
         grab_start_distance: float,
         horizon: int,
         rp: t.Optional["rp.RosPublisher"] = None,
-        apply_strict_horizon: bool = True,
         exit_early: bool = False,
     ) -> t.Set[Conflict]:
         conflicts = self._get_conflicts(
@@ -279,7 +263,6 @@ class Plan:
             grab_start_distance=grab_start_distance,
             rp=rp,
             horizon=horizon,
-            apply_strict_horizon=apply_strict_horizon,
             exit_early=exit_early,
         )
 
