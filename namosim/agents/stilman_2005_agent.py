@@ -968,57 +968,34 @@ class Stilman2005Agent(Agent):
                 conflicts=conflicts,
             )
 
-        # II - Compute plan (with conflicting dynamic obstacles as static)
-        # Get uids of conflicting robots and associated
-        conflicting_robots_uids = {
-            conflict.other_agent_id
-            for conflict in conflicts
-            if isinstance(conflict, RobotRobotConflict)
-        }
-        conflicting_transfered_obstacles_uids = {
-            w_t.entity_to_agent.inverse[uid]
-            for uid in conflicting_robots_uids
-            if uid in w_t.entity_to_agent.inverse
-        }
-        # Make a world copy without dynamic entities again, but with the conflicting robots
-        new_dynamic_entities = dynamic_entities.difference(
-            conflicting_robots_uids
-        ).difference(conflicting_transfered_obstacles_uids)
-        new_w_t_no_dyn = w_t.light_copy(ignored_entities=new_dynamic_entities)
+        # II - Compute plan with conflicting robots set to static obstacles while ignoring non-conflicting robots
+
+        conflicting_entities = set()
         for conflict in conflicts:
-            if (
-                isinstance(conflict, ConcurrentGrabConflict)
-                and conflict.obstacle_uid not in new_w_t_no_dyn.entity_to_agent
-            ):
-                new_w_t_no_dyn.entity_to_agent[
-                    conflict.obstacle_uid
-                ] = conflict.other_agent_id
-        robot_inflated_grid.deactivate_entities(new_dynamic_entities)
-        # Iterate over each conflicting robot uid, and change its polygon to an encompassing circle
-        # encounting for all likely states at at t+1
-        polygons_tmp = {}
-        for conflicting_agent_id in conflicting_robots_uids:
-            assert conflicting_agent_id != self.uid
+            if isinstance(conflict, RobotRobotConflict):
+                conflicting_entities.add(conflict.other_agent_id)
+                conflicting_robot_obstacle = w_t.get_agent_held_obstacle(
+                    conflict.other_agent_id
+                )
+                if conflicting_robot_obstacle is not None:
+                    conflicting_entities.add(conflicting_robot_obstacle.uid)
+            if isinstance(conflict, ConcurrentGrabConflict):
+                conflicting_entities.add(conflict.obstacle_uid)
+                conflicting_entities.add(conflict.other_agent_id)
 
-            conflicting_robot = new_w_t_no_dyn.agents[conflicting_agent_id]
-            conflict_radius = new_w_t_no_dyn.get_robot_conflict_radius(
-                conflicting_agent_id, grab_start_distance=self.cell_size
-            )
-            center = conflicting_robot.polygon.centroid
+        # Make a world copy with conflicting robots (and their obstacles!) set to static obstacles
+        non_conflicting_entities = dynamic_entities.difference(conflicting_entities)
+        new_world = w_t.light_copy(ignored_entities=non_conflicting_entities)
 
-            # TODO Get inflation from largest robot
-            encompassing_circle = center.buffer(conflict_radius)
-            polygons_tmp[conflicting_agent_id] = conflicting_robot.polygon
-            conflicting_robot.polygon = encompassing_circle
-            robot_inflated_grid.update_polygons(
-                {conflicting_agent_id: conflicting_robot.polygon}
-            )
-            robot_inflated_static_map.update_polygons(
-                {conflicting_agent_id: conflicting_robot.polygon}
-            )
+        robot_inflated_grid.deactivate_entities(non_conflicting_entities)
+        # Update static inflated grid with the polygons of the conflicting entities
+        new_static_polygons = {}
+        for uid in conflicting_entities:
+            new_static_polygons[uid] = w_t.dynamic_entities[uid].polygon
+        robot_inflated_static_map.update_polygons(new_static_polygons)
         # Plan using this modified version of the world
         p = self.select_connect(
-            w_t=new_w_t_no_dyn,
+            w_t=new_world,
             robot_inflated_static_map=robot_inflated_static_map,
             robot_inflated_grid=robot_inflated_grid,
             goal_pose=goal,
@@ -1029,12 +1006,10 @@ class Stilman2005Agent(Agent):
         )
 
         # Reset the inflated grid's state
-        for conflicting_uid, prev_polygon in polygons_tmp.items():
-            robot_inflated_grid.update_polygons({conflicting_uid: prev_polygon})
         robot_inflated_static_map.update_polygons(
-            removed_polygons=set(polygons_tmp.keys())
+            removed_polygons=set(new_static_polygons.keys())
         )
-        robot_inflated_grid.activate_entities(new_dynamic_entities)
+        robot_inflated_grid.activate_entities(non_conflicting_entities)
 
         if p.is_empty():
             self.logger.append(
