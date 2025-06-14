@@ -242,7 +242,7 @@ class Plan:
         # Reactivate entities that had been deactivated during checks
         robot_inflated_grid.activate_entities(previously_moved_obstacles)
         robot_inflated_grid.update_polygons(
-            removed_polygons=set(conflict_polygon_to_agent_id.keys())
+            removed_polygons=set(robot_conflict_polygons.keys())
         )
 
         return conflicts

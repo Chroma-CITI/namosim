@@ -4,6 +4,7 @@ import numpy as np
 
 from namosim.data_models import GridCellModel
 from namosim.utils import utils
+from PIL import Image
 
 
 class BFS:
@@ -22,6 +23,11 @@ class CCSData:
         self.ccs = ccs
         self.grid = grid
         self.current_uid = current_uid
+
+    def to_image(self):
+        # Convert NumPy array to image
+        image = Image.fromarray(self.grid.astype(np.uint8) * 255, mode="L")
+        return image
 
 
 def bfs_init(grid, width, height, root_cell, neighborhood=utils.TAXI_NEIGHBORHOOD):
