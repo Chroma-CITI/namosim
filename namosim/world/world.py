@@ -8,6 +8,7 @@ import cairosvg
 import numpy as np
 from bidict import bidict  # type: ignore[reportPrivateImportUsage]
 from PIL import Image, ImageDraw
+import shapely
 from shapely.geometry import Polygon, Point
 from typing_extensions import Self
 
@@ -34,6 +35,7 @@ from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.data_models import namo_config_from_yaml
+import shapely.ops
 
 
 class World:
@@ -681,6 +683,14 @@ class World:
                         conflict_radius = radius_for_grab_or_release
                         break
         return conflict_radius
+
+    def get_combined_agent_obstacle_polygon(self, agent_id: str) -> Polygon:
+        agent_polygon = self.agents[agent_id].polygon
+        obstacle = self.get_agent_held_obstacle(agent_id)
+        if obstacle is None:
+            return agent_polygon
+        combined_polygon = shapely.ops.unary_union([agent_polygon, obstacle.polygon])
+        return t.cast(Polygon, combined_polygon)
 
     def get_polygon_collisions(self, uid: str, others: t.Iterable[str]) -> t.Any:
         other_polygons = {uid: self.dynamic_entities[uid].polygon for uid in others}
