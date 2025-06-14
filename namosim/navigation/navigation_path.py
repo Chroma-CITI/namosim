@@ -216,18 +216,6 @@ class TransferPath:
                                 robot_pose=robot_pose,
                                 other_agent_id=other_robot.uid,
                                 other_robot_pose=other_robot.pose,
-                                colliding_uids=(agent_id, uid),
-                                robot_transfered_obstacle_uid=self.obstacle_uid,
-                                robot_transfered_obstacle_pose=obstacle_pose,
-                                other_robot_transfered_obstacle_uid=(
-                                    uid if uid in world.entity_to_agent else None
-                                ),
-                                other_robot_transfered_obstacle_pose=(
-                                    world.dynamic_entities[uid].pose
-                                    if uid in world.entity_to_agent
-                                    else None
-                                ),
-                                at_release=True,
                             )
                         )
                         if exit_early:
@@ -268,18 +256,6 @@ class TransferPath:
                                 robot_pose=robot_pose,
                                 other_agent_id=other_robot.uid,
                                 other_robot_pose=other_robot.pose,
-                                colliding_uids=(agent_id, uid),
-                                robot_transfered_obstacle_uid=self.obstacle_uid,
-                                robot_transfered_obstacle_pose=obstacle_pose,
-                                other_robot_transfered_obstacle_uid=(
-                                    uid if uid in world.entity_to_agent else None
-                                ),
-                                other_robot_transfered_obstacle_pose=(
-                                    world.dynamic_entities[uid].pose
-                                    if uid in world.entity_to_agent
-                                    else None
-                                ),
-                                at_release=True,
                             )
                         )
                         if exit_early:
@@ -361,26 +337,12 @@ class TransferPath:
                 world.dynamic_entities[uid],
                 agent.Agent,
             ):
-                other_robot_obstacle = world.get_agent_held_obstacle(uid)
-
                 conflicts.add(
                     SimultaneousSpaceAccess(
                         agent_id=agent_id,
                         robot_pose=robot_pose,
                         other_agent_id=uid,
                         other_robot_pose=world.dynamic_entities[uid].pose,
-                        colliding_uids=(agent_id, uid),
-                        robot_transfered_obstacle_uid=self.obstacle_uid,
-                        robot_transfered_obstacle_pose=world.dynamic_entities[
-                            self.obstacle_uid
-                        ].pose,
-                        other_robot_transfered_obstacle_uid=(
-                            other_robot_obstacle.uid if other_robot_obstacle else None
-                        ),
-                        other_robot_transfered_obstacle_pose=(
-                            other_robot_obstacle.pose if other_robot_obstacle else None
-                        ),
-                        at_grab=True,
                     )
                 )
                 if exit_early:
@@ -432,20 +394,6 @@ class TransferPath:
                         robot_pose=robot_pose,
                         other_agent_id=other_robot.uid,
                         other_robot_pose=other_robot.pose,
-                        colliding_uids=(agent_id, uid),
-                        robot_transfered_obstacle_uid=self.obstacle_uid,
-                        robot_transfered_obstacle_pose=world.dynamic_entities[
-                            self.obstacle_uid
-                        ].pose,
-                        other_robot_transfered_obstacle_uid=(
-                            uid if uid in world.entity_to_agent else None
-                        ),
-                        other_robot_transfered_obstacle_pose=(
-                            world.dynamic_entities[uid].pose
-                            if uid in world.entity_to_agent
-                            else None
-                        ),
-                        at_grab=True,
                     )
                 )
                 if exit_early:
@@ -671,15 +619,6 @@ class TransitPath:
                                 other_robot_pose=world.dynamic_entities[
                                     other_agent_id
                                 ].pose,
-                                colliding_uids=(agent_id, other_agent_id),
-                                robot_transfered_obstacle_uid=None,
-                                robot_transfered_obstacle_pose=None,
-                                other_robot_transfered_obstacle_uid=(
-                                    other_robot_obs.uid if other_robot_obs else None
-                                ),
-                                other_robot_transfered_obstacle_pose=(
-                                    other_robot_obs.pose if other_robot_obs else None
-                                ),
                             )
                         )
                         conflicting_cells.add(cell)
@@ -723,17 +662,6 @@ class TransitPath:
                                         else world.dynamic_entities[
                                             world.entity_to_agent[uid]
                                         ].pose
-                                    ),
-                                    colliding_uids=(agent_id, uid),
-                                    robot_transfered_obstacle_uid=None,
-                                    robot_transfered_obstacle_pose=None,
-                                    other_robot_transfered_obstacle_uid=(
-                                        uid if uid in world.entity_to_agent else None
-                                    ),
-                                    other_robot_transfered_obstacle_pose=(
-                                        world.dynamic_entities[uid].pose
-                                        if uid in world.entity_to_agent
-                                        else None
                                     ),
                                 )
                             )

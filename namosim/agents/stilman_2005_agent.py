@@ -121,7 +121,7 @@ class Stilman2005Agent(Agent):
         else:
             self.manip_search_procedure = self.manip_search
 
-        self.w_social, self.w_dist, self.w_goal = 20.0, 10.0, 2.0
+        self.w_social, self.w_dist, self.w_goal = 20.0, 5.0, 2.0
         self.w_sum = self.w_social + self.w_dist + self.w_goal
         self.TRANSLATION_DISCRETIZATION_FACTOR = (
             self.cell_size
@@ -875,7 +875,7 @@ class Stilman2005Agent(Agent):
             w_t=w_t_no_dyn,
             robot_inflated_static_map=robot_inflated_static_map,
             robot_inflated_grid=robot_inflated_grid,
-            r_f=goal,
+            goal_pose=goal,
             neighborhood=neighborhood,
             action_space_reduction=action_space_reduction,
             ros_publisher=ros_publisher,
@@ -1013,12 +1013,15 @@ class Stilman2005Agent(Agent):
             robot_inflated_grid.update_polygons(
                 {conflicting_agent_id: conflicting_robot.polygon}
             )
+            robot_inflated_static_map.update_polygons(
+                {conflicting_agent_id: conflicting_robot.polygon}
+            )
         # Plan using this modified version of the world
         p = self.select_connect(
             w_t=new_w_t_no_dyn,
             robot_inflated_static_map=robot_inflated_static_map,
             robot_inflated_grid=robot_inflated_grid,
-            r_f=goal,
+            goal_pose=goal,
             neighborhood=neighborhood,
             action_space_reduction=action_space_reduction,
             ros_publisher=ros_publisher,
@@ -1028,6 +1031,9 @@ class Stilman2005Agent(Agent):
         # Reset the inflated grid's state
         for conflicting_uid, prev_polygon in polygons_tmp.items():
             robot_inflated_grid.update_polygons({conflicting_uid: prev_polygon})
+        robot_inflated_static_map.update_polygons(
+            removed_polygons=set(polygons_tmp.keys())
+        )
         robot_inflated_grid.activate_entities(new_dynamic_entities)
 
         if p.is_empty():
@@ -1114,7 +1120,7 @@ class Stilman2005Agent(Agent):
         w_t: "w.World",
         robot_inflated_static_map: BinaryOccupancyGrid,
         robot_inflated_grid: BinaryOccupancyGrid,
-        r_f: Pose2D,
+        goal_pose: Pose2D,
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         prev_list: t.Set[str],
         ccs_data: connectivity.CCSData | None = None,
@@ -1130,7 +1136,6 @@ class Stilman2005Agent(Agent):
         SC calls _find_path to determine a transit path from r_t to a contact point, r_t_plus_1 . The existence of the
         path is guaranteed by the choice of contacts in Manip-Search.
         # :param w_t: state of the world at time t
-        # :param r_f: goal robot configuration [x, y, theta] in {m, m, theta}
         # :return: None to backtrack, current partial plan otherwise.
         """
         robot = w_t.dynamic_entities[self.uid]
@@ -1145,15 +1150,15 @@ class Stilman2005Agent(Agent):
             robot_inflated_static_map.grid_pose,
         )
         goal_cell = utils.real_to_grid(
-            r_f[0],
-            r_f[1],
+            goal_pose[0],
+            goal_pose[1],
             robot_inflated_static_map.cell_size,
             robot_inflated_static_map.grid_pose,
         )
 
         simple_path_to_goal = self.find_path(
             robot_pose=r_t,
-            goal_pose=r_f,
+            goal_pose=goal_pose,
             robot_inflated_grid=robot_inflated_grid,
             robot_polygon=robot.polygon,
         )
@@ -1166,7 +1171,7 @@ class Stilman2005Agent(Agent):
                 ros_publisher.cleanup_robot_observed_world(agent_id=self.uid)
             return nav_plan.Plan(
                 paths=[simple_path_to_goal],
-                goal=r_f,
+                goal=goal_pose,
                 agent_id=self.uid,
             )
 
@@ -1184,8 +1189,13 @@ class Stilman2005Agent(Agent):
                 connected_components_grid, w_t.map.cell_size, agent_id=robot.uid
             )
 
-        c_0 = ccs_data.grid[robot_cell[0]][robot_cell[1]]
-        prev_list = prev_list if c_0 == 0 else prev_list.union({c_0})
+        current_component = ccs_data.grid[robot_cell[0]][robot_cell[1]]
+        if current_component == 0:
+            raise Exception(
+                "Robot start position is in collision with a static obstacle. This should never happen."
+            )
+
+        prev_list = prev_list.union({current_component})
         r_acc_cells = (
             set()
             if robot_inflated_grid.grid[robot_cell[0]][robot_cell[1]] > 0
@@ -1275,7 +1285,7 @@ class Stilman2005Agent(Agent):
                     c_1=c_1,
                     ccs_data=ccs_data,
                     r_acc_cells=r_acc_cells,
-                    r_f=r_f,
+                    r_f=goal_pose,
                     robot_inflated_grid=robot_inflated_grid,
                     ros_publisher=ros_publisher,
                     obstacle_can_intrude_r_acc=True,
@@ -1288,7 +1298,7 @@ class Stilman2005Agent(Agent):
                     c_1=c_1,
                     ccs_data=ccs_data,
                     r_acc_cells=r_acc_cells,
-                    r_f=r_f,
+                    r_f=goal_pose,
                     robot_inflated_grid=robot_inflated_grid,
                     ros_publisher=ros_publisher,
                     obstacle_can_intrude_r_acc=True,
@@ -1301,7 +1311,7 @@ class Stilman2005Agent(Agent):
                     c_1=c_1,
                     ccs_data=ccs_data,
                     r_acc_cells=r_acc_cells,
-                    r_f=r_f,
+                    r_f=goal_pose,
                     robot_inflated_grid=robot_inflated_grid,
                     ros_publisher=ros_publisher,
                     obstacle_can_intrude_r_acc=True,
@@ -1314,7 +1324,7 @@ class Stilman2005Agent(Agent):
                         c_1=c_1,
                         ccs_data=ccs_data,
                         r_acc_cells=r_acc_cells,
-                        r_f=r_f,
+                        r_f=goal_pose,
                         robot_inflated_grid=robot_inflated_grid,
                         ros_publisher=ros_publisher,
                         obstacle_can_intrude_r_acc=False,
@@ -1347,7 +1357,7 @@ class Stilman2005Agent(Agent):
                     w_t=w_t_next,
                     robot_inflated_static_map=robot_inflated_static_map,
                     robot_inflated_grid=robot_inflated_grid,
-                    r_f=r_f,
+                    goal_pose=goal_pose,
                     ros_publisher=ros_publisher,
                     ccs_data=ccs_data,
                     prev_list=(prev_list if c_1 == "" else prev_list.union({c_1})),
@@ -1374,7 +1384,7 @@ class Stilman2005Agent(Agent):
                     )
                     return nav_plan.Plan(
                         paths=plan_components,
-                        goal=r_f,
+                        goal=goal_pose,
                         agent_id=self.uid,
                     ).append(future_plan)
 
@@ -1926,6 +1936,7 @@ class Stilman2005Agent(Agent):
         # if ros_publisher:
         #     ros_publisher.publish_robot_sim_world(w_t_next, self.uid)
 
+        # ccs_data.to_image().save(f'ccs_data_{self.uid}.png')
         c_1_cells_set = set() if c_1 == "" else ccs_data.ccs[int(c_1)].visited
 
         res = w_t_next.map.cell_size
