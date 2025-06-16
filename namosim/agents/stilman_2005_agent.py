@@ -461,22 +461,6 @@ class Stilman2005Agent(Agent):
                 )
             )
 
-            # if plan.postpone.is_running() and not plan.postpone.is_done():
-            #     self.logger.append(
-            #         utils.NamosimLog(
-            #             f"Agent {self.uid}: Continuing postpone.",
-            #             step_count,
-            #         )
-            #     )
-            #     return ThinkResult(
-            #         plan=plan,
-            #         goal_pose=goal,
-            #         did_postpone=True,
-            #         did_replan=False,
-            #         agent_id=self.uid,
-            #         conflicts=conflicts,
-            #     )
-
             if self.config.parameters.resolve_conflicts is False:
                 self.logger.append(
                     utils.NamosimLog(
@@ -704,7 +688,7 @@ class Stilman2005Agent(Agent):
             potential_deadlocks=potential_deadlocks,
             forbidden_evasion_cells=robot_cells,
             ros_publisher=ros_publisher,
-            always_evade=plan.is_postpone_over(),
+            always_evade=plan.is_postpone_over() and plan.postpone.is_for_deadlock,
         )
 
         assert agent_id not in robot_inflated_grid.cell_sets
@@ -746,6 +730,7 @@ class Stilman2005Agent(Agent):
             step_count=step_count,
             simulation_log=self.logger,
             agent_id=self.uid,
+            is_for_deadlock=True,
         )
 
         return ThinkResult(
@@ -819,6 +804,7 @@ class Stilman2005Agent(Agent):
             step_count=step_count,
             simulation_log=self.logger,
             agent_id=self.uid,
+            is_for_deadlock=True,
         )
 
         return ThinkResult(
@@ -3872,10 +3858,12 @@ class Stilman2005Agent(Agent):
             normalized_distance_cost = (distance_cost - np.min(distance_cost)) / np.ptp(
                 distance_cost
             )
+
+            w_social = 10
+            w_dist = 1
             combined_cost = (
-                self.w_social * normalized_social_cost
-                + self.w_dist * normalized_distance_cost
-            ) / (self.w_social + self.w_dist)
+                w_social * normalized_social_cost + w_dist * normalized_distance_cost
+            ) / (w_social + w_dist)
             min_combined_cost_index = np.argmin(combined_cost)
             evasion_cell = accessible_cells[min_combined_cost_index]
             # evasion_cell_cost = combined_cost[min_combined_cost_index]
