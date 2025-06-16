@@ -35,10 +35,11 @@ class Postpone:
         self._step_index = 0
         self._is_running = False
 
-    def start(self, duration: int):
+    def start(self, duration: int, is_for_deadlock: bool = False):
         self.duration = duration
         self._step_index = 0
         self._is_running = True
+        self.is_for_deadlock = is_for_deadlock
 
     def go_to_end(self):
         self._step_index = self.duration
@@ -343,6 +344,7 @@ class Plan:
         step_count: int,
         simulation_log: t.List[utils.NamosimLog],
         agent_id: str,
+        is_for_deadlock: bool = False,
     ):
         if self.postpone.is_running() and not self.postpone.is_done():
             return
@@ -354,7 +356,7 @@ class Plan:
                 step_count,
             )
         )
-        self.postpone.start(duration=n_steps)
+        self.postpone.start(duration=n_steps, is_for_deadlock=is_for_deadlock)
         self.postponements_history[step_count] = n_steps
         self.update_count += 1
 
