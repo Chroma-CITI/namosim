@@ -233,7 +233,7 @@ class DiffDriveRRTStar:
             node.pose[2] - self.start.pose[2],
         )
         new_polygon = affinity.rotate(
-            self.polygon, origin=(self.start.pose[0], self.start.pose[1]), angle=dtheta # type: ignore
+            self.polygon, origin=(self.start.pose[0], self.start.pose[1]), angle=dtheta  # type: ignore
         )
         new_polygon = affinity.translate(new_polygon, xoff=dx, yoff=dy)
         if not self.map_box.contains(new_polygon):
@@ -253,7 +253,7 @@ class DiffDriveRRTStar:
         dx = node.pose[0] - self.start.pose[0]
         dy = node.pose[1] - self.start.pose[1]
         dth = node.pose[2] - self.start.pose[2]
-        polygon = affinity.rotate(polygon, dth, origin=self.start.pose[:2]) # type: ignore
+        polygon = affinity.rotate(polygon, dth, origin=self.start.pose[:2])  # type: ignore
         polygon = affinity.translate(polygon, xoff=dx, yoff=dy)
         return polygon
 
@@ -285,7 +285,7 @@ class DiffDriveRRTStar:
         dx = node.pose[0] - self.start.pose[0]
         dy = node.pose[1] - self.start.pose[1]
         dth = node.pose[2] - self.start.pose[2]
-        polygon = affinity.rotate(self.polygon, dth, origin=self.start.pose[:2]) # type: ignore
+        polygon = affinity.rotate(self.polygon, dth, origin=self.start.pose[:2])  # type: ignore
         polygon = affinity.translate(polygon, xoff=dx, yoff=dy)
         return polygon
 

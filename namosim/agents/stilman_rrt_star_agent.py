@@ -964,22 +964,28 @@ class StilmanRRTStarAgent(Agent):
                     conflicting_entities.add(conflicting_robot_obstacle.uid)
 
                 polygon_id = f"{conflict.other_agent_id}_static"
-                new_static_polygons[polygon_id] = (
-                    w_t.get_combined_agent_obstacle_polygon(
-                        conflict.other_agent_id
-                    ).buffer(self.conflict_radius) # type: ignore
-                )
+                new_static_polygons[
+                    polygon_id
+                ] = w_t.get_combined_agent_obstacle_polygon(
+                    conflict.other_agent_id
+                ).buffer(
+                    self.conflict_radius
+                )  # type: ignore
             if isinstance(conflict, ConcurrentGrabConflict):
                 conflicting_entities.add(conflict.obstacle_uid)
                 conflicting_entities.add(conflict.other_agent_id)
                 robot_polygon_id = f"{conflict.other_agent_id}_static"
                 new_static_polygons[robot_polygon_id] = w_t.dynamic_entities[
                     conflict.other_agent_id
-                ].polygon.buffer(self.conflict_radius) # type: ignore
+                ].polygon.buffer(
+                    self.conflict_radius
+                )  # type: ignore
                 obstacle_polygon_id = f"{conflict.obstacle_uid}_static"
                 new_static_polygons[obstacle_polygon_id] = w_t.dynamic_entities[
                     conflict.obstacle_uid
-                ].polygon.buffer(self.conflict_radius) # type: ignore
+                ].polygon.buffer(
+                    self.conflict_radius
+                )  # type: ignore
 
         # Make a world copy with conflicting robots (and their obstacles!) set to static obstacles
         non_conflicting_entities = dynamic_entities.difference(conflicting_entities)
@@ -2092,8 +2098,11 @@ class StilmanRRTStarAgent(Agent):
                 [robot_polygon_after_grab, obstacle_polygon]
             )
             robot_obstacle_polygon: Polygon = t.cast(
-                Polygon, combined_polygon.convex_hull
-            ).buffer(map.cell_size * 2, join_style=JOIN_STYLE.mitre)
+                Polygon,
+                combined_polygon.convex_hull.buffer(
+                    map.cell_size * 2, join_style=JOIN_STYLE.mitre
+                ),
+            )
 
             robot_collision_rrt = DiffDriveRRTStar(
                 polygon=robot_obstacle_polygon,
@@ -2256,8 +2265,11 @@ class StilmanRRTStarAgent(Agent):
                 [robot_polygon_after_grab, obstacle_polygon]
             )
             robot_obstacle_polygon: Polygon = t.cast(
-                Polygon, combined_polygon.convex_hull
-            ).buffer(self.collision_margin, join_style=JOIN_STYLE.mitre)
+                Polygon,
+                combined_polygon.convex_hull.buffer(
+                    self.collision_margin, join_style=JOIN_STYLE.mitre
+                ),
+            )
 
             rrt = DiffDriveRRTStar(
                 polygon=robot_obstacle_polygon,
