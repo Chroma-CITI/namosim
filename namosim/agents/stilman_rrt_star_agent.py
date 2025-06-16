@@ -857,7 +857,7 @@ class StilmanRRTStarAgent(Agent):
             w_t=w_t_no_dyn,
             robot_inflated_static_map=robot_inflated_static_map,
             robot_inflated_grid=robot_inflated_grid,
-            goal_pose=goal,
+            r_f=goal,
             neighborhood=neighborhood,
             action_space_reduction=action_space_reduction,
             ros_publisher=ros_publisher,
@@ -2092,8 +2092,11 @@ class StilmanRRTStarAgent(Agent):
                 [robot_polygon_after_grab, obstacle_polygon]
             )
             robot_obstacle_polygon: Polygon = t.cast(
-                Polygon, combined_polygon.convex_hull
-            ).buffer(map.cell_size * 2, join_style=JOIN_STYLE.mitre)
+                Polygon,
+                combined_polygon.convex_hull.buffer(
+                    map.cell_size * 2, join_style=JOIN_STYLE.mitre
+                ),
+            )
 
             robot_collision_rrt = DiffDriveRRTStar(
                 polygon=robot_obstacle_polygon,
@@ -2256,8 +2259,11 @@ class StilmanRRTStarAgent(Agent):
                 [robot_polygon_after_grab, obstacle_polygon]
             )
             robot_obstacle_polygon: Polygon = t.cast(
-                Polygon, combined_polygon.convex_hull
-            ).buffer(self.collision_margin, join_style=JOIN_STYLE.mitre)
+                Polygon,
+                combined_polygon.convex_hull.buffer(
+                    self.collision_margin, join_style=JOIN_STYLE.mitre
+                ),
+            )
 
             rrt = DiffDriveRRTStar(
                 polygon=robot_obstacle_polygon,
