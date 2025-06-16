@@ -510,25 +510,23 @@ class Simulator:
         agent may multiple navigation goals.
         """
         goals = {}
-        for agent_config in self.ref_world.agents.values():
-            if agent_config.uid in goals:
+        for agent in self.ref_world.agents.values():
+            if agent.uid in goals:
                 raise RuntimeError(
                     "You can only associate a single behavior with entity: {entity_name}.".format(
-                        entity_name=agent_config.agent_id
+                        entity_name=agent.uid
                     )
                 )
             else:
                 agent_navigation_goals: t.List[Pose2D] = []
 
-                for count, config_goal in enumerate(agent_config.goals):
+                for count, config_goal in enumerate(agent._navigation_goals):
                     if count > max_nb_goals:
                         break
-                    if config_goal.goal_id in goals_geometries:
-                        agent_navigation_goals.append(
-                            goals_geometries[config_goal.goal_id]
-                        )
+                    if config_goal.uid in goals_geometries:
+                        agent_navigation_goals.append(goals_geometries[config_goal.uid])
 
-                goals[agent_config.agent_id] = agent_navigation_goals
+                goals[agent.uid] = agent_navigation_goals
 
         return goals
 
