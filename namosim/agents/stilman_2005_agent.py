@@ -189,11 +189,9 @@ class Stilman2005Agent(Agent):
             self.grab_end_distance = config.parameters.grab_end_distance
 
         self.collision_margin = collision_margin
-        self.minimum_evasion_distance = 0.5  # meters
+        self.minimum_evasion_distance = 1.0  # meters
         self.conflict_radius = (
-            self.grab_start_distance
-            + self.collision_margin
-            + utils.SQRT_OF_2 * self.cell_size
+            self.grab_start_distance + utils.SQRT_OF_2 * self.cell_size
         )
 
     def init(self, world: "w.World"):
@@ -692,7 +690,7 @@ class Stilman2005Agent(Agent):
                 robot_cells.update(
                     robot_inflated_grid.rasterize_polygon(
                         w_t.dynamic_entities[conflict.other_agent_id].polygon.buffer(
-                            self.collision_margin
+                            self.minimum_evasion_distance
                         )
                     )
                 )

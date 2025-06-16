@@ -167,7 +167,7 @@ class MapGen:
                 )
 
                 comp_polygons.append(polygon)  # type: ignore
-            full_poly = shapely.ops.unary_union(comp_polygons)  # type: ignore
+            full_poly = t.cast(Polygon, shapely.ops.unary_union(comp_polygons))  # type: ignore
             # full_poly = svg_utils.perturb_polygon(
             #     polygon=full_poly, bounds=(0, 0, width, height)
             # )
@@ -181,7 +181,7 @@ class MapGen:
                     smoothed = Polygon(hole.coords).exterior.coords
                     smoothed = concave_hull_polygon(
                         Polygon(hole.coords), alpha=0.02
-                    ).exterior.coords
+                    ).exterior.coords  # type: ignore
                     smoothed_holes.append(smoothed)
                 full_poly = Polygon(full_poly.exterior.coords, holes=smoothed_holes)
 

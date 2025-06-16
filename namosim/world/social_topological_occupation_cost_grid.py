@@ -32,7 +32,7 @@ def display_or_log(
         if grid.dtype == np.float64:
             if np.max(grid) > 1.0:
                 grid = (grid - np.min(grid)) / np.ptp(grid)
-            rainbow_colormap = cm.get_cmap("gist_rainbow_r")
+            rainbow_colormap = cm.get_cmap("gist_rainbow_r")  # type: ignore
             color_grid = rainbow_colormap(grid)
             color_grid_int = np.uint8(color_grid * 255)
             red, green, blue = (
