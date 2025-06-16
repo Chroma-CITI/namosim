@@ -32,8 +32,8 @@ def check_new_local_opening(
     new_obtacle_inflated_by_robot_diameter = new_obstacle_polygon.buffer(
         2.0 * robot_radius, join_style=JOIN_STYLE.mitre
     )
-    new_obstacle_inflated_by_robot_radius = new_obstacle_polygon.buffer(
-        robot_radius, join_style=JOIN_STYLE.mitre
+    new_obstacle_inflated_by_robot_radius = t.cast(
+        Polygon, new_obstacle_polygon.buffer(robot_radius, join_style=JOIN_STYLE.mitre)
     )
     if new_obstacle_inflated_by_robot_radius.intersects(
         Point(goal_pose[0], goal_pose[1])
