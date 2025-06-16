@@ -192,6 +192,11 @@ class StilmanRRTStarAgent(Agent):
             self.grab_end_distance = config.parameters.grab_end_distance
 
         self.collision_margin = collision_margin
+        self.conflict_radius = (
+            self.grab_start_distance
+            + self.collision_margin
+            + utils.SQRT_OF_2 * self.cell_size
+        )
 
     def init(self, world: "w.World"):
         super().init(world)
@@ -447,7 +452,7 @@ class StilmanRRTStarAgent(Agent):
             robot_inflated_grid=robot_inflated_grid,
             horizon=conflict_horizon,
             exit_early=True,
-            grab_start_distance=self.grab_start_distance,
+            conflict_radius=self.grab_start_distance,
         )
         if len(conflicts) > 0:
             self.logger.append(
@@ -852,7 +857,7 @@ class StilmanRRTStarAgent(Agent):
             w_t=w_t_no_dyn,
             robot_inflated_static_map=robot_inflated_static_map,
             robot_inflated_grid=robot_inflated_grid,
-            r_f=goal,
+            goal_pose=goal,
             neighborhood=neighborhood,
             action_space_reduction=action_space_reduction,
             ros_publisher=ros_publisher,
@@ -883,7 +888,7 @@ class StilmanRRTStarAgent(Agent):
             world=w_t,
             robot_inflated_grid=robot_inflated_grid,
             horizon=conflict_horizon,
-            grab_start_distance=self.grab_start_distance,
+            conflict_radius=self.conflict_radius,
         )
         if not conflicts:
             self.logger.append(
@@ -945,54 +950,47 @@ class StilmanRRTStarAgent(Agent):
                 conflicts=conflicts,
             )
 
-        # II - Compute plan (with conflicting dynamic obstacles as static)
-        # Get uids of conflicting robots and associated
-        conflicting_robots_uids = {
-            conflict.other_agent_id
-            for conflict in conflicts
-            if isinstance(conflict, RobotRobotConflict)
-        }
-        conflicting_transfered_obstacles_uids = {
-            w_t.entity_to_agent.inverse[uid]
-            for uid in conflicting_robots_uids
-            if uid in w_t.entity_to_agent.inverse
-        }
-        # Make a world copy without dynamic entities again, but with the conflicting robots
-        new_dynamic_entities = dynamic_entities.difference(
-            conflicting_robots_uids
-        ).difference(conflicting_transfered_obstacles_uids)
-        new_w_t_no_dyn = w_t.light_copy(ignored_entities=new_dynamic_entities)
+        # II - Compute plan with conflicting robots set to static obstacles while ignoring non-conflicting robots
+
+        conflicting_entities = set()
+        new_static_polygons: t.Dict[str, Polygon] = {}
         for conflict in conflicts:
-            if (
-                isinstance(conflict, ConcurrentGrabConflict)
-                and conflict.obstacle_uid not in new_w_t_no_dyn.entity_to_agent
-            ):
-                new_w_t_no_dyn.entity_to_agent[
+            if isinstance(conflict, RobotRobotConflict):
+                conflicting_entities.add(conflict.other_agent_id)
+                conflicting_robot_obstacle = w_t.get_agent_held_obstacle(
+                    conflict.other_agent_id
+                )
+                if conflicting_robot_obstacle is not None:
+                    conflicting_entities.add(conflicting_robot_obstacle.uid)
+
+                polygon_id = f"{conflict.other_agent_id}_static"
+                new_static_polygons[polygon_id] = (
+                    w_t.get_combined_agent_obstacle_polygon(
+                        conflict.other_agent_id
+                    ).buffer(self.conflict_radius)
+                )
+            if isinstance(conflict, ConcurrentGrabConflict):
+                conflicting_entities.add(conflict.obstacle_uid)
+                conflicting_entities.add(conflict.other_agent_id)
+                robot_polygon_id = f"{conflict.other_agent_id}_static"
+                new_static_polygons[robot_polygon_id] = w_t.dynamic_entities[
+                    conflict.other_agent_id
+                ].polygon.buffer(self.conflict_radius)
+                obstacle_polygon_id = f"{conflict.obstacle_uid}_static"
+                new_static_polygons[obstacle_polygon_id] = w_t.dynamic_entities[
                     conflict.obstacle_uid
-                ] = conflict.other_agent_id
-        robot_inflated_grid.deactivate_entities(new_dynamic_entities)
-        # Iterate over each conflicting robot uid, and change its polygon to an encompassing circle
-        # encounting for all likely states at at t+1
-        polygons_tmp = {}
-        for conflicting_agent_id in conflicting_robots_uids:
-            assert conflicting_agent_id != self.uid
+                ].polygon.buffer(self.conflict_radius)
 
-            conflicting_robot = new_w_t_no_dyn.agents[conflicting_agent_id]
-            conflict_radius = new_w_t_no_dyn.get_robot_conflict_radius(
-                conflicting_agent_id, grab_start_distance=self.cell_size
-            )
-            center = conflicting_robot.polygon.centroid
+        # Make a world copy with conflicting robots (and their obstacles!) set to static obstacles
+        non_conflicting_entities = dynamic_entities.difference(conflicting_entities)
+        new_world = w_t.light_copy(ignored_entities=non_conflicting_entities)
 
-            # TODO Get inflation from largest robot
-            encompassing_circle = center.buffer(conflict_radius)
-            polygons_tmp[conflicting_agent_id] = conflicting_robot.polygon
-            conflicting_robot.polygon = encompassing_circle
-            robot_inflated_grid.update_polygons(
-                {conflicting_agent_id: conflicting_robot.polygon}
-            )
+        robot_inflated_grid.deactivate_entities(non_conflicting_entities)
+        robot_inflated_static_map.update_polygons(new_static_polygons)
+
         # Plan using this modified version of the world
         p = self.select_connect(
-            w_t=new_w_t_no_dyn,
+            w_t=new_world,
             robot_inflated_static_map=robot_inflated_static_map,
             robot_inflated_grid=robot_inflated_grid,
             r_f=goal,
@@ -1003,9 +1001,10 @@ class StilmanRRTStarAgent(Agent):
         )
 
         # Reset the inflated grid's state
-        for conflicting_uid, prev_polygon in polygons_tmp.items():
-            robot_inflated_grid.update_polygons({conflicting_uid: prev_polygon})
-        robot_inflated_grid.activate_entities(new_dynamic_entities)
+        robot_inflated_static_map.update_polygons(
+            removed_polygons=set(new_static_polygons.keys())
+        )
+        robot_inflated_grid.activate_entities(non_conflicting_entities)
 
         if p.is_empty():
             self.logger.append(
@@ -1037,7 +1036,7 @@ class StilmanRRTStarAgent(Agent):
                 world=w_t,
                 robot_inflated_grid=robot_inflated_grid,
                 horizon=conflict_horizon,
-                grab_start_distance=self.grab_start_distance,
+                conflict_radius=self.conflict_radius,
             )
         )
         for conflict in conflicts:
@@ -2594,7 +2593,10 @@ class StilmanRRTStarAgent(Agent):
             return None
 
         # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-        (collides_with, csv_polygon,) = collision.get_csv_collisions(
+        (
+            collides_with,
+            csv_polygon,
+        ) = collision.get_csv_collisions(
             agent_id=agent_id,
             robot_pose=robot_pose,
             robot_action=release_action,
@@ -2875,7 +2877,10 @@ class StilmanRRTStarAgent(Agent):
                 continue
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            (collides_with, robot_csv_polygon,) = collision.get_csv_collisions(
+            (
+                collides_with,
+                robot_csv_polygon,
+            ) = collision.get_csv_collisions(
                 agent_id=agent_id,
                 robot_pose=current_configuration.robot.floating_point_pose,
                 robot_action=action,
@@ -2887,7 +2892,10 @@ class StilmanRRTStarAgent(Agent):
                 continue
 
             # TODO Refactor collision.csv_check_collisions to check for any number of attached polygons or make new function
-            (collides_with, obstacle_csv_polygon,) = collision.get_csv_collisions(
+            (
+                collides_with,
+                obstacle_csv_polygon,
+            ) = collision.get_csv_collisions(
                 agent_id=obstacle_uid,
                 robot_pose=current_configuration.robot.floating_point_pose,
                 robot_action=action,
@@ -3207,13 +3215,13 @@ class StilmanRRTStarAgent(Agent):
         for i in range(len(acc_cells_for_obs)):
             cell = acc_cells_for_obs[i]
             normalized_social_cost_costmap[cell[0]][cell[1]] = normalized_social_cost[i]
-            normalized_distance_from_obs_costmap[cell[0]][
-                cell[1]
-            ] = normalized_distance_cost[i]
+            normalized_distance_from_obs_costmap[cell[0]][cell[1]] = (
+                normalized_distance_cost[i]
+            )
             if normalized_distance_to_goal is not None:
-                normalized_distance_from_goal_costmap[cell[0]][
-                    cell[1]
-                ] = normalized_distance_to_goal[i]
+                normalized_distance_from_goal_costmap[cell[0]][cell[1]] = (
+                    normalized_distance_to_goal[i]
+                )
 
         stocg.display_or_log(
             grid=normalized_social_cost_costmap,

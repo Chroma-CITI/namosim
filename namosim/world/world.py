@@ -645,45 +645,6 @@ class World:
     def is_holding_obstacle(self, agent_id: str) -> bool:
         return agent_id in self.entity_to_agent.inverse
 
-    def get_robot_conflict_radius(
-        self,
-        agent_id: str,
-        grab_start_distance: float,
-        obstacle_id: str | None = None,
-    ):
-        robot = self.agents[agent_id]
-        center = robot.polygon.centroid
-        radius_for_move = robot.circumscribed_radius + 4 * self.map.cell_size
-        radius_for_grab_or_release = robot.circumscribed_radius + grab_start_distance
-
-        conflict_radius = radius_for_move
-
-        if self.is_holding_obstacle(agent_id):
-            obstacle_id = self.entity_to_agent.inverse[robot.uid]
-
-        if obstacle_id is not None:
-            obstacle = self.dynamic_entities[obstacle_id]
-            conflict_radius = (
-                center.hausdorff_distance(obstacle.polygon) + 2 * self.map.cell_size
-            )
-
-            # Account for possible release
-            conflict_radius = max(conflict_radius, radius_for_grab_or_release)
-        else:
-            # Enlarge radius to account for possible grabs
-            for uid, obstacle in self.dynamic_entities.items():
-                if (
-                    isinstance(obstacle, Obstacle)
-                    and uid not in self.entity_to_agent
-                    and obstacle.movability == Movability.MOVABLE
-                ):
-                    if obstacle.polygon.buffer(
-                        robot.cell_size,
-                    ).intersects(robot.polygon):
-                        conflict_radius = radius_for_grab_or_release
-                        break
-        return conflict_radius
-
     def get_combined_agent_obstacle_polygon(self, agent_id: str) -> Polygon:
         agent_polygon = self.agents[agent_id].polygon
         obstacle = self.get_agent_held_obstacle(agent_id)
