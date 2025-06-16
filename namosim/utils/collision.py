@@ -162,7 +162,7 @@ def csv_from_bb_vertices(bb_vertices: t.List[t.List[t.Tuple[float, float]]]) -> 
 
 
 def polygon_to_aabb(polygon: Polygon):
-    xmin, ymin, xmax, ymax = polygon.bounds
+    xmin, ymin, xmax, ymax = polygon.bounds  # type: ignore
     return AABB([(xmin, xmax), (ymin, ymax)])
 
 

@@ -955,14 +955,18 @@ class World:
         agents: t.List["agts.Agent"] = []
         for agent_config in config.agents:
             pose: Pose2D = Pose2D(0, 0, 0)
-            agent_polygon = Point(pose[0], pose[1]).buffer(agent_config.radius)
+            agent_polygon = t.cast(
+                Polygon, Point(pose[0], pose[1]).buffer(agent_config.radius)
+            )
             if agent_config.initial_pose:
                 pose = Pose2D(
                     agent_config.initial_pose[0],
                     agent_config.initial_pose[1],
                     agent_config.initial_pose[2],
                 )
-                agent_polygon = Point(pose[0], pose[1]).buffer(agent_config.radius)
+                agent_polygon = t.cast(
+                    Polygon, Point(pose[0], pose[1]).buffer(agent_config.radius)
+                )
             elif agent_config.id in agent_poses:
                 pose = agent_poses[agent_config.id]
                 agent_polygon = agent_polygons[agent_config.id]

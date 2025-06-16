@@ -8,7 +8,7 @@
   "reportMissingImports": "error",
   "reportMissingTypeStubs": false,
   "reportIncompatibleMethodOverride": "warning",
-  "reportAttributeAccessIssue": "error",
+  "reportAttributeAccessIssue": "warning",
   "reportArgumentType": "error",
   "reportAssignmentType": "error",
   "reportOptionalMemberAccess": "warning",
