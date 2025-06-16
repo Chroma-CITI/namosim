@@ -1232,10 +1232,10 @@ class Stilman2005Agent(Agent):
                 )
 
         if robot_inflated_static_map.grid[goal_cell[0]][goal_cell[1]] > 0:
-            raise Exception(
-                "Goal cell collides with a static obstacle cell. This should never happen.",
+            return nav_plan.Plan(
+                plan_error="goal_cell_in_static_obstacle_error",
+                agent_id=self.uid,
             )
-
         if robot_inflated_static_map.grid[robot_cell[0]][robot_cell[1]] > 0:
             raise Exception(
                 "Robot start position is in collision with a static obstacle. This should never happen."
