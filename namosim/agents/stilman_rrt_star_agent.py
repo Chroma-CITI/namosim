@@ -857,7 +857,7 @@ class StilmanRRTStarAgent(Agent):
             w_t=w_t_no_dyn,
             robot_inflated_static_map=robot_inflated_static_map,
             robot_inflated_grid=robot_inflated_grid,
-            goal_pose=goal,
+            r_f=goal,
             neighborhood=neighborhood,
             action_space_reduction=action_space_reduction,
             ros_publisher=ros_publisher,
@@ -967,7 +967,7 @@ class StilmanRRTStarAgent(Agent):
                 new_static_polygons[polygon_id] = (
                     w_t.get_combined_agent_obstacle_polygon(
                         conflict.other_agent_id
-                    ).buffer(self.conflict_radius)
+                    ).buffer(self.conflict_radius) # type: ignore
                 )
             if isinstance(conflict, ConcurrentGrabConflict):
                 conflicting_entities.add(conflict.obstacle_uid)
@@ -975,11 +975,11 @@ class StilmanRRTStarAgent(Agent):
                 robot_polygon_id = f"{conflict.other_agent_id}_static"
                 new_static_polygons[robot_polygon_id] = w_t.dynamic_entities[
                     conflict.other_agent_id
-                ].polygon.buffer(self.conflict_radius)
+                ].polygon.buffer(self.conflict_radius) # type: ignore
                 obstacle_polygon_id = f"{conflict.obstacle_uid}_static"
                 new_static_polygons[obstacle_polygon_id] = w_t.dynamic_entities[
                     conflict.obstacle_uid
-                ].polygon.buffer(self.conflict_radius)
+                ].polygon.buffer(self.conflict_radius) # type: ignore
 
         # Make a world copy with conflicting robots (and their obstacles!) set to static obstacles
         non_conflicting_entities = dynamic_entities.difference(conflicting_entities)
