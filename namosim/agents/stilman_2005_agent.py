@@ -190,6 +190,11 @@ class Stilman2005Agent(Agent):
 
         self.collision_margin = collision_margin
         self.minimum_evasion_distance = 0.5  # meters
+        self.conflict_radius = (
+            self.grab_start_distance
+            + self.collision_margin
+            + utils.SQRT_OF_2 * self.cell_size
+        )
 
     def init(self, world: "w.World"):
         super().init(world)
@@ -448,8 +453,7 @@ class Stilman2005Agent(Agent):
             world=w_t,
             robot_inflated_grid=robot_inflated_grid,
             horizon=conflict_horizon,
-            exit_early=True,
-            grab_start_distance=self.grab_start_distance,
+            conflict_radius=self.conflict_radius,
         )
         if len(conflicts) > 0:
             self.logger.append(
@@ -710,7 +714,7 @@ class Stilman2005Agent(Agent):
         if evasion_path:
             self.logger.append(
                 utils.NamosimLog(
-                    "Agent {}: Executing evasion path.".format(self.uid),
+                    f"Agent {self.uid}: Evading.",
                     step_count,
                 )
             )
@@ -731,7 +735,7 @@ class Stilman2005Agent(Agent):
             )
         self.logger.append(
             utils.NamosimLog(
-                "Agent {}: I can not or should not evade, postponing...".format(
+                "Agent {}: I cannot or should not evade, postponing...".format(
                     self.uid,
                 ),
                 step_count,
@@ -804,7 +808,7 @@ class Stilman2005Agent(Agent):
             )
         self.logger.append(
             utils.NamosimLog(
-                "Agent {}: I can not or should not evade, postponing...".format(
+                "Agent {}: I cannot or should not evade, postponing...".format(
                     self.uid,
                 ),
                 step_count,
@@ -906,7 +910,7 @@ class Stilman2005Agent(Agent):
             world=w_t,
             robot_inflated_grid=robot_inflated_grid,
             horizon=conflict_horizon,
-            grab_start_distance=self.grab_start_distance,
+            conflict_radius=self.conflict_radius,
         )
         if not conflicts:
             self.logger.append(
@@ -971,6 +975,7 @@ class Stilman2005Agent(Agent):
         # II - Compute plan with conflicting robots set to static obstacles while ignoring non-conflicting robots
 
         conflicting_entities = set()
+        new_static_polygons: t.Dict[str, Polygon] = {}
         for conflict in conflicts:
             if isinstance(conflict, RobotRobotConflict):
                 conflicting_entities.add(conflict.other_agent_id)
@@ -979,20 +984,32 @@ class Stilman2005Agent(Agent):
                 )
                 if conflicting_robot_obstacle is not None:
                     conflicting_entities.add(conflicting_robot_obstacle.uid)
+
+                polygon_id = f"{conflict.other_agent_id}_static"
+                new_static_polygons[polygon_id] = (
+                    w_t.get_combined_agent_obstacle_polygon(
+                        conflict.other_agent_id
+                    ).buffer(self.conflict_radius)
+                )
             if isinstance(conflict, ConcurrentGrabConflict):
                 conflicting_entities.add(conflict.obstacle_uid)
                 conflicting_entities.add(conflict.other_agent_id)
+                robot_polygon_id = f"{conflict.other_agent_id}_static"
+                new_static_polygons[robot_polygon_id] = w_t.dynamic_entities[
+                    conflict.other_agent_id
+                ].polygon.buffer(self.conflict_radius)
+                obstacle_polygon_id = f"{conflict.obstacle_uid}_static"
+                new_static_polygons[obstacle_polygon_id] = w_t.dynamic_entities[
+                    conflict.obstacle_uid
+                ].polygon.buffer(self.conflict_radius)
 
         # Make a world copy with conflicting robots (and their obstacles!) set to static obstacles
         non_conflicting_entities = dynamic_entities.difference(conflicting_entities)
         new_world = w_t.light_copy(ignored_entities=non_conflicting_entities)
 
         robot_inflated_grid.deactivate_entities(non_conflicting_entities)
-        # Update static inflated grid with the polygons of the conflicting entities
-        new_static_polygons = {}
-        for uid in conflicting_entities:
-            new_static_polygons[uid] = w_t.dynamic_entities[uid].polygon
         robot_inflated_static_map.update_polygons(new_static_polygons)
+
         # Plan using this modified version of the world
         p = self.select_connect(
             w_t=new_world,
@@ -1041,7 +1058,7 @@ class Stilman2005Agent(Agent):
                 world=w_t,
                 robot_inflated_grid=robot_inflated_grid,
                 horizon=conflict_horizon,
-                grab_start_distance=self.grab_start_distance,
+                conflict_radius=self.conflict_radius,
             )
         )
         for conflict in conflicts:
@@ -2063,9 +2080,9 @@ class Stilman2005Agent(Agent):
 
             if path_found and transfer_end_configuration:
                 # 3. If a path is found, return it
-                raw_path: t.List[
-                    RobotObstacleConfiguration
-                ] = graph_search.reconstruct_path(came_from, transfer_end_configuration)
+                raw_path: t.List[RobotObstacleConfiguration] = (
+                    graph_search.reconstruct_path(came_from, transfer_end_configuration)
+                )
                 robot_config_after_release = self.get_robot_config_after_release(
                     robot_inflated_grid,
                     raw_path[-1].robot.floating_point_pose,
@@ -2779,7 +2796,10 @@ class Stilman2005Agent(Agent):
             return None
 
         # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-        (collides_with, csv_polygon,) = collision.get_csv_collisions(
+        (
+            collides_with,
+            csv_polygon,
+        ) = collision.get_csv_collisions(
             agent_id=agent_id,
             robot_pose=robot_pose,
             robot_action=release_action,
@@ -3056,7 +3076,10 @@ class Stilman2005Agent(Agent):
                 continue
 
             # Finally, we check dynamic collisions (between init configuration and after-action configuration)
-            (collides_with, robot_csv_polygon,) = collision.get_csv_collisions(
+            (
+                collides_with,
+                robot_csv_polygon,
+            ) = collision.get_csv_collisions(
                 agent_id=agent_id,
                 robot_pose=current_configuration.robot.floating_point_pose,
                 robot_action=action,
@@ -3068,7 +3091,10 @@ class Stilman2005Agent(Agent):
                 continue
 
             # TODO Refactor collision.csv_check_collisions to check for any number of attached polygons or make new function
-            (collides_with, obstacle_csv_polygon,) = collision.get_csv_collisions(
+            (
+                collides_with,
+                obstacle_csv_polygon,
+            ) = collision.get_csv_collisions(
                 agent_id=obstacle_uid,
                 robot_pose=current_configuration.robot.floating_point_pose,
                 robot_action=action,
@@ -3388,13 +3414,13 @@ class Stilman2005Agent(Agent):
         for i in range(len(acc_cells_for_obs)):
             cell = acc_cells_for_obs[i]
             normalized_social_cost_costmap[cell[0]][cell[1]] = normalized_social_cost[i]
-            normalized_distance_from_obs_costmap[cell[0]][
-                cell[1]
-            ] = normalized_distance_cost[i]
+            normalized_distance_from_obs_costmap[cell[0]][cell[1]] = (
+                normalized_distance_cost[i]
+            )
             if normalized_distance_to_goal is not None:
-                normalized_distance_from_goal_costmap[cell[0]][
-                    cell[1]
-                ] = normalized_distance_to_goal[i]
+                normalized_distance_from_goal_costmap[cell[0]][cell[1]] = (
+                    normalized_distance_to_goal[i]
+                )
 
         stocg.display_or_log(
             grid=normalized_social_cost_costmap,

@@ -37,7 +37,7 @@
       <behavior
          type="stilman_2005_behavior">
         <parameters
-           use_social_cost="false"
+           use_social_cost="true"
            robot_rotation_unit_angle="15.0"
            manip_search_bound_percentage="0.05"
            push_only="false"

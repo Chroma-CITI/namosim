@@ -23,6 +23,7 @@ from namosim.navigation.path_type import PathType
 from namosim.utils import collision, utils
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from shapely.geometry import JOIN_STYLE
+import shapely.ops
 
 
 class RawPath:
@@ -133,7 +134,6 @@ class TransferPath:
         other_entities_polygons: t.Dict[str, Polygon],
         previously_moved_obstacles: t.Set[str],
         horizon: int,
-        grab_start_distance: float,
         exit_early: bool = False,
         rp: t.Optional["ros2.RosPublisher"] = None,
     ) -> t.Set[Conflict]:
@@ -177,7 +177,6 @@ class TransferPath:
                 conflicts = conflicts.union(
                     self.get_grab_action_conflicts(
                         agent_id=agent_id,
-                        grab_start_distance=grab_start_distance,
                         robot_pose=robot_pose,
                         robot_polygon=robot_polygon,
                         obstacle_polygon=obstacle_polygon,
@@ -192,7 +191,10 @@ class TransferPath:
 
             # Get robot conflicts
 
-            (collides_with, _,) = collision.get_csv_collisions(
+            (
+                collides_with,
+                _,
+            ) = collision.get_csv_collisions(
                 agent_id=agent_id,
                 robot_pose=robot_pose,
                 robot_action=action,
@@ -225,21 +227,20 @@ class TransferPath:
                     if exit_early:
                         return conflicts
 
-                # Obstacle conflicts
-                (collides_with, _,) = collision.get_csv_collisions(
-                    agent_id=self.obstacle_uid,
-                    robot_action=action,
-                    robot_pose=self.robot_path.poses[
-                        self.action_index + look_ahead_index
-                    ],
-                    other_polygons=other_entities_polygons,
-                    polygon=self.obstacle_path.polygons[
-                        self.action_index + look_ahead_index
-                    ],
-                    ignored_entities=previously_moved_obstacles.union(
-                        {self.obstacle_uid}
-                    ),
-                )
+            # Obstacle conflicts
+            (
+                collides_with,
+                _,
+            ) = collision.get_csv_collisions(
+                agent_id=self.obstacle_uid,
+                robot_action=action,
+                robot_pose=self.robot_path.poses[self.action_index + look_ahead_index],
+                other_polygons=other_entities_polygons,
+                polygon=self.obstacle_path.polygons[
+                    self.action_index + look_ahead_index
+                ],
+                ignored_entities=previously_moved_obstacles.union({self.obstacle_uid}),
+            )
 
             for uid in collides_with:
                 other_robot = None
@@ -270,7 +271,6 @@ class TransferPath:
         self,
         *,
         agent_id: str,
-        grab_start_distance: float,
         robot_pose: Pose2D,
         robot_polygon: Polygon,
         obstacle_polygon: Polygon,
@@ -317,16 +317,11 @@ class TransferPath:
                 return conflicts
 
         # Check for SimultaneousSpace conflict that might result from the grab, since a grab instantly expands the robot's conflict radius.
-        conflict_radius = world.get_robot_conflict_radius(
-            agent_id=agent_id,
-            grab_start_distance=grab_start_distance,
-            obstacle_id=self.obstacle_uid,
-        )
-        conflict_circle = robot_polygon.centroid.buffer(
-            conflict_radius, join_style=JOIN_STYLE.mitre
+        robot_obstacle_polygon = t.cast(
+            Polygon, shapely.ops.unary_union([robot_polygon, obstacle_polygon])
         )
         collides_with = collision.get_collisions_for_entity(
-            conflict_circle,
+            robot_obstacle_polygon,
             other_entities_polygons,
             ignored_entities={self.obstacle_uid},
         )
@@ -337,39 +332,14 @@ class TransferPath:
                 world.dynamic_entities[uid],
                 agent.Agent,
             ):
-                conflicts.add(
-                    SimultaneousSpaceAccess(
-                        agent_id=agent_id,
-                        robot_pose=robot_pose,
-                        other_agent_id=uid,
-                        other_robot_pose=world.dynamic_entities[uid].pose,
-                    )
-                )
+                ConcurrentGrabConflict(self.obstacle_uid, uid)
                 if exit_early:
                     return conflicts
 
-        conflict_circle = obstacle_polygon.buffer(
-            grab_start_distance, join_style=JOIN_STYLE.mitre
-        )
-        collides_with = collision.get_collisions_for_entity(
-            conflict_circle,
-            other_entities_polygons,
-            ignored_entities={self.obstacle_uid},
-            break_at_first=False,
-        )
-        for uid in collides_with:
-            if (
-                isinstance(
-                    world.dynamic_entities[uid],
-                    agent.Agent,
-                )
-                and uid not in world.entity_to_agent.inverse
-            ):
-                conflicts.add(ConcurrentGrabConflict(self.obstacle_uid, uid))
-                if exit_early:
-                    return conflicts
-
-        (collides_with, _,) = collision.get_csv_collisions(
+        (
+            collides_with,
+            _,
+        ) = collision.get_csv_collisions(
             agent_id=agent_id,
             robot_pose=robot_pose,
             robot_action=self.grab_action,
@@ -561,7 +531,6 @@ class TransitPath:
         agent_id: str,
         world: "world.World",
         robot_inflated_grid: BinaryOccupancyGrid,
-        conflict_circle_id_to_agent_id: t.Dict[str, str],
         horizon: int,
         exit_early: bool = False,
         rp: t.Optional["ros2.RosPublisher"] = None,
@@ -573,8 +542,6 @@ class TransitPath:
         if horizon <= 0:
             return conflicts
 
-        robot_conflict_circle_uids = set(conflict_circle_id_to_agent_id.keys())
-
         # Compute and display horizon cells
         if rp:
             rp.publish_transit_horizon_cells(
@@ -584,8 +551,6 @@ class TransitPath:
                 robot_inflated_grid=robot_inflated_grid,
                 agent_id=agent_id,
             )
-
-        robot_inflated_grid.activate_entities(robot_conflict_circle_uids)
 
         # Check for RobotRobot conflicts within horizon, and RobotObstacle conflicts even beyond
         conflicting_cells: t.Set[GridCellModel] = set()
@@ -608,37 +573,7 @@ class TransitPath:
                 colliding_obstacles = robot_inflated_grid.obstacles_uids_in_cell(cell)
 
                 for uid in colliding_obstacles:
-                    if uid in robot_conflict_circle_uids:
-                        other_agent_id = conflict_circle_id_to_agent_id[uid]
-                        other_robot_obs = world.get_agent_held_obstacle(other_agent_id)
-                        conflicts.add(
-                            SimultaneousSpaceAccess(
-                                agent_id=agent_id,
-                                robot_pose=pose,
-                                other_agent_id=other_agent_id,
-                                other_robot_pose=world.dynamic_entities[
-                                    other_agent_id
-                                ].pose,
-                            )
-                        )
-                        conflicting_cells.add(cell)
-                        conflicting_entities_cells.update(
-                            robot_inflated_grid.cell_sets[uid]
-                        )
-                        if exit_early:
-                            if rp:
-                                rp.publish_transit_conflicting_cells(
-                                    conflicting_cells,
-                                    robot_inflated_grid,
-                                    agent_id,
-                                )
-                                rp.publish_transit_conflicting_polygons_cells(
-                                    conflicting_entities_cells,
-                                    robot_inflated_grid,
-                                    agent_id,
-                                )
-                            return conflicts
-                    elif isinstance(world.dynamic_entities[uid], agent.Agent) or (
+                    if isinstance(world.dynamic_entities[uid], agent.Agent) or (
                         uid in world.entity_to_agent
                         # ignore collisions with the obstacle the robot is currently holding
                         and world.entity_to_agent.get(uid) != agent_id
@@ -683,11 +618,6 @@ class TransitPath:
                                     )
                                 return conflicts
                     else:
-                        # check for polygon-level collisions
-                        # collisions = world.get_polygon_collisions(agent_id, {uid})
-                        # if len(collisions) == 0:
-                        #     continue
-
                         conflicts.add(RobotObstacleConflict(uid))
                         conflicting_cells.add(cell)
                         conflicting_entities_cells.update(

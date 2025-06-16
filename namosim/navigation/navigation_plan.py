@@ -158,41 +158,39 @@ class Plan:
         *,
         world: "world.World",
         robot_inflated_grid: BinaryOccupancyGrid,
-        grab_start_distance: float,
+        conflict_radius: float,
         horizon: int,
         rp: t.Optional["rp.RosPublisher"] = None,
         exit_early: bool = False,
     ) -> t.Set[Conflict]:
-        # if self.postpone.is_running():
-        #     return []
-
         # Check validity of each component
         previously_moved_obstacles: t.Set[str] = set()
         remaining_paths = self.paths[self.component_index :]
         conflicts = set()
 
-        other_entities_polygons = {
+        orig_polygons = {
             uid: e.polygon
             for uid, e in world.dynamic_entities.items()
-            if uid != self.agent_id and e.movability != Movability.STATIC
+            if uid != self.agent_id
         }
 
-        robot_conflict_polygons: t.Dict[str, Polygon] = {}
+        other_entity_polygons = {
+            uid: e.polygon
+            for uid, e in world.dynamic_entities.items()
+            if uid != self.agent_id
+        }
 
-        conflict_polygon_to_agent_id = {}
+        # temporarily inflate robot polygons (including obstacles they are carrying) to avoid conflicts with other robots
         for other_robot in world.agents.values():
             if other_robot.uid == self.agent_id:
                 continue
-
             robot_conflict_polygon = world.get_combined_agent_obstacle_polygon(
                 other_robot.uid
-            ).buffer(grab_start_distance + utils.SQRT_OF_2 * world.map.cell_size)
-            robot_conflict_polygon_id = f"{other_robot.uid}_conflict_polygon"
-            robot_conflict_polygons[robot_conflict_polygon_id] = robot_conflict_polygon
-            conflict_polygon_to_agent_id[robot_conflict_polygon_id] = other_robot.uid
+            ).buffer(conflict_radius)
+            other_entity_polygons[other_robot.uid] = robot_conflict_polygon
 
         robot_inflated_grid.update_polygons(
-            new_or_updated_polygons=robot_conflict_polygons
+            new_or_updated_polygons=other_entity_polygons
         )
 
         for path in remaining_paths:
@@ -203,7 +201,6 @@ class Plan:
                             agent_id=self.agent_id,
                             world=world,
                             robot_inflated_grid=robot_inflated_grid,
-                            conflict_circle_id_to_agent_id=conflict_polygon_to_agent_id,
                             horizon=horizon,
                             exit_early=exit_early,
                             rp=rp,
@@ -214,8 +211,7 @@ class Plan:
                         path.get_conflicts(
                             agent_id=self.agent_id,
                             world=world,
-                            grab_start_distance=grab_start_distance,
-                            other_entities_polygons=other_entities_polygons,
+                            other_entities_polygons=other_entity_polygons,
                             previously_moved_obstacles=previously_moved_obstacles,
                             horizon=horizon,
                             exit_early=exit_early,
@@ -241,9 +237,7 @@ class Plan:
 
         # Reactivate entities that had been deactivated during checks
         robot_inflated_grid.activate_entities(previously_moved_obstacles)
-        robot_inflated_grid.update_polygons(
-            removed_polygons=set(robot_conflict_polygons.keys())
-        )
+        robot_inflated_grid.update_polygons(new_or_updated_polygons=orig_polygons)
 
         return conflicts
 
@@ -252,7 +246,7 @@ class Plan:
         *,
         world: "world.World",
         robot_inflated_grid: BinaryOccupancyGrid,
-        grab_start_distance: float,
+        conflict_radius: float,
         horizon: int,
         rp: t.Optional["rp.RosPublisher"] = None,
         exit_early: bool = False,
@@ -260,7 +254,7 @@ class Plan:
         conflicts = self._get_conflicts(
             world=world,
             robot_inflated_grid=robot_inflated_grid,
-            grab_start_distance=grab_start_distance,
+            conflict_radius=conflict_radius,
             rp=rp,
             horizon=horizon,
             exit_early=exit_early,
