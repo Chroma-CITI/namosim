@@ -680,17 +680,20 @@ class Stilman2005Agent(Agent):
         conflicts: t.Set[Conflict],
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
     ):
+        robot = w_t.agents[agent_id]
         robot_cells = robot_inflated_grid.rasterize_polygon(
-            w_t.dynamic_entities[agent_id].polygon.buffer(
-                self.collision_margin + self.minimum_evasion_distance
+            robot.polygon.buffer(
+                self.minimum_evasion_distance - robot.circumscribed_radius
             ),
         )
         for conflict in potential_deadlocks:
             if isinstance(conflict, RobotRobotConflict):
+                other_robot = w_t.agents[conflict.other_agent_id]
                 robot_cells.update(
                     robot_inflated_grid.rasterize_polygon(
-                        w_t.dynamic_entities[conflict.other_agent_id].polygon.buffer(
+                        w_t.get_combined_agent_obstacle_polygon(other_robot.uid).buffer(
                             self.minimum_evasion_distance
+                            - other_robot.circumscribed_radius
                         )
                     )
                 )
@@ -704,7 +707,7 @@ class Stilman2005Agent(Agent):
             potential_deadlocks=potential_deadlocks,
             forbidden_evasion_cells=robot_cells,
             ros_publisher=ros_publisher,
-            always_evade=plan.is_postpone_over(),
+            always_evade=False,  # plan.is_postpone_over(),
         )
 
         assert agent_id not in robot_inflated_grid.cell_sets
@@ -3471,8 +3474,38 @@ class Stilman2005Agent(Agent):
         ros_publisher: t.Optional["rp.RosPublisher"] = None,
         use_combined_cost: bool = True,
     ) -> EvasionTransitPath | None:
+        if self._social_costmap is None:
+            raise Exception("Social costmap uninitialized")
+
+        # If this robot is able to evade, it must check if it should by comparing its evasion path with the one of
+        # other robots.
+        other_robots_uids = {
+            potential_deadlock.other_agent_id
+            for potential_deadlock in potential_deadlocks
+            if isinstance(potential_deadlock, RobotRobotConflict)
+        }
+
         # Compute evasion for main robot
-        main_robot = t.cast(Agent, w_t.dynamic_entities[main_agent_id])
+        main_robot = w_t.agents[main_agent_id]
+        main_robot_cell = robot_inflated_grid.pose_to_cell(
+            main_robot.pose.x, main_robot.pose.y
+        )
+        main_robot_social_cost = self._social_costmap[main_robot_cell[0]][
+            main_robot_cell[1]
+        ]
+
+        if not always_evade:
+            for other_robot_id in other_robots_uids:
+                assert other_robot_id != main_agent_id
+                other_robot = w_t.agents[other_robot_id]
+                other_robot_cell = robot_inflated_grid.pose_to_cell(
+                    other_robot.pose.x, other_robot.pose.y
+                )
+                other_robot_social_cost = self._social_costmap[other_robot_cell[0]][
+                    other_robot_cell[1]
+                ]
+                if other_robot_social_cost < main_robot_social_cost:
+                    return None
 
         # The main robot uid should be deactivated in the robot-inflated grid
         assert main_agent_id in robot_inflated_grid.deactivated_entities_cell_sets
@@ -3490,87 +3523,81 @@ class Stilman2005Agent(Agent):
             potential_deadlocks=potential_deadlocks,
         )
 
-        if not main_robot_evasion_path:
-            return None
+        return main_robot_evasion_path
 
-        if always_evade:
-            return main_robot_evasion_path
+        # if not main_robot_evasion_path:
+        #     return None
 
-        # If this robot is able to evade, it must check if it should by comparing its evasion path with the one of
-        # other robots.
-        other_robots_uids = {
-            potential_deadlock.other_agent_id
-            for potential_deadlock in potential_deadlocks
-            if isinstance(potential_deadlock, RobotRobotConflict)
-        }
+        # if always_evade:
+        #     return main_robot_evasion_path
 
-        assert main_agent_id not in other_robots_uids
+        # assert main_agent_id not in other_robots_uids
 
-        robot_inflated_grid.update_polygons(
-            new_or_updated_polygons={main_agent_id: main_robot.polygon}
-        )
+        # robot_inflated_grid.update_polygons(
+        #     new_or_updated_polygons={main_agent_id: main_robot.polygon}
+        # )
 
-        other_robot_evasion_path_max_duration = 0
+        # other_robot_evasion_path_max_duration = 0
 
-        min_other_pos_vec = float("inf")
-        max_other_robots_evasion_cost = float("-inf")
+        # min_other_pos_vec = float("inf")
+        # max_other_robots_evasion_cost = float("-inf")
 
-        for agent_id in other_robots_uids:
-            # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
-            #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
-            other_robot = t.cast(Agent, w_t.dynamic_entities[agent_id])
-            min_other_pos_vec = min(
-                min_other_pos_vec, np.linalg.norm(other_robot.pose[:2])
-            )
+        # for agent_id in other_robots_uids:
+        #     # TODO : Add check to see if other robot has same radius as main robot : if so use the already computed
+        #     #  inflated grid, else compute a corresponding inflated grid (and save for later just in case ?)
+        #     other_robot = t.cast(Agent, w_t.dynamic_entities[agent_id])
+        #     min_other_pos_vec = min(
+        #         min_other_pos_vec, np.linalg.norm(other_robot.pose[:2])
+        #     )
 
-            robot_inflated_grid.deactivate_entities({agent_id})
-            robot_inflated_grid.activate_entities({main_agent_id})
-            (
-                other_robot_evaion_cost,
-                _other_robot_evasion_path,
-            ) = self.compute_evasion_for_one(
-                w_t=w_t,
-                robot_inflated_grid=robot_inflated_grid,
-                robot=other_robot,
-                forbidden_evasion_cells=forbidden_evasion_cells,
-                use_combined_cost=use_combined_cost,
-                ros_publisher=ros_publisher,
-                potential_deadlocks=potential_deadlocks,
-            )
-            robot_inflated_grid.deactivate_entities({main_agent_id})
+        #     robot_inflated_grid.deactivate_entities({agent_id})
+        #     robot_inflated_grid.activate_entities({main_agent_id})
+        #     (
+        #         other_robot_evaion_cost,
+        #         _other_robot_evasion_path,
+        #     ) = self.compute_evasion_for_one(
+        #         w_t=w_t,
+        #         robot_inflated_grid=robot_inflated_grid,
+        #         robot=other_robot,
+        #         forbidden_evasion_cells=forbidden_evasion_cells,
+        #         use_combined_cost=use_combined_cost,
+        #         ros_publisher=ros_publisher,
+        #         potential_deadlocks=potential_deadlocks,
+        #     )
+        #     robot_inflated_grid.deactivate_entities({main_agent_id})
 
-            other_robot_exchange_real_path = graph_search.real_to_grid_search_a_star(
-                other_robot.pose, main_robot.pose, robot_inflated_grid
-            )
+        #     other_robot_exchange_real_path = graph_search.real_to_grid_search_a_star(
+        #         other_robot.pose, main_robot.pose, robot_inflated_grid
+        #     )
 
-            robot_inflated_grid.activate_entities({agent_id})
+        #     robot_inflated_grid.activate_entities({agent_id})
 
-            other_robot_exchange_path = TransitPath.from_poses(
-                other_robot_exchange_real_path,
-                other_robot.polygon,
-                other_robot.pose,
-            )
+        #     other_robot_exchange_path = TransitPath.from_poses(
+        #         other_robot_exchange_real_path,
+        #         other_robot.polygon,
+        #         other_robot.pose,
+        #     )
 
-            max_other_robots_evasion_cost = max(
-                max_other_robots_evasion_cost, other_robot_evaion_cost
-            )
+        #     max_other_robots_evasion_cost = max(
+        #         max_other_robots_evasion_cost, other_robot_evaion_cost
+        #     )
 
-            other_robot_evasion_path_max_duration = max(
-                other_robot_evasion_path_max_duration,
-                len(main_robot_evasion_path.actions)
-                + len(other_robot_exchange_path.actions),
-            )
+        #     other_robot_evasion_path_max_duration = max(
+        #         other_robot_evasion_path_max_duration,
+        #         len(main_robot_evasion_path.actions)
+        #         + len(other_robot_exchange_path.actions),
+        #     )
 
-        main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
-        if main_robot_evasion_cost < max_other_robots_evasion_cost:
-            return main_robot_evasion_path
+        # main_robot_evasion_path.set_wait(other_robot_evasion_path_max_duration)
+        # if main_robot_evasion_cost < max_other_robots_evasion_cost:
+        #     return main_robot_evasion_path
 
-        if main_robot_evasion_cost == max_other_robots_evasion_cost:
-            ## tie breaking
-            if np.linalg.norm(self.pose[:2]) >= min_other_pos_vec:
-                return main_robot_evasion_path
+        # if main_robot_evasion_cost == max_other_robots_evasion_cost:
+        #     ## tie breaking
+        #     if np.linalg.norm(self.pose[:2]) >= min_other_pos_vec:
+        #         return main_robot_evasion_path
 
-        return None  # Wait for others to evade
+        # return None  # Wait for others to evade
 
     def compute_evasion_nonsocial(
         self,
