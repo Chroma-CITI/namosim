@@ -1,10 +1,8 @@
 import typing as t
 
-from aabbtree import AABBTree
 from shapely.geometry import MultiPolygon, Point, Polygon
 
 import namosim.display.ros2_publisher as rp
-import namosim.utils.collision as collision
 from namosim.data_models import Pose2D
 from shapely.geometry import JOIN_STYLE
 
@@ -13,7 +11,6 @@ def check_new_local_opening(
     old_osbtacle_polygon: Polygon,
     new_obstacle_polygon: Polygon,
     other_entities_polygons: t.Dict[str, Polygon],
-    other_entities_aabb_tree: AABBTree,
     robot_radius: float,
     goal_pose: Pose2D,
     agent_id: str,
@@ -35,8 +32,8 @@ def check_new_local_opening(
     new_obtacle_inflated_by_robot_diameter = new_obstacle_polygon.buffer(
         2.0 * robot_radius, join_style=JOIN_STYLE.mitre
     )
-    new_obstacle_inflated_by_robot_radius = new_obstacle_polygon.buffer(
-        robot_radius, join_style=JOIN_STYLE.mitre
+    new_obstacle_inflated_by_robot_radius = t.cast(
+        Polygon, new_obstacle_polygon.buffer(robot_radius, join_style=JOIN_STYLE.mitre)
     )
     if new_obstacle_inflated_by_robot_radius.intersects(
         Point(goal_pose[0], goal_pose[1])
@@ -55,17 +52,8 @@ def check_new_local_opening(
     # Note: Intersection geometry can be either Point, LineString or Polygon
     init_blocking_areas = []
 
-    init_entity_inflated_polygon_aabb = collision.polygon_to_aabb(
-        old_obstacle_inflated_polygon
-    )
-    potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
-        init_entity_inflated_polygon_aabb
-    )
-
-    for uid in potential_collision_polygons_uids:
-        intersection_geometry = old_obstacle_inflated_polygon.intersection(
-            other_entities_polygons[uid]
-        )
+    for polygon in other_entities_polygons.values():
+        intersection_geometry = old_obstacle_inflated_polygon.intersection(polygon)
         if not intersection_geometry.is_empty:
             if isinstance(intersection_geometry, Polygon):
                 init_blocking_areas.append(intersection_geometry)
@@ -79,16 +67,9 @@ def check_new_local_opening(
 
     new_blocking_areas = []
 
-    new_entity_inflated_polygon_aabb = collision.polygon_to_aabb(
-        new_obtacle_inflated_by_robot_diameter
-    )
-    potential_collision_polygons_uids = other_entities_aabb_tree.overlap_values(
-        new_entity_inflated_polygon_aabb
-    )
-
-    for uid in potential_collision_polygons_uids:
+    for polygon in other_entities_polygons.values():
         intersection_geometry = new_obtacle_inflated_by_robot_diameter.intersection(
-            other_entities_polygons[uid]
+            polygon
         )
         if not intersection_geometry.is_empty:
             if isinstance(intersection_geometry, Polygon):

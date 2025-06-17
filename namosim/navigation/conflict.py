@@ -27,48 +27,18 @@ class RobotRobotConflict(BaseConflict):
         robot_pose: Pose2D,
         other_agent_id: str,
         other_robot_pose: Pose2D,
-        colliding_uids: t.Tuple[str, str],
-        robot_transfered_obstacle_uid: str | None = None,
-        robot_transfered_obstacle_pose: Pose2D | None = None,
-        other_robot_transfered_obstacle_uid: str | None = None,
-        other_robot_transfered_obstacle_pose: Pose2D | None = None,
-        at_grab: bool = False,
-        at_release: bool = False,
     ):
         if agent_id == other_agent_id:
             raise Exception("Invalid robot-robot conflict - robot ids are identical")
         self.agent_id = agent_id
         self.robot_pose = utils.real_pose_to_fixed_precision_pose(
-            robot_pose, 100.0, 1.0
+            robot_pose, 20.0, 1 / 15
         )
 
         self.other_agent_id: str = other_agent_id
         self.other_robot_pose = utils.real_pose_to_fixed_precision_pose(
-            other_robot_pose, 100.0, 1.0
+            other_robot_pose, 20.0, 1 / 15
         )
-
-        self.colliding_uids = colliding_uids
-
-        self.robot_transfered_obstacle_uid = robot_transfered_obstacle_uid
-        self.robot_transfered_obstacle_pose = (
-            None
-            if robot_transfered_obstacle_pose is None
-            else utils.real_pose_to_fixed_precision_pose(
-                robot_transfered_obstacle_pose, 100.0, 1.0
-            )
-        )
-
-        self.other_robot_transfered_obstacle_uid = other_robot_transfered_obstacle_uid
-        self.other_robot_transfered_obstacle_pose = (
-            None
-            if other_robot_transfered_obstacle_pose is None
-            else utils.real_pose_to_fixed_precision_pose(
-                other_robot_transfered_obstacle_pose, 100.0, 1.0
-            )
-        )
-
-        self.at_grab = at_grab
-        self.at_release = at_release
 
     def __eq__(self, other: object):
         return (
@@ -77,15 +47,6 @@ class RobotRobotConflict(BaseConflict):
             and self.robot_pose == other.robot_pose
             and self.other_agent_id == other.other_agent_id
             and self.other_robot_pose == other.other_robot_pose
-            and self.colliding_uids == other.colliding_uids
-            and self.robot_transfered_obstacle_uid
-            == other.robot_transfered_obstacle_uid
-            and self.robot_transfered_obstacle_pose
-            == other.robot_transfered_obstacle_pose
-            and self.other_robot_transfered_obstacle_uid
-            == other.other_robot_transfered_obstacle_uid
-            and self.other_robot_transfered_obstacle_pose
-            == other.other_robot_transfered_obstacle_pose
         )
 
     def __hash__(self):
@@ -95,11 +56,6 @@ class RobotRobotConflict(BaseConflict):
                 self.robot_pose,
                 self.other_agent_id,
                 self.other_robot_pose,
-                self.colliding_uids,
-                self.robot_transfered_obstacle_uid,
-                self.robot_transfered_obstacle_pose,
-                self.other_robot_transfered_obstacle_uid,
-                self.other_robot_transfered_obstacle_pose,
             )
         )
 
@@ -116,13 +72,6 @@ class SimultaneousSpaceAccess(RobotRobotConflict):
         robot_pose: Pose2D,
         other_agent_id: str,
         other_robot_pose: Pose2D,
-        colliding_uids: t.Tuple[str, str],
-        robot_transfered_obstacle_uid: str | None = None,
-        robot_transfered_obstacle_pose: Pose2D | None = None,
-        other_robot_transfered_obstacle_uid: str | None = None,
-        other_robot_transfered_obstacle_pose: Pose2D | None = None,
-        at_grab: bool = False,
-        at_release: bool = False,
     ):
         RobotRobotConflict.__init__(
             self,
@@ -130,17 +79,10 @@ class SimultaneousSpaceAccess(RobotRobotConflict):
             robot_pose,
             other_agent_id,
             other_robot_pose,
-            colliding_uids,
-            robot_transfered_obstacle_uid,
-            robot_transfered_obstacle_pose,
-            other_robot_transfered_obstacle_uid,
-            other_robot_transfered_obstacle_pose,
-            at_grab,
-            at_release,
         )
 
     def __str__(self):
-        return f"SimultaneousSpaceAccess({self.other_agent_id}, {self.colliding_uids})"
+        return f"SimultaneousSpaceAccess({self.other_agent_id})"
 
 
 class RobotObstacleConflict(BaseConflict):

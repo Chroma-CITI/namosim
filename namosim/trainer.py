@@ -513,8 +513,8 @@ class Trainer:
         )
 
     def memory_stats(self):
-        print("GPU Memory Allocated: ", torch.cuda.memory_allocated() / 1024 ** 2)
-        print("GPU Memory Cached: ", torch.cuda.memory_cached() / 1024 ** 2)
+        print("GPU Memory Allocated: ", torch.cuda.memory_allocated() / 1024**2)
+        print("GPU Memory Cached: ", torch.cuda.memory_cached() / 1024**2)
 
     def get_trajectories_parallel(
         self, queue: pyqueue.Queue[Trajectory]

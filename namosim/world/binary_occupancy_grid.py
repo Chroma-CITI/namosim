@@ -133,7 +133,7 @@ class BinaryOccupancyGrid:
         self.static_cells = set()
         self.grid *= 0
         for polygon in static_polygons:
-            cells = self.rasterize_polygon(polygon.buffer(self.inflation_radius))
+            cells = self.rasterize_polygon(polygon.buffer(self.inflation_radius))  # type: ignore
             self.static_cells = self.static_cells.union(cells)
 
         for cell in self.static_cells:
@@ -159,7 +159,7 @@ class BinaryOccupancyGrid:
             None
             if not new_or_updated_polygons
             else {
-                uid: self.rasterize_polygon(new_polygon.buffer(self.inflation_radius))
+                uid: self.rasterize_polygon(new_polygon.buffer(self.inflation_radius))  # type: ignore
                 for uid, new_polygon in new_or_updated_polygons.items()
             }
         )

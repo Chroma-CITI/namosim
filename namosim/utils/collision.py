@@ -162,39 +162,25 @@ def csv_from_bb_vertices(bb_vertices: t.List[t.List[t.Tuple[float, float]]]) -> 
 
 
 def polygon_to_aabb(polygon: Polygon):
-    xmin, ymin, xmax, ymax = polygon.bounds
+    xmin, ymin, xmax, ymax = polygon.bounds  # type: ignore
     return AABB([(xmin, xmax), (ymin, ymax)])
-
-
-def polygons_to_aabb_tree(polygons: t.Dict[str, Polygon]):
-    aabb_tree = AABBTree()
-    for uid, polygon in polygons.items():
-        aabb_tree.add(polygon_to_aabb(polygon), uid)
-    return aabb_tree
 
 
 def get_collisions_for_entity(
     entity_polygon: Polygon,
     other_entity_polygons: t.Dict[str, Polygon],
-    other_entities_aabb_tree: AABBTree,
     ignored_entities: t.Set[str] | None = None,
     break_at_first: bool = True,
 ) -> t.Set[str]:
     """Returns the set of entity ids that collide with the given polygon."""
-    aabb = polygon_to_aabb(entity_polygon)
-    potential_collisions = other_entities_aabb_tree.overlap_values(aabb)
-    if ignored_entities:
-        potential_collisions = set(potential_collisions).difference(ignored_entities)
-
     collides_with: t.Set[str] = set()
-    for uid in potential_collisions:
+    for uid, polygon in other_entity_polygons.items():
         if ignored_entities and uid in ignored_entities:
             continue
-        if entity_polygon.intersects(other_entity_polygons[uid]):
+        if entity_polygon.intersects(polygon):
             collides_with.add(uid)
             if break_at_first:
                 break
-
     return collides_with
 
 
@@ -226,17 +212,13 @@ def get_csv_collisions(
     robot_action: ba.Action,
     polygon: Polygon,
     other_polygons: t.Dict[str, Polygon],
-    others_aabb_tree: AABBTree | None = None,
     ignored_entities: t.Set[str] | None = None,
 ):
-    if others_aabb_tree is None:
-        others_aabb_tree = polygons_to_aabb_tree(other_polygons)
     bb_vertices = bounding_boxes_vertices(robot_pose, robot_action, polygon)
     csv_polygon = csv_from_bb_vertices(bb_vertices)
     collisions = get_collisions_for_entity(
         csv_polygon,
         other_polygons,
-        other_entities_aabb_tree=others_aabb_tree,
         ignored_entities=ignored_entities,
     )
     assert agent_id not in collisions
@@ -293,10 +275,7 @@ def csv_simulate_simple_kinematics(
         other_entity_polygons = {
             k: v for k, v in entity_csv_polygons.items() if k != uid
         }
-        other_entities_aabb_tree = polygons_to_aabb_tree(other_entity_polygons)
-        entity_collisions = get_collisions_for_entity(
-            polygon, other_entity_polygons, other_entities_aabb_tree
-        )
+        entity_collisions = get_collisions_for_entity(polygon, other_entity_polygons)
         collisions[uid] = entity_collisions
 
     for agent_uid, action in agent_actions.items():

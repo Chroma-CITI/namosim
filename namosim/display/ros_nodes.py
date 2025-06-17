@@ -655,16 +655,16 @@ class RRTPublisher(BasePublisher):
                 start.x = float(node.parent.pose[0])
                 start.y = float(node.parent.pose[1])
                 start.z = float(0)
-                lines_marker.points.append(start)
+                lines_marker.points.append(start)  # type: ignore
                 # Add end point (current node)
                 end = Point()
                 end.x = float(node.pose[0])
                 end.y = float(node.pose[1])
                 end.z = float(0)
-                lines_marker.points.append(end)
+                lines_marker.points.append(end)  # type: ignore
 
         # Add both markers to the MarkerArray
-        marker_array.markers.append(lines_marker)
+        marker_array.markers.append(lines_marker)  # type: ignore
 
         super().publish(marker_array)
 

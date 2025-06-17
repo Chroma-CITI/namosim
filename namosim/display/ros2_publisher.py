@@ -57,9 +57,9 @@ class RosPublisher:  # noqa: F821
         self.agent_ids = agent_ids
 
         # Add robot-specific publishers for each robot namespace
-        self.robot_world_publishers: t.Dict[
-            str, ros_nodes.DynamicEntitiesPublisher
-        ] = {}
+        self.robot_world_publishers: t.Dict[str, ros_nodes.DynamicEntitiesPublisher] = (
+            {}
+        )
         self.robot_map_publishers: t.Dict[str, ros_nodes.WorldMapPublisher] = {}
         self.robot_combined_costmap_publishers: t.Dict[
             str, ros_nodes.CombinedCostmapPublisher
@@ -90,12 +90,12 @@ class RosPublisher:  # noqa: F821
             self.robot_map_publishers[agent_id] = ros_nodes.WorldMapPublisher(
                 self.ros_node, f"{ns}/map", callback_group=callback_group
             )
-            self.robot_combined_costmap_publishers[
-                agent_id
-            ] = ros_nodes.CombinedCostmapPublisher(
-                self.ros_node,
-                f"{ns}/combined_costmap",
-                callback_group=callback_group,
+            self.robot_combined_costmap_publishers[agent_id] = (
+                ros_nodes.CombinedCostmapPublisher(
+                    self.ros_node,
+                    f"{ns}/combined_costmap",
+                    callback_group=callback_group,
+                )
             )
             self.robot_social_costmap_publishers[agent_id] = ros_nodes.GridMapPublisher(
                 self.ros_node, f"{ns}/social_costmap", callback_group=callback_group
@@ -103,9 +103,9 @@ class RosPublisher:  # noqa: F821
             self.robot_goal_publishers[agent_id] = ros_nodes.GoalPublisher(
                 self.ros_node, f"{ns}/goals", callback_group=callback_group
             )
-            self.robot_manip_search_publishers[
-                agent_id
-            ] = ros_nodes.ManipSearchPublisher(self.ros_node, f"{ns}/manip_search")
+            self.robot_manip_search_publishers[agent_id] = (
+                ros_nodes.ManipSearchPublisher(self.ros_node, f"{ns}/manip_search")
+            )
             self.robot_manip_pose_publishers[agent_id] = ros_nodes.PosesPublisher(
                 self.ros_node, f"{ns}/manip_search/poses", callback_group=callback_group
             )
@@ -118,13 +118,13 @@ class RosPublisher:  # noqa: F821
                 f"{ns}/conflict_check",
                 callback_group=callback_group,
             )
-            self.robot_conflict_horizon_publishers[
-                agent_id
-            ] = ros_nodes.create_publisher(
-                self.ros_node,
-                ros_nodes.MarkerArray,
-                f"{ns}/conflict_horizon",
-                callback_group=callback_group,
+            self.robot_conflict_horizon_publishers[agent_id] = (
+                ros_nodes.create_publisher(
+                    self.ros_node,
+                    ros_nodes.MarkerArray,
+                    f"{ns}/conflict_horizon",
+                    callback_group=callback_group,
+                )
             )
             self.robot_swept_area_publishers[agent_id] = ros_nodes.create_publisher(
                 self.ros_node,
@@ -138,12 +138,12 @@ class RosPublisher:  # noqa: F821
                 f"{ns}/rch",
                 callback_group=callback_group,
             )
-            self.robot_connected_components_publishers[
-                agent_id
-            ] = ros_nodes.GridMapPublisher(
-                self.ros_node,
-                f"{ns}/connected_components",
-                callback_group=callback_group,
+            self.robot_connected_components_publishers[agent_id] = (
+                ros_nodes.GridMapPublisher(
+                    self.ros_node,
+                    f"{ns}/connected_components",
+                    callback_group=callback_group,
+                )
             )
             self.robot_rrt_publishers[agent_id] = ros_nodes.RRTPublisher(
                 node=self.ros_node,
@@ -645,16 +645,16 @@ class RosPublisher:  # noqa: F821
         self,
         poses: t.List[Pose2D],
         start_index: int,
-        check_horizon: int,
+        horizon: int,
         robot_inflated_grid: BinaryOccupancyGrid,
         agent_id: str,
     ):
 
-        if check_horizon <= 0:
+        if horizon <= 0:
             return
 
         horizon_cells: t.Set[GridCellModel] = set()
-        for pose in poses[start_index : start_index + check_horizon]:
+        for pose in poses[start_index : start_index + horizon]:
             cell = utils.real_to_grid(
                 pose[0],
                 pose[1],
@@ -714,14 +714,12 @@ class RosPublisher:  # noqa: F821
         robot_polygons: t.List[Polygon],
         obstacle_polygons: t.List[Polygon],
         start_index: int,
-        check_horizon: int,
+        horizon: int,
         agent_id: str,
     ):
 
         horizon_csv_polygons = []
-        for i in range(
-            start_index, min(start_index + check_horizon, len(obstacle_polygons))
-        ):
+        for i in range(start_index, min(start_index + horizon, len(obstacle_polygons))):
             horizon_csv_polygons.append(robot_polygons[i])
             horizon_csv_polygons.append(obstacle_polygons[i])
 
