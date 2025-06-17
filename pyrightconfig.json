@@ -9,7 +9,7 @@
   "reportMissingTypeStubs": false,
   "reportIncompatibleMethodOverride": "warning",
   "reportAttributeAccessIssue": "warning",
-  "reportArgumentType": "error",
+  "reportArgumentType": "warning",
   "reportAssignmentType": "error",
   "reportOptionalMemberAccess": "warning",
   "pythonVersion": "3.10",

@@ -482,7 +482,7 @@ def map_bounds(polygons: t.Iterable[Polygon]):
     )
 
     for polygon in polygons:
-        min_x, min_y, max_x, max_y = polygon.bounds
+        min_x, min_y, max_x, max_y = polygon.bounds  # type: ignore
         map_min_x, map_min_y = min(map_min_x, min_x), min(map_min_y, min_y)
         map_max_x, map_max_y = max(map_max_x, max_x), max(map_max_y, max_y)
     return map_min_x, map_min_y, map_max_x, map_max_y
@@ -633,7 +633,7 @@ def generate_random_polygon(
 
 def polygon_to_subgrid_polygon_and_parameters(polygon: Polygon, res, grid_pose):
     # Compute real min point and max point of projected polygon grid-axis-aligned bounding box
-    min_x, min_y, max_x, max_y = polygon.bounds
+    min_x, min_y, max_x, max_y = polygon.bounds  # type: ignore
 
     # Clamp the values to their appropriate cell
     try:

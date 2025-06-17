@@ -60,7 +60,7 @@ class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     drive_type: t.Literal["holonomic", "differential"] = attr(default="differential")
     grab_start_distance: float | None = attr(default=None)
     grab_end_distance: float | None = attr(default=None)
-    conflict_horizon: int = attr(default=15)
+    conflict_horizon: int = attr(default=40)
 
 
 class StilmanBehaviorConfigModel(BaseBehaviorConfigModel):

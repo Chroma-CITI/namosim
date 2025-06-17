@@ -8,6 +8,7 @@ import cairosvg
 import numpy as np
 from bidict import bidict  # type: ignore[reportPrivateImportUsage]
 from PIL import Image, ImageDraw
+import shapely
 from shapely.geometry import Polygon, Point
 from typing_extensions import Self
 
@@ -34,6 +35,7 @@ from namosim.world.goal import Goal
 from namosim.world.obstacle import Obstacle
 from namosim.world.sensors.omniscient_sensor import OmniscientSensor
 from namosim.data_models import namo_config_from_yaml
+import shapely.ops
 
 
 class World:
@@ -643,52 +645,19 @@ class World:
     def is_holding_obstacle(self, agent_id: str) -> bool:
         return agent_id in self.entity_to_agent.inverse
 
-    def get_robot_conflict_radius(
-        self,
-        agent_id: str,
-        grab_start_distance: float,
-        obstacle_id: str | None = None,
-    ):
-        robot = self.agents[agent_id]
-        center = robot.polygon.centroid
-        radius_for_move = robot.circumscribed_radius + 4 * self.map.cell_size
-        radius_for_grab_or_release = robot.circumscribed_radius + grab_start_distance
-
-        conflict_radius = radius_for_move
-
-        if self.is_holding_obstacle(agent_id):
-            obstacle_id = self.entity_to_agent.inverse[robot.uid]
-
-        if obstacle_id is not None:
-            obstacle = self.dynamic_entities[obstacle_id]
-            conflict_radius = (
-                center.hausdorff_distance(obstacle.polygon) + 2 * self.map.cell_size
-            )
-
-            # Account for possible release
-            conflict_radius = max(conflict_radius, radius_for_grab_or_release)
-        else:
-            # Enlarge radius to account for possible grabs
-            for uid, obstacle in self.dynamic_entities.items():
-                if (
-                    isinstance(obstacle, Obstacle)
-                    and uid not in self.entity_to_agent
-                    and obstacle.movability == Movability.MOVABLE
-                ):
-                    if obstacle.polygon.buffer(
-                        robot.cell_size,
-                    ).intersects(robot.polygon):
-                        conflict_radius = radius_for_grab_or_release
-                        break
-        return conflict_radius
+    def get_combined_agent_obstacle_polygon(self, agent_id: str) -> Polygon:
+        agent_polygon = self.agents[agent_id].polygon
+        obstacle = self.get_agent_held_obstacle(agent_id)
+        if obstacle is None:
+            return agent_polygon
+        combined_polygon = shapely.ops.unary_union([agent_polygon, obstacle.polygon])
+        return t.cast(Polygon, combined_polygon)
 
     def get_polygon_collisions(self, uid: str, others: t.Iterable[str]) -> t.Any:
         other_polygons = {uid: self.dynamic_entities[uid].polygon for uid in others}
-        others_aabb_tree = collision.polygons_to_aabb_tree(other_polygons)
         collisions = collision.get_collisions_for_entity(
             entity_polygon=self.dynamic_entities[uid].polygon,
             other_entity_polygons=other_polygons,
-            other_entities_aabb_tree=others_aabb_tree,
         )
         return collisions
 
@@ -986,14 +955,18 @@ class World:
         agents: t.List["agts.Agent"] = []
         for agent_config in config.agents:
             pose: Pose2D = Pose2D(0, 0, 0)
-            agent_polygon = Point(pose[0], pose[1]).buffer(agent_config.radius)
+            agent_polygon = t.cast(
+                Polygon, Point(pose[0], pose[1]).buffer(agent_config.radius)
+            )
             if agent_config.initial_pose:
                 pose = Pose2D(
                     agent_config.initial_pose[0],
                     agent_config.initial_pose[1],
                     agent_config.initial_pose[2],
                 )
-                agent_polygon = Point(pose[0], pose[1]).buffer(agent_config.radius)
+                agent_polygon = t.cast(
+                    Polygon, Point(pose[0], pose[1]).buffer(agent_config.radius)
+                )
             elif agent_config.id in agent_poses:
                 pose = agent_poses[agent_config.id]
                 agent_polygon = agent_polygons[agent_config.id]

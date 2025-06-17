@@ -159,7 +159,9 @@ def polygon_to_triangle_vertices(shapely_geometry):
             return []
 
     # Simplify the polygon to remove near-degenerate edges
-    shapely_geometry = shapely_geometry.simplify(tolerance=1e-5, preserve_topology=True)
+    shapely_geometry = t.cast(
+        Polygon, shapely_geometry.simplify(tolerance=1e-5, preserve_topology=True)
+    )
 
     # Check for near-zero area
     if shapely_geometry.area < 1e-10:

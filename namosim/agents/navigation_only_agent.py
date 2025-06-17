@@ -51,9 +51,9 @@ class NavigationOnlyAgent(Agent):
 
     def init(self, world: "w.World"):
         super().init(world)
-        self.static_obs_inf_grid = copy.deepcopy(world.map).inflate_map_destructive(
-            self.robot_max_inflation_radius
-        )
+        self.robot_inflated_static_map = copy.deepcopy(
+            world.map
+        ).inflate_map_destructive(self.robot_max_inflation_radius)
 
     def think(
         self,
@@ -102,7 +102,7 @@ class NavigationOnlyAgent(Agent):
         path = self.find_path(
             robot_pose=self.world.dynamic_entities[self.uid].pose,
             goal_pose=self._goal.pose,
-            robot_inflated_grid=self.static_obs_inf_grid,
+            robot_inflated_grid=self.robot_inflated_static_map,
             robot_polygon=self.world.dynamic_entities[self.uid].polygon,
         )
 

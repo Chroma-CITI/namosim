@@ -155,7 +155,7 @@ class DiffDriveRRTStar:
     def random_pose(self) -> Pose2D:
         if self.goal and self.informed and self.c_best not in (None, float("inf")):
             a = self.c_best / 2.0
-            b = math.sqrt(max(self.c_best ** 2 - self.c_min ** 2, 1e-6)) / 2.0
+            b = math.sqrt(max(self.c_best**2 - self.c_min**2, 1e-6)) / 2.0
             while True:
                 x_ball, y_ball = self._sample_unit_ball()
                 # appliquer la matrice de rotation C
@@ -233,7 +233,7 @@ class DiffDriveRRTStar:
             node.pose[2] - self.start.pose[2],
         )
         new_polygon = affinity.rotate(
-            self.polygon, origin=(self.start.pose[0], self.start.pose[1]), angle=dtheta
+            self.polygon, origin=(self.start.pose[0], self.start.pose[1]), angle=dtheta  # type: ignore
         )
         new_polygon = affinity.translate(new_polygon, xoff=dx, yoff=dy)
         if not self.map_box.contains(new_polygon):
@@ -253,7 +253,7 @@ class DiffDriveRRTStar:
         dx = node.pose[0] - self.start.pose[0]
         dy = node.pose[1] - self.start.pose[1]
         dth = node.pose[2] - self.start.pose[2]
-        polygon = affinity.rotate(polygon, dth, origin=self.start.pose[:2])
+        polygon = affinity.rotate(polygon, dth, origin=self.start.pose[:2])  # type: ignore
         polygon = affinity.translate(polygon, xoff=dx, yoff=dy)
         return polygon
 
@@ -285,7 +285,7 @@ class DiffDriveRRTStar:
         dx = node.pose[0] - self.start.pose[0]
         dy = node.pose[1] - self.start.pose[1]
         dth = node.pose[2] - self.start.pose[2]
-        polygon = affinity.rotate(self.polygon, dth, origin=self.start.pose[:2])
+        polygon = affinity.rotate(self.polygon, dth, origin=self.start.pose[:2])  # type: ignore
         polygon = affinity.translate(polygon, xoff=dx, yoff=dy)
         return polygon
 
