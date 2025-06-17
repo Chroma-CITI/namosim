@@ -110,7 +110,7 @@ class Stilman2005Agent(Agent):
             self.translation_unit_cost / self.translation_unit_length
         )
         self.rotation_factor = self.rotation_unit_cost / self.rotation_unit_angle
-        self.max_evasion_cells_to_visit = 1000
+        self.max_evasion_cells_to_visit = 2000
 
         # - S-NAMO parameters
         self.use_social_cost = config.parameters.use_social_cost
@@ -3845,44 +3845,17 @@ class Stilman2005Agent(Agent):
         if len(social_cost) == 0:
             return robot_start_social_cost, None
 
-        min_social_cost_index = np.argmin(social_cost)
-        evasion_cell_cost = social_cost[min_social_cost_index]
-
         if not use_combined_cost:
+            min_social_cost_index = np.argmin(social_cost)
             evasion_cell = accessible_cells[min_social_cost_index]
             evasion_cell_cost = social_cost[min_social_cost_index]
         else:
-            normalized_social_cost = (social_cost - np.min(social_cost)) / np.ptp(
-                social_cost
-            )
-            normalized_distance_cost = (distance_cost - np.min(distance_cost)) / np.ptp(
-                distance_cost
-            )
-
-            w_social = 10
+            w_social = 50
             w_dist = 1
-            combined_cost = (
-                w_social * normalized_social_cost + w_dist * normalized_distance_cost
-            ) / (w_social + w_dist)
+            combined_cost = w_social * social_cost + w_dist * distance_cost
             min_combined_cost_index = np.argmin(combined_cost)
             evasion_cell = accessible_cells[min_combined_cost_index]
-            # evasion_cell_cost = combined_cost[min_combined_cost_index]
-
-            if self.activate_grids_logging:
-                sorted_cell_to_combined_cost = OrderedDict(
-                    sorted(
-                        zip(accessible_cells, combined_cost),
-                        key=lambda t: t[1],
-                        reverse=True,
-                    )
-                )
-                self.log_grids(
-                    robot_inflated_grid,
-                    accessible_cells,
-                    normalized_social_cost,
-                    normalized_distance_cost,
-                    sorted_cell_to_combined_cost,
-                )
+            evasion_cell_cost = combined_cost[min_combined_cost_index]
 
             # ros_publisher.publish_combined_costmap(
             #     sorted_cell_to_combined_cost,
