@@ -66,7 +66,7 @@ These features make NAMOSIM a versatile tool for prototyping, evaluating, and de
 
 # Customizable Scenarios
 
-Namosim environments, or **scenarios**, or stored in SVG format and can be edited using any SVG editor such as Inkscape. The scenario SVG file contains the following keys elements:
+NAMOSIM environments, or **scenarios**, or stored in SVG format and can be edited using any SVG editor such as Inkscape. The scenario SVG file contains the following keys elements:
 
 - The geometry of the static map
 - The polygons and orientations of all robots and movable obstacles
@@ -76,7 +76,7 @@ The static map can also be included as an image layer inside the SVG to convenie
 
 # Architecture
 
-At a high-level, Namosim executes a SENSE-THINK-ACT loop that performs the following functions at each iteration:
+At a high-level, NAMOSIM executes a SENSE-THINK-ACT loop that performs the following functions at each iteration:
 
 1. SENSE: Each agent senses the environment and updates its internal representation of it.
 2. THINK: Each agent computes a new plan or updates its current plan.
