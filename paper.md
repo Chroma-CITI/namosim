@@ -110,7 +110,7 @@ This algorithm is explained in full detail in [3].
 
 # Acknowledgements
 
-This project was developed by the CHROMA team at the CITI Laboratory, INSA Lyon, in collaboration with Inria. It is part of ongoing research into autonomous navigation, multi-robot systems, and human-aware robotics.
+This research was supported by an Inria ADT initiative. We express our gratitude to Benoit Renault, whose PhD thesis forms the foundation of this work.
 
 # References
 
