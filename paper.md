@@ -91,12 +91,20 @@ a movable obstacle, the robot footprint is non-circular, and collision detection
 
 ## Conflict Avoidance and Deadlock Resolution
 
-The baseline `Stilman2005` agent has the capability to avoid conflicts and attempt to resolve deadlocks. Conflict avoidance works by 
-looking ahead along the agent's current plan for a fixed number of steps, called the **conflict horizon**. Within the horizon, the agent simulates 
-each planned action and checks for a number of possible conflicts. For example, the agent may have planned to move a certain obstacle which has been moved by another robot and is no longer at the expected location. Or as another example, an action within the conflict horizon may collide with another robot that currently crossing the planned path. 
+The baseline `Stilman2005` agent has the capability to avoid conflicts and attempt to resolve deadlocks. Conflict avoidance works by
+looking ahead along the agent's current plan for a fixed number of steps, called the **conflict horizon**. Within the horizon, the agent simulates
+each planned action and checks for a number of possible conflicts. For example, the agent may have planned to move a certain obstacle which has been moved by another robot and is no longer at the expected location. Or as another example, an action within the conflict horizon may collide with another robot that currently crossing the planned path.
 
 The `Stilman2005` agent avoids conflicts by either pausing or planning around them. A deadlock is detected when a given conflict configuration is re-detected multiple times, even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in our IROS-2024 paper [1].
 
+## The Core NAMO Algorithm
+
+The core NAMO algorithm implemented in our `Stilman2005` agent, is based on the idea of moving obstacles in order to merge disjoint components of the robot's configuration space. The map is divided into a set of disjoint connected-components where each cell in a given component is reachable from all the other cells in the same component. The connected-components must be separated from each other by movable obstacles, otherwise they are unreachable. The agent's goal is to move obstacles in order to join different components to open a path to the goal.
+
+The algorithm computes a plan by recursively performing the following two stages:
+
+1. The first stage performs a simplified A\* grid search where the agent is allowed to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the path to the and the ID of the component encountered after passing through the obstacle.
+2. The second stage first finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then it finds a **transfer path** by doing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails for any reason, the obstacle and component pair from stage 1 are added to an avoid-list and the algorithm is restarted from the beginning.
 
 # Acknowledgements
 
