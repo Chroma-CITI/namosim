@@ -104,7 +104,7 @@ The core NAMO algorithm implemented in our `Stilman2005` agent, is based on the 
 The algorithm computes a plan by recursively performing the following two stages:
 
 1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A\* grid search where the agent is allowed to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the path to the goal and the ID of the component encountered after passing through the obstacle.
-2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage first finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then it finds a **transfer path** by doing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails for any reason, the obstacle and component pair from stage 1 are added to an avoid-list and the algorithm is restarted from the beginning.
+2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage first finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then it finds a **transfer path** by doing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails for any reason, the obstacle and component pair are added to an avoid-list and the algorithm goes back to stage 1.
 
 This algorithm is explained in full detail in [3].
 
