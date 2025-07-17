@@ -39,11 +39,13 @@ license: MIT
 
 # Summary
 
-_NAMOSIM_ is a robot motion planning simulator designed for the Navigation Among Movable Obstacles (NAMO) problem. It enables simulation and evaluation of motion planning strategies in 2D environments where certain obstacles can be manipulated by robots to reach their goals. The simulator includes support for holonomic and differential drive models, and integrates with ROS2 for seamless use in both simulated and real robotic platforms.
+_NAMOSIM_ is a robot motion planning simulator designed for the problem of Navigation Among Movable Obstacles (NAMO). It enables simulation and evaluation of motion planning strategies in 2D environments where certain obstacles can be manipulated by robots to reach their goals. The simulator includes support for holonomic and differential-drive motion models, and integrates with ROS2 for visualization in RViz.
 
-NAMOSIM provides a modular agent-based architecture, including a baseline implementation of the well-known Stilman2005 NAMO planner. New planning strategies can be implemented via a clean `Agent` interface, facilitating experimentation and benchmarking. The system includes full ROS2 compatibility, allowing visualization of plans using RViz2, as well as utilities for testing and documentation generation.
+NAMOSIM provides a modular agent-based architecture, including a baseline implementation of the `Stilman2005` NAMO algorithm. A variety of other agent types are implemented, and new agents utilizing alternative algorithmic approaches can be created and plugged into the planner in a straightforward manner by implementing the **Agent** base class. Thus, new planning strategies can be easily developed, thereby facilitating experimentation with differing approaches, including machine-learning-based agents.
 
-This software is intended for researchers, educators, and developers working on robot navigation in dynamic environments, particularly where physical interaction with the environment is necessary.
+The system utilizes ROS2 messages for visualization of plans using RViz2 and includes a number of custom scenarios to use for testing and benchmarking.
+
+This software is intended for researchers and developers working on robot navigation in dynamic environments, particularly where physical interaction with the environment is necessary.
 
 # Statement of need
 
