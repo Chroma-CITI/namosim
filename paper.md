@@ -89,6 +89,15 @@ The loop is expected to execute at a regular frequency with the assumption that 
 Custom agents are free to implement their own collision detection, however our baseline `Stilman2005` agent detects collisions using a simple binary-occupancy grid when the robot footprint is circular. However, when transporting
 a movable obstacle, the robot footprint is non-circular, and collision detection is based on the convex-swept-volume of the combined robot-obstacle footprint's motion to guarantee all possible collisions are detected.
 
+## Conflict Avoidance and Deadlock Resolution
+
+The baseline `Stilman2005` agent has the capability to avoid conflicts and attempt to resolve deadlocks. Conflict avoidance works by 
+looking ahead along the agent's current plan for a fixed number of steps, called the **conflict horizon**. Within the horizon, the agent simulates 
+each planned action checks for a number of possible conflicts. For example, the agent may have planned to move a certain obstacle which has been moved by another robot and is no longer at the expected location. Or as another example, an action within the conflict horizon may collide with another robot currently crossing the planned path. 
+
+The `Stilman2005` avoids conflicts by pausing or planning around them. A deadlock is detected when given conflict configuration is re-detected multiple times even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in our IROS-2024 paper [1].
+
+
 # Acknowledgements
 
 This project was developed by the CHROMA team at the CITI Laboratory, INSA Lyon, in collaboration with Inria. It is part of ongoing research into autonomous navigation, multi-robot systems, and human-aware robotics.
