@@ -47,9 +47,7 @@ This software is intended for researchers, educators, and developers working on 
 
 # Statement of need
 
-Most motion planning frameworks assume static environments, limiting their usefulness in cluttered or semi-structured domains. NAMO problems introduce the need for reasoning about which obstacles to move, where to move them, and how to coordinate motion and manipulation. NAMOSIM addresses this by offering a simulation platform explicitly designed to study and prototype NAMO-capable robots.
-
-This package fills a gap in current robotics tooling by supporting both the simulation and real-time deployment of NAMO algorithms in ROS2, with full extensibility for research and teaching use cases.
+Most navigation planners assume static environments and non-interactive environments, limiting their usefulness in complex real-world applications. NAMO problems involve not only path planning but also introduce the need for reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. NAMOSIM addresses this by offering a simulation environment explicitly designed to study and prototype NAMO algorithms. NAMOSIM additionally supports multi-robot environments and thus facilitates reproducible research in multi-robot navigation among movable obstacles (MR-NAMO).
 
 # Major Features
 
