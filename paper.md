@@ -93,9 +93,9 @@ a movable obstacle, the robot footprint is non-circular, and collision detection
 
 The baseline `Stilman2005` agent has the capability to avoid conflicts and attempt to resolve deadlocks. Conflict avoidance works by 
 looking ahead along the agent's current plan for a fixed number of steps, called the **conflict horizon**. Within the horizon, the agent simulates 
-each planned action checks for a number of possible conflicts. For example, the agent may have planned to move a certain obstacle which has been moved by another robot and is no longer at the expected location. Or as another example, an action within the conflict horizon may collide with another robot currently crossing the planned path. 
+each planned action and checks for a number of possible conflicts. For example, the agent may have planned to move a certain obstacle which has been moved by another robot and is no longer at the expected location. Or as another example, an action within the conflict horizon may collide with another robot that currently crossing the planned path. 
 
-The `Stilman2005` avoids conflicts by pausing or planning around them. A deadlock is detected when given conflict configuration is re-detected multiple times even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in our IROS-2024 paper [1].
+The `Stilman2005` agent avoids conflicts by either pausing or planning around them. A deadlock is detected when a given conflict configuration is re-detected multiple times, even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in our IROS-2024 paper [1].
 
 
 # Acknowledgements
