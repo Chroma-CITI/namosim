@@ -13,7 +13,7 @@ NAMOSIM is a robot motion planner designed for the problem of navigation among m
 
 First, clone the repo.
 
-Next, use `rosdep` to install the dependencies listed in the `package.xml` file: 
+Next, use `rosdep` to install the dependencies listed in the `package.xml` file:
 
 ```bash
 rosdep install --from-paths . -r -y
@@ -30,6 +30,7 @@ pip install -r requirements.txt
 The best way is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
 
 Alternativley you can launch a test from the command line like so:
+
 ```bash
 python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
@@ -58,7 +59,7 @@ python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 
 ## Documentation
 
-You can find the docs site [here](https://chroma.gitlabpages.inria.fr/namo/namosim/).
+You can find the docs site [here](https://chroma-citi.github.io/namosim/).
 
 To build the docs site locally, run:
 
@@ -68,19 +69,19 @@ To build the docs site locally, run:
 
 ## Authors
 
-* Benoit Renault
-* Jacques Saraydaryan
-* David Brown
-* Olivier Simonin
+- Benoit Renault
+- Jacques Saraydaryan
+- David Brown
+- Olivier Simonin
 
 ## Affiliated Teams and Organisations
 
-|          | Org/Team |
-|----------|----------------------------------------------------------------------------------------|
-| ![Inria Logo](docs/source/_static/inria.png)    | [Inria](https://inria.fr/fr)   |
-| ![INSA Lyon Logo](docs/source/_static/insa.png) | [INSA Lyon](https://www.insa-lyon.fr/)  |
+|                                                 | Org/Team                                      |
+| ----------------------------------------------- | --------------------------------------------- |
+| ![Inria Logo](docs/source/_static/inria.png)    | [Inria](https://inria.fr/fr)                  |
+| ![INSA Lyon Logo](docs/source/_static/insa.png) | [INSA Lyon](https://www.insa-lyon.fr/)        |
 | ![CITI Logo](docs/source/_static/citi.png)      | [CITI Laboratory](https://www.citi-lab.fr/)   |
-|  CHROMA                                         | [CHROMA Team](https://www.inria.fr/en/chroma)   |
+| CHROMA                                          | [CHROMA Team](https://www.inria.fr/en/chroma) |
 
 ## Cite Us
 
