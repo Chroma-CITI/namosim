@@ -84,19 +84,6 @@ At a high-level, NAMOSIM executes a SENSE-THINK-ACT loop that performs the follo
 
 The loop is expected to execute at a regular frequency with the assumption that all agent functions are synchronized at run sequentially.
 
-## Collision Detection
-
-Custom agents are free to implement their own collision detection, however our baseline `Stilman2005` agent detects collisions using a simple binary-occupancy grid when the robot footprint is circular. However, when transporting
-a movable obstacle, the robot footprint is non-circular, and collision detection is based on the convex-swept-volume of the combined robot-obstacle footprint's motion to guarantee all possible collisions are detected.
-
-## Conflict Avoidance and Deadlock Resolution
-
-The baseline `Stilman2005` agent has the capability to avoid conflicts and attempt to resolve deadlocks. Conflict avoidance works by
-looking ahead along the agent's current plan for a fixed number of steps, called the **conflict horizon**. Within the horizon, the agent simulates
-each planned action and checks for a number of possible conflicts. For example, the agent may have planned to move a certain obstacle which has been moved by another robot and is no longer at the expected location. Or as another example, an action within the conflict horizon may collide with another robot that currently crossing the planned path.
-
-The `Stilman2005` agent avoids conflicts by either pausing or planning around them. A deadlock is detected when a given conflict configuration is re-detected multiple times, even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in our IROS-2024 paper [1].
-
 ## Stilman's Algorithm
 
 NAMOSIM includes a baseline implementation of Stilman's 2005 NAMO algorithm. The key idea of this algorithm is to move obstacles in such a way as to merge disjoint components of the robot's free configuration space. The map is divided into a set of disjoint **connected components** where each cell in a given component is reachable from all the other cells in the same component. It can easily be proven that components must be separated from each other by movable obstacles or otherwise be unreachable. The algorithm functions by moving obstacles so as to join components until the robot's current component includes the goal cell.
@@ -107,6 +94,18 @@ The algorithm works by recursively performing the following two stages:
 2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage first finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then it finds a **transfer path** by performing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails for any reason, the obstacle and component pair are added to an avoid-list and the algorithm goes back to stage 1.
 
 The each iteration of the algorithm continues with a copy of the environment where the robot and obstacle start from the poses resulting from the end of the previous obstacle manipulation search. This algorithm is explained in greater detail in [3].
+
+## Collision Detection
+
+Custom agents are free to implement their own collision detection routines, however our baseline `Stilman2005` agent detects collisions using a simple binary-occupancy grid when the robot footprint is circular. However, when transporting a movable obstacle, the robot footprint is non-circular, and collision detection is based on the convex-swept-volume resulting from the area swept by the combined robot-obstacle footprint due to the action motion While computationally expensive, this guarantees that all possible collisions are detected, regardless of the shape of the robot or obstacle.
+
+## Conflict Avoidance and Deadlock Resolution
+
+The baseline `Stilman2005` agent has the capability to avoid conflicts and attempt to resolve deadlocks. Conflict avoidance works by
+looking ahead along the agent's current plan for a fixed number of steps, called the **conflict horizon**. Within the horizon, the agent simulates
+each planned action and checks for a number of possible conflicts. For example, the agent may have planned to move a certain obstacle which has been moved by another robot and is no longer at the expected location. Or as another example, an action within the conflict horizon may collide with another robot that currently crossing the planned path.
+
+The `Stilman2005` agent avoids conflicts by either pausing or planning around them. A deadlock is detected when a given conflict configuration is re-detected multiple times, even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in our IROS-2024 paper [1].
 
 # Acknowledgements
 
