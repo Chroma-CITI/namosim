@@ -1,5 +1,5 @@
 ---
-title: 'NAMOSIM: A Robot Motion Planner for Navigation Among Movable Obstacles'
+title: "NAMOSIM: A Robot Motion Planner for Navigation Among Movable Obstacles"
 tags:
   - robotics
   - motion planning
@@ -9,16 +9,16 @@ tags:
   - path planning
 authors:
   - name: Benoit Renault
-    orcid: 0000-000X-XXXX-XXXX  # Replace with actual ORCID
+    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
     affiliation: "2 4"
   - name: Jacques Saraydaryan
-    orcid: 0000-000X-XXXX-XXXX  # Replace with actual ORCID
+    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
     affiliation: "1 3 4"
   - name: David Brown
-    orcid: 0000-000X-XXXX-XXXX  # Replace with actual ORCID
+    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
     affiliation: "1 4"
   - name: Olivier Simonin
-    orcid: 0000-000X-XXXX-XXXX  # Replace with actual ORCID
+    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
     affiliation: "1 2 4"
 affiliations:
   - name: Inria, CHROMA Team
@@ -31,7 +31,7 @@ affiliations:
     index: 4
 date: 2025-07-07
 repository: https://gitlab.inria.fr/chroma/namo/namosim
-archive: 10.5281/zenodo.XXXXXXX  # Replace with actual Zenodo DOI after archiving
+archive: 10.5281/zenodo.XXXXXXX # Replace with actual Zenodo DOI after archiving
 license: MIT
 ---
 
@@ -39,17 +39,17 @@ license: MIT
 
 # Summary
 
-*NAMOSIM* is a robot motion planning simulator designed for the Navigation Among Movable Obstacles (NAMO) problem. It enables simulation and evaluation of motion planning strategies in 2D environments where certain obstacles can be manipulated by robots to reach their goals. The simulator includes support for holonomic and differential drive models, and integrates with ROS2 for seamless use in both simulated and real robotic platforms.
+_NAMOSIM_ is a robot motion planning simulator designed for the problem of Navigation Among Movable Obstacles (NAMO). It enables simulation and evaluation of motion planning strategies in 2D environments where certain obstacles can be manipulated by robots to reach their goals. The simulator includes support for holonomic and differential-drive motion models, and integrates with ROS2 for visualization in RViz.
 
-NAMOSIM provides a modular agent-based architecture, including a baseline implementation of the well-known Stilman2005 NAMO planner. New planning strategies can be implemented via a clean `Agent` interface, facilitating experimentation and benchmarking. The system includes full ROS2 compatibility, allowing visualization of plans using RViz2, as well as utilities for testing and documentation generation.
+NAMOSIM provides a modular agent-based architecture, including a baseline implementation of the `Stilman2005` NAMO algorithm. A variety of other agent types are implemented, and new agents utilizing alternative algorithmic approaches can be created and plugged into the planner in a straightforward manner by implementing the **Agent** base class. Thus, new planning strategies can be easily developed, thereby facilitating experimentation with differing approaches, including machine-learning-based agents.
 
-This software is intended for researchers, educators, and developers working on robot navigation in dynamic environments, particularly where physical interaction with the environment is necessary.
+The system utilizes ROS2 messages for visualization of plans using RViz2 and includes a number of custom scenarios to use for testing and benchmarking.
+
+This software is intended for researchers and developers working on robot navigation in dynamic environments, particularly where physical interaction with the environment is necessary.
 
 # Statement of need
 
-Most motion planning frameworks assume static environments, limiting their usefulness in cluttered or semi-structured domains. NAMO problems introduce the need for reasoning about which obstacles to move, where to move them, and how to coordinate motion and manipulation. NAMOSIM addresses this by offering a simulation platform explicitly designed to study and prototype NAMO-capable robots.
-
-This package fills a gap in current robotics tooling by supporting both the simulation and real-time deployment of NAMO algorithms in ROS2, with full extensibility for research and teaching use cases.
+Most navigation planners assume static environments and non-interactive environments, limiting their usefulness in complex real-world applications. NAMO problems involve not only path planning but also introduce the need for reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. NAMOSIM addresses this by offering a simulation environment explicitly designed to study and prototype NAMO algorithms. NAMOSIM additionally supports multi-robot environments and thus facilitates reproducible research in multi-robot navigation among movable obstacles (MR-NAMO).
 
 # Major Features
 
@@ -64,12 +64,58 @@ NAMOSIM provides a robust set of features to support research and development in
 
 These features make NAMOSIM a versatile tool for prototyping, evaluating, and deploying NAMO algorithms in diverse robotic applications.
 
+# Customizable Scenarios
+
+NAMOSIM environments, or **scenarios**, or stored in SVG format and can be edited using any SVG editor such as Inkscape. The scenario SVG file contains the following keys elements:
+
+- The geometry of the static map
+- The polygons and orientations of all robots and movable obstacles
+- Configuration settings that define the behavior the environment and robots.
+
+The static map can also be included as an image layer inside the SVG to conveniently include ROS grid-map images generated by standard mapping tools.
+
+# Architecture
+
+At a high-level, NAMOSIM executes a SENSE-THINK-ACT loop that performs the following functions at each iteration:
+
+1. SENSE: Each agent senses the environment and updates its internal representation of it.
+2. THINK: Each agent computes a new plan or updates its current plan.
+3. ACT: Each agent selects a single discrete action to execute.
+
+The loop is expected to execute at a regular frequency with the assumption that all agent functions are synchronized at run sequentially.
+
+## Collision Detection
+
+Custom agents are free to implement their own collision detection, however our baseline `Stilman2005` agent detects collisions using a simple binary-occupancy grid when the robot footprint is circular. However, when transporting
+a movable obstacle, the robot footprint is non-circular, and collision detection is based on the convex-swept-volume of the combined robot-obstacle footprint's motion to guarantee all possible collisions are detected.
+
+## Conflict Avoidance and Deadlock Resolution
+
+The baseline `Stilman2005` agent has the capability to avoid conflicts and attempt to resolve deadlocks. Conflict avoidance works by
+looking ahead along the agent's current plan for a fixed number of steps, called the **conflict horizon**. Within the horizon, the agent simulates
+each planned action and checks for a number of possible conflicts. For example, the agent may have planned to move a certain obstacle which has been moved by another robot and is no longer at the expected location. Or as another example, an action within the conflict horizon may collide with another robot that currently crossing the planned path.
+
+The `Stilman2005` agent avoids conflicts by either pausing or planning around them. A deadlock is detected when a given conflict configuration is re-detected multiple times, even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in our IROS-2024 paper [1].
+
+## The Core NAMO Algorithm
+
+The core NAMO algorithm implemented in our `Stilman2005` agent, is based on the idea of moving obstacles in order to merge disjoint components of the robot's configuration space. The map is divided into a set of disjoint connected-components where each cell in a given component is reachable from all the other cells in the same component. The connected-components must be separated from each other by movable obstacles, otherwise they are unreachable. The agent's goal is to move obstacles in order to join different components to open a path to the goal.
+
+The algorithm computes a plan by recursively performing the following two stages:
+
+1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A\* grid search where the agent is allowed to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the path to the goal and the ID of the component encountered after passing through the obstacle.
+2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage first finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then it finds a **transfer path** by doing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails for any reason, the obstacle and component pair are added to an avoid-list and the algorithm goes back to stage 1.
+
+This algorithm is explained in full detail in [3].
+
 # Acknowledgements
 
-This project was developed by the CHROMA team at the CITI Laboratory, INSA Lyon, in collaboration with Inria. It is part of ongoing research into autonomous navigation, multi-robot systems, and human-aware robotics.
+This research was supported by an Inria ADT initiative. We express our gratitude to Benoit Renault, whose PhD thesis forms the foundation of this work.
 
 # References
 
-Renault, B., Saraydaryan, J., Brown, D., & Simonin, O. (2024). Multi-Robot Navigation among Movable Obstacles: Implicit Coordination to Deal with Conflicts and Deadlocks. *IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)*. https://hal.science/hal-04705395
+Renault, B., Saraydaryan, J., Brown, D., & Simonin, O. (2024). Multi-Robot Navigation among Movable Obstacles: Implicit Coordination to Deal with Conflicts and Deadlocks. _IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)_. https://hal.science/hal-04705395
 
-Renault, B., Saraydaryan, J., & Simonin, O. (2020). Modeling a Social Placement Cost to Extend Navigation Among Movable Obstacles (NAMO) Algorithms. *IEEE/RSJ IROS 2020*. https://doi.org/10.1109/IROS45743.2020.9340892
+Renault, B., Saraydaryan, J., & Simonin, O. (2020). Modeling a Social Placement Cost to Extend Navigation Among Movable Obstacles (NAMO) Algorithms. _IEEE/RSJ IROS 2020_. https://doi.org/10.1109/IROS45743.2020.9340892
+
+Benoit Renault. NAvigation en milieu MOdifiable (NAMO) étendue à des contraintes sociales et multi-robots. Robotique [cs.RO]. INSA de Lyon, 2023. Français. ⟨NNT : 2023ISAL0105⟩. ⟨tel-04418723v2⟩
