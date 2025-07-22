@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: osrf/ros:humble-desktop-full
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -50,6 +53,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: osrf/ros:humble-desktop-full
+    defaults:
+      run:
+        shell: bash
     if: github.event_name == 'push' && github.ref == 'refs/heads/humble'
     steps:
       - name: Checkout repository
