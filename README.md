@@ -13,11 +13,6 @@ NAMOSIM is a robot motion planner designed for the problem of navigation among m
 
 First, clone the repo.
 
-```bash
-git clone https://gitlab.inria.fr/chroma/namo/namosim.git
-cd namosim
-```
-
 Next, use `rosdep` to install the dependencies listed in the `package.xml` file: 
 
 ```bash
