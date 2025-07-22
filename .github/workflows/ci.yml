@@ -40,10 +40,11 @@ jobs:
       - name: Build with colcon
         run: |
           colcon build
-          . install/setup.bash
 
       - name: Run tests
-        run: ./scripts/test_all.sh
+        run: |
+          source install/setup.bash
+          ./scripts/test_all.sh
 
       - name: Clean up
         run: rm -rf build/ install/ log/
@@ -80,7 +81,7 @@ jobs:
 
       - name: Build documentation
         run: |
-          . install/setup.bash
+          source install/setup.bash
           cd docs
           make html
           mv build/html ../public
