@@ -1,5 +1,5 @@
 ---
-title: "NAMOSIM: A Robot Motion Planner for Navigation Among Movable Obstacles"
+title: "NAMOSIM: a Robot Motion Planner for Navigation Among Movable Obstacles"
 tags:
   - robotics
   - motion planning
@@ -9,16 +9,16 @@ tags:
   - path planning
 authors:
   - name: David Brown
-    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
+    orcid: 0009-0000-3804-7734
     affiliation: "1 4"
   - name: Jacques Saraydaryan
-    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
+    orcid: 0000-0002-1436-3393
     affiliation: "1 3 4"
   - name: Benoit Renault
     orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
     affiliation: "2 4"
   - name: Olivier Simonin
-    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
+    orcid: 0000-0002-3070-7790
     affiliation: "1 2 4"
 affiliations:
   - name: Inria, CHROMA Team
