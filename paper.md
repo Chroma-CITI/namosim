@@ -56,12 +56,12 @@ Many applications in autonomous mobile robotics involve physical interaction wit
 
 NAMOSIM provides a robust set of features to support research and development in Navigation Among Movable Obstacles (NAMO):
 
-- **Modular Agent-Based Architecture**: The simulator is built around a flexible `Agent` interface, allowing users to implement and test custom NAMO planning algorithms. A baseline implementation of the Stilman2005 planner is included for immediate use and benchmarking.
+- **Modular Agent-Based Architecture**: The simulator is built around a flexible `Agent` interface, allowing users to implement and test custom NAMO planning algorithms. A baseline implementation of the `Stilman2005` planner is included for immediate use and benchmarking.
 - **Support for Multiple Robot Models**: NAMOSIM supports both holonomic and differential-drive robot models, enabling realistic simulation of various robotic platforms.
-- **ROS2 Integration**: Full compatibility with ROS2 allows seamless deployment on both simulated and physical robots, with built-in support for visualization in RViz and integration with ROS2 navigation stacks.
-- **2D Environment Simulation**: The simulator provides a customizable 2D environment where users can define static and movable obstacles, supporting complex scenarios for testing navigation and manipulation strategies.
-- **Extensive Testing and Documentation Utilities**: NAMOSIM includes tools for automated testing of planning algorithms and generating comprehensive documentation, facilitating reproducible research and educational use.
-- **Multi-Robot Coordination**: The simulator supports multi-robot scenarios, enabling the study of implicit coordination and conflict resolution in NAMO tasks, as explored in related research [@renault_2024_iros].
+- **ROS2 Integration**: NAMOSIM forms a ROS2 package, enabling seamless integration into simulated and physical robotics projects and visualization via RViz.
+- **2D Environment Simulation**: The simulator provides a customizable 2D environment where users can define static and movable obstacles, supporting complex scenarios for testing multi-robot coordination strategies and NAMO algorithms.
+- **Prebuit Scenarios and Tests**: NAMOSIM includes several custom scenario files for benchmarking and testing of specific situations.
+- **Multi-Robot Coordination**: The simulator supports multi-robot scenarios, and our baseline agent `Stillman2005` agent` implements the communication-free coordination strategy presented in our IROS-2024 publication[@renault_2024_iros].
 
 These features make NAMOSIM a versatile tool for prototyping, evaluating, and deploying NAMO algorithms in diverse robotic applications.
 
@@ -91,7 +91,7 @@ NAMOSIM includes a baseline implementation of Stilman's 2005 NAMO algorithm [@st
 
 The algorithm works by recursively performing the following two stages:
 
-1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A* grid search, allowing the agent to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the optimal path to the goal and the ID of the component encountered after passing through the obstacle.
+1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A\* grid search, allowing the agent to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the optimal path to the goal and the ID of the component encountered after passing through the obstacle.
 2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then, it finds a **transfer path** by performing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails, the obstacle and component pair are added to an avoid-list, and the algorithm returns to stage 1.
 
 Each iteration of the algorithm continues with a copy of the environment where the robot and obstacle start from the poses resulting from the previous obstacle manipulation search. This algorithm is explained in greater detail in Renault's 2023 PhD thesis [@renault_phd_thesis].
