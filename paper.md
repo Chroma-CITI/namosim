@@ -8,15 +8,15 @@ tags:
   - simulation
   - path planning
 authors:
-  - name: Benoit Renault
-    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
-    affiliation: "2 4"
-  - name: Jacques Saraydaryan
-    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
-    affiliation: "1 3 4"
   - name: David Brown
     orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
     affiliation: "1 4"
+  - name: Jacques Saraydaryan
+    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
+    affiliation: "1 3 4"
+  - name: Benoit Renault
+    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
+    affiliation: "2 4"
   - name: Olivier Simonin
     orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
     affiliation: "1 2 4"
@@ -39,13 +39,13 @@ license: MIT
 
 # Summary
 
-**NAMOSIM** is a mobile robot navigation planner designed for the problem of **N**avigation **A**mong **M**ovable **O**bstacles (NAMO). The planner simulates robots navigating in 2D polygonal environments in which certain obstacles can be grabbed and relocated in order for the robots to reach their goals. NAMOSIM thus extends the classic navigation problem with a layer of interactivity which poses interesting research questions while remaining well-defined and amenable to both classical and learning-based approaches. The simulator includes support for holonomic and differential-drive motion models, and integrates with ROS2 for visualization in RViz. NAMOSIM additionally supports multi-robot environments and provides a baseline NAMO algorithm along with a communication-free coordination strategy.
+**NAMOSIM** is a mobile robot motion planner designed for the problem of **N**avigation **A**mong **M**ovable **O**bstacles (NAMO). The planner simulates robots navigating in 2D polygonal environments wherein certain obstacles can be grasped and relocated in order for the robots to reach their goals. NAMOSIM thus extends the classic navigation problem with a layer of interactivity which poses interesting research questions while remaining well-defined and amenable to both classical and learning-based approaches. The simulator includes support for holonomic and differential-drive motion models, and integrates with ROS2 for visualization in RViz. NAMOSIM additionally supports multi-robot environments and provides a baseline NAMO algorithm along with a communication-free coordination strategy.
 
-NAMOSIM uses a modular agent-based architecture, and includes a baseline NAMO algorithm [@stilman] implemented in the `Stilman2005` agent, which also implements a communication-free coordination strategy for multi-robot scenarios. A variety of other agent types are implemented, and new agents utilizing alternative algorithmic approaches can be created and plugged into the planner in a straightforward manner by implementing the **Agent** base class. Thus, new navigation algorithms, including those based on machine learning or AI, can be easily developed within NAMOSIM, thereby facilitating reproducible research in the context of NAMO.
+NAMOSIM uses a modular agent-based architecture, and includes a baseline NAMO algorithm [@stilman] implemented in the `Stilman2005` agent, which also implements a communication-free coordination strategy for multi-robot scenarios. A variety of other agent types are implemented, and new agents utilizing alternative approaches can be created and plugged into the planner in a straightforward manner by implementing the **Agent** base class. Thus, new navigation algorithms, including those based on machine learning or AI, can be developed within NAMOSIM, thereby facilitating reproducible research on NAMO problems.
 
 NAMOSIM utilizes ROS2 messages for visualization of environments and plans using RViz2, and includes a number of prebuilt scenarios to use for testing and benchmarking. Scenarios are stored as SVG files, so custom scenarios can be conveniently created using a free SVG editor such as Inkscape.
 
-NAMOSIM is packaged as a ROS2 package for easy integration into robotics projects but may also be used as a standalone Python module. The package is intended for researchers and developers working on robot navigation in dynamic environments, particularly where physical interaction with the environment is necessary.
+NAMOSIM is packaged as a ROS2 package for easy integration into robotics projects but may also be used as a standalone Python module. The package is intended for researchers and developers working on robot navigation in dynamic environments, particularly where physical interaction is necessary.
 
 # Statement of need
 
@@ -97,16 +97,16 @@ each planned action and checks for a number of possible conflicts. For example, 
 
 The `Stilman2005` agent avoids conflicts by either pausing or planning around them. A deadlock is detected when a given conflict configuration is re-detected multiple times, even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in our IROS-2024 paper [1].
 
-## The Core NAMO Algorithm
+## Stilman's Algorithm
 
-The core NAMO algorithm implemented in our `Stilman2005` agent, is based on the idea of moving obstacles in order to merge disjoint components of the robot's configuration space. The map is divided into a set of disjoint connected-components where each cell in a given component is reachable from all the other cells in the same component. The connected-components must be separated from each other by movable obstacles, otherwise they are unreachable. The agent's goal is to move obstacles in order to join different components to open a path to the goal.
+NAMOSIM includes a baseline implementation of Stilman's 2005 NAMO algorithm. The key idea of this algorithm is to move obstacles in such a way as to merge disjoint components of the robot's free configuration space. The map is divided into a set of disjoint **connected components** where each cell in a given component is reachable from all the other cells in the same component. It can easily be proven that components must be separated from each other by movable obstacles or otherwise be unreachable. The algorithm functions by moving obstacles so as to join components until the robot's current component includes the goal cell.
 
-The algorithm computes a plan by recursively performing the following two stages:
+The algorithm works by recursively performing the following two stages:
 
-1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A\* grid search where the agent is allowed to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the path to the goal and the ID of the component encountered after passing through the obstacle.
-2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage first finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then it finds a **transfer path** by doing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails for any reason, the obstacle and component pair are added to an avoid-list and the algorithm goes back to stage 1.
+1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A\* grid search where the agent is allowed to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the optimal path to the goal and the ID of the component encountered after passing through the obstacle.
+2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage first finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then it finds a **transfer path** by performing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails for any reason, the obstacle and component pair are added to an avoid-list and the algorithm goes back to stage 1.
 
-This algorithm is explained in full detail in [3].
+The each iteration of the algorithm continues with a copy of the environment where the robot and obstacle start from the poses resulting from the end of the previous obstacle manipulation search. This algorithm is explained in greater detail in [3].
 
 # Acknowledgements
 

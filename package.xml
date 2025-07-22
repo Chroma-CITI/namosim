@@ -3,8 +3,8 @@
 <package format="3">
   <name>namosim</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="david.brown@inria.fr">chroma</maintainer>
+  <description>A navigation planner for Navigation Among Movable Obstacles (NAMO)</description>
+  <maintainer email="david.brown@inria.fr">CHROMA Team - Inria</maintainer>
   <license>MIT</license>
   <depend>black</depend>
   <depend>geometry_msgs</depend>

@@ -33,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update -y
-          apt-get install -y swig curl python3-pip
+          apt-get install -y swig curl python3-pip ros-humble-grid-map-msgs
           rosdep install --from-paths . -r -y || true
           pip install --cache-dir ~/.cache/pip -r requirements.txt
 
