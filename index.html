@@ -1,0 +1,177 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NAMOSIM &mdash; namosim  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Guides" href="guides.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            namosim
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="guides.html">Guides</a></li>
+<li class="toctree-l1"><a class="reference internal" href="namosim.html">namosim package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">namosim</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">NAMOSIM</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="namosim">
+<h1>NAMOSIM<a class="headerlink" href="#namosim" title="Link to this heading"></a></h1>
+<p>NAMOSIM is a mobile robot motion planner for the problem of navigation of movable obstacles (NAMO).</p>
+<a class="reference internal image-reference" href="_images/namo.gif"><img alt="NAMO Simulator" src="_images/namo.gif" style="width: 600px;" />
+</a>
+<p>NAMOSIM is a mobile robot motion planner for the problem of navigation of movable obstacles (NAMO).
+It computes plans for robots navigating in a 2D polygonal environment in which certain
+obstacles may be grasped and moved. This problem is pertinent for real-world robotics applications such as indoor, social environments
+where robots may need to move or manipulate objects in order to navigate and complete their tasks.</p>
+<section id="cite-us">
+<h2>Cite Us<a class="headerlink" href="#cite-us" title="Link to this heading"></a></h2>
+<p>If you use NAMO in any capacity for your research, please do cite the associated paper:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@inproceedings</span><span class="p">{</span><span class="n">renault</span><span class="p">:</span><span class="n">hal</span><span class="o">-</span><span class="mi">02912925</span><span class="p">,</span>
+  <span class="n">TITLE</span> <span class="o">=</span> <span class="p">{{</span><span class="n">Modeling</span> <span class="n">a</span> <span class="n">Social</span> <span class="n">Placement</span> <span class="n">Cost</span> <span class="n">to</span> <span class="n">Extend</span> <span class="n">Navigation</span> <span class="n">Among</span> <span class="n">Movable</span> <span class="n">Obstacles</span> <span class="p">(</span><span class="n">NAMO</span><span class="p">)</span> <span class="n">Algorithms</span><span class="p">}},</span>
+  <span class="n">AUTHOR</span> <span class="o">=</span> <span class="p">{</span><span class="n">Renault</span><span class="p">,</span> <span class="n">Benoit</span> <span class="ow">and</span> <span class="n">Saraydaryan</span><span class="p">,</span> <span class="n">Jacques</span> <span class="ow">and</span> <span class="n">Simonin</span><span class="p">,</span> <span class="n">Olivier</span><span class="p">},</span>
+  <span class="n">URL</span> <span class="o">=</span> <span class="p">{</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">hal</span><span class="o">.</span><span class="n">archives</span><span class="o">-</span><span class="n">ouvertes</span><span class="o">.</span><span class="n">fr</span><span class="o">/</span><span class="n">hal</span><span class="o">-</span><span class="mi">02912925</span><span class="p">},</span>
+  <span class="n">BOOKTITLE</span> <span class="o">=</span> <span class="p">{{</span><span class="n">IROS</span> <span class="mi">2020</span> <span class="o">-</span> <span class="n">IEEE</span><span class="o">/</span><span class="n">RSJ</span> <span class="n">International</span> <span class="n">Conference</span> <span class="n">on</span> <span class="n">Intelligent</span> <span class="n">Robots</span> <span class="ow">and</span> <span class="n">Systems</span><span class="p">}},</span>
+  <span class="n">ADDRESS</span> <span class="o">=</span> <span class="p">{</span><span class="n">Las</span> <span class="n">Vegas</span><span class="p">,</span> <span class="n">United</span> <span class="n">States</span><span class="p">},</span>
+  <span class="n">SERIES</span> <span class="o">=</span> <span class="p">{</span><span class="mi">2020</span> <span class="n">IEEE</span><span class="o">/</span><span class="n">RSJ</span> <span class="n">International</span> <span class="n">Conference</span> <span class="n">on</span> <span class="n">Intelligent</span> <span class="n">Robots</span> <span class="ow">and</span> <span class="n">Systems</span> <span class="p">(</span><span class="n">IROS</span><span class="p">)</span> <span class="n">Conference</span> <span class="n">Proceedings</span><span class="p">},</span>
+  <span class="n">PAGES</span> <span class="o">=</span> <span class="p">{</span><span class="mi">11345</span><span class="o">-</span><span class="mi">11351</span><span class="p">},</span>
+  <span class="n">YEAR</span> <span class="o">=</span> <span class="p">{</span><span class="mi">2020</span><span class="p">},</span>
+  <span class="n">MONTH</span> <span class="o">=</span> <span class="n">Oct</span><span class="p">,</span>
+  <span class="n">DOI</span> <span class="o">=</span> <span class="p">{</span><span class="mf">10.1109</span><span class="o">/</span><span class="n">IROS45743</span><span class="mf">.2020.9340892</span><span class="p">},</span>
+  <span class="n">KEYWORDS</span> <span class="o">=</span> <span class="p">{</span><span class="n">Navigation</span> <span class="n">Among</span> <span class="n">Movable</span> <span class="n">Obstacles</span> <span class="p">(</span><span class="n">NAMO</span><span class="p">)</span> <span class="p">;</span> <span class="n">Socially</span><span class="o">-</span> <span class="n">Aware</span> <span class="n">Navigation</span> <span class="p">(</span><span class="n">SAN</span><span class="p">)</span> <span class="p">;</span> <span class="n">Path</span> <span class="n">planning</span> <span class="p">;</span> <span class="n">Simulation</span><span class="p">},</span>
+  <span class="n">PDF</span> <span class="o">=</span> <span class="p">{</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">hal</span><span class="o">.</span><span class="n">archives</span><span class="o">-</span><span class="n">ouvertes</span><span class="o">.</span><span class="n">fr</span><span class="o">/</span><span class="n">hal</span><span class="o">-</span><span class="mi">02912925</span><span class="o">/</span><span class="n">file</span><span class="o">/</span><span class="n">IROS_2020_Camera_Ready</span><span class="o">.</span><span class="n">pdf</span><span class="p">},</span>
+  <span class="n">HAL_ID</span> <span class="o">=</span> <span class="p">{</span><span class="n">hal</span><span class="o">-</span><span class="mi">02912925</span><span class="p">},</span>
+  <span class="n">HAL_VERSION</span> <span class="o">=</span> <span class="p">{</span><span class="n">v1</span><span class="p">},</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Check out our IROS24 Paper at <a class="reference external" href="https://hal.science/hal-04705395">https://hal.science/hal-04705395</a>.</p>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="guides.html">Guides</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="guides.html#creating-custom-scenarios">Creating Custom Scenarios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides.html#creating-an-svg-scenario">Creating an SVG Scenario</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guides.html#creating-a-ros-map-scenario">Creating a ROS MAP Scenario</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="namosim.html">namosim package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-config-module">namosim.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-data-models-module">namosim.data_models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-exceptions-module">namosim.exceptions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-input-module">namosim.input module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-log-module">namosim.log module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-main-module">namosim.main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-report-module">namosim.report module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-scenario-generation-module">namosim.scenario_generation module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-simulator-module">namosim.simulator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-svg-styles-module">namosim.svg_styles module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-trainer-module">namosim.trainer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="guides.html" class="btn btn-neutral float-right" title="Guides" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Benoit Renault, David Brown.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
