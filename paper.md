@@ -31,6 +31,7 @@ affiliations:
     index: 4
 date: 2025-07-07
 repository: https://gitlab.inria.fr/chroma/namo/namosim
+bibliography: paper.bib
 archive: 10.5281/zenodo.XXXXXXX # Replace with actual Zenodo DOI after archiving
 license: MIT
 ---
@@ -115,9 +116,3 @@ The `Stilman2005` agent avoids conflicts by either pausing or planning around th
 This research was supported by an Inria ADT initiative. We express our gratitude to Benoit Renault, whose PhD thesis forms the foundation of this work.
 
 # References
-
-Renault, B., Saraydaryan, J., Brown, D., & Simonin, O. (2024). Multi-Robot Navigation among Movable Obstacles: Implicit Coordination to Deal with Conflicts and Deadlocks. _IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)_. https://hal.science/hal-04705395
-
-Renault, B., Saraydaryan, J., & Simonin, O. (2020). Modeling a Social Placement Cost to Extend Navigation Among Movable Obstacles (NAMO) Algorithms. _IEEE/RSJ IROS 2020_. https://doi.org/10.1109/IROS45743.2020.9340892
-
-Benoit Renault. NAvigation en milieu MOdifiable (NAMO) étendue à des contraintes sociales et multi-robots. Robotique [cs.RO]. INSA de Lyon, 2023. Français. ⟨NNT : 2023ISAL0105⟩. ⟨tel-04418723v2⟩
