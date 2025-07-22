@@ -32,8 +32,7 @@ jobs:
           apt-get update -y
           apt-get install -y swig curl python3-pip
           rosdep install --from-paths . -r -y || true
-          pip install --cache-dir ~/.cache/pip -r namosim/requirements.txt
-          pip install --cache-dir ~/.cache/pip -r namoros/requirements.txt
+          pip install --cache-dir ~/.cache/pip -r requirements.txt
 
       - name: Build with colcon
         run: |
@@ -71,8 +70,7 @@ jobs:
           apt-get update -y
           apt-get install -y swig curl python3-pip
           rosdep install --from-paths . -r -y || true
-          pip install --cache-dir ~/.cache/pip -r namosim/requirements.txt
-          pip install --cache-dir ~/.cache/pip -r namoros/requirements.txt
+          pip install --cache-dir ~/.cache/pip -r requirements.txt
 
       - name: Build documentation
         run: |
