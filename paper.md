@@ -44,9 +44,7 @@ license: MIT
 
 NAMOSIM uses a modular agent-based architecture and includes a baseline NAMO algorithm [@stilman_2005] implemented in the `Stilman2005` agent, which also incorporates a communication-free coordination strategy for multi-robot scenarios. A variety of other agent types are implemented, and new agents utilizing alternative approaches can be created and integrated into the planner by implementing the **Agent** base class. Thus, new navigation algorithms, including those based on machine learning or AI, can be developed within NAMOSIM, facilitating reproducible research on NAMO problems.
 
-NAMOSIM utilizes ROS2 messages for visualization of environments and plans using RViz and includes several prebuilt scenarios for testing and benchmarking. Scenarios are stored as SVG files, allowing custom scenarios to be created using a free SVG editor such as Inkscape.
-
-NAMOSIM is packaged as a ROS2 package for easy integration into robotics projects but can also be used as a standalone Python module. The package is intended for researchers and developers working on robot navigation in dynamic environments, particularly where physical interaction is necessary.
+NAMOSIM is packaged as a ROS2 package for easy integration into robotics projects but can also be used as a standalone Python module. It utilizes ROS2 messages for visualization of environments and plans via RViz and includes several prebuilt scenarios for testing and benchmarking. Scenarios are stored as SVG files, allowing custom scenarios to be created using a free SVG editor such as Inkscape. NAMOSIM is intended for researchers and developers working on robot navigation in dynamic environments, particularly where physical interaction is necessary.
 
 # Statement of Need
 
