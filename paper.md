@@ -110,6 +110,6 @@ The `Stilman2005` agent avoids conflicts by either pausing or replanning around 
 
 # Acknowledgements
 
-This research was supported by an Inria ADT initiative. We express our gratitude to Benoit Renault, whose PhD thesis forms the foundation of this work.
+This research was supported by the Inria NAMOEX initiative. We express our gratitude to Benoit Renault, whose PhD thesis forms the foundation of this work.
 
 # References
