@@ -54,12 +54,12 @@ Many applications in autonomous mobile robotics involve physical interaction wit
 
 NAMOSIM provides a robust set of features to support research and development in Navigation Among Movable Obstacles (NAMO):
 
-- **Modular Agent-Based Architecture**: The simulator is built around a flexible `Agent` interface, allowing users to implement and test custom NAMO planning algorithms. A baseline implementation of the `Stilman2005` planner is included for immediate use and benchmarking.
+- **Modular Agent-Based Architecture**: The simulator is built around a flexible `Agent` interface, allowing users to implement and test custom NAMO planning algorithms. A baseline NAMO algorithm is include in the `Stilman2005` agent for immediate use and benchmarking.
 - **Support for Multiple Robot Models**: NAMOSIM supports both holonomic and differential-drive robot models, enabling realistic simulation of various robotic platforms.
 - **ROS2 Integration**: NAMOSIM forms a ROS2 package, enabling seamless integration into simulated and physical robotics projects and visualization via RViz.
 - **2D Environment Simulation**: The simulator provides a customizable 2D environment where users can define static and movable obstacles, supporting complex scenarios for testing multi-robot coordination strategies and NAMO algorithms.
 - **Prebuit Scenarios and Tests**: NAMOSIM includes several custom scenario files for benchmarking and testing of specific situations.
-- **Multi-Robot Coordination**: The simulator supports multi-robot scenarios, and our baseline agent `Stillman2005` agent` implements the communication-free coordination strategy presented in our IROS-2024 publication[@renault_2024_iros].
+- **Multi-Robot Coordination**: The simulator supports multi-robot scenarios, and our baseline `Stillman2005` agent implements the communication-free coordination strategy presented in our IROS-2024 publication [@renault_2024_iros].
 
 These features make NAMOSIM a versatile tool for prototyping, evaluating, and deploying NAMO algorithms in diverse robotic applications.
 
