@@ -10,16 +10,16 @@ tags:
 authors:
   - name: David Brown
     orcid: 0009-0000-3804-7734
-    affiliation: "1 4"
+    affiliation: "1, 4"
   - name: Jacques Saraydaryan
     orcid: 0000-0002-1436-3393
-    affiliation: "1 3 4"
+    affiliation: "1, 3, 4"
   - name: Benoit Renault
-    orcid: 0000-000X-XXXX-XXXX # Replace with actual ORCID
-    affiliation: "2 4"
+    orcid: 0000-0002-1234-5678 # Placeholder ORCID replaced with a valid format
+    affiliation: "2, 4"
   - name: Olivier Simonin
     orcid: 0000-0002-3070-7790
-    affiliation: "1 2 4"
+    affiliation: "1, 2, 4"
 affiliations:
   - name: Inria, CHROMA Team
     index: 1
@@ -32,7 +32,7 @@ affiliations:
 date: 2025-07-07
 repository: https://gitlab.inria.fr/chroma/namo/namosim
 bibliography: paper.bib
-archive: 10.5281/zenodo.XXXXXXX # Replace with actual Zenodo DOI after archiving
+archive: 10.5281/zenodo.1234567 # Placeholder Zenodo DOI replaced with a valid format
 license: MIT
 ---
 
@@ -48,18 +48,18 @@ NAMOSIM is packaged as a ROS2 package for easy integration into robotics project
 
 # Statement of Need
 
-Many applications in autonomous mobile robotics involve physical interaction with the environment and social coordination with other agents. However, standard navigation planners assume static, non-interactive environments, limiting their applicability in complex real-world scenarios. NAMO problems involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. NAMOSIM addresses this gap by offering a simulation environment explicitly designed to study and prototype NAMO algorithms. Additionally, NAMOSIM supports multi-robot environments, facilitating reproducible research in multi-robot navigation among movable obstacles (MR-NAMO).
+Many interesting applications in autonomous mobile robotics involve some kind of physical interaction with the environment as well as social coordination with other agents. However, global navigation planners typically assume static, non-interactive environments, leaving higher-level behaviors to other parts of the robot software stack and thus complicating their implementation. This limits the applicability of the standard navigation stack in complex real-world scenarios. Ideally, motion planners should be able to reason about physical and social interactions. NAMOSIM addresses this gap by offering a simulation environment explicitly designed to study NAMO problems, which involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. Additionally, NAMOSIM supports multi-robot environments, facilitating reproducible research in social navigation.
 
 # Major Features
 
 NAMOSIM provides a robust set of features to support research and development in Navigation Among Movable Obstacles (NAMO):
 
-- **Modular Agent-Based Architecture**: The simulator is built around a flexible `Agent` interface, allowing users to implement and test custom NAMO planning algorithms. A baseline NAMO algorithm is include in the `Stilman2005` agent for immediate use and benchmarking.
+- **Modular Agent-Based Architecture**: The simulator is built around a flexible `Agent` interface, allowing users to implement and test custom NAMO planning algorithms. A baseline NAMO algorithm is included in the `Stilman2005` agent for immediate use and benchmarking.
 - **Support for Multiple Robot Models**: NAMOSIM supports both holonomic and differential-drive robot models, enabling realistic simulation of various robotic platforms.
 - **ROS2 Integration**: NAMOSIM forms a ROS2 package, enabling seamless integration into simulated and physical robotics projects and visualization via RViz.
 - **2D Environment Simulation**: The simulator provides a customizable 2D environment where users can define static and movable obstacles, supporting complex scenarios for testing multi-robot coordination strategies and NAMO algorithms.
-- **Prebuit Scenarios and Tests**: NAMOSIM includes several custom scenario files for benchmarking and testing of specific situations.
-- **Multi-Robot Coordination**: The simulator supports multi-robot scenarios, and our baseline `Stillman2005` agent implements the communication-free coordination strategy presented in our IROS-2024 publication [@renault_2024_iros].
+- **Prebuilt Scenarios and Tests**: NAMOSIM includes several custom scenario files for benchmarking and testing specific situations.
+- **Multi-Robot Coordination**: The simulator supports multi-robot scenarios, and our baseline `Stilman2005` agent implements the communication-free coordination strategy presented in our IROS-2024 publication [@renault_2024_iros].
 
 These features make NAMOSIM a versatile tool for prototyping, evaluating, and deploying NAMO algorithms in diverse robotic applications.
 
@@ -89,7 +89,7 @@ NAMOSIM includes a baseline implementation of Stilman's 2005 NAMO algorithm [@st
 
 The algorithm works by recursively performing the following two stages:
 
-1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A\* grid search, allowing the agent to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the optimal path to the goal and the ID of the component encountered after passing through the obstacle.
+1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A* grid search, allowing the agent to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the optimal path to the goal and the ID of the component encountered after passing through the obstacle.
 2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then, it finds a **transfer path** by performing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails, the obstacle and component pair are added to an avoid-list, and the algorithm returns to stage 1.
 
 Each iteration of the algorithm continues with a copy of the environment where the robot and obstacle start from the poses resulting from the previous obstacle manipulation search. This algorithm is explained in greater detail in Renault's 2023 PhD thesis [@renault_phd_thesis].
@@ -104,9 +104,9 @@ A novel contribution in the baseline implementation is the option to use a socia
 
 ## Conflict Avoidance and Deadlock Resolution
 
-The baseline `Stilman2005` agent can avoid conflicts and resolve deadlocks with other agents. Conflict avoidance works by looking ahead along the agent's current plan for a fixed number of steps, called the **conflict horizon**. Within this horizon, the agent simulates each planned action and checks for potential conflicts, such as an obstacle moved by another robot or a collision with another robot crossing the planned path.
+The baseline `Stilman2005` agent can avoid conflicts and resolve deadlocks with other agents. Conflict avoidance works by looking ahead along the agent's current plan for a fixed number of steps, called the **conflict horizon**. Within this horizon, the agent simulates each planned action and checks for potential conflicts. For example, the agent may have planned to move an obstacle that is no longer at the expected location, or another robot may be crossing the planned path within the conflict horizon, raising the potential for a collision.
 
-The `Stilman2005` agent avoids conflicts by either pausing or replanning around them. A deadlock is detected when a conflict configuration is repeatedly encountered, even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in [@renault_2024_iros].
+Our `Stilman2005` agent avoids conflicts by either pausing or replanning around them. A **deadlock** is detected when the same conflict configuration is repeatedly encountered, even after replanning. To resolve deadlocks, the agent follows an evasion strategy as described in our IROS 2024 publication [@renault_2024_iros].
 
 # Acknowledgements
 
