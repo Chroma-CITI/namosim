@@ -15,7 +15,7 @@ authors:
     orcid: 0000-0002-1436-3393
     affiliation: "1, 3, 4"
   - name: Benoit Renault
-    orcid: 0000-0002-1234-5678 # Placeholder ORCID replaced with a valid format
+    orcid: 0000-000X-XXXX-XXXX
     affiliation: "2, 4"
   - name: Olivier Simonin
     orcid: 0000-0002-3070-7790
@@ -30,7 +30,7 @@ affiliations:
   - name: CITI Laboratory
     index: 4
 date: 2025-07-07
-repository: https://gitlab.inria.fr/chroma/namo/namosim
+repository: https://github.com/Chroma-CITI/namosim
 bibliography: paper.bib
 archive: 10.5281/zenodo.1234567 # Placeholder Zenodo DOI replaced with a valid format
 license: MIT
@@ -89,7 +89,7 @@ NAMOSIM includes a baseline implementation of Stilman's 2005 NAMO algorithm [@st
 
 The algorithm works by recursively performing the following two stages:
 
-1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A* grid search, allowing the agent to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the optimal path to the goal and the ID of the component encountered after passing through the obstacle.
+1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A\* grid search, allowing the agent to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the optimal path to the goal and the ID of the component encountered after passing through the obstacle.
 2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then, it finds a **transfer path** by performing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails, the obstacle and component pair are added to an avoid-list, and the algorithm returns to stage 1.
 
 Each iteration of the algorithm continues with a copy of the environment where the robot and obstacle start from the poses resulting from the previous obstacle manipulation search. This algorithm is explained in greater detail in Renault's 2023 PhD thesis [@renault_phd_thesis].
