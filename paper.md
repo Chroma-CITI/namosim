@@ -34,7 +34,7 @@ repository: https://github.com/Chroma-CITI/namosim
 bibliography: paper.bib
 ---
 
-![A NAMOSIM scenario with one robot and two obstacles is visualized in RViz. The robot's plan is shown by the blue lines. The darker shade of blue indicates the part of the path involving an obstacle transfer. The social costmap is seen in the rainbow background.](docs/source/_static/namosim_rviz_figure.png)
+![A NAMOSIM scenario with one robot and two obstacles is visualized in RViz. The robot's plan is shown by the blue lines. The darker shade of blue indicates the part of the path involving an obstacle transfer. The empty rectangles indicate the calculated obstacle placements. The social costmap is seen in the rainbow background.](docs/source/_static/namosim_rviz_figure.png)
 
 # Summary
 
