@@ -15,7 +15,7 @@ authors:
     orcid: 0000-0002-1436-3393
     affiliation: "1, 3, 4"
   - name: Benoit Renault
-    orcid: 0000-000X-XXXX-XXXX
+    orcid: 0009-0001-3332-7371
     affiliation: "1, 2, 4"
   - name: Olivier Simonin
     orcid: 0000-0002-3070-7790
@@ -29,11 +29,9 @@ affiliations:
     index: 3
   - name: CITI Laboratory
     index: 4
-date: 2025-07-07
+date: 25 July 2025
 repository: https://github.com/Chroma-CITI/namosim
 bibliography: paper.bib
-archive: 10.5281/zenodo.1234567 # Placeholder Zenodo DOI replaced with a valid format
-license: MIT
 ---
 
 ![A NAMOSIM scenario with one robot and two obstacles is visualized in RViz. The robot's plan is shown by the blue lines. The darker shade of blue indicates the part of the path involving an obstacle transfer. The social costmap is seen in the rainbow background.](docs/source/_static/namosim_rviz_figure.png)
@@ -85,7 +83,7 @@ The loop is expected to execute at a regular frequency, with the assumption that
 
 ## Stilman's NAMO Algorithm
 
-NAMOSIM includes a baseline implementation of Stilman's 2005 NAMO algorithm [@stilman_2005]. The key idea of this algorithm is to move obstacles to merge disjoint components of the robot's free configuration space. The map is divided into a set of disjoint **connected components**, where each cell in a given component is reachable from all other cells in the same component. It can be proven that components are separated by movable obstacles or are otherwise unreachable. The algorithm functions by moving obstacles to join components until the robot's current component includes the goal cell.
+NAMOSIM includes a baseline implementation of Stilman's 2005 NAMO algorithm [@stilman_2005]. The key idea of this algorithm is to move obstacles to merge disjoint components of the robot's free configuration space. The map is divided into a set of disjoint **connected components**, where each grid cell in a given component is reachable from all other cells in the same component. It can be proven that components are separated by movable obstacles or are otherwise unreachable. The algorithm functions by moving obstacles to join components until the robot's current component includes the goal cell.
 
 The algorithm works by recursively performing the following two stages:
 
