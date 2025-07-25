@@ -1,3 +1,5 @@
+[![CI](https://github.com/Chroma-CITI/namosim/actions/workflows/ci.yml/badge.svg?branch=humble)](https://github.com/Chroma-CITI/namosim/actions/workflows/ci.yml)
+
 # NAMOSIM
 
 ![NAMO Simulator](docs/source/_static/namo.gif)
