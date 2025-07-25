@@ -97,7 +97,7 @@ def rgba_to_hex(r: float, g: float, b: float, a: float):
     )
 
 
-def darken(hex_string: str, multiplier: float = 0.8):
+def darken(hex_string: str, multiplier: float = 0.6):
     rgba_dict = hex_to_rgba(hex_string)
     hsv = colorsys.rgb_to_hsv(rgba_dict["r"], rgba_dict["g"], rgba_dict["b"])
     darker_v = min(1.0, max(0.0, hsv[2] * multiplier))

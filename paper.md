@@ -36,7 +36,7 @@ archive: 10.5281/zenodo.1234567 # Placeholder Zenodo DOI replaced with a valid f
 license: MIT
 ---
 
-![NAMOSIM: A NAMO scenario with one robot and two obstacles is visualized in RViz. The robot's plan is shown by the blue lines. The darker shade of blue indicates the part of the path involving an obstacle transfer.](docs/source/_static/namosim_example.png)
+![A NAMOSIM scenario with one robot and two obstacles is visualized in RViz. The robot's plan is shown by the blue lines. The darker shade of blue indicates the part of the path involving an obstacle transfer. The social costmap is seen in the rainbow background.](docs/source/_static/namosim_rviz_figure.png)
 
 # Summary
 
