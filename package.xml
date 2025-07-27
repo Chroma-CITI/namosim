@@ -4,7 +4,8 @@
   <name>namosim</name>
   <version>0.0.0</version>
   <description>A navigation planner for Navigation Among Movable Obstacles (NAMO)</description>
-  <maintainer email="david.brown@inria.fr">CHROMA Team - Inria</maintainer>
+  <maintainer email="david.brown@inria.fr">David Brown</maintainer>
+  <maintainer email="davewbrwn@gmail.com">David Brown</maintainer>
   <license>MIT</license>
   <depend>black</depend>
   <depend>geometry_msgs</depend>
@@ -20,7 +21,7 @@
   <depend>python3-jsonpickle</depend>
   <depend>python3-matplotlib</depend>
   <depend>python3-numpy</depend>
-  <depend>python3-opencv-python-headless-pip</depend>
+  <depend>python3-opencv</depend>
   <depend>python3-pandas</depend>
   <depend>python3-pil</depend>
   <depend>python3-pre-commit</depend>
@@ -30,9 +31,10 @@
   <depend>python3-pytest-cov</depend>
   <depend>python3-pytest</depend>
   <depend>python3-pytorch-pip</depend>
+  <depend>python3-requests</depend>
   <depend>python3-shapely</depend>
   <depend>python3-skimage</depend>
-  <depend>python3-sphinx-copybutton-pip</depend>
+  <depend>python3-sphinx-copybutton</depend>
   <depend>python3-sphinx-rtd-theme</depend>
   <depend>python3-sphinx</depend>
   <depend>python3-svgpath2mpl-pip</depend>

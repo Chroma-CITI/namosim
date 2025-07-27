@@ -7,7 +7,7 @@ jupyter
 matplotlib
 numpy==1.21.5
 numpy-stl
-opencv-python-headless
+opencv-python
 pandas
 pillow==9.0.1
 pre-commit
