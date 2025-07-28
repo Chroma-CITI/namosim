@@ -22,7 +22,6 @@ setup(
     maintainer_email="davewbrwn@gmail.com",
     description="A mobile-robot motion planner for Navigation Among Obstacles (NAMO)",
     license="MIT",
-    tests_require=["pytest"],
     entry_points={
         "console_scripts": [],
     },
