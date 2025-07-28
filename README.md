@@ -21,7 +21,7 @@ Next, use `rosdep` to install the dependencies listed in the `package.xml` file:
 rosdep install --from-paths . -r -y
 ```
 
-If any of the python dependencies fail to install with `rosdep` you can try to install them with `pip` instead:
+Some dependencies are only available as pip packages. Please install them with:
 
 ```bash
 pip install -r requirements.txt
