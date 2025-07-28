@@ -40,7 +40,7 @@ jobs:
       - name: Colcon Build and Test
         run: |
           colcon build
-          colcon test
+          colcon test --event-handlers console_direct+
 
       - name: Run tests
         run: |
