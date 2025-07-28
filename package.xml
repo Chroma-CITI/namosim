@@ -15,7 +15,6 @@
   <depend>libcairo2-dev</depend>
   <depend>libopencv-dev</depend>
   <depend>python-numpy-stl-pip</depend>
-  <depend>python3-aabbtree-pip</depend>
   <depend>python3-bidict</depend>
   <depend>python3-cairosvg</depend>
   <depend>python3-jsonpickle</depend>

@@ -1,5 +1,4 @@
-"""Converts an svg scenario file to a ros map
-"""
+"""Converts an svg scenario file to a ros map"""
 
 import re
 import typing as t

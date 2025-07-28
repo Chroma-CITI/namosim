@@ -2,7 +2,6 @@ import math
 import typing as t
 
 import numpy as np
-from aabbtree import AABB, AABBTree
 from shapely.geometry import Polygon
 from shapely.geometry import MultiPoint
 
@@ -159,11 +158,6 @@ def csv_from_bb_vertices(bb_vertices: t.List[t.List[t.Tuple[float, float]]]) -> 
     """
     all_vertices = [vertex for vertices in bb_vertices for vertex in vertices]
     return MultiPoint(all_vertices).convex_hull  # type: ignore
-
-
-def polygon_to_aabb(polygon: Polygon):
-    xmin, ymin, xmax, ymax = polygon.bounds  # type: ignore
-    return AABB([(xmin, xmax), (ymin, ymax)])
 
 
 def get_collisions_for_entity(

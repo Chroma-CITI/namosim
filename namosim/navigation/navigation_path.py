@@ -1,7 +1,6 @@
 import typing as t
 
 import numpy as np
-from aabbtree import AABBTree
 from shapely.geometry import Polygon
 
 import namosim.agents.agent as agent

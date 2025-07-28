@@ -40,7 +40,6 @@ def sample_poses_uniform(
     min_distance_between: float = 0.0,
 ) -> t.List[Pose2D]:
     """Samples robot poses which do not collide with any of the provided obstacle polygons"""
-    # Make AABB Tree from polygons
     accessible_cells: t.Set[GridCellModel] = set()
     for i in range(grid.d_width):
         for j in range(grid.d_height):

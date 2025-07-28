@@ -360,13 +360,6 @@ def rotate_then_translate_polygon(
     )
 
 
-def polygon_collides_with_entities(polygon: Polygon, entities, aabb_tree=None):
-    for entity in entities:
-        if entity.polygon.intersects(polygon):
-            return True
-    return False
-
-
 def append_suffix(filename, suffix):
     return "{0}_{2}{1}".format(*os.path.splitext(filename) + (suffix,))
 

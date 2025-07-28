@@ -3,14 +3,20 @@ from glob import glob
 
 package_name = "namosim"
 
+
 def read_requirements():
     with open("requirements.txt", "r") as file:
-        return [line.strip() for line in file if line.strip() and not line.startswith("#")]
+        return [
+            line.strip() for line in file if line.strip() and not line.startswith("#")
+        ]
+
 
 setup(
     name=package_name,
     version="0.0.0",
-    packages=find_packages(exclude=["tests", "tests.*"]),  # Exclude tests and subpackages
+    packages=find_packages(
+        exclude=["tests", "tests.*"]
+    ),  # Exclude tests and subpackages
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),

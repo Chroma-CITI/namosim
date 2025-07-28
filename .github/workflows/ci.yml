@@ -37,9 +37,10 @@ jobs:
           rosdep install --from-paths . -r -y || true
           pip install --cache-dir ~/.cache/pip -r requirements.txt
 
-      - name: Build with colcon
+      - name: Colcon Build and Test
         run: |
           colcon build
+          colcon test
 
       - name: Run tests
         run: |
