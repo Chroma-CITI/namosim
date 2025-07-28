@@ -4,13 +4,6 @@ from glob import glob
 package_name = "namosim"
 
 
-def read_requirements():
-    with open("requirements.txt", "r") as file:
-        return [
-            line.strip() for line in file if line.strip() and not line.startswith("#")
-        ]
-
-
 setup(
     name=package_name,
     version="0.0.0",
@@ -23,7 +16,7 @@ setup(
         # Include non-Python files like launch files if needed
         ("share/" + package_name + "/launch", glob("launch/*.launch.py")),
     ],
-    install_requires=read_requirements(),
+    install_requires=["setuptools"],
     zip_safe=True,
     maintainer="David Brown",
     maintainer_email="davewbrwn@gmail.com",
