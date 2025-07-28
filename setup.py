@@ -16,7 +16,7 @@ setup(
         # Include non-Python files like launch files if needed
         ("share/" + package_name + "/launch", glob("launch/*.launch.py")),
     ],
-    install_requires=["setuptools"],
+    install_requires=["setuptools", "pydantic_xml"],
     zip_safe=True,
     maintainer="David Brown",
     maintainer_email="davewbrwn@gmail.com",
