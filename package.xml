@@ -6,6 +6,7 @@
   <description>A navigation planner for Navigation Among Movable Obstacles (NAMO)</description>
   <maintainer email="david.brown@inria.fr">David Brown</maintainer>
   <maintainer email="davewbrwn@gmail.com">David Brown</maintainer>
+  <maintainer email="jacques.saraydaryan@cpe.fr">Jacques Saraydaryan</maintainer>
   <license>MIT</license>
   <depend>black</depend>
   <depend>geometry_msgs</depend>
