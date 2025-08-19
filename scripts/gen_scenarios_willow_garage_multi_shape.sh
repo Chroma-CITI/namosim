@@ -3,9 +3,14 @@
 DIR=$(dirname "$0")
 cd $DIR/..
 
-out=tests/experiments/scenarios/willow_garage_multi_shape/generated
+# Deactivate GUIs to go faster
+export NAMO_NO_DISPLAY_WINDOW=TRUE
+export NAMO_DEACTIVATE_RVIZ=TRUE
+
+scenario=willow_garage_multi_shape
+out=tests/experiments/scenarios/${scenario}/generated
 base_scenario="tests/experiments/scenarios/willow_garage_multi_shape.svg"
-n_scenarios=20
+n_scenarios=40
 n_goals=50
 
 for i in $(seq 1 10); do
