@@ -15,13 +15,13 @@ import namosim.world.world as world
 from namosim.agents import agent
 from namosim.config import DEACTIVATE_RVIZ
 from namosim.data_models import UID, GridCellModel, PoseModel
-from namosim.display import colors
 from namosim.utils import utils
 from namosim.world.binary_occupancy_grid import BinaryInflatedOccupancyGrid
 
 if not DEACTIVATE_RVIZ:
     import namosim.display.conversions as conversions
     import namosim.display.ros_nodes as ros_nodes
+    from namosim.display import colors
 
 
 class RosPublisher:  # noqa: F821
