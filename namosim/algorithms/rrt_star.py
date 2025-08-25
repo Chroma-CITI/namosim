@@ -155,7 +155,7 @@ class DiffDriveRRTStar:
     def random_pose(self) -> Pose2D:
         if self.goal and self.informed and self.c_best not in (None, float("inf")):
             a = self.c_best / 2.0
-            b = math.sqrt(max(self.c_best ** 2 - self.c_min ** 2, 1e-6)) / 2.0
+            b = math.sqrt(max(self.c_best**2 - self.c_min**2, 1e-6)) / 2.0
             while True:
                 x_ball, y_ball = self._sample_unit_ball()
                 # appliquer la matrice de rotation C

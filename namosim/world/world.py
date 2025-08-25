@@ -326,19 +326,6 @@ class World:
                     cell_size=cell_size,
                     logger=logger,
                 )
-            elif agent.behavior.type == "ppo_agent":
-                new_robot = agts.PPOAgent(
-                    navigation_goals=goals,
-                    config=agent.behavior,
-                    logs_dir=logs_dir,
-                    uid=agent.agent_id,
-                    polygon=robot_polygon,
-                    style=agent_style,
-                    pose=init_pose,
-                    sensors=[OmniscientSensor()],
-                    cell_size=cell_size,
-                    logger=logger,
-                )
             else:
                 raise NotImplementedError(
                     "You tried to associate entity '{agent_name}' with a behavior named"
