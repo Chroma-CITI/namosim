@@ -3,8 +3,7 @@ import time
 import unittest
 
 import namosim.config as config
-from namosim.simulator import Simulator, create_sim_from_file
-from namosim.trainer import Trainer
+from namosim.simulator import create_sim_from_file
 
 
 class TestExperiments:
@@ -218,31 +217,6 @@ class TestExperiments:
             )
         )
         sim.run()
-        assert True
-
-    def test_ppo_simple(self):
-        sim = create_sim_from_file(
-            simulation_file_path=os.path.join(
-                self.scenarios_folder,
-                "ppo_simple.svg",
-            )
-        )
-        sim.run()
-        assert True
-
-    def test_ppo_extra_simple(self):
-        sim = create_sim_from_file(
-            simulation_file_path=os.path.join(
-                self.scenarios_folder,
-                "ppo_extra_simple.svg",
-            )
-        )
-        sim.run()
-        assert True
-
-    def test_parallel_train(self):
-        trainer = Trainer()
-        trainer.train()
         assert True
 
     def test_willow_garage_multi_shape(self):

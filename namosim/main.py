@@ -6,7 +6,6 @@ import typer
 from namosim.mapgen.mapgen import MapGen
 from namosim.scenario_generation import generate_alternative_scenarios
 from namosim.simulator import create_sim_from_file
-from namosim.trainer import Trainer
 
 app = typer.Typer()
 
@@ -57,12 +56,6 @@ def gen_alt_scenarios(
         resolve_conflicts=not no_resolve_conflicts,
         out_dir=out_dir,
     )
-
-
-@app.command()
-def train():
-    trainer = Trainer()
-    trainer.train()
 
 
 @app.command()

@@ -43,10 +43,6 @@ class BaseRLAgentConfigModel(BaseBehaviorConfigModel):
     checkpoint: t.Optional[str] = attr(default=None)
 
 
-class PPOAgentConfigModel(BaseRLAgentConfigModel):
-    type: t.Literal["ppo_agent"] = attr()
-
-
 class StilmanBehaviorParametersModel(BaseXmlModel, tag="parameters"):
     check_new_local_opening_before_global: bool = attr(default=True)
     activate_grids_logging: bool = attr(default=False)
@@ -95,7 +91,6 @@ AgentBehaviorConfig = t.Union[
     TeleopBehaviorConfigModel,
     StilmanBehaviorConfigModel,
     StilmanRRTStarBehaviorConfigModel,
-    PPOAgentConfigModel,
 ]
 
 

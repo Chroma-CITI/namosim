@@ -28,14 +28,6 @@ namosim.agents.navigation\_only\_agent module
    :undoc-members:
    :show-inheritance:
 
-namosim.agents.ppo\_agent module
---------------------------------
-
-.. automodule:: namosim.agents.ppo_agent
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 namosim.agents.stilman\_2005\_agent module
 ------------------------------------------
 
