@@ -13,7 +13,7 @@ NAMOSIM is a robot motion planner designed for the problem of navigation among m
 
 ## Setup
 
-First, clone the repo.
+First, clone the repo and `cd` into it.
 
 Next, use `rosdep` to install the dependencies listed in the `package.xml` file:
 
@@ -27,9 +27,15 @@ Some dependencies are only available as pip packages. Please install them with:
 pip install -r requirements.txt
 ```
 
-## Examples
+## Usage
 
-The best way is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
+You can launch a scenario as follows
+
+```bash
+python3 -m namosim.main run tests/scenarios/minimal_stilman_2005.svg
+```
+
+The best way to experiment with other scenarios is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
 
 Alternatively you can launch a test from the command line like so:
 
