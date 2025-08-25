@@ -31,7 +31,7 @@ pip install -r requirements.txt
 
 The best way is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
 
-Alternativley you can launch a test from the command line like so:
+Alternatively you can launch a test from the command line like so:
 
 ```bash
 python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
