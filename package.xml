@@ -37,16 +37,6 @@
   <depend>python3-typer</depend>
   <depend>python3-typing-extensions</depend>
   <depend>rclpy</depend>
-
-  <!-- <exec_depend>python-numpy-stl-pip</exec_depend>
-  <exec_depend>python3-pydantic-xml-pip</exec_depend>
-  <exec_depend>python3-pyright-pip</exec_depend>
-  <exec_depend>python3-pytorch-pip</exec_depend>
-  <exec_depend>python3-svgpath2mpl-pip</exec_depend>
-  <exec_depend>python3-transformers-pip</exec_depend>
-  <exec_depend>python3-triangle-pip</exec_depend>
-  <exec_depend>python3-wandb-pip</exec_depend> -->
-
   <export>
     <build_type>ament_python</build_type>
   </export>

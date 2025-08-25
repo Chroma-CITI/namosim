@@ -21,10 +21,6 @@ sphinx
 sphinx-copybutton
 sphinx-rtd-theme
 svgpath2mpl
-torch
-torchvision
-transformers
 typer
 typing-extensions
 triangle
-wandb
