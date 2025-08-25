@@ -99,14 +99,6 @@ namosim.svg\_styles module
    :undoc-members:
    :show-inheritance:
 
-namosim.trainer module
-----------------------
-
-.. automodule:: namosim.trainer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
