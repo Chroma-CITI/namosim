@@ -9,6 +9,7 @@ from builtin_interfaces.msg import Time
 from geometry_msgs.msg import Point, Pose, Quaternion, Vector3
 from grid_map_msgs.msg import GridMap
 from shapely.geometry import Polygon, MultiPolygon
+from namosim.utils.conversion import polygon_to_triangle_vertices
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 from namosim.world.entity import Style
 from std_msgs.msg import (
@@ -29,8 +30,6 @@ from namosim.display import tf_replacement
 from namosim.navigation.path_type import PathType
 from namosim.utils import utils
 import triangle
-from shapely.validation import make_valid
-from namosim.log import logger
 
 
 def plan_to_markerarray(
@@ -115,146 +114,6 @@ def real_path_to_linestrip(
         marker.points.append(Point(x=real_path[-1][0], y=real_path[-1][1], z=z_index))  # type: ignore
         marker.points.append(Point(x=link_point[0], y=link_point[1], z=z_index))  # type: ignore
     return marker
-
-
-def polygon_to_triangle_vertices(shapely_geometry):
-    """
-    Convert a Shapely Polygon or MultiPolygon to a list of triangle vertices.
-    Returns a list of triangles, where each triangle is a list of 3 vertex coordinates.
-    """
-    # Handle MultiPolygon by processing each Polygon separately
-    if isinstance(shapely_geometry, MultiPolygon):
-        logger.debug(
-            "Processing MultiPolygon with %d polygons", len(shapely_geometry.geoms)
-        )
-        all_triangles = []
-        for poly in shapely_geometry.geoms:
-            # Recursively call for each Polygon in the MultiPolygon
-            triangles = polygon_to_triangle_vertices(poly)
-            all_triangles.extend(triangles)
-        return all_triangles
-
-    # Ensure the input is a Polygon
-    if not isinstance(shapely_geometry, Polygon):
-        logger.error(
-            "Input geometry is not a Polygon or MultiPolygon: %s",
-            type(shapely_geometry),
-        )
-        return []
-
-    # Check if the polygon is valid
-    if not shapely_geometry.is_valid:
-        logger.warning("Invalid polygon detected. Attempting to repair.")
-        try:
-            shapely_geometry = make_valid(shapely_geometry)
-            # make_valid may return a MultiPolygon, so recurse
-            if isinstance(shapely_geometry, MultiPolygon):
-                logger.debug("Repaired geometry is a MultiPolygon")
-                return polygon_to_triangle_vertices(shapely_geometry)
-            if not shapely_geometry.is_valid:
-                logger.error("Polygon repair failed. Skipping triangulation.")
-                return []
-        except Exception as e:
-            logger.error(f"Error repairing polygon: {e}")
-            return []
-
-    # Simplify the polygon to remove near-degenerate edges
-    shapely_geometry = t.cast(
-        Polygon, shapely_geometry.simplify(tolerance=1e-5, preserve_topology=True)
-    )
-
-    # Check for near-zero area
-    if shapely_geometry.area < 1e-10:
-        logger.warning("Polygon has near-zero area. Skipping triangulation.")
-        return []
-
-    # Extract exterior coordinates (excluding the last point, which repeats the first)
-    exterior_coords = np.array(shapely_geometry.exterior.coords)[:-1]
-    if len(exterior_coords) < 3:
-        logger.warning("Exterior ring has too few points. Skipping triangulation.")
-        return []
-
-    # Initialize vertices with exterior coordinates
-    vertices = exterior_coords.copy()
-
-    # Create segments for the exterior
-    segments = np.array(
-        [[i, (i + 1) % len(exterior_coords)] for i in range(len(exterior_coords))]
-    )
-
-    # Handle holes if the polygon has any
-    holes = []
-    if shapely_geometry.interiors:
-        for interior in shapely_geometry.interiors:
-            # Extract interior coordinates (excluding the last point)
-            interior_coords = np.array(interior.coords)[:-1]
-            if len(interior_coords) < 3:
-                logger.warning("Interior ring has too few points. Skipping hole.")
-                continue
-            N = vertices.shape[0]  # Current number of vertices
-            # Append interior coordinates to vertices
-            vertices = np.concatenate((vertices, interior_coords))
-            # Create segments for the interior
-            interior_segments = np.array(
-                [
-                    [N + i, N + (i + 1) % len(interior_coords)]
-                    for i in range(len(interior_coords))
-                ]
-            )
-            segments = np.concatenate((segments, interior_segments), axis=0)
-            # Add a point inside the hole (centroid)
-            try:
-                centroid = interior.centroid
-                holes.append(np.array([centroid.x, centroid.y]))
-            except Exception as e:
-                logger.error(f"Error computing hole centroid: {e}")
-                continue
-
-    # Prepare triangulation input
-    tri_input = {"vertices": vertices, "segments": segments}
-    if holes:
-        tri_input["holes"] = np.array(holes)
-
-    # Log input for debugging
-    logger.debug(
-        f"Triangulation input: vertices={vertices.shape}, segments={segments.shape}, holes={len(holes)}"
-    )
-
-    # Perform triangulation
-    try:
-        tri_output = triangle.triangulate(tri_input, "p")
-    except RuntimeError as e:
-        logger.error(f"Triangulation failed: {e}")
-        logger.debug(f"Polygon exterior: {exterior_coords.tolist()}")
-        logger.debug(
-            f"Polygon holes: {[np.array(interior.coords)[:-1].tolist() for interior in shapely_geometry.interiors]}"
-        )
-        return []
-
-    # Check if triangulation produced new vertices
-    if "vertices" in tri_output and tri_output["vertices"].shape[0] > vertices.shape[0]:
-        logger.warning("Triangulation added new vertices (e.g., Steiner points).")
-        vertices = tri_output["vertices"]
-
-    # Extract triangles
-    triangles = tri_output.get("triangles", [])
-
-    # Validate triangle indices
-    max_index = vertices.shape[0] - 1
-    if triangles.size > 0 and triangles.max() > max_index:
-        logger.error(
-            f"Triangulation produced invalid indices (max index {triangles.max()} "
-            f"exceeds vertex count {max_index + 1})"
-        )
-        return []
-
-    # Convert triangle indices to vertex coordinates
-    triangle_vertices = []
-    for tri in triangles:
-        tri_coords = vertices[tri]
-        triangle_vertices.append(tri_coords.tolist())
-
-    return triangle_vertices
 
 
 def polygon_to_triangle_list(
