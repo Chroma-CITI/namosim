@@ -15,17 +15,31 @@ NAMOSIM is a robot motion planner designed for the problem of navigation among m
 
 First, clone the repo and `cd` into it.
 
-Next, use `rosdep` to install the dependencies listed in the `package.xml` file:
+If using `ROS2`, please use `rosdep` to install the dependencies listed in the `package.xml` file:
 
 ```bash
 rosdep install --from-paths . -r -y
 ```
 
-Some dependencies are only available as pip packages. Please install them with:
+Some of the dependencies are only available as pip packages. You can install them with
 
 ```bash
 pip install -r requirements.txt
 ```
+
+It is often best-practice to install pip packages in a virtual environment to avoid breaking your system packages. You can do that as follows:
+
+```bash
+python3 -m venv env # Optional
+source env/bin/activate # Optional
+pip install -r requirements.txt
+```
+
+Note that you may need to install `python3-venv` APT package.
+
+### Standalone Usage (Without ROS2)
+
+This project can also be used as a standalone python module independently of ROS. To use it in this manner, simply skip the `rosdep install` and install only the pip packages.
 
 ## Usage
 
@@ -53,32 +67,52 @@ A set of executable examples are available in the `examples/` folder. For instan
 
 The best way to experiment with different scenarios and parameters is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
 
-Alternatively you can launch a test from the command line like so:
+Alternatively, you can launch a test from the command line like so:
 
 ```bash
 python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
 
-### Run a Basic Scenario and Visualize in RVIZ
+### Visualisation in RViz
 
-The following example runs the most basic scenario with the (Stillman,2005) algorithm and assumes you have `ROS2` and `RViz2` installed.
-
-Start rviz2:
+To visualize `namosim` operation in RViz first launch RViz with:
 
 ```bash
 rviz2 -d rviz/basic_view.rviz
 ```
 
-Then, in a new terminal, run:
+Then, in a new terminal, launch a scenario:
 
 ```bash
-python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
+python3 -m namosim.main run tests/scenarios/minimal_stilman_2005.svg
 ```
 
-## Run Unit Tests
+## Testing
+
+The GitHub CI for this repo runs several automated tests on each pull request. These perform linting, type-checking, unit tests and end-to-end (e2e) tests. They can be executed independently via scripts in the `scripts/` folder.
+
+#### Unit Tests
 
 ```bash
 ./scripts/test_unit.sh
+```
+
+#### End-to-end Tests
+
+```bash
+./scripts/test_e2e.sh
+```
+
+#### Type Checking
+
+```bash
+./scripts/test_types.sh
+```
+
+#### Formatting
+
+```bash
+./scripts/format.sh
 ```
 
 ## Documentation
@@ -89,6 +123,16 @@ To build the docs site locally, run:
 
 ```bash
 ./scripts/make_docs.sh
+```
+
+## Dev Container
+
+If you are working on another system such as a different version of Ubuntu, or Windows or MacOS, you can use the provided [dev container](https://code.visualstudio.com/docs/devcontainers/containers) to run and edit this project.
+
+In order to access the X server of the dev container to view a scenario's Tkinter window, you may need to run the following command prior to launching.
+
+```bash
+xhost +local:root
 ```
 
 ## Authors
@@ -109,7 +153,7 @@ To build the docs site locally, run:
 
 ## Cite Us
 
-If you reuse any of the provided data/code, please cite the associated papers:
+If you reuse any part of this project in your research, please cite the associated papers:
 
 ```bibtex
 @inproceedings{renault:hal-04705395,

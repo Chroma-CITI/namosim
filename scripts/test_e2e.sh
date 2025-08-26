@@ -7,4 +7,4 @@ cd $DIR/..
 
 export NAMO_NO_DISPLAY_WINDOW="TRUE"
 export NAMO_DEACTIVATE_RVIZ="TRUE"
-python3 -m pytest -s tests/e2e
+python3 -m pytest -s --cov=namosim --cov-fail-under=55 tests/e2e
