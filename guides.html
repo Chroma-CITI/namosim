@@ -60,8 +60,8 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#creating-a-ros-map-scenario">Creating a ROS MAP Scenario</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id1">The Geometry File</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id3">Units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">The Geometry File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Units</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#namo-config-yaml-file">Namo Config Yaml File</a></li>
 </ul>
 </li>
@@ -95,7 +95,7 @@
            <div itemprop="articleBody">
              
   <section id="guides">
-<h1>Guides<a class="headerlink" href="#guides" title="Link to this heading"></a></h1>
+<span id="id1"></span><h1>Guides<a class="headerlink" href="#guides" title="Link to this heading"></a></h1>
 <section id="creating-custom-scenarios">
 <h2>Creating Custom Scenarios<a class="headerlink" href="#creating-custom-scenarios" title="Link to this heading"></a></h2>
 <p>The NAMO planner supports loading scenarios in one of two ways:</p>
@@ -278,8 +278,8 @@ provides the shape, position, and orientation of the robots and goals.</p>
 </ol>
 <p>See below for an example.</p>
 <p>The NAMO config yaml file provides the link between the SVG and the ROS map.</p>
-<section id="id1">
-<h3>The Geometry File<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="id2">
+<h3>The Geometry File<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
 <p>Here are the contents of a minimal svg geometry file. All geometries in the world must be svg <strong>path</strong>
 elements and each must have an <strong>id</strong> attribute which is used by the <strong>&lt;namo_config&gt;</strong> to configure the geometry
 as an entity in the simulation.</p>
@@ -377,8 +377,8 @@ as an entity in the simulation.</p>
 are in black. The robot goal pose is visible in the bottom right.</p>
 <p>We recommend using <a class="reference external" href="https://inkscape.org/">Inkscape</a> to edit your svg geometry file.</p>
 </section>
-<section id="id3">
-<h3>Units<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<section id="id4">
+<h3>Units<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
 <p>As before, all units in the SVG geometry file be in centimeters. The ROS map should have units in meters.</p>
 </section>
 <section id="namo-config-yaml-file">
