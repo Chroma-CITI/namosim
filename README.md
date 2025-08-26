@@ -43,7 +43,7 @@ This project can also be used as a standalone python module independently of ROS
 
 ## Usage
 
-You can launch a scenarios represented by SVG or YAML files as follows
+You can launch a scenario represented by an SVG or YAML file as follows
 
 ```bash
 python3 -m namosim.main run tests/scenarios/minimal_stilman_2005.svg
@@ -53,9 +53,9 @@ python3 -m namosim.main run tests/scenarios/minimal_stilman_2005.svg
 python3 -m namosim.main run tests/scenarios/citi_ing/namo.yaml
 ```
 
-Instructions on how to create a custom scenario can be found on the [docs site](https://chroma-citi.github.io/namosim/).
+Instructions on how to create custom scenarios can be found on the [docs site](https://chroma-citi.github.io/namosim/).
 
-## Examples
+### Examples
 
 A set of executable examples demonstrating key features are available in the `examples/` folder. They can be run like so:
 
