@@ -11,7 +11,7 @@ You can launch a scenario represented by an SVG or YAML file as follows:
 
    python3 -m namosim.main run tests/scenarios/citi_ing/namo.yaml
 
-Instructions on how to create custom scenarios can be found on the `docs site <https://chroma-citi.github.io/namosim/>`_.
+Instructions on how to create custom scenarios can be found on the :ref:`guides` page.
 
 Examples
 --------
