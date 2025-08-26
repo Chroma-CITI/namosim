@@ -57,20 +57,13 @@ Instructions on how to create a custom scenario can be found on the [docs site](
 
 ## Examples
 
-A set of executable examples are available in the `examples/` folder. For instance
+A set of executable examples demonstrating key features are available in the `examples/` folder. They can be run like so:
 
 ```bash
 ./examples/3_robots.sh
 ```
-
-## Testing End-to-End Scenarios
-
-The best way to experiment with different scenarios and parameters is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
-
-Alternatively, you can launch a test from the command line like so:
-
 ```bash
-python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
+./examples/with_slam_generated_map.sh
 ```
 
 ### Visualisation in RViz
@@ -113,6 +106,16 @@ The GitHub CI for this repo runs several automated tests on each pull request. T
 
 ```bash
 ./scripts/format.sh
+```
+
+#### Test End-to-end Scenarios
+
+The best way to experiment with different scenarios and parameters is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
+
+Alternatively, you can launch a test from the command line like so:
+
+```bash
+python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
 ```
 
 ## Documentation
