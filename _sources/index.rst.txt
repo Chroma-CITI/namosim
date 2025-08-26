@@ -44,6 +44,9 @@ Check out our IROS24 Paper at `https://hal.science/hal-04705395 <https://hal.sci
    :maxdepth: 2
    :caption: Contents:
 
+   installation.rst
+   usage.rst
+   testing.rst
    guides.rst
    namosim.rst
 

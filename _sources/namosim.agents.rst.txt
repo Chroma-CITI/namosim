@@ -12,18 +12,18 @@ namosim.agents.agent module
    :undoc-members:
    :show-inheritance:
 
-namosim.agents.models module
-----------------------------
-
-.. automodule:: namosim.agents.models
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 namosim.agents.navigation\_only\_agent module
 ---------------------------------------------
 
 .. automodule:: namosim.agents.navigation_only_agent
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+namosim.agents.rrt\_agent module
+--------------------------------
+
+.. automodule:: namosim.agents.rrt_agent
    :members:
    :undoc-members:
    :show-inheritance:
@@ -40,6 +40,14 @@ namosim.agents.stilman\_configurations module
 ---------------------------------------------
 
 .. automodule:: namosim.agents.stilman_configurations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+namosim.agents.stilman\_rrt\_star\_agent module
+-----------------------------------------------
+
+.. automodule:: namosim.agents.stilman_rrt_star_agent
    :members:
    :undoc-members:
    :show-inheritance:
