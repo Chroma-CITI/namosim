@@ -14,7 +14,7 @@
          </cc:Work>
       </rdf:RDF>
    </metadata>
-   <namo_config cell_size_cm="3.0" collision_margin_cm="3.0">
+   <namo_config cell_size_cm="5.0" collision_margin_cm="5.0">
       <agent agent_id="robot_0">
          <goal goal_id="goal_0" />
          <behavior type="stilman_2005_behavior">

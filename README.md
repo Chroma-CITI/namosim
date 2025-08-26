@@ -29,13 +29,29 @@ pip install -r requirements.txt
 
 ## Usage
 
-You can launch a scenario as follows
+You can launch a scenarios represented by SVG or YAML files as follows
 
 ```bash
 python3 -m namosim.main run tests/scenarios/minimal_stilman_2005.svg
 ```
 
-The best way to experiment with other scenarios is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
+```bash
+python3 -m namosim.main run tests/scenarios/citi_ing/namo.yaml
+```
+
+Instructions on how to create a custom scenario can be found on the [docs site](https://chroma-citi.github.io/namosim/).
+
+## Examples
+
+A set of executable examples are available in the `examples/` folder. For instance
+
+```bash
+./examples/3_robots.sh
+```
+
+## Testing End-to-End Scenarios
+
+The best way to experiment with different scenarios and parameters is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
 
 Alternatively you can launch a test from the command line like so:
 
