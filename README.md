@@ -6,144 +6,14 @@
 
 NAMOSIM is a robot motion planner designed for the problem of navigation among movable obstacles (NAMO). It simulates mobile robots navigating in 2D polygonal environments in which certain obstacles can be grabbed and relocated. It currently supports **holonomic** and **differential drive** motion models. A variety of agent types are implemented, including primarily our **Stilman2005** baseline agent. New agents utilizing alternative algorithmic approaches can be created and plugged into the planner in a straightforward manner by implementing the **Agent** base class.
 
-## System Requirements
-
-- Ubuntu 22.04
-- ROS2 Humble
-
-## Setup
-
-First, clone the repo and `cd` into it.
-
-If using `ROS2`, please use `rosdep` to install the dependencies listed in the `package.xml` file:
-
-```bash
-rosdep install --from-paths . -r -y
-```
-
-Some of the dependencies are only available as pip packages. You can install them with
-
-```bash
-pip install -r requirements.txt
-```
-
-It is often best-practice to install pip packages in a virtual environment to avoid breaking your system packages. You can do that as follows:
-
-```bash
-python3 -m venv env # Optional
-source env/bin/activate # Optional
-pip install -r requirements.txt
-```
-
-Note that you may need to install `python3-venv` APT package.
-
-### Standalone Usage (Without ROS2)
-
-This project can also be used as a standalone python module independently of ROS. To use it in this manner, simply skip the `rosdep install` and install only the pip packages.
-
-## Usage
-
-You can launch a scenario represented by an SVG or YAML file as follows
-
-```bash
-python3 -m namosim.main run tests/scenarios/minimal_stilman_2005.svg
-```
-
-```bash
-python3 -m namosim.main run tests/scenarios/citi_ing/namo.yaml
-```
-
-Instructions on how to create custom scenarios can be found on the [docs site](https://chroma-citi.github.io/namosim/).
-
-### Examples
-
-A set of executable examples demonstrating key features are available in the `examples/` folder. They can be run like so:
-
-```bash
-./examples/3_robots.sh
-```
-
-```bash
-./examples/with_slam_generated_map.sh
-```
-
-### Visualization
-
-By default, `namosim` renders the robots and environment in a Tkinter window. More detailed aspects of the operation of `namosim` can be visualized in RViz. To do this, first launch RViz with
-
-```bash
-rviz2 -d rviz/basic_view.rviz
-```
-
-Then, in a new terminal, launch a scenario:
-
-```bash
-python3 -m namosim.main run tests/scenarios/minimal_stilman_2005.svg
-```
-
-Both Tkinter and RViz visualization can be disabled by setting the following environment variables. Doing this slightly improves the speed of the planner.
-
-```bash
-export NAMO_NO_DISPLAY_WINDOW="TRUE"
-export NAMO_DEACTIVATE_RVIZ="TRUE"
-```
-
-## Testing
-
-The GitHub CI for this repo runs several automated tests on each pull request. These perform linting, type-checking, unit tests and end-to-end (e2e) tests. They can be executed independently via scripts in the `scripts/` folder.
-
-#### Unit Tests
-
-```bash
-./scripts/test_unit.sh
-```
-
-#### End-to-end Tests
-
-```bash
-./scripts/test_e2e.sh
-```
-
-#### Type Checking
-
-```bash
-./scripts/test_types.sh
-```
-
-#### Formatting
-
-```bash
-./scripts/format.sh
-```
-
-#### Test End-to-end Scenarios
-
-The best way to experiment with different scenarios and parameters is to open the repo in VSCode and use the python test explorer to run the `e2e` tests.
-
-Alternatively, you can launch a test from the command line like so:
-
-```bash
-python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
-```
-
 ## Documentation
 
-You can find the docs site [here](https://chroma-citi.github.io/namosim/).
+Please check out the [docs site](https://chroma-citi.github.io/namosim/) for installation and usage instructions.
 
 To build the docs site locally, run:
 
 ```bash
 ./scripts/make_docs.sh
-```
-
-## Dev Container
-
-If you are working on another system such as a different version of Ubuntu, or Windows or MacOS, you can use the provided [dev container](https://code.visualstudio.com/docs/devcontainers/containers) to run and edit this project.
-
-In order to access the X server of the dev container to view a scenario's Tkinter window, you may need to run the following command prior to launching.
-
-```bash
-xhost +local:root
 ```
 
 ## Authors
