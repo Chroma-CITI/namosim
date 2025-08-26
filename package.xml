@@ -30,9 +30,6 @@
   <depend>python3-requests</depend>
   <depend>python3-shapely</depend>
   <depend>python3-skimage</depend>
-  <depend>python3-sphinx-copybutton</depend>
-  <depend>python3-sphinx-rtd-theme</depend>
-  <depend>python3-sphinx</depend>
   <depend>python3-tk</depend>
   <depend>python3-typer</depend>
   <depend>python3-typing-extensions</depend>
