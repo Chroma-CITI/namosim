@@ -2,8 +2,8 @@
 Changelog for package namosim
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.1 (2025-08-26)
+------------------
 * Merge pull request `#12 <https://github.com/Chroma-CITI/namosim/issues/12>`_ from Chroma-CITI/rm_torch
   Update instructions
 * docs
