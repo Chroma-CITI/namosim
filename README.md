@@ -62,13 +62,14 @@ A set of executable examples demonstrating key features are available in the `ex
 ```bash
 ./examples/3_robots.sh
 ```
+
 ```bash
 ./examples/with_slam_generated_map.sh
 ```
 
-### Visualisation in RViz
+### Visualization
 
-To visualize `namosim` operation in RViz first launch RViz with:
+By default, `namosim` renders the robots and environment in a Tkinter window. More detailed aspects of the operation of `namosim` can be visualized in RViz. To do this, first launch RViz with
 
 ```bash
 rviz2 -d rviz/basic_view.rviz
@@ -78,6 +79,13 @@ Then, in a new terminal, launch a scenario:
 
 ```bash
 python3 -m namosim.main run tests/scenarios/minimal_stilman_2005.svg
+```
+
+Both Tkinter and RViz visualization can be disabled by setting the following environment variables. Doing this slightly improves the speed of the planner.
+
+```bash
+export NAMO_NO_DISPLAY_WINDOW="TRUE"
+export NAMO_DEACTIVATE_RVIZ="TRUE"
 ```
 
 ## Testing
