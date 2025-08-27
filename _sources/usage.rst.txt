@@ -1,5 +1,5 @@
 Usage
-=====
+==========
 
 You can launch a scenario represented by an SVG or YAML file as follows:
 
@@ -27,7 +27,7 @@ A set of executable examples demonstrating key features are available in the ``e
    ./examples/with_slam_generated_map.sh
 
 Visualization
-------------
+-------------
 
 By default, ``namosim`` renders the robots and environment in a Tkinter window. More detailed aspects of the operation of ``namosim`` can be visualized in RViz. To do this, first launch RViz with:
 
