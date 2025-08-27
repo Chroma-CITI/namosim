@@ -122,12 +122,9 @@ class StilmanBehaviorParametersYamlModel(BaseModel):
 
 class StilmanBehaviorConfigYamlModel(BaseBehaviorConfigYamlModel):
     type: t.Literal["stilman_2005_behavior"] = "stilman_2005_behavior"
-    parameters: StilmanBehaviorParametersYamlModel
-
-    def to_xml_model(self) -> StilmanBehaviorConfigModel:
-        return StilmanBehaviorConfigModel(
-            type=self.type, parameters=self.parameters.to_xml_model()
-        )
+    parameters: StilmanBehaviorParametersYamlModel = (
+        StilmanBehaviorParametersYamlModel()
+    )
 
 
 AgentBehaviorYamlConfig = t.Union[StilmanBehaviorConfigYamlModel,]
