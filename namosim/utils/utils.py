@@ -783,17 +783,6 @@ def get_angle_to_turn(a: t.Sequence[float], b: t.Sequence[float]) -> float:
     return angle
 
 
-class JsonEncoder(json.JSONEncoder):
-    def default(self, obj: t.Any):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        if isinstance(obj, np.floating):
-            return float(obj)
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return super(JsonEncoder, self).default(obj)
-
-
 def path_to_polygon(
     points: t.List[npt.NDArray[np.float32]],
     line_width: float,

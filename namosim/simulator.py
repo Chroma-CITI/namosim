@@ -89,7 +89,6 @@ class Simulator:
                     default=lambda o: o.__dict__,
                     indent=4,
                     sort_keys=True,
-                    cls=utils.JsonEncoder,
                 )
 
         self.save = json_save
