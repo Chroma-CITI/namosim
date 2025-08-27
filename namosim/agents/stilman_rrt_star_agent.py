@@ -201,11 +201,6 @@ class StilmanRRTStarAgent(Agent):
     def init(self, world: "w.World"):
         super().init(world)
 
-        # Initialize movability status of obstacles
-        for entity in self.world.dynamic_entities.values():
-            if entity.movability != Movability.STATIC:
-                entity.movability = self.deduce_movability(entity.type_)
-
         self.action_space_reduction = (
             "none"  # ['none', 'only_r_acc', 'only_r_acc_then_c_1_x']
         )

@@ -114,25 +114,6 @@ def get_neighbors_no_checks(cell, neighborhood=TAXI_NEIGHBORHOOD):
 
 
 def get_neighbors_no_coll(cell, grid, width, height, neighborhood=TAXI_NEIGHBORHOOD):
-    # # width_m_1, height_m_1= width - 1, height - 1
-    # if 0 < cell[0] < width - 1:
-    #     if 0 < cell[1] < height - 1:
-    #         # If cell in grid center, return all neighbors in neighborhood
-    #         return {(cell[0] + i, cell[1] + j) for i, j in neighborhood}
-    #     elif cell[1] == 0:
-    #         # If cell in top row
-    #         pass
-    #     elif cell[1] == height - 1:
-    #         pass
-    #     else:
-    #         return set()
-    # elif cell[0] == 0:
-    #     pass
-    # elif cell[0] == width - 1:
-    #     pass
-    # else:
-    #     return set()
-
     neighbors = set()
     for i, j in neighborhood:
         neighbor = cell[0] + i, cell[1] + j
