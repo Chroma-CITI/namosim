@@ -65,8 +65,8 @@
 <li class="toctree-l4"><a class="reference internal" href="#namosim-navigation-conflict-module">namosim.navigation.conflict module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#namosim-navigation-navigation-path-module">namosim.navigation.navigation_path module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#namosim-navigation-navigation-plan-module">namosim.navigation.navigation_plan module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#namosim-navigation-path-type-module">namosim.navigation.path_type module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-contents">Module contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.navigation.path_type">namosim.navigation.path_type module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.navigation">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="namosim.scripts.html">namosim.scripts package</a></li>
@@ -75,17 +75,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-config-module">namosim.config module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-data-models-module">namosim.data_models module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-exceptions-module">namosim.exceptions module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-input-module">namosim.input module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-log-module">namosim.log module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.config">namosim.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.data_models">namosim.data_models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.exceptions">namosim.exceptions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.input">namosim.input module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.log">namosim.log module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-main-module">namosim.main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-report-module">namosim.report module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-scenario-generation-module">namosim.scenario_generation module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-simulator-module">namosim.simulator module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-svg-styles-module">namosim.svg_styles module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.svg_styles">namosim.svg_styles module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -135,11 +135,33 @@
 <section id="namosim-navigation-navigation-plan-module">
 <h2>namosim.navigation.navigation_plan module<a class="headerlink" href="#namosim-navigation-navigation-plan-module" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-navigation-path-type-module">
-<h2>namosim.navigation.path_type module<a class="headerlink" href="#namosim-navigation-path-type-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.navigation.path_type">
+<span id="namosim-navigation-path-type-module"></span><h2>namosim.navigation.path_type module<a class="headerlink" href="#module-namosim.navigation.path_type" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.navigation.path_type.PathType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.navigation.path_type.</span></span><span class="sig-name descname"><span class="pre">PathType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/navigation/path_type.html#PathType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.navigation.path_type.PathType" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.navigation.path_type.PathType.PATH">
+<span class="sig-name descname"><span class="pre">PATH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></em><a class="headerlink" href="#namosim.navigation.path_type.PathType.PATH" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.navigation.path_type.PathType.TRANSFER">
+<span class="sig-name descname"><span class="pre">TRANSFER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#namosim.navigation.path_type.PathType.TRANSFER" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.navigation.path_type.PathType.TRANSIT">
+<span class="sig-name descname"><span class="pre">TRANSIT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></em><a class="headerlink" href="#namosim.navigation.path_type.PathType.TRANSIT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="module-contents">
-<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="module-namosim.navigation">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-namosim.navigation" title="Link to this heading"></a></h2>
 </section>
 </section>
 

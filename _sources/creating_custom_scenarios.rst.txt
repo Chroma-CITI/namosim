@@ -1,5 +1,5 @@
 Creating Custom Scenarios
-========================
+============================
 
 The NAMO planner supports loading scenarios in one of two ways:
 

@@ -58,11 +58,11 @@
 <li class="toctree-l3 current"><a class="current reference internal" href="#">namosim.algorithms package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#namosim-algorithms-graph-search-module">namosim.algorithms.graph_search module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#namosim-algorithms-kd-tree-module">namosim.algorithms.kd_tree module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.algorithms.kd_tree">namosim.algorithms.kd_tree module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#namosim-algorithms-new-local-opening-check-module">namosim.algorithms.new_local_opening_check module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#namosim-algorithms-rrt-node-module">namosim.algorithms.rrt_node module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.algorithms.rrt_node">namosim.algorithms.rrt_node module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#namosim-algorithms-rrt-star-module">namosim.algorithms.rrt_star module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-contents">Module contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.algorithms">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="namosim.display.html">namosim.display package</a></li>
@@ -74,17 +74,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-config-module">namosim.config module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-data-models-module">namosim.data_models module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-exceptions-module">namosim.exceptions module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-input-module">namosim.input module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-log-module">namosim.log module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.config">namosim.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.data_models">namosim.data_models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.exceptions">namosim.exceptions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.input">namosim.input module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.log">namosim.log module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-main-module">namosim.main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-report-module">namosim.report module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-scenario-generation-module">namosim.scenario_generation module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-simulator-module">namosim.simulator module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-svg-styles-module">namosim.svg_styles module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.svg_styles">namosim.svg_styles module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -122,20 +122,76 @@
 <section id="namosim-algorithms-graph-search-module">
 <h2>namosim.algorithms.graph_search module<a class="headerlink" href="#namosim-algorithms-graph-search-module" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-algorithms-kd-tree-module">
-<h2>namosim.algorithms.kd_tree module<a class="headerlink" href="#namosim-algorithms-kd-tree-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.algorithms.kd_tree">
+<span id="namosim-algorithms-kd-tree-module"></span><h2>namosim.algorithms.kd_tree module<a class="headerlink" href="#module-namosim.algorithms.kd_tree" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.algorithms.kd_tree.KDNode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.algorithms.kd_tree.</span></span><span class="sig-name descname"><span class="pre">KDNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/algorithms/kd_tree.html#KDNode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.algorithms.kd_tree.KDNode" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>]</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.algorithms.kd_tree.KDTree">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.algorithms.kd_tree.</span></span><span class="sig-name descname"><span class="pre">KDTree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">dimensions:</span> <span class="pre">int,</span> <span class="pre">point_getter:</span> <span class="pre">~typing.Callable[[~namosim.algorithms.kd_tree.T],</span> <span class="pre">~typing.Iterable[float]],</span> <span class="pre">distance_func:</span> <span class="pre">~typing.Callable[[~typing.Iterable[float],</span> <span class="pre">~typing.Iterable[float]],</span> <span class="pre">float]</span> <span class="pre">=</span> <span class="pre">&lt;function</span> <span class="pre">default_distance_func&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/algorithms/kd_tree.html#KDTree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.algorithms.kd_tree.KDTree" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">T</span></code>]</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.algorithms.kd_tree.KDTree.add">
+<span class="sig-name descname"><span class="pre">add</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">object</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">T</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/namosim/algorithms/kd_tree.html#KDTree.add"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.algorithms.kd_tree.KDTree.add" title="Link to this definition"></a></dt>
+<dd><p>Add an object to the KDTree.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.algorithms.kd_tree.KDTree.query">
+<span class="sig-name descname"><span class="pre">query</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/namosim/algorithms/kd_tree.html#KDTree.query"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.algorithms.kd_tree.KDTree.query" title="Link to this definition"></a></dt>
+<dd><p>Find k nearest neighbor objects to the query point.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.algorithms.kd_tree.KDTree.query_radius">
+<span class="sig-name descname"><span class="pre">query_radius</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">point</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">T</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/namosim/algorithms/kd_tree.html#KDTree.query_radius"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.algorithms.kd_tree.KDTree.query_radius" title="Link to this definition"></a></dt>
+<dd><p>Renvoie tous les objets dont la distance euclidienne au ‘point’ est ≤ radius.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="namosim.algorithms.kd_tree.default_distance_func">
+<span class="sig-prename descclassname"><span class="pre">namosim.algorithms.kd_tree.</span></span><span class="sig-name descname"><span class="pre">default_distance_func</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">A</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">B</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/algorithms/kd_tree.html#default_distance_func"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.algorithms.kd_tree.default_distance_func" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
 <section id="namosim-algorithms-new-local-opening-check-module">
 <h2>namosim.algorithms.new_local_opening_check module<a class="headerlink" href="#namosim-algorithms-new-local-opening-check-module" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-algorithms-rrt-node-module">
-<h2>namosim.algorithms.rrt_node module<a class="headerlink" href="#namosim-algorithms-rrt-node-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.algorithms.rrt_node">
+<span id="namosim-algorithms-rrt-node-module"></span><h2>namosim.algorithms.rrt_node module<a class="headerlink" href="#module-namosim.algorithms.rrt_node" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.algorithms.rrt_node.RRTNode">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.algorithms.rrt_node.</span></span><span class="sig-name descname"><span class="pre">RRTNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="namosim.html#namosim.data_models.Pose2D" title="namosim.data_models.Pose2D"><span class="pre">namosim.data_models.Pose2D</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ForwardRef</span><span class="p"><span class="pre">(</span></span><span class="s"><span class="pre">'RRTNode'</span></span><span class="p"><span class="pre">)</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/algorithms/rrt_node.html#RRTNode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.algorithms.rrt_node.RRTNode" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.algorithms.rrt_node.RRTNode.cost">
+<span class="sig-name descname"><span class="pre">cost</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#namosim.algorithms.rrt_node.RRTNode.cost" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.algorithms.rrt_node.RRTNode.parent">
+<span class="sig-name descname"><span class="pre">parent</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#namosim.algorithms.rrt_node.RRTNode" title="namosim.algorithms.rrt_node.RRTNode"><span class="pre">RRTNode</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.algorithms.rrt_node.RRTNode.parent" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.algorithms.rrt_node.RRTNode.pose">
+<span class="sig-name descname"><span class="pre">pose</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="namosim.html#namosim.data_models.Pose2D" title="namosim.data_models.Pose2D"><span class="pre">Pose2D</span></a></em><a class="headerlink" href="#namosim.algorithms.rrt_node.RRTNode.pose" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="namosim-algorithms-rrt-star-module">
 <h2>namosim.algorithms.rrt_star module<a class="headerlink" href="#namosim-algorithms-rrt-star-module" title="Link to this heading"></a></h2>
 </section>
-<section id="module-contents">
-<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="module-namosim.algorithms">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-namosim.algorithms" title="Link to this heading"></a></h2>
 </section>
 </section>
 

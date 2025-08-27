@@ -1,7 +1,7 @@
 .. _creating_svg_scenario:
 
 Creating an SVG Scenario
-=======================
+=============================
 
 Each Namo scenario is fully contained in a single SVG file.
 
@@ -47,7 +47,8 @@ Robots and Navigation Goals
 Each robot and goal listed in the `<namo_config>` must have a corresponding `<svg:path id="[your_agent_id]">` path element somewhere in the svg file. These elements 
 provides the shape, position, and orientation of the robots and goals.
 
-.. code-block:: xml
+g.. code-block:: xml
+
   <svg:path
       d="m 121.17572,125.39975 0,0 c 0,-3.87867 3.14428,-7.02295 7.02295,-7.02295 l 0,0 c 1.8626,0 3.64891,0.73992 4.96597,2.05698 1.31706,1.31705 2.05697,3.10337 2.05697,4.96597 l 0,0 c 0,3.87866 -3.14428,7.02294 -7.02294,7.02294 l 0,0 c -3.87867,0 -7.02295,-3.14428 -7.02295,-7.02294 z"
       id="goal_0"

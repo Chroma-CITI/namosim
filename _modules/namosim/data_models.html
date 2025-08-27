@@ -1,0 +1,339 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>namosim.data_models &mdash; namosim  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            namosim
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../guides.html">Guides</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing to NAMOSIM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../namosim.html">namosim package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">namosim</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">namosim.data_models</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for namosim.data_models</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic_xml</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseXmlModel</span><span class="p">,</span> <span class="n">attr</span><span class="p">,</span> <span class="n">element</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+
+
+<div class="viewcode-block" id="Pose2D">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.Pose2D">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Pose2D</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">NamedTuple</span><span class="p">):</span>
+    <span class="n">x</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">y</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">degrees</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+
+<span class="n">FixedPrecisionPose2D</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+<span class="n">GridCellModel</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+<span class="n">GridCellSet</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Set</span><span class="p">[</span><span class="n">GridCellModel</span><span class="p">]</span>
+<span class="n">VertexModel</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="GoalConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.GoalConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GoalConfigModel</span><span class="p">(</span><span class="n">BaseXmlModel</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;goal&quot;</span><span class="p">):</span>
+    <span class="n">goal_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="BaseBehaviorConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.BaseBehaviorConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseBehaviorConfigModel</span><span class="p">(</span><span class="n">BaseXmlModel</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;behavior&quot;</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="NavigationOnlyBehaviorConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.NavigationOnlyBehaviorConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NavigationOnlyBehaviorConfigModel</span><span class="p">(</span><span class="n">BaseBehaviorConfigModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;navigation_only_behavior&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="RRTAgentConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.RRTAgentConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RRTAgentConfigModel</span><span class="p">(</span><span class="n">BaseBehaviorConfigModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;rrt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">()</span>
+    <span class="n">use_kd_tree</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="TeleopBehaviorConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.TeleopBehaviorConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TeleopBehaviorConfigModel</span><span class="p">(</span><span class="n">BaseBehaviorConfigModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;teleop_behavior&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="BaseRLAgentConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.BaseRLAgentConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseRLAgentConfigModel</span><span class="p">(</span><span class="n">BaseBehaviorConfigModel</span><span class="p">):</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;learn&quot;</span><span class="p">,</span> <span class="s2">&quot;execute&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;learn&quot;</span><span class="p">)</span>
+    <span class="n">checkpoint</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="StilmanBehaviorParametersModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.StilmanBehaviorParametersModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StilmanBehaviorParametersModel</span><span class="p">(</span><span class="n">BaseXmlModel</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;parameters&quot;</span><span class="p">):</span>
+    <span class="n">check_new_local_opening_before_global</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">activate_grids_logging</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">push_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">robot_rotation_unit_angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+    <span class="n">manip_search_bound_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">use_social_cost</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">resolve_conflicts</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">resolve_deadlocks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">deadlock_strategy</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;SOCIAL&quot;</span><span class="p">,</span> <span class="s2">&quot;DISTANCE&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">drive_type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;holonomic&quot;</span><span class="p">,</span> <span class="s2">&quot;differential&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s2">&quot;differential&quot;</span><span class="p">)</span>
+    <span class="n">grab_start_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">grab_end_distance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">conflict_horizon</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">40</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="StilmanBehaviorConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.StilmanBehaviorConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StilmanBehaviorConfigModel</span><span class="p">(</span><span class="n">BaseBehaviorConfigModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;stilman_2005_behavior&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">()</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">StilmanBehaviorParametersModel</span> <span class="o">=</span> <span class="n">element</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="StilmanRRTBehaviorConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.StilmanRRTBehaviorConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StilmanRRTBehaviorConfigModel</span><span class="p">(</span><span class="n">BaseBehaviorConfigModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;stilman_rrt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">()</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">StilmanBehaviorParametersModel</span> <span class="o">=</span> <span class="n">element</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="StilmanRRTStarBehaviorConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.StilmanRRTStarBehaviorConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StilmanRRTStarBehaviorConfigModel</span><span class="p">(</span><span class="n">BaseBehaviorConfigModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;stilman_rrt_star_behavior&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">attr</span><span class="p">()</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">StilmanBehaviorParametersModel</span> <span class="o">=</span> <span class="n">element</span><span class="p">()</span></div>
+
+
+
+<span class="n">AgentBehaviorXmlConfig</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span>
+    <span class="n">NavigationOnlyBehaviorConfigModel</span><span class="p">,</span>
+    <span class="n">RRTAgentConfigModel</span><span class="p">,</span>
+    <span class="n">TeleopBehaviorConfigModel</span><span class="p">,</span>
+    <span class="n">StilmanBehaviorConfigModel</span><span class="p">,</span>
+    <span class="n">StilmanRRTStarBehaviorConfigModel</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="AgentConfigXmlModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.AgentConfigXmlModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentConfigXmlModel</span><span class="p">(</span><span class="n">BaseXmlModel</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;agent_config&quot;</span><span class="p">):</span>
+    <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">attr</span><span class="p">()</span>
+    <span class="n">goals</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">GoalConfigModel</span><span class="p">]</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="s2">&quot;goal&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[])</span>
+    <span class="n">behavior</span><span class="p">:</span> <span class="n">AgentBehaviorXmlConfig</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="s2">&quot;behavior&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="NamoConfigXmlModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.NamoConfigXmlModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NamoConfigXmlModel</span><span class="p">(</span><span class="n">BaseXmlModel</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;namo_config&quot;</span><span class="p">):</span>
+    <span class="n">cell_size_cm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">attr</span><span class="p">()</span>
+    <span class="n">collision_margin_cm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">random_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+    <span class="n">generate_report</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">attr</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">agents</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">AgentConfigXmlModel</span><span class="p">]</span> <span class="o">=</span> <span class="n">element</span><span class="p">(</span><span class="s2">&quot;agent&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[])</span></div>
+
+
+
+<span class="c1"># YAML MODELS</span>
+
+
+<div class="viewcode-block" id="BaseBehaviorConfigYamlModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.BaseBehaviorConfigYamlModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BaseBehaviorConfigYamlModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="k">pass</span>  <span class="c1"># Abstract base class, no fields defined here</span></div>
+
+
+
+<div class="viewcode-block" id="StilmanBehaviorParametersYamlModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.StilmanBehaviorParametersYamlModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StilmanBehaviorParametersYamlModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">check_new_local_opening_before_global</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">activate_grids_logging</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">push_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">robot_rotation_unit_angle</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">15.0</span>
+    <span class="n">manip_search_bound_percentage</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="n">use_social_cost</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">resolve_conflicts</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">resolve_deadlocks</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">deadlock_strategy</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;SOCIAL&quot;</span><span class="p">,</span> <span class="s2">&quot;DISTANCE&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">drive_type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;holonomic&quot;</span><span class="p">,</span> <span class="s2">&quot;differential&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;differential&quot;</span>
+    <span class="n">grab_start_distance</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">grab_end_distance</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">conflict_horizon</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">40</span></div>
+
+
+
+<div class="viewcode-block" id="StilmanBehaviorConfigYamlModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.StilmanBehaviorConfigYamlModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StilmanBehaviorConfigYamlModel</span><span class="p">(</span><span class="n">BaseBehaviorConfigYamlModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;stilman_2005_behavior&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;stilman_2005_behavior&quot;</span>
+    <span class="n">parameters</span><span class="p">:</span> <span class="n">StilmanBehaviorParametersYamlModel</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">StilmanBehaviorParametersYamlModel</span><span class="p">()</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="n">AgentBehaviorYamlConfig</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">StilmanBehaviorConfigYamlModel</span><span class="p">,]</span>
+
+
+<div class="viewcode-block" id="GoalYamlModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.GoalYamlModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">GoalYamlModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">pose</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="AgentConfigYamlModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.AgentConfigYamlModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentConfigYamlModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">initial_pose</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">radius</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">behavior</span><span class="p">:</span> <span class="n">AgentBehaviorYamlConfig</span></div>
+
+
+
+<div class="viewcode-block" id="NamoConfigYamlModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.NamoConfigYamlModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NamoConfigYamlModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">map_yaml</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">svg_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">agents</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">AgentConfigYamlModel</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">collision_margin_cm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">random_seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">generate_report</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="MapYamlConfigModel">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.MapYamlConfigModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MapYamlConfigModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">image</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">resolution</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">origin</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="n">negate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="nb">bool</span>
+    <span class="n">occupied_thresh</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">free_thresh</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+
+<div class="viewcode-block" id="namo_config_from_yaml">
+<a class="viewcode-back" href="../../namosim.html#namosim.data_models.namo_config_from_yaml">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">namo_config_from_yaml</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">NamoConfigYamlModel</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">NamoConfigYamlModel</span><span class="p">(</span><span class="o">**</span><span class="n">config</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Benoit Renault, David Brown.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

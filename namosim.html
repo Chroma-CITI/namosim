@@ -65,17 +65,187 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#namosim-config-module">namosim.config module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#namosim-data-models-module">namosim.data_models module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#namosim-exceptions-module">namosim.exceptions module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#namosim-input-module">namosim.input module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#namosim-log-module">namosim.log module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-namosim.config">namosim.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-namosim.data_models">namosim.data_models module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.AgentBehaviorYamlConfig"><code class="docutils literal notranslate"><span class="pre">AgentBehaviorYamlConfig</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.AgentConfigXmlModel"><code class="docutils literal notranslate"><span class="pre">AgentConfigXmlModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.AgentConfigXmlModel.agent_id"><code class="docutils literal notranslate"><span class="pre">AgentConfigXmlModel.agent_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.AgentConfigXmlModel.behavior"><code class="docutils literal notranslate"><span class="pre">AgentConfigXmlModel.behavior</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.AgentConfigXmlModel.goals"><code class="docutils literal notranslate"><span class="pre">AgentConfigXmlModel.goals</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.AgentConfigXmlModel.model_config"><code class="docutils literal notranslate"><span class="pre">AgentConfigXmlModel.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.AgentConfigYamlModel"><code class="docutils literal notranslate"><span class="pre">AgentConfigYamlModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.AgentConfigYamlModel.behavior"><code class="docutils literal notranslate"><span class="pre">AgentConfigYamlModel.behavior</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.AgentConfigYamlModel.id"><code class="docutils literal notranslate"><span class="pre">AgentConfigYamlModel.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.AgentConfigYamlModel.initial_pose"><code class="docutils literal notranslate"><span class="pre">AgentConfigYamlModel.initial_pose</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.AgentConfigYamlModel.model_config"><code class="docutils literal notranslate"><span class="pre">AgentConfigYamlModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.AgentConfigYamlModel.radius"><code class="docutils literal notranslate"><span class="pre">AgentConfigYamlModel.radius</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigModel"><code class="docutils literal notranslate"><span class="pre">BaseBehaviorConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">BaseBehaviorConfigModel.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigYamlModel"><code class="docutils literal notranslate"><span class="pre">BaseBehaviorConfigYamlModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigYamlModel.model_config"><code class="docutils literal notranslate"><span class="pre">BaseBehaviorConfigYamlModel.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.BaseRLAgentConfigModel"><code class="docutils literal notranslate"><span class="pre">BaseRLAgentConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.BaseRLAgentConfigModel.checkpoint"><code class="docutils literal notranslate"><span class="pre">BaseRLAgentConfigModel.checkpoint</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.BaseRLAgentConfigModel.mode"><code class="docutils literal notranslate"><span class="pre">BaseRLAgentConfigModel.mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.BaseRLAgentConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">BaseRLAgentConfigModel.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.GoalConfigModel"><code class="docutils literal notranslate"><span class="pre">GoalConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.GoalConfigModel.goal_id"><code class="docutils literal notranslate"><span class="pre">GoalConfigModel.goal_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.GoalConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">GoalConfigModel.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.GoalYamlModel"><code class="docutils literal notranslate"><span class="pre">GoalYamlModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.GoalYamlModel.id"><code class="docutils literal notranslate"><span class="pre">GoalYamlModel.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.GoalYamlModel.model_config"><code class="docutils literal notranslate"><span class="pre">GoalYamlModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.GoalYamlModel.pose"><code class="docutils literal notranslate"><span class="pre">GoalYamlModel.pose</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.MapYamlConfigModel"><code class="docutils literal notranslate"><span class="pre">MapYamlConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.MapYamlConfigModel.free_thresh"><code class="docutils literal notranslate"><span class="pre">MapYamlConfigModel.free_thresh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.MapYamlConfigModel.image"><code class="docutils literal notranslate"><span class="pre">MapYamlConfigModel.image</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.MapYamlConfigModel.mode"><code class="docutils literal notranslate"><span class="pre">MapYamlConfigModel.mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.MapYamlConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">MapYamlConfigModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.MapYamlConfigModel.negate"><code class="docutils literal notranslate"><span class="pre">MapYamlConfigModel.negate</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.MapYamlConfigModel.occupied_thresh"><code class="docutils literal notranslate"><span class="pre">MapYamlConfigModel.occupied_thresh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.MapYamlConfigModel.origin"><code class="docutils literal notranslate"><span class="pre">MapYamlConfigModel.origin</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.MapYamlConfigModel.resolution"><code class="docutils literal notranslate"><span class="pre">MapYamlConfigModel.resolution</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.NamoConfigXmlModel"><code class="docutils literal notranslate"><span class="pre">NamoConfigXmlModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigXmlModel.agents"><code class="docutils literal notranslate"><span class="pre">NamoConfigXmlModel.agents</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigXmlModel.cell_size_cm"><code class="docutils literal notranslate"><span class="pre">NamoConfigXmlModel.cell_size_cm</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigXmlModel.collision_margin_cm"><code class="docutils literal notranslate"><span class="pre">NamoConfigXmlModel.collision_margin_cm</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigXmlModel.generate_report"><code class="docutils literal notranslate"><span class="pre">NamoConfigXmlModel.generate_report</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigXmlModel.model_config"><code class="docutils literal notranslate"><span class="pre">NamoConfigXmlModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigXmlModel.random_seed"><code class="docutils literal notranslate"><span class="pre">NamoConfigXmlModel.random_seed</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.NamoConfigYamlModel"><code class="docutils literal notranslate"><span class="pre">NamoConfigYamlModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigYamlModel.agents"><code class="docutils literal notranslate"><span class="pre">NamoConfigYamlModel.agents</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigYamlModel.collision_margin_cm"><code class="docutils literal notranslate"><span class="pre">NamoConfigYamlModel.collision_margin_cm</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigYamlModel.generate_report"><code class="docutils literal notranslate"><span class="pre">NamoConfigYamlModel.generate_report</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigYamlModel.map_yaml"><code class="docutils literal notranslate"><span class="pre">NamoConfigYamlModel.map_yaml</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigYamlModel.model_config"><code class="docutils literal notranslate"><span class="pre">NamoConfigYamlModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigYamlModel.random_seed"><code class="docutils literal notranslate"><span class="pre">NamoConfigYamlModel.random_seed</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NamoConfigYamlModel.svg_file"><code class="docutils literal notranslate"><span class="pre">NamoConfigYamlModel.svg_file</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.NavigationOnlyBehaviorConfigModel"><code class="docutils literal notranslate"><span class="pre">NavigationOnlyBehaviorConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NavigationOnlyBehaviorConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">NavigationOnlyBehaviorConfigModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.NavigationOnlyBehaviorConfigModel.type"><code class="docutils literal notranslate"><span class="pre">NavigationOnlyBehaviorConfigModel.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.Pose2D"><code class="docutils literal notranslate"><span class="pre">Pose2D</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.Pose2D.degrees"><code class="docutils literal notranslate"><span class="pre">Pose2D.degrees</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.Pose2D.x"><code class="docutils literal notranslate"><span class="pre">Pose2D.x</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.Pose2D.y"><code class="docutils literal notranslate"><span class="pre">Pose2D.y</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.RRTAgentConfigModel"><code class="docutils literal notranslate"><span class="pre">RRTAgentConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.RRTAgentConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">RRTAgentConfigModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.RRTAgentConfigModel.type"><code class="docutils literal notranslate"><span class="pre">RRTAgentConfigModel.type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.RRTAgentConfigModel.use_kd_tree"><code class="docutils literal notranslate"><span class="pre">RRTAgentConfigModel.use_kd_tree</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigModel"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorConfigModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigModel.parameters"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorConfigModel.parameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigModel.type"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorConfigModel.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigYamlModel"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorConfigYamlModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigYamlModel.model_config"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorConfigYamlModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigYamlModel.parameters"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorConfigYamlModel.parameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigYamlModel.type"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorConfigYamlModel.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.activate_grids_logging"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.activate_grids_logging</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.check_new_local_opening_before_global"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.check_new_local_opening_before_global</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.conflict_horizon"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.conflict_horizon</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.deadlock_strategy"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.deadlock_strategy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.drive_type"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.drive_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.grab_end_distance"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.grab_end_distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.grab_start_distance"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.grab_start_distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.manip_search_bound_percentage"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.manip_search_bound_percentage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.model_config"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.push_only"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.push_only</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.resolve_conflicts"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.resolve_conflicts</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.resolve_deadlocks"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.resolve_deadlocks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.robot_rotation_unit_angle"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.robot_rotation_unit_angle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel.use_social_cost"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersModel.use_social_cost</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.activate_grids_logging"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.activate_grids_logging</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.check_new_local_opening_before_global"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.check_new_local_opening_before_global</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.conflict_horizon"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.conflict_horizon</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.deadlock_strategy"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.deadlock_strategy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.drive_type"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.drive_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.grab_end_distance"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.grab_end_distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.grab_start_distance"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.grab_start_distance</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.manip_search_bound_percentage"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.manip_search_bound_percentage</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.model_config"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.push_only"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.push_only</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.resolve_conflicts"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.resolve_conflicts</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.resolve_deadlocks"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.resolve_deadlocks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.robot_rotation_unit_angle"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.robot_rotation_unit_angle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.use_social_cost"><code class="docutils literal notranslate"><span class="pre">StilmanBehaviorParametersYamlModel.use_social_cost</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.StilmanRRTBehaviorConfigModel"><code class="docutils literal notranslate"><span class="pre">StilmanRRTBehaviorConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanRRTBehaviorConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">StilmanRRTBehaviorConfigModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanRRTBehaviorConfigModel.parameters"><code class="docutils literal notranslate"><span class="pre">StilmanRRTBehaviorConfigModel.parameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanRRTBehaviorConfigModel.type"><code class="docutils literal notranslate"><span class="pre">StilmanRRTBehaviorConfigModel.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel"><code class="docutils literal notranslate"><span class="pre">StilmanRRTStarBehaviorConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">StilmanRRTStarBehaviorConfigModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel.parameters"><code class="docutils literal notranslate"><span class="pre">StilmanRRTStarBehaviorConfigModel.parameters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel.type"><code class="docutils literal notranslate"><span class="pre">StilmanRRTStarBehaviorConfigModel.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.TeleopBehaviorConfigModel"><code class="docutils literal notranslate"><span class="pre">TeleopBehaviorConfigModel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.TeleopBehaviorConfigModel.model_config"><code class="docutils literal notranslate"><span class="pre">TeleopBehaviorConfigModel.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.data_models.TeleopBehaviorConfigModel.type"><code class="docutils literal notranslate"><span class="pre">TeleopBehaviorConfigModel.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.data_models.namo_config_from_yaml"><code class="docutils literal notranslate"><span class="pre">namo_config_from_yaml()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-namosim.exceptions">namosim.exceptions module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.exceptions.CustomTimeoutError"><code class="docutils literal notranslate"><span class="pre">CustomTimeoutError</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.exceptions.raise_timeout"><code class="docutils literal notranslate"><span class="pre">raise_timeout()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.exceptions.timeout"><code class="docutils literal notranslate"><span class="pre">timeout()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-namosim.input">namosim.input module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.input.Input"><code class="docutils literal notranslate"><span class="pre">Input</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.input.Input.clear"><code class="docutils literal notranslate"><span class="pre">Input.clear()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.input.Input.handle_key_press"><code class="docutils literal notranslate"><span class="pre">Input.handle_key_press()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#namosim.input.Input.handle_key_release"><code class="docutils literal notranslate"><span class="pre">Input.handle_key_release()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-namosim.log">namosim.log module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#namosim-main-module">namosim.main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#namosim-report-module">namosim.report module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#namosim-scenario-generation-module">namosim.scenario_generation module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#namosim-simulator-module">namosim.simulator module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#namosim-svg-styles-module">namosim.svg_styles module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-namosim.svg_styles">namosim.svg_styles module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#namosim.svg_styles.AgentStyle"><code class="docutils literal notranslate"><span class="pre">AgentStyle</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-namosim">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -125,11 +295,29 @@
 <li class="toctree-l1"><a class="reference internal" href="namosim.algorithms.html">namosim.algorithms package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#namosim-algorithms-graph-search-module">namosim.algorithms.graph_search module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#namosim-algorithms-kd-tree-module">namosim.algorithms.kd_tree module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#module-namosim.algorithms.kd_tree">namosim.algorithms.kd_tree module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.kd_tree.KDNode"><code class="docutils literal notranslate"><span class="pre">KDNode</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.kd_tree.KDTree"><code class="docutils literal notranslate"><span class="pre">KDTree</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.kd_tree.KDTree.add"><code class="docutils literal notranslate"><span class="pre">KDTree.add()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.kd_tree.KDTree.query"><code class="docutils literal notranslate"><span class="pre">KDTree.query()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.kd_tree.KDTree.query_radius"><code class="docutils literal notranslate"><span class="pre">KDTree.query_radius()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.kd_tree.default_distance_func"><code class="docutils literal notranslate"><span class="pre">default_distance_func()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#namosim-algorithms-new-local-opening-check-module">namosim.algorithms.new_local_opening_check module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#namosim-algorithms-rrt-node-module">namosim.algorithms.rrt_node module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#module-namosim.algorithms.rrt_node">namosim.algorithms.rrt_node module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.rrt_node.RRTNode"><code class="docutils literal notranslate"><span class="pre">RRTNode</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.rrt_node.RRTNode.cost"><code class="docutils literal notranslate"><span class="pre">RRTNode.cost</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.rrt_node.RRTNode.parent"><code class="docutils literal notranslate"><span class="pre">RRTNode.parent</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.algorithms.html#namosim.algorithms.rrt_node.RRTNode.pose"><code class="docutils literal notranslate"><span class="pre">RRTNode.pose</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#namosim-algorithms-rrt-star-module">namosim.algorithms.rrt_star module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.algorithms.html#module-namosim.algorithms">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="namosim.display.html">namosim.display package</a><ul>
@@ -138,20 +326,41 @@
 <li class="toctree-l2"><a class="reference internal" href="namosim.display.html#namosim-display-conversions-module">namosim.display.conversions module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.display.html#namosim-display-ros2-publisher-module">namosim.display.ros2_publisher module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.display.html#namosim-display-ros-nodes-module">namosim.display.ros_nodes module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.display.html#namosim-display-ros-publisher-config-module">namosim.display.ros_publisher_config module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.display.html#namosim-display-tf-replacement-module">namosim.display.tf_replacement module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.display.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.display.html#module-namosim.display.ros_publisher_config">namosim.display.ros_publisher_config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.display.html#module-namosim.display.tf_replacement">namosim.display.tf_replacement module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.display.html#namosim.display.tf_replacement.quaternion_from_euler"><code class="docutils literal notranslate"><span class="pre">quaternion_from_euler()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.display.html#module-namosim.display">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="namosim.mapgen.html">namosim.mapgen package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#namosim-mapgen-connected-components-module">namosim.mapgen.connected_components module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#module-namosim.mapgen.connected_components">namosim.mapgen.connected_components module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.connected_components.ConnectedComponents"><code class="docutils literal notranslate"><span class="pre">ConnectedComponents</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.connected_components.ConnectedComponents.compute_components"><code class="docutils literal notranslate"><span class="pre">ConnectedComponents.compute_components()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.connected_components.ConnectedComponents.find_nearest_neighbor"><code class="docutils literal notranslate"><span class="pre">ConnectedComponents.find_nearest_neighbor()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.connected_components.ConnectedComponents.get_accessible_cells"><code class="docutils literal notranslate"><span class="pre">ConnectedComponents.get_accessible_cells()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.connected_components.ConnectedComponents.get_neighbors"><code class="docutils literal notranslate"><span class="pre">ConnectedComponents.get_neighbors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.connected_components.ConnectedComponents.get_smallest_component"><code class="docutils literal notranslate"><span class="pre">ConnectedComponents.get_smallest_component()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#namosim-mapgen-main-module">namosim.mapgen.main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#namosim-mapgen-mapgen-module">namosim.mapgen.mapgen module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#namosim-mapgen-svg-utils-module">namosim.mapgen.svg_utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#namosim-mapgen-types-module">namosim.mapgen.types module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#namosim-mapgen-utils-module">namosim.mapgen.utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#module-namosim.mapgen.svg_utils">namosim.mapgen.svg_utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.svg_utils.perturb_polygon"><code class="docutils literal notranslate"><span class="pre">perturb_polygon()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.svg_utils.polygon_to_svg_path"><code class="docutils literal notranslate"><span class="pre">polygon_to_svg_path()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#module-namosim.mapgen.types">namosim.mapgen.types module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#module-namosim.mapgen.utils">namosim.mapgen.utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.utils.is_empty"><code class="docutils literal notranslate"><span class="pre">is_empty()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.mapgen.html#namosim.mapgen.utils.is_in_map"><code class="docutils literal notranslate"><span class="pre">is_in_map()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.mapgen.html#module-namosim.mapgen">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="namosim.navigation.html">namosim.navigation package</a><ul>
@@ -161,8 +370,16 @@
 <li class="toctree-l2"><a class="reference internal" href="namosim.navigation.html#namosim-navigation-conflict-module">namosim.navigation.conflict module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.navigation.html#namosim-navigation-navigation-path-module">namosim.navigation.navigation_path module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.navigation.html#namosim-navigation-navigation-plan-module">namosim.navigation.navigation_plan module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.navigation.html#namosim-navigation-path-type-module">namosim.navigation.path_type module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.navigation.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.navigation.html#module-namosim.navigation.path_type">namosim.navigation.path_type module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.navigation.html#namosim.navigation.path_type.PathType"><code class="docutils literal notranslate"><span class="pre">PathType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="namosim.navigation.html#namosim.navigation.path_type.PathType.PATH"><code class="docutils literal notranslate"><span class="pre">PathType.PATH</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.navigation.html#namosim.navigation.path_type.PathType.TRANSFER"><code class="docutils literal notranslate"><span class="pre">PathType.TRANSFER</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.navigation.html#namosim.navigation.path_type.PathType.TRANSIT"><code class="docutils literal notranslate"><span class="pre">PathType.TRANSIT</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.navigation.html#module-namosim.navigation">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="namosim.scripts.html">namosim.scripts package</a><ul>
@@ -170,18 +387,36 @@
 <li class="toctree-l2"><a class="reference internal" href="namosim.scripts.html#namosim-scripts-generate-results-table-module">namosim.scripts.generate_results_table module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.scripts.html#namosim-scripts-svg2map-module">namosim.scripts.svg2map module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.scripts.html#namosim-scripts-svg2stl-module">namosim.scripts.svg2stl module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.scripts.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.scripts.html#module-namosim.scripts">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="namosim.utils.html">namosim.utils package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#namosim-utils-collision-module">namosim.utils.collision module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#namosim-utils-connectivity-module">namosim.utils.connectivity module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#namosim-utils-conversion-module">namosim.utils.conversion module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#module-namosim.utils.conversion">namosim.utils.conversion module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.add_group"><code class="docutils literal notranslate"><span class="pre">add_group()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.add_shapely_geometry_to_svg"><code class="docutils literal notranslate"><span class="pre">add_shapely_geometry_to_svg()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.clean_attributes"><code class="docutils literal notranslate"><span class="pre">clean_attributes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.color_clamp"><code class="docutils literal notranslate"><span class="pre">color_clamp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.concave_hull_polygon"><code class="docutils literal notranslate"><span class="pre">concave_hull_polygon()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.dom2dict"><code class="docutils literal notranslate"><span class="pre">dom2dict()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.ellipse2pathd"><code class="docutils literal notranslate"><span class="pre">ellipse2pathd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.line2pathd"><code class="docutils literal notranslate"><span class="pre">line2pathd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.polygon2pathd"><code class="docutils literal notranslate"><span class="pre">polygon2pathd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.polygon_to_triangle_vertices"><code class="docutils literal notranslate"><span class="pre">polygon_to_triangle_vertices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.polyline2pathd"><code class="docutils literal notranslate"><span class="pre">polyline2pathd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.rect2pathd"><code class="docutils literal notranslate"><span class="pre">rect2pathd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.rgb_tuple_to_hex"><code class="docutils literal notranslate"><span class="pre">rgb_tuple_to_hex()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.set_all_id_attributes_as_ids"><code class="docutils literal notranslate"><span class="pre">set_all_id_attributes_as_ids()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.shapely_geometry_to_svg_pathd"><code class="docutils literal notranslate"><span class="pre">shapely_geometry_to_svg_pathd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.utils.html#namosim.utils.conversion.svg_pathd_to_shapely_geometry"><code class="docutils literal notranslate"><span class="pre">svg_pathd_to_shapely_geometry()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#namosim-utils-stats-utils-module">namosim.utils.stats_utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#namosim-utils-svg-to-png-module">namosim.utils.svg_to_png module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#module-namosim.utils.svg_to_png">namosim.utils.svg_to_png module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#namosim-utils-utils-module">namosim.utils.utils module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.utils.html#module-namosim.utils">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="namosim.world.html">namosim.world package</a><ul>
@@ -189,20 +424,27 @@
 <li class="toctree-l3"><a class="reference internal" href="namosim.world.sensors.html">namosim.world.sensors package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="namosim.world.sensors.html#submodules">Submodules</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namosim.world.sensors.html#namosim-world-sensors-omniscient-sensor-module">namosim.world.sensors.omniscient_sensor module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="namosim.world.sensors.html#module-contents">Module contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namosim.world.sensors.html#module-namosim.world.sensors">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.world.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.world.html#namosim-world-binary-occupancy-grid-module">namosim.world.binary_occupancy_grid module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.world.html#namosim-world-custom-exceptions-module">namosim.world.custom_exceptions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.world.html#module-namosim.world.custom_exceptions">namosim.world.custom_exceptions module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.world.html#namosim.world.custom_exceptions.EntityPlacementException"><code class="docutils literal notranslate"><span class="pre">EntityPlacementException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="namosim.world.html#namosim.world.custom_exceptions.IntersectionError"><code class="docutils literal notranslate"><span class="pre">IntersectionError</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.world.html#namosim-world-entity-module">namosim.world.entity module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.world.html#namosim-world-goal-module">namosim.world.goal module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.world.html#module-namosim.world.goal">namosim.world.goal module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="namosim.world.html#namosim.world.goal.Goal"><code class="docutils literal notranslate"><span class="pre">Goal</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.world.html#namosim-world-obstacle-module">namosim.world.obstacle module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.world.html#namosim-world-social-topological-occupation-cost-grid-module">namosim.world.social_topological_occupation_cost_grid module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.world.html#namosim-world-world-module">namosim.world.world module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.world.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.world.html#module-namosim.world">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -211,20 +453,662 @@
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-config-module">
-<h2>namosim.config module<a class="headerlink" href="#namosim-config-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.config">
+<span id="namosim-config-module"></span><h2>namosim.config module<a class="headerlink" href="#module-namosim.config" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-data-models-module">
-<h2>namosim.data_models module<a class="headerlink" href="#namosim-data-models-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.data_models">
+<span id="namosim-data-models-module"></span><h2>namosim.data_models module<a class="headerlink" href="#module-namosim.data_models" title="Link to this heading"></a></h2>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentBehaviorYamlConfig">
+<span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">AgentBehaviorYamlConfig</span></span><a class="headerlink" href="#namosim.data_models.AgentBehaviorYamlConfig" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigYamlModel" title="namosim.data_models.StilmanBehaviorConfigYamlModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">StilmanBehaviorConfigYamlModel</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigXmlModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">AgentConfigXmlModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#namosim.data_models.GoalConfigModel" title="namosim.data_models.GoalConfigModel"><span class="pre">GoalConfigModel</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">behavior</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#namosim.data_models.NavigationOnlyBehaviorConfigModel" title="namosim.data_models.NavigationOnlyBehaviorConfigModel"><span class="pre">NavigationOnlyBehaviorConfigModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.RRTAgentConfigModel" title="namosim.data_models.RRTAgentConfigModel"><span class="pre">RRTAgentConfigModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.TeleopBehaviorConfigModel" title="namosim.data_models.TeleopBehaviorConfigModel"><span class="pre">TeleopBehaviorConfigModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigModel" title="namosim.data_models.StilmanBehaviorConfigModel"><span class="pre">StilmanBehaviorConfigModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel" title="namosim.data_models.StilmanRRTStarBehaviorConfigModel"><span class="pre">StilmanRRTStarBehaviorConfigModel</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#AgentConfigXmlModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.AgentConfigXmlModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseXmlModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigXmlModel.agent_id">
+<span class="sig-name descname"><span class="pre">agent_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#namosim.data_models.AgentConfigXmlModel.agent_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigXmlModel.behavior">
+<span class="sig-name descname"><span class="pre">behavior</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.NavigationOnlyBehaviorConfigModel" title="namosim.data_models.NavigationOnlyBehaviorConfigModel"><span class="pre">NavigationOnlyBehaviorConfigModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.RRTAgentConfigModel" title="namosim.data_models.RRTAgentConfigModel"><span class="pre">RRTAgentConfigModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.TeleopBehaviorConfigModel" title="namosim.data_models.TeleopBehaviorConfigModel"><span class="pre">TeleopBehaviorConfigModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigModel" title="namosim.data_models.StilmanBehaviorConfigModel"><span class="pre">StilmanBehaviorConfigModel</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel" title="namosim.data_models.StilmanRRTStarBehaviorConfigModel"><span class="pre">StilmanRRTStarBehaviorConfigModel</span></a></em><a class="headerlink" href="#namosim.data_models.AgentConfigXmlModel.behavior" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigXmlModel.goals">
+<span class="sig-name descname"><span class="pre">goals</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#namosim.data_models.GoalConfigModel" title="namosim.data_models.GoalConfigModel"><span class="pre">GoalConfigModel</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.AgentConfigXmlModel.goals" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigXmlModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.AgentConfigXmlModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigYamlModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">AgentConfigYamlModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_pose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">behavior</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigYamlModel" title="namosim.data_models.StilmanBehaviorConfigYamlModel"><span class="pre">StilmanBehaviorConfigYamlModel</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#AgentConfigYamlModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.AgentConfigYamlModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigYamlModel.behavior">
+<span class="sig-name descname"><span class="pre">behavior</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.StilmanBehaviorConfigYamlModel" title="namosim.data_models.StilmanBehaviorConfigYamlModel"><span class="pre">StilmanBehaviorConfigYamlModel</span></a></em><a class="headerlink" href="#namosim.data_models.AgentConfigYamlModel.behavior" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigYamlModel.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#namosim.data_models.AgentConfigYamlModel.id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigYamlModel.initial_pose">
+<span class="sig-name descname"><span class="pre">initial_pose</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.data_models.AgentConfigYamlModel.initial_pose" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigYamlModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.AgentConfigYamlModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.AgentConfigYamlModel.radius">
+<span class="sig-name descname"><span class="pre">radius</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.AgentConfigYamlModel.radius" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.BaseBehaviorConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">BaseBehaviorConfigModel</span></span><a class="reference internal" href="_modules/namosim/data_models.html#BaseBehaviorConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.BaseBehaviorConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseXmlModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.BaseBehaviorConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.BaseBehaviorConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.BaseBehaviorConfigYamlModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">BaseBehaviorConfigYamlModel</span></span><a class="reference internal" href="_modules/namosim/data_models.html#BaseBehaviorConfigYamlModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.BaseBehaviorConfigYamlModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.BaseBehaviorConfigYamlModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.BaseBehaviorConfigYamlModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.BaseRLAgentConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">BaseRLAgentConfigModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'learn'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'execute'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'learn'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#BaseRLAgentConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.BaseRLAgentConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigModel" title="namosim.data_models.BaseBehaviorConfigModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBehaviorConfigModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.BaseRLAgentConfigModel.checkpoint">
+<span class="sig-name descname"><span class="pre">checkpoint</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.data_models.BaseRLAgentConfigModel.checkpoint" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.BaseRLAgentConfigModel.mode">
+<span class="sig-name descname"><span class="pre">mode</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'learn'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'execute'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.BaseRLAgentConfigModel.mode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.BaseRLAgentConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.BaseRLAgentConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.GoalConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">GoalConfigModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">goal_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#GoalConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.GoalConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseXmlModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.GoalConfigModel.goal_id">
+<span class="sig-name descname"><span class="pre">goal_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#namosim.data_models.GoalConfigModel.goal_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.GoalConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.GoalConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.GoalYamlModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">GoalYamlModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#GoalYamlModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.GoalYamlModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.GoalYamlModel.id">
+<span class="sig-name descname"><span class="pre">id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#namosim.data_models.GoalYamlModel.id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.GoalYamlModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.GoalYamlModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.GoalYamlModel.pose">
+<span class="sig-name descname"><span class="pre">pose</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.GoalYamlModel.pose" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.MapYamlConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">MapYamlConfigModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolution</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">occupied_thresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">free_thresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#MapYamlConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.MapYamlConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.MapYamlConfigModel.free_thresh">
+<span class="sig-name descname"><span class="pre">free_thresh</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.MapYamlConfigModel.free_thresh" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.MapYamlConfigModel.image">
+<span class="sig-name descname"><span class="pre">image</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#namosim.data_models.MapYamlConfigModel.image" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.MapYamlConfigModel.mode">
+<span class="sig-name descname"><span class="pre">mode</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#namosim.data_models.MapYamlConfigModel.mode" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.MapYamlConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.MapYamlConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.MapYamlConfigModel.negate">
+<span class="sig-name descname"><span class="pre">negate</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.MapYamlConfigModel.negate" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.MapYamlConfigModel.occupied_thresh">
+<span class="sig-name descname"><span class="pre">occupied_thresh</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.MapYamlConfigModel.occupied_thresh" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.MapYamlConfigModel.origin">
+<span class="sig-name descname"><span class="pre">origin</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.MapYamlConfigModel.origin" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.MapYamlConfigModel.resolution">
+<span class="sig-name descname"><span class="pre">resolution</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.MapYamlConfigModel.resolution" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigXmlModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">NamoConfigXmlModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cell_size_cm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collision_margin_cm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generate_report</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#namosim.data_models.AgentConfigXmlModel" title="namosim.data_models.AgentConfigXmlModel"><span class="pre">AgentConfigXmlModel</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#NamoConfigXmlModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.NamoConfigXmlModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseXmlModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigXmlModel.agents">
+<span class="sig-name descname"><span class="pre">agents</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#namosim.data_models.AgentConfigXmlModel" title="namosim.data_models.AgentConfigXmlModel"><span class="pre">AgentConfigXmlModel</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.NamoConfigXmlModel.agents" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigXmlModel.cell_size_cm">
+<span class="sig-name descname"><span class="pre">cell_size_cm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigXmlModel.cell_size_cm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigXmlModel.collision_margin_cm">
+<span class="sig-name descname"><span class="pre">collision_margin_cm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigXmlModel.collision_margin_cm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigXmlModel.generate_report">
+<span class="sig-name descname"><span class="pre">generate_report</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigXmlModel.generate_report" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigXmlModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigXmlModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigXmlModel.random_seed">
+<span class="sig-name descname"><span class="pre">random_seed</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigXmlModel.random_seed" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigYamlModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">NamoConfigYamlModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map_yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">svg_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#namosim.data_models.AgentConfigYamlModel" title="namosim.data_models.AgentConfigYamlModel"><span class="pre">AgentConfigYamlModel</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collision_margin_cm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generate_report</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#NamoConfigYamlModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.NamoConfigYamlModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigYamlModel.agents">
+<span class="sig-name descname"><span class="pre">agents</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#namosim.data_models.AgentConfigYamlModel" title="namosim.data_models.AgentConfigYamlModel"><span class="pre">AgentConfigYamlModel</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.NamoConfigYamlModel.agents" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigYamlModel.collision_margin_cm">
+<span class="sig-name descname"><span class="pre">collision_margin_cm</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigYamlModel.collision_margin_cm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigYamlModel.generate_report">
+<span class="sig-name descname"><span class="pre">generate_report</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigYamlModel.generate_report" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigYamlModel.map_yaml">
+<span class="sig-name descname"><span class="pre">map_yaml</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigYamlModel.map_yaml" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigYamlModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigYamlModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigYamlModel.random_seed">
+<span class="sig-name descname"><span class="pre">random_seed</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigYamlModel.random_seed" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NamoConfigYamlModel.svg_file">
+<span class="sig-name descname"><span class="pre">svg_file</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.data_models.NamoConfigYamlModel.svg_file" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.NavigationOnlyBehaviorConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">NavigationOnlyBehaviorConfigModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'navigation_only_behavior'</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#NavigationOnlyBehaviorConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.NavigationOnlyBehaviorConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigModel" title="namosim.data_models.BaseBehaviorConfigModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBehaviorConfigModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NavigationOnlyBehaviorConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.NavigationOnlyBehaviorConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.NavigationOnlyBehaviorConfigModel.type">
+<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'navigation_only_behavior'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.NavigationOnlyBehaviorConfigModel.type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.Pose2D">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">Pose2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">degrees</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#Pose2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.Pose2D" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">NamedTuple</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.Pose2D.degrees">
+<span class="sig-name descname"><span class="pre">degrees</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.Pose2D.degrees" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.Pose2D.x">
+<span class="sig-name descname"><span class="pre">x</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.Pose2D.x" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.Pose2D.y">
+<span class="sig-name descname"><span class="pre">y</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.Pose2D.y" title="Link to this definition"></a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.RRTAgentConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">RRTAgentConfigModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'rrt'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_kd_tree</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#RRTAgentConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.RRTAgentConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigModel" title="namosim.data_models.BaseBehaviorConfigModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBehaviorConfigModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.RRTAgentConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.RRTAgentConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.RRTAgentConfigModel.type">
+<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'rrt'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.RRTAgentConfigModel.type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.RRTAgentConfigModel.use_kd_tree">
+<span class="sig-name descname"><span class="pre">use_kd_tree</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.RRTAgentConfigModel.use_kd_tree" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">StilmanBehaviorConfigModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'stilman_2005_behavior'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel" title="namosim.data_models.StilmanBehaviorParametersModel"><span class="pre">StilmanBehaviorParametersModel</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#StilmanBehaviorConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.StilmanBehaviorConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigModel" title="namosim.data_models.BaseBehaviorConfigModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBehaviorConfigModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorConfigModel.parameters">
+<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel" title="namosim.data_models.StilmanBehaviorParametersModel"><span class="pre">StilmanBehaviorParametersModel</span></a></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorConfigModel.parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorConfigModel.type">
+<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'stilman_2005_behavior'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorConfigModel.type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorConfigYamlModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">StilmanBehaviorConfigYamlModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'stilman_2005_behavior'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'stilman_2005_behavior'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel" title="namosim.data_models.StilmanBehaviorParametersYamlModel"><span class="pre">StilmanBehaviorParametersYamlModel</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">StilmanBehaviorParametersYamlModel(check_new_local_opening_before_global=True,</span> <span class="pre">activate_grids_logging=False,</span> <span class="pre">push_only=False,</span> <span class="pre">robot_rotation_unit_angle=15.0,</span> <span class="pre">manip_search_bound_percentage=0.1,</span> <span class="pre">use_social_cost=True,</span> <span class="pre">resolve_conflicts=True,</span> <span class="pre">resolve_deadlocks=True,</span> <span class="pre">deadlock_strategy='',</span> <span class="pre">drive_type='differential',</span> <span class="pre">grab_start_distance=None,</span> <span class="pre">grab_end_distance=None,</span> <span class="pre">conflict_horizon=40)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#StilmanBehaviorConfigYamlModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.StilmanBehaviorConfigYamlModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigYamlModel" title="namosim.data_models.BaseBehaviorConfigYamlModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBehaviorConfigYamlModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorConfigYamlModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorConfigYamlModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorConfigYamlModel.parameters">
+<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersYamlModel" title="namosim.data_models.StilmanBehaviorParametersYamlModel"><span class="pre">StilmanBehaviorParametersYamlModel</span></a></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorConfigYamlModel.parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorConfigYamlModel.type">
+<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'stilman_2005_behavior'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorConfigYamlModel.type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">StilmanBehaviorParametersModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_new_local_opening_before_global</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activate_grids_logging</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robot_rotation_unit_angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manip_search_bound_percentage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_social_cost</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_conflicts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_deadlocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deadlock_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'SOCIAL'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'DISTANCE'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">''</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drive_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'holonomic'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'differential'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'differential'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grab_start_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grab_end_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conflict_horizon</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">40</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#StilmanBehaviorParametersModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseXmlModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.activate_grids_logging">
+<span class="sig-name descname"><span class="pre">activate_grids_logging</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.activate_grids_logging" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.check_new_local_opening_before_global">
+<span class="sig-name descname"><span class="pre">check_new_local_opening_before_global</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.check_new_local_opening_before_global" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.conflict_horizon">
+<span class="sig-name descname"><span class="pre">conflict_horizon</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.conflict_horizon" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.deadlock_strategy">
+<span class="sig-name descname"><span class="pre">deadlock_strategy</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'SOCIAL'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'DISTANCE'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">''</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.deadlock_strategy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.drive_type">
+<span class="sig-name descname"><span class="pre">drive_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'holonomic'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'differential'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.drive_type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.grab_end_distance">
+<span class="sig-name descname"><span class="pre">grab_end_distance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.grab_end_distance" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.grab_start_distance">
+<span class="sig-name descname"><span class="pre">grab_start_distance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.grab_start_distance" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.manip_search_bound_percentage">
+<span class="sig-name descname"><span class="pre">manip_search_bound_percentage</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.manip_search_bound_percentage" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.push_only">
+<span class="sig-name descname"><span class="pre">push_only</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.push_only" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.resolve_conflicts">
+<span class="sig-name descname"><span class="pre">resolve_conflicts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.resolve_conflicts" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.resolve_deadlocks">
+<span class="sig-name descname"><span class="pre">resolve_deadlocks</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.resolve_deadlocks" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.robot_rotation_unit_angle">
+<span class="sig-name descname"><span class="pre">robot_rotation_unit_angle</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.robot_rotation_unit_angle" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersModel.use_social_cost">
+<span class="sig-name descname"><span class="pre">use_social_cost</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersModel.use_social_cost" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">StilmanBehaviorParametersYamlModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_new_local_opening_before_global</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activate_grids_logging</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">push_only</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robot_rotation_unit_angle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">15.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manip_search_bound_percentage</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_social_cost</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_conflicts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resolve_deadlocks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deadlock_strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'SOCIAL'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'DISTANCE'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">''</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drive_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'holonomic'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'differential'</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'differential'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grab_start_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grab_end_distance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conflict_horizon</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">40</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#StilmanBehaviorParametersYamlModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.activate_grids_logging">
+<span class="sig-name descname"><span class="pre">activate_grids_logging</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.activate_grids_logging" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.check_new_local_opening_before_global">
+<span class="sig-name descname"><span class="pre">check_new_local_opening_before_global</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.check_new_local_opening_before_global" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.conflict_horizon">
+<span class="sig-name descname"><span class="pre">conflict_horizon</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.conflict_horizon" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.deadlock_strategy">
+<span class="sig-name descname"><span class="pre">deadlock_strategy</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'SOCIAL'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'DISTANCE'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">''</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.deadlock_strategy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.drive_type">
+<span class="sig-name descname"><span class="pre">drive_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'holonomic'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'differential'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.drive_type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.grab_end_distance">
+<span class="sig-name descname"><span class="pre">grab_end_distance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.grab_end_distance" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.grab_start_distance">
+<span class="sig-name descname"><span class="pre">grab_start_distance</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.grab_start_distance" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.manip_search_bound_percentage">
+<span class="sig-name descname"><span class="pre">manip_search_bound_percentage</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.manip_search_bound_percentage" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.push_only">
+<span class="sig-name descname"><span class="pre">push_only</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.push_only" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.resolve_conflicts">
+<span class="sig-name descname"><span class="pre">resolve_conflicts</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.resolve_conflicts" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.resolve_deadlocks">
+<span class="sig-name descname"><span class="pre">resolve_deadlocks</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.resolve_deadlocks" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.robot_rotation_unit_angle">
+<span class="sig-name descname"><span class="pre">robot_rotation_unit_angle</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.robot_rotation_unit_angle" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanBehaviorParametersYamlModel.use_social_cost">
+<span class="sig-name descname"><span class="pre">use_social_cost</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#namosim.data_models.StilmanBehaviorParametersYamlModel.use_social_cost" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanRRTBehaviorConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">StilmanRRTBehaviorConfigModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'stilman_rrt'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel" title="namosim.data_models.StilmanBehaviorParametersModel"><span class="pre">StilmanBehaviorParametersModel</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#StilmanRRTBehaviorConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.StilmanRRTBehaviorConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigModel" title="namosim.data_models.BaseBehaviorConfigModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBehaviorConfigModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanRRTBehaviorConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.StilmanRRTBehaviorConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanRRTBehaviorConfigModel.parameters">
+<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel" title="namosim.data_models.StilmanBehaviorParametersModel"><span class="pre">StilmanBehaviorParametersModel</span></a></em><a class="headerlink" href="#namosim.data_models.StilmanRRTBehaviorConfigModel.parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanRRTBehaviorConfigModel.type">
+<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'stilman_rrt'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.StilmanRRTBehaviorConfigModel.type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanRRTStarBehaviorConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">StilmanRRTStarBehaviorConfigModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'stilman_rrt_star_behavior'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel" title="namosim.data_models.StilmanBehaviorParametersModel"><span class="pre">StilmanBehaviorParametersModel</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#StilmanRRTStarBehaviorConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigModel" title="namosim.data_models.BaseBehaviorConfigModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBehaviorConfigModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanRRTStarBehaviorConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanRRTStarBehaviorConfigModel.parameters">
+<span class="sig-name descname"><span class="pre">parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#namosim.data_models.StilmanBehaviorParametersModel" title="namosim.data_models.StilmanBehaviorParametersModel"><span class="pre">StilmanBehaviorParametersModel</span></a></em><a class="headerlink" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel.parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.StilmanRRTStarBehaviorConfigModel.type">
+<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'stilman_rrt_star_behavior'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.StilmanRRTStarBehaviorConfigModel.type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.data_models.TeleopBehaviorConfigModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">TeleopBehaviorConfigModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'teleop_behavior'</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/data_models.html#TeleopBehaviorConfigModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.TeleopBehaviorConfigModel" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#namosim.data_models.BaseBehaviorConfigModel" title="namosim.data_models.BaseBehaviorConfigModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBehaviorConfigModel</span></code></a></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.TeleopBehaviorConfigModel.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></em><a class="headerlink" href="#namosim.data_models.TeleopBehaviorConfigModel.model_config" title="Link to this definition"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="namosim.data_models.TeleopBehaviorConfigModel.type">
+<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'teleop_behavior'</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#namosim.data_models.TeleopBehaviorConfigModel.type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="namosim.data_models.namo_config_from_yaml">
+<span class="sig-prename descclassname"><span class="pre">namosim.data_models.</span></span><span class="sig-name descname"><span class="pre">namo_config_from_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#namosim.data_models.NamoConfigYamlModel" title="namosim.data_models.NamoConfigYamlModel"><span class="pre">NamoConfigYamlModel</span></a></span></span><a class="reference internal" href="_modules/namosim/data_models.html#namo_config_from_yaml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.data_models.namo_config_from_yaml" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
-<section id="namosim-exceptions-module">
-<h2>namosim.exceptions module<a class="headerlink" href="#namosim-exceptions-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.exceptions">
+<span id="namosim-exceptions-module"></span><h2>namosim.exceptions module<a class="headerlink" href="#module-namosim.exceptions" title="Link to this heading"></a></h2>
+<dl class="py exception">
+<dt class="sig sig-object py" id="namosim.exceptions.CustomTimeoutError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.exceptions.</span></span><span class="sig-name descname"><span class="pre">CustomTimeoutError</span></span><a class="reference internal" href="_modules/namosim/exceptions.html#CustomTimeoutError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.exceptions.CustomTimeoutError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="namosim.exceptions.raise_timeout">
+<span class="sig-prename descclassname"><span class="pre">namosim.exceptions.</span></span><span class="sig-name descname"><span class="pre">raise_timeout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/exceptions.html#raise_timeout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.exceptions.raise_timeout" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="namosim.exceptions.timeout">
+<span class="sig-prename descclassname"><span class="pre">namosim.exceptions.</span></span><span class="sig-name descname"><span class="pre">timeout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/exceptions.html#timeout"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.exceptions.timeout" title="Link to this definition"></a></dt>
+<dd><p>A context manager that raises a <cite>CustomTimeoutError</cite> if its context block fails
+to complete execution within the provided number of seconds.</p>
+</dd></dl>
+
 </section>
-<section id="namosim-input-module">
-<h2>namosim.input module<a class="headerlink" href="#namosim-input-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.input">
+<span id="namosim-input-module"></span><h2>namosim.input module<a class="headerlink" href="#module-namosim.input" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.input.Input">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.input.</span></span><span class="sig-name descname"><span class="pre">Input</span></span><a class="reference internal" href="_modules/namosim/input.html#Input"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.input.Input" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.input.Input.clear">
+<span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/input.html#Input.clear"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.input.Input.clear" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.input.Input.handle_key_press">
+<span class="sig-name descname"><span class="pre">handle_key_press</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/input.html#Input.handle_key_press"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.input.Input.handle_key_press" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.input.Input.handle_key_release">
+<span class="sig-name descname"><span class="pre">handle_key_release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/input.html#Input.handle_key_release"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.input.Input.handle_key_release" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
-<section id="namosim-log-module">
-<h2>namosim.log module<a class="headerlink" href="#namosim-log-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.log">
+<span id="namosim-log-module"></span><h2>namosim.log module<a class="headerlink" href="#module-namosim.log" title="Link to this heading"></a></h2>
 </section>
 <section id="namosim-main-module">
 <h2>namosim.main module<a class="headerlink" href="#namosim-main-module" title="Link to this heading"></a></h2>
@@ -238,11 +1122,17 @@
 <section id="namosim-simulator-module">
 <h2>namosim.simulator module<a class="headerlink" href="#namosim-simulator-module" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-svg-styles-module">
-<h2>namosim.svg_styles module<a class="headerlink" href="#namosim-svg-styles-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.svg_styles">
+<span id="namosim-svg-styles-module"></span><h2>namosim.svg_styles module<a class="headerlink" href="#module-namosim.svg_styles" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.svg_styles.AgentStyle">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.svg_styles.</span></span><span class="sig-name descname"><span class="pre">AgentStyle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'fill:#0000ff;stroke-width:3.0;'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'fill:#00ffff;stroke:none;'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/svg_styles.html#AgentStyle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.svg_styles.AgentStyle" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
 </section>
-<section id="module-contents">
-<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="module-namosim">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-namosim" title="Link to this heading"></a></h2>
 </section>
 </section>
 

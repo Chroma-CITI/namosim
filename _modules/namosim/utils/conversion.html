@@ -1,0 +1,602 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>namosim.utils.conversion &mdash; namosim  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            namosim
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../guides.html">Guides</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing to NAMOSIM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../namosim.html">namosim package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">namosim</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">namosim.utils.conversion</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for namosim.utils.conversion</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">t</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">xml.dom</span><span class="w"> </span><span class="kn">import</span> <span class="n">minidom</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy.typing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">npt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">shapely</span><span class="w"> </span><span class="kn">import</span> <span class="n">affinity</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">shapely.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">LineString</span><span class="p">,</span>
+    <span class="n">Point</span><span class="p">,</span>
+    <span class="n">Polygon</span><span class="p">,</span>
+    <span class="n">MultiPoint</span><span class="p">,</span>
+    <span class="n">MultiLineString</span><span class="p">,</span>
+    <span class="n">MultiPolygon</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">shapely.geometry.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseGeometry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">shapely.ops</span><span class="w"> </span><span class="kn">import</span> <span class="n">polygonize</span><span class="p">,</span> <span class="n">unary_union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">svgpath2mpl</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">triangle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">namosim.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">shapely.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_valid</span>
+
+<span class="n">SVG_PATH_ATTRIBUTES_WHITELIST</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="s2">&quot;style&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="add_group">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.add_group">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_group</span><span class="p">(</span><span class="n">svg_data</span><span class="p">,</span> <span class="n">group_id</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">is_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">new_group</span> <span class="o">=</span> <span class="n">svg_data</span><span class="o">.</span><span class="n">createElement</span><span class="p">(</span><span class="s2">&quot;svg:g&quot;</span><span class="p">)</span>
+    <span class="n">new_group</span><span class="o">.</span><span class="n">setAttribute</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">group_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_layer</span><span class="p">:</span>
+        <span class="n">new_group</span><span class="o">.</span><span class="n">setAttribute</span><span class="p">(</span><span class="s2">&quot;inkscape:groupmode&quot;</span><span class="p">,</span> <span class="s2">&quot;layer&quot;</span><span class="p">)</span>
+    <span class="c1"># new_group.setAttribute(&#39;inkscape:label&#39;, group_id)</span>
+    <span class="k">if</span> <span class="n">parent</span><span class="p">:</span>
+        <span class="n">parent</span><span class="o">.</span><span class="n">appendChild</span><span class="p">(</span><span class="n">new_group</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">svg_data</span><span class="o">.</span><span class="n">childNodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">appendChild</span><span class="p">(</span><span class="n">new_group</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_group</span></div>
+
+
+
+<div class="viewcode-block" id="add_shapely_geometry_to_svg">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.add_shapely_geometry_to_svg">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_shapely_geometry_to_svg</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">shape</span><span class="p">:</span> <span class="n">Polygon</span> <span class="o">|</span> <span class="n">LineString</span> <span class="o">|</span> <span class="n">Point</span><span class="p">,</span>
+    <span class="n">uid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">svg_data</span><span class="p">:</span> <span class="n">minidom</span><span class="o">.</span><span class="n">Document</span><span class="p">,</span>
+    <span class="n">ymax_meters</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">svg_group</span><span class="p">:</span> <span class="n">minidom</span><span class="o">.</span><span class="n">Element</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">namo_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="n">pathd</span> <span class="o">=</span> <span class="n">shapely_geometry_to_svg_pathd</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">ymax_meters</span><span class="o">=</span><span class="n">ymax_meters</span><span class="p">)</span>
+    <span class="n">new_path</span> <span class="o">=</span> <span class="n">svg_data</span><span class="o">.</span><span class="n">createElement</span><span class="p">(</span><span class="s2">&quot;svg:path&quot;</span><span class="p">)</span>
+    <span class="n">new_path</span><span class="o">.</span><span class="n">setAttribute</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="n">uid</span><span class="p">)</span>
+    <span class="n">new_path</span><span class="o">.</span><span class="n">setAttribute</span><span class="p">(</span><span class="s2">&quot;d&quot;</span><span class="p">,</span> <span class="n">pathd</span><span class="p">)</span>
+    <span class="n">new_path</span><span class="o">.</span><span class="n">setAttribute</span><span class="p">(</span><span class="s2">&quot;style&quot;</span><span class="p">,</span> <span class="n">style</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">namo_type</span><span class="p">:</span>
+        <span class="n">new_path</span><span class="o">.</span><span class="n">setAttribute</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="n">namo_type</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">svg_group</span><span class="p">:</span>
+        <span class="n">svg_group</span><span class="o">.</span><span class="n">appendChild</span><span class="p">(</span><span class="n">new_path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">svg_data</span><span class="o">.</span><span class="n">childNodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">appendChild</span><span class="p">(</span><span class="n">new_path</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="svg_pathd_to_shapely_geometry">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.svg_pathd_to_shapely_geometry">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">svg_pathd_to_shapely_geometry</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">svg_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">ymax_meters</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">precision</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e9</span><span class="p">,</span>
+    <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">100</span><span class="p">,</span>  <span class="c1"># cm to meters</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">Polygon</span><span class="p">,</span> <span class="n">LineString</span><span class="p">,</span> <span class="n">Point</span><span class="p">]:</span>
+    <span class="n">parse_result</span> <span class="o">=</span> <span class="n">parse_path</span><span class="p">(</span><span class="n">svg_path</span><span class="p">)</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">],</span> <span class="n">parse_result</span><span class="o">.</span><span class="n">vertices</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span>
+    <span class="p">)</span>
+    <span class="n">coords</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ymax_meters</span> <span class="o">-</span> <span class="n">coords</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Remove duplicates</span>
+    <span class="n">pts_set</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Set</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">dedup_geom_pts</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">pt</span> <span class="ow">in</span> <span class="n">coords</span><span class="p">:</span>
+        <span class="n">pt_tuple</span> <span class="o">=</span> <span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">pt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">precision</span><span class="p">),</span> <span class="nb">round</span><span class="p">(</span><span class="n">pt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">precision</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">pt_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">pts_set</span><span class="p">:</span>
+            <span class="n">pts_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">pt_tuple</span><span class="p">)</span>
+            <span class="n">dedup_geom_pts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pt</span><span class="p">)</span>
+
+    <span class="c1"># or on y-axis</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dedup_geom_pts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Polygon</span><span class="p">(</span><span class="n">dedup_geom_pts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dedup_geom_pts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">LineString</span><span class="p">(</span><span class="n">dedup_geom_pts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dedup_geom_pts</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Point</span><span class="p">(</span><span class="n">dedup_geom_pts</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;SVG path could not be converted to Shapely geometry.&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="shapely_geometry_to_svg_pathd">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.shapely_geometry_to_svg_pathd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">shapely_geometry_to_svg_pathd</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">shape</span><span class="p">:</span> <span class="n">Polygon</span> <span class="o">|</span> <span class="n">LineString</span> <span class="o">|</span> <span class="n">Point</span><span class="p">,</span> <span class="n">ymax_meters</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">):</span>
+    <span class="n">coords</span><span class="p">:</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Any</span><span class="p">]</span>
+
+    <span class="c1"># Extract polygon coordinates</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">Polygon</span><span class="p">):</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shape</span><span class="o">.</span><span class="n">exterior</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">Point</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">LineString</span><span class="p">):</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shape</span><span class="o">.</span><span class="n">coords</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+            <span class="s2">&quot;Only shapely Point, LineString and Polygon objects can be turned into svg.&quot;</span>
+        <span class="p">)</span>
+    <span class="n">coords</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ymax_meters</span> <span class="o">-</span> <span class="n">coords</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">coords</span> <span class="o">*=</span> <span class="mi">100</span>  <span class="c1"># meters to cm</span>
+
+    <span class="c1"># Rebuild polygon</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">Polygon</span><span class="p">):</span>
+        <span class="n">new_geometry</span> <span class="o">=</span> <span class="n">Polygon</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">minidom</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">new_geometry</span><span class="o">.</span><span class="n">svg</span><span class="p">())</span><span class="o">.</span><span class="n">documentElement</span><span class="o">.</span><span class="n">getAttribute</span><span class="p">(</span><span class="s2">&quot;d&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">LineString</span><span class="p">):</span>
+        <span class="n">new_geometry</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">polyline2pathd</span><span class="p">(</span>
+            <span class="n">dom2dict</span><span class="p">(</span><span class="n">minidom</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">new_geometry</span><span class="o">.</span><span class="n">svg</span><span class="p">())</span><span class="o">.</span><span class="n">firstChild</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">Point</span><span class="p">):</span>
+        <span class="n">new_geometry</span> <span class="o">=</span> <span class="n">Point</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ellipse2pathd</span><span class="p">(</span>
+            <span class="n">dom2dict</span><span class="p">(</span><span class="n">minidom</span><span class="o">.</span><span class="n">parseString</span><span class="p">(</span><span class="n">new_geometry</span><span class="o">.</span><span class="n">svg</span><span class="p">())</span><span class="o">.</span><span class="n">firstChild</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+
+
+<span class="c1"># region SVG elements to SVG paths conversion functions, extracted from svgpathtools library, available at :</span>
+<span class="c1"># https://github.com/mathandy/svgpathtools/</span>
+<span class="n">COORD_PAIR_TMPLT</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">&quot;([\+-]?\d*[\.\d]\d*[eE][\+-]?\d+|[\+-]?\d*[\.\d]\d*)&quot;</span>
+    <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;(?:\s*,\s*|\s+|(?=-))&quot;</span>
+    <span class="o">+</span> <span class="sa">r</span><span class="s2">&quot;([\+-]?\d*[\.\d]\d*[eE][\+-]?\d+|[\+-]?\d*[\.\d]\d*)&quot;</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="dom2dict">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.dom2dict">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dom2dict</span><span class="p">(</span><span class="n">element</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts DOM elements to dictionaries of attributes.&quot;&quot;&quot;</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">val</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">values</span><span class="p">)))</span></div>
+
+
+
+<div class="viewcode-block" id="ellipse2pathd">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.ellipse2pathd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ellipse2pathd</span><span class="p">(</span><span class="n">ellipse</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;converts the parameters from an ellipse or a circle to a string for a</span>
+<span class="sd">    Path object d-attribute&quot;&quot;&quot;</span>
+
+    <span class="n">cx</span> <span class="o">=</span> <span class="n">ellipse</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cx&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">cy</span> <span class="o">=</span> <span class="n">ellipse</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cy&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">rx</span> <span class="o">=</span> <span class="n">ellipse</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rx&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">ry</span> <span class="o">=</span> <span class="n">ellipse</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ry&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">ellipse</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rx</span> <span class="o">=</span> <span class="n">ry</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">rx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rx</span><span class="p">)</span>
+        <span class="n">ry</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ry</span><span class="p">)</span>
+
+    <span class="n">cx</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cx</span><span class="p">)</span>
+    <span class="n">cy</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">cy</span><span class="p">)</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">d</span> <span class="o">+=</span> <span class="s2">&quot;M&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">cx</span> <span class="o">-</span> <span class="n">rx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">cy</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">+=</span> <span class="s2">&quot;a&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">rx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ry</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; 0 1,0 &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">rx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;,0&quot;</span>
+    <span class="n">d</span> <span class="o">+=</span> <span class="s2">&quot;a&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">rx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ry</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; 0 1,0 &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">rx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;,0&quot;</span>
+
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+
+<div class="viewcode-block" id="polyline2pathd">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.polyline2pathd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">polyline2pathd</span><span class="p">(</span><span class="n">polyline</span><span class="p">,</span> <span class="n">is_polygon</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;converts the string from a polyline points-attribute to a string for a</span>
+<span class="sd">    Path object d-attribute&quot;&quot;&quot;</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">COORD_PAIR_TMPLT</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">polyline</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;points&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+    <span class="n">closed</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="ow">and</span> <span class="nb">float</span><span class="p">(</span>
+        <span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># The `parse_path` call ignores redundant &#39;z&#39; (closure) commands</span>
+    <span class="c1"># e.g. `parse_path(&#39;M0 0L100 100Z&#39;) == parse_path(&#39;M0 0L100 100L0 0Z&#39;)`</span>
+    <span class="c1"># This check ensures that an n-point polygon is converted to an n-Line path.</span>
+    <span class="k">if</span> <span class="n">is_polygon</span> <span class="ow">and</span> <span class="n">closed</span><span class="p">:</span>
+        <span class="n">points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">points</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="s2">&quot;M&quot;</span> <span class="o">+</span> <span class="s2">&quot;L&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2"> </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">points</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_polygon</span> <span class="ow">or</span> <span class="n">closed</span><span class="p">:</span>
+        <span class="n">d</span> <span class="o">+=</span> <span class="s2">&quot;z&quot;</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+
+<div class="viewcode-block" id="polygon2pathd">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.polygon2pathd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">polygon2pathd</span><span class="p">(</span><span class="n">polyline</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;converts the string from a polygon points-attribute to a string</span>
+<span class="sd">    for a Path object d-attribute.</span>
+<span class="sd">    Note:  For a polygon made from n points, the resulting path will be</span>
+<span class="sd">    composed of n lines (even if some of these lines have length zero).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">polyline2pathd</span><span class="p">(</span><span class="n">polyline</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="rect2pathd">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.rect2pathd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rect2pathd</span><span class="p">(</span><span class="n">rect</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Converts an SVG-rect element to a Path d-string.</span>
+
+<span class="sd">    The rectangle will start at the (x,y) coordinate specified by the</span>
+<span class="sd">    rectangle object and proceed counter-clockwise.&quot;&quot;&quot;</span>
+    <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="nb">float</span><span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">w</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;width&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="nb">float</span><span class="p">(</span><span class="n">rect</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;height&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">w</span><span class="p">,</span> <span class="n">y0</span>
+    <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span> <span class="o">=</span> <span class="n">x0</span> <span class="o">+</span> <span class="n">w</span><span class="p">,</span> <span class="n">y0</span> <span class="o">+</span> <span class="n">h</span>
+    <span class="n">x3</span><span class="p">,</span> <span class="n">y3</span> <span class="o">=</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span> <span class="o">+</span> <span class="n">h</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="s2">&quot;M</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> L </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> L </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> L </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> z&quot;</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">y2</span><span class="p">,</span> <span class="n">x3</span><span class="p">,</span> <span class="n">y3</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">d</span></div>
+
+
+
+<div class="viewcode-block" id="line2pathd">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.line2pathd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">line2pathd</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="s2">&quot;M&quot;</span>
+        <span class="o">+</span> <span class="n">l</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;x1&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+        <span class="o">+</span> <span class="n">l</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;y1&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="o">+</span> <span class="s2">&quot;L&quot;</span>
+        <span class="o">+</span> <span class="n">l</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;x2&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+        <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+        <span class="o">+</span> <span class="n">l</span><span class="o">.</span><span class="n">attrib</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;y2&quot;</span><span class="p">,</span> <span class="s2">&quot;0&quot;</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1"># endregion</span>
+
+
+<div class="viewcode-block" id="set_all_id_attributes_as_ids">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.set_all_id_attributes_as_ids">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">set_all_id_attributes_as_ids</span><span class="p">(</span><span class="n">xml_doc</span><span class="p">):</span>
+    <span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">xml_doc</span><span class="p">]</span>
+    <span class="k">while</span> <span class="n">queue</span><span class="p">:</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="n">queue</span> <span class="o">+=</span> <span class="n">current</span><span class="o">.</span><span class="n">childNodes</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="s2">&quot;hasAttribute&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="n">current</span><span class="o">.</span><span class="n">hasAttribute</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">):</span>
+            <span class="n">current</span><span class="o">.</span><span class="n">setIdAttribute</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="clean_attributes">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.clean_attributes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">clean_attributes</span><span class="p">(</span><span class="n">xml_doc</span><span class="p">):</span>
+    <span class="n">path_elements</span> <span class="o">=</span> <span class="n">xml_doc</span><span class="o">.</span><span class="n">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;path&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">path_element</span> <span class="ow">in</span> <span class="n">path_elements</span><span class="p">:</span>
+        <span class="n">attributes_to_remove</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="n">path_element</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">attribute</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SVG_PATH_ATTRIBUTES_WHITELIST</span><span class="p">:</span>
+                <span class="n">attributes_to_remove</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">attribute</span> <span class="ow">in</span> <span class="n">attributes_to_remove</span><span class="p">:</span>
+            <span class="n">path_element</span><span class="o">.</span><span class="n">removeAttribute</span><span class="p">(</span><span class="n">attribute</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="color_clamp">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.color_clamp">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">color_clamp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">255</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="rgb_tuple_to_hex">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.rgb_tuple_to_hex">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rgb_tuple_to_hex</span><span class="p">(</span><span class="n">rgb</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;#</span><span class="si">{0:02x}{1:02x}{2:02x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">color_clamp</span><span class="p">(</span><span class="n">rgb</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">color_clamp</span><span class="p">(</span><span class="n">rgb</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">color_clamp</span><span class="p">(</span><span class="n">rgb</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="polygon_to_triangle_vertices">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.polygon_to_triangle_vertices">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">polygon_to_triangle_vertices</span><span class="p">(</span><span class="n">shapely_geometry</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a Shapely Polygon or MultiPolygon to a list of triangle vertices.</span>
+<span class="sd">    Returns a list of triangles, where each triangle is a list of 3 vertex coordinates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Handle MultiPolygon by processing each Polygon separately</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shapely_geometry</span><span class="p">,</span> <span class="n">MultiPolygon</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="s2">&quot;Processing MultiPolygon with </span><span class="si">%d</span><span class="s2"> polygons&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">shapely_geometry</span><span class="o">.</span><span class="n">geoms</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">all_triangles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">poly</span> <span class="ow">in</span> <span class="n">shapely_geometry</span><span class="o">.</span><span class="n">geoms</span><span class="p">:</span>
+            <span class="c1"># Recursively call for each Polygon in the MultiPolygon</span>
+            <span class="n">triangles</span> <span class="o">=</span> <span class="n">polygon_to_triangle_vertices</span><span class="p">(</span><span class="n">poly</span><span class="p">)</span>
+            <span class="n">all_triangles</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">triangles</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">all_triangles</span>
+
+    <span class="c1"># Ensure the input is a Polygon</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shapely_geometry</span><span class="p">,</span> <span class="n">Polygon</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="s2">&quot;Input geometry is not a Polygon or MultiPolygon: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="p">(</span><span class="n">shapely_geometry</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># Check if the polygon is valid</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">shapely_geometry</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Invalid polygon detected. Attempting to repair.&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">shapely_geometry</span> <span class="o">=</span> <span class="n">make_valid</span><span class="p">(</span><span class="n">shapely_geometry</span><span class="p">)</span>
+            <span class="c1"># make_valid may return a MultiPolygon, so recurse</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shapely_geometry</span><span class="p">,</span> <span class="n">MultiPolygon</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Repaired geometry is a MultiPolygon&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">polygon_to_triangle_vertices</span><span class="p">(</span><span class="n">shapely_geometry</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">shapely_geometry</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Polygon repair failed. Skipping triangulation.&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">[]</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error repairing polygon: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># Simplify the polygon to remove near-degenerate edges</span>
+    <span class="n">shapely_geometry</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">Polygon</span><span class="p">,</span> <span class="n">shapely_geometry</span><span class="o">.</span><span class="n">simplify</span><span class="p">(</span><span class="n">tolerance</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span> <span class="n">preserve_topology</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Check for near-zero area</span>
+    <span class="k">if</span> <span class="n">shapely_geometry</span><span class="o">.</span><span class="n">area</span> <span class="o">&lt;</span> <span class="mf">1e-10</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Polygon has near-zero area. Skipping triangulation.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># Extract exterior coordinates (excluding the last point, which repeats the first)</span>
+    <span class="n">exterior_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">shapely_geometry</span><span class="o">.</span><span class="n">exterior</span><span class="o">.</span><span class="n">coords</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exterior_coords</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Exterior ring has too few points. Skipping triangulation.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># Initialize vertices with exterior coordinates</span>
+    <span class="n">vertices</span> <span class="o">=</span> <span class="n">exterior_coords</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Create segments for the exterior</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+        <span class="p">[[</span><span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">exterior_coords</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">exterior_coords</span><span class="p">))]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Handle holes if the polygon has any</span>
+    <span class="n">holes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">shapely_geometry</span><span class="o">.</span><span class="n">interiors</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">interior</span> <span class="ow">in</span> <span class="n">shapely_geometry</span><span class="o">.</span><span class="n">interiors</span><span class="p">:</span>
+            <span class="c1"># Extract interior coordinates (excluding the last point)</span>
+            <span class="n">interior_coords</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">interior</span><span class="o">.</span><span class="n">coords</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">interior_coords</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Interior ring has too few points. Skipping hole.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">N</span> <span class="o">=</span> <span class="n">vertices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Current number of vertices</span>
+            <span class="c1"># Append interior coordinates to vertices</span>
+            <span class="n">vertices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">vertices</span><span class="p">,</span> <span class="n">interior_coords</span><span class="p">))</span>
+            <span class="c1"># Create segments for the interior</span>
+            <span class="n">interior_segments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="p">[</span><span class="n">N</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="n">N</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">interior_coords</span><span class="p">)]</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">interior_coords</span><span class="p">))</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">segments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">segments</span><span class="p">,</span> <span class="n">interior_segments</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="c1"># Add a point inside the hole (centroid)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">centroid</span> <span class="o">=</span> <span class="n">interior</span><span class="o">.</span><span class="n">centroid</span>
+                <span class="n">holes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">centroid</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">centroid</span><span class="o">.</span><span class="n">y</span><span class="p">]))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error computing hole centroid: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+    <span class="c1"># Prepare triangulation input</span>
+    <span class="n">tri_input</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;vertices&quot;</span><span class="p">:</span> <span class="n">vertices</span><span class="p">,</span> <span class="s2">&quot;segments&quot;</span><span class="p">:</span> <span class="n">segments</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">holes</span><span class="p">:</span>
+        <span class="n">tri_input</span><span class="p">[</span><span class="s2">&quot;holes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">holes</span><span class="p">)</span>
+
+    <span class="c1"># Log input for debugging</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Triangulation input: vertices=</span><span class="si">{</span><span class="n">vertices</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, segments=</span><span class="si">{</span><span class="n">segments</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">, holes=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">holes</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Perform triangulation</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">tri_output</span> <span class="o">=</span> <span class="n">triangle</span><span class="o">.</span><span class="n">triangulate</span><span class="p">(</span><span class="n">tri_input</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Triangulation failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Polygon exterior: </span><span class="si">{</span><span class="n">exterior_coords</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Polygon holes: </span><span class="si">{</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">interior</span><span class="o">.</span><span class="n">coords</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">interior</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">shapely_geometry</span><span class="o">.</span><span class="n">interiors</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># Check if triangulation produced new vertices</span>
+    <span class="k">if</span> <span class="s2">&quot;vertices&quot;</span> <span class="ow">in</span> <span class="n">tri_output</span> <span class="ow">and</span> <span class="n">tri_output</span><span class="p">[</span><span class="s2">&quot;vertices&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">vertices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Triangulation added new vertices (e.g., Steiner points).&quot;</span><span class="p">)</span>
+        <span class="n">vertices</span> <span class="o">=</span> <span class="n">tri_output</span><span class="p">[</span><span class="s2">&quot;vertices&quot;</span><span class="p">]</span>
+
+    <span class="c1"># Extract triangles</span>
+    <span class="n">triangles</span> <span class="o">=</span> <span class="n">tri_output</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;triangles&quot;</span><span class="p">,</span> <span class="p">[])</span>
+
+    <span class="c1"># Validate triangle indices</span>
+    <span class="n">max_index</span> <span class="o">=</span> <span class="n">vertices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">triangles</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">triangles</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">max_index</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Triangulation produced invalid indices (max index </span><span class="si">{</span><span class="n">triangles</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">}</span><span class="s2"> &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;exceeds vertex count </span><span class="si">{</span><span class="n">max_index</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span>
+
+    <span class="c1"># Convert triangle indices to vertex coordinates</span>
+    <span class="n">triangle_vertices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">tri</span> <span class="ow">in</span> <span class="n">triangles</span><span class="p">:</span>
+        <span class="n">tri_coords</span> <span class="o">=</span> <span class="n">vertices</span><span class="p">[</span><span class="n">tri</span><span class="p">]</span>
+        <span class="n">triangle_vertices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tri_coords</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">triangle_vertices</span></div>
+
+
+
+<div class="viewcode-block" id="concave_hull_polygon">
+<a class="viewcode-back" href="../../../namosim.utils.html#namosim.utils.conversion.concave_hull_polygon">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">concave_hull_polygon</span><span class="p">(</span>
+    <span class="n">polygon</span><span class="p">:</span> <span class="n">BaseGeometry</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">Polygon</span><span class="p">,</span> <span class="n">MultiPolygon</span><span class="p">]:</span>
+    <span class="c1"># Get triangulation from your function (shape: n, 3, 2)</span>
+    <span class="n">triangles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">polygon_to_triangle_vertices</span><span class="p">(</span><span class="n">polygon</span><span class="p">))</span>
+
+    <span class="c1"># Check if triangulation is empty or insufficient</span>
+    <span class="k">if</span> <span class="n">triangles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">polygon</span><span class="o">.</span><span class="n">convex_hull</span>  <span class="c1"># type: ignore</span>
+
+    <span class="c1"># Extract unique edges from triangles</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">tri</span> <span class="ow">in</span> <span class="n">triangles</span><span class="p">:</span>
+        <span class="c1"># Each triangle has 3 edges: (0-1), (1-2), (2-0)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">pt1</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>  <span class="c1"># (x, y)</span>
+            <span class="n">pt2</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">tri</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">3</span><span class="p">])</span>  <span class="c1"># (x, y)</span>
+            <span class="c1"># Sort to ensure (pt1, pt2) and (pt2, pt1) are treated as the same edge</span>
+            <span class="n">edge</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">([</span><span class="n">pt1</span><span class="p">,</span> <span class="n">pt2</span><span class="p">]))</span>
+            <span class="n">edges</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+
+    <span class="c1"># Filter edges by length &lt;= alpha</span>
+    <span class="n">edge_points</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
+        <span class="n">pt1</span><span class="p">,</span> <span class="n">pt2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">edge</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">edge</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">pt1</span> <span class="o">-</span> <span class="n">pt2</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">alpha</span><span class="p">:</span>
+            <span class="n">edge_points</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">pt1</span><span class="p">,</span> <span class="n">pt2</span><span class="p">])</span>
+
+    <span class="c1"># Create Shapely geometry</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">edge_points</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">polygon</span><span class="o">.</span><span class="n">convex_hull</span>  <span class="c1"># type: ignore # Fallback if no valid edges</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="n">LineString</span><span class="p">([</span><span class="n">pt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pt</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span> <span class="k">for</span> <span class="n">pt</span> <span class="ow">in</span> <span class="n">edge_points</span><span class="p">]</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">unary_union</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    <span class="n">hulls</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">polygonize</span><span class="p">(</span><span class="n">merged</span><span class="p">))</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">unary_union</span><span class="p">(</span><span class="n">hulls</span><span class="p">)</span> <span class="k">if</span> <span class="n">hulls</span> <span class="k">else</span> <span class="n">polygon</span><span class="o">.</span><span class="n">convex_hull</span>
+
+    <span class="c1"># Ensure output is a Polygon or MultiPolygon</span>
+    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">is_empty</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">polygon</span><span class="o">.</span><span class="n">convex_hull</span>  <span class="c1"># type: ignore</span>
+    <span class="k">return</span> <span class="n">result</span>  <span class="c1"># type: ignore</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Benoit Renault, David Brown.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

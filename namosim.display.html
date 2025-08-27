@@ -62,9 +62,9 @@
 <li class="toctree-l4"><a class="reference internal" href="#namosim-display-conversions-module">namosim.display.conversions module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#namosim-display-ros2-publisher-module">namosim.display.ros2_publisher module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#namosim-display-ros-nodes-module">namosim.display.ros_nodes module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#namosim-display-ros-publisher-config-module">namosim.display.ros_publisher_config module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#namosim-display-tf-replacement-module">namosim.display.tf_replacement module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-contents">Module contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.display.ros_publisher_config">namosim.display.ros_publisher_config module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.display.tf_replacement">namosim.display.tf_replacement module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.display">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="namosim.mapgen.html">namosim.mapgen package</a></li>
@@ -75,17 +75,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-config-module">namosim.config module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-data-models-module">namosim.data_models module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-exceptions-module">namosim.exceptions module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-input-module">namosim.input module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-log-module">namosim.log module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.config">namosim.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.data_models">namosim.data_models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.exceptions">namosim.exceptions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.input">namosim.input module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.log">namosim.log module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-main-module">namosim.main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-report-module">namosim.report module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-scenario-generation-module">namosim.scenario_generation module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-simulator-module">namosim.simulator module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-svg-styles-module">namosim.svg_styles module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.svg_styles">namosim.svg_styles module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -132,14 +132,28 @@
 <section id="namosim-display-ros-nodes-module">
 <h2>namosim.display.ros_nodes module<a class="headerlink" href="#namosim-display-ros-nodes-module" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-display-ros-publisher-config-module">
-<h2>namosim.display.ros_publisher_config module<a class="headerlink" href="#namosim-display-ros-publisher-config-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.display.ros_publisher_config">
+<span id="namosim-display-ros-publisher-config-module"></span><h2>namosim.display.ros_publisher_config module<a class="headerlink" href="#module-namosim.display.ros_publisher_config" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-display-tf-replacement-module">
-<h2>namosim.display.tf_replacement module<a class="headerlink" href="#namosim-display-tf-replacement-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.display.tf_replacement">
+<span id="namosim-display-tf-replacement-module"></span><h2>namosim.display.tf_replacement module<a class="headerlink" href="#module-namosim.display.tf_replacement" title="Link to this heading"></a></h2>
+<p>Function extracted from tf_conversions library.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="namosim.display.tf_replacement.quaternion_from_euler">
+<span class="sig-prename descclassname"><span class="pre">namosim.display.tf_replacement.</span></span><span class="sig-name descname"><span class="pre">quaternion_from_euler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ai</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ak</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'sxyz'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/display/tf_replacement.html#quaternion_from_euler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.display.tf_replacement.quaternion_from_euler" title="Link to this definition"></a></dt>
+<dd><p>Return quaternion from Euler angles and axis sequence.</p>
+<p>ai, aj, ak : Euler’s roll, pitch and yaw angles
+axes : One of 24 axis sequences as string or encoded tuple</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">q</span> <span class="o">=</span> <span class="n">quaternion_from_euler</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;ryxz&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">numpy</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.310622</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.718287</span><span class="p">,</span> <span class="mf">0.444435</span><span class="p">,</span> <span class="mf">0.435953</span><span class="p">])</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </section>
-<section id="module-contents">
-<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="module-namosim.display">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-namosim.display" title="Link to this heading"></a></h2>
 </section>
 </section>
 

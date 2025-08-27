@@ -59,13 +59,13 @@
 <li class="toctree-l3"><a class="reference internal" href="namosim.display.html">namosim.display package</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">namosim.mapgen package</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#namosim-mapgen-connected-components-module">namosim.mapgen.connected_components module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.mapgen.connected_components">namosim.mapgen.connected_components module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#namosim-mapgen-main-module">namosim.mapgen.main module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#namosim-mapgen-mapgen-module">namosim.mapgen.mapgen module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#namosim-mapgen-svg-utils-module">namosim.mapgen.svg_utils module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#namosim-mapgen-types-module">namosim.mapgen.types module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#namosim-mapgen-utils-module">namosim.mapgen.utils module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#module-contents">Module contents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.mapgen.svg_utils">namosim.mapgen.svg_utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.mapgen.types">namosim.mapgen.types module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.mapgen.utils">namosim.mapgen.utils module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-namosim.mapgen">Module contents</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="namosim.navigation.html">namosim.navigation package</a></li>
@@ -75,17 +75,17 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-config-module">namosim.config module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-data-models-module">namosim.data_models module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-exceptions-module">namosim.exceptions module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-input-module">namosim.input module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-log-module">namosim.log module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.config">namosim.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.data_models">namosim.data_models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.exceptions">namosim.exceptions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.input">namosim.input module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.log">namosim.log module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-main-module">namosim.main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-report-module">namosim.report module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-scenario-generation-module">namosim.scenario_generation module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-simulator-module">namosim.simulator module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#namosim-svg-styles-module">namosim.svg_styles module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim.svg_styles">namosim.svg_styles module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="namosim.html#module-namosim">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -120,8 +120,39 @@
 <section id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-mapgen-connected-components-module">
-<h2>namosim.mapgen.connected_components module<a class="headerlink" href="#namosim-mapgen-connected-components-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.mapgen.connected_components">
+<span id="namosim-mapgen-connected-components-module"></span><h2>namosim.mapgen.connected_components module<a class="headerlink" href="#module-namosim.mapgen.connected_components" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="namosim.mapgen.connected_components.ConnectedComponents">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">namosim.mapgen.connected_components.</span></span><span class="sig-name descname"><span class="pre">ConnectedComponents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component_cell_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/mapgen/connected_components.html#ConnectedComponents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.connected_components.ConnectedComponents" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.mapgen.connected_components.ConnectedComponents.compute_components">
+<span class="sig-name descname"><span class="pre">compute_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/namosim/mapgen/connected_components.html#ConnectedComponents.compute_components"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.connected_components.ConnectedComponents.compute_components" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.mapgen.connected_components.ConnectedComponents.find_nearest_neighbor">
+<span class="sig-name descname"><span class="pre">find_nearest_neighbor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component_idx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/namosim/mapgen/connected_components.html#ConnectedComponents.find_nearest_neighbor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.connected_components.ConnectedComponents.find_nearest_neighbor" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.mapgen.connected_components.ConnectedComponents.get_accessible_cells">
+<span class="sig-name descname"><span class="pre">get_accessible_cells</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/namosim/mapgen/connected_components.html#ConnectedComponents.get_accessible_cells"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.connected_components.ConnectedComponents.get_accessible_cells" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.mapgen.connected_components.ConnectedComponents.get_neighbors">
+<span class="sig-name descname"><span class="pre">get_neighbors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cell</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_walls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/namosim/mapgen/connected_components.html#ConnectedComponents.get_neighbors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.connected_components.ConnectedComponents.get_neighbors" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="namosim.mapgen.connected_components.ConnectedComponents.get_smallest_component">
+<span class="sig-name descname"><span class="pre">get_smallest_component</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/namosim/mapgen/connected_components.html#ConnectedComponents.get_smallest_component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.connected_components.ConnectedComponents.get_smallest_component" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="namosim-mapgen-main-module">
 <h2>namosim.mapgen.main module<a class="headerlink" href="#namosim-mapgen-main-module" title="Link to this heading"></a></h2>
@@ -129,17 +160,43 @@
 <section id="namosim-mapgen-mapgen-module">
 <h2>namosim.mapgen.mapgen module<a class="headerlink" href="#namosim-mapgen-mapgen-module" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-mapgen-svg-utils-module">
-<h2>namosim.mapgen.svg_utils module<a class="headerlink" href="#namosim-mapgen-svg-utils-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.mapgen.svg_utils">
+<span id="namosim-mapgen-svg-utils-module"></span><h2>namosim.mapgen.svg_utils module<a class="headerlink" href="#module-namosim.mapgen.svg_utils" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="namosim.mapgen.svg_utils.perturb_polygon">
+<span class="sig-prename descclassname"><span class="pre">namosim.mapgen.svg_utils.</span></span><span class="sig-name descname"><span class="pre">perturb_polygon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygon</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Polygon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Polygon</span></span></span><a class="reference internal" href="_modules/namosim/mapgen/svg_utils.html#perturb_polygon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.svg_utils.perturb_polygon" title="Link to this definition"></a></dt>
+<dd><p>Perturb the vertices of a Shapely polygon randomly.</p>
+<p>Parameters:
+- polygon: Shapely Polygon object
+- sigma: Standard deviation of the random perturbations</p>
+<p>Returns:
+- perturbed_polygon: Perturbed Shapely Polygon object</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="namosim.mapgen.svg_utils.polygon_to_svg_path">
+<span class="sig-prename descclassname"><span class="pre">namosim.mapgen.svg_utils.</span></span><span class="sig-name descname"><span class="pre">polygon_to_svg_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygon</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Polygon</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Element</span></span></span><a class="reference internal" href="_modules/namosim/mapgen/svg_utils.html#polygon_to_svg_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.svg_utils.polygon_to_svg_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
-<section id="namosim-mapgen-types-module">
-<h2>namosim.mapgen.types module<a class="headerlink" href="#namosim-mapgen-types-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.mapgen.types">
+<span id="namosim-mapgen-types-module"></span><h2>namosim.mapgen.types module<a class="headerlink" href="#module-namosim.mapgen.types" title="Link to this heading"></a></h2>
 </section>
-<section id="namosim-mapgen-utils-module">
-<h2>namosim.mapgen.utils module<a class="headerlink" href="#namosim-mapgen-utils-module" title="Link to this heading"></a></h2>
+<section id="module-namosim.mapgen.utils">
+<span id="namosim-mapgen-utils-module"></span><h2>namosim.mapgen.utils module<a class="headerlink" href="#module-namosim.mapgen.utils" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="namosim.mapgen.utils.is_empty">
+<span class="sig-prename descclassname"><span class="pre">namosim.mapgen.utils.</span></span><span class="sig-name descname"><span class="pre">is_empty</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">empty_cell_types</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Set</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/namosim/mapgen/utils.html#is_empty"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.utils.is_empty" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="namosim.mapgen.utils.is_in_map">
+<span class="sig-prename descclassname"><span class="pre">namosim.mapgen.utils.</span></span><span class="sig-name descname"><span class="pre">is_in_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dtype</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/namosim/mapgen/utils.html#is_in_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#namosim.mapgen.utils.is_in_map" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
-<section id="module-contents">
-<h2>Module contents<a class="headerlink" href="#module-contents" title="Link to this heading"></a></h2>
+<section id="module-namosim.mapgen">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-namosim.mapgen" title="Link to this heading"></a></h2>
 </section>
 </section>
 
