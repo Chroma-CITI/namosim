@@ -63,7 +63,7 @@ When adding new functionality or fixing bugs, include corresponding tests in the
 - **ROS Integration**: Ensure tests account for ROS-specific features, such as message passing (e.g., `grid_map_msgs`) and node communication.
 
 ### Example Test
-Below is an example of a unit test for a path planner function in a ROS context:
+Below is an example of a unit test for loading a scenario from an SVG file:
 
 .. code-block:: python
 
