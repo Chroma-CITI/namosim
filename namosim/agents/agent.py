@@ -11,7 +11,7 @@ import namosim.navigation.navigation_plan as navp
 from namosim.world.binary_occupancy_grid import BinaryOccupancyGrid
 import namosim.world.world as w
 from namosim.algorithms import graph_search
-from namosim.data_models import AgentBehaviorConfig, Pose2D
+from namosim.data_models import AgentBehaviorXmlConfig, Pose2D
 from namosim.input import Input
 from namosim.navigation.action_result import ActionResult
 from namosim.navigation.basic_actions import Action
@@ -85,7 +85,7 @@ class Agent(Entity):
     def __init__(
         self,
         *,
-        config: AgentBehaviorConfig,
+        config: t.Any,
         navigation_goals: t.List[goal.Goal],
         logs_dir: str,
         uid: str,

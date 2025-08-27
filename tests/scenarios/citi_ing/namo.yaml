@@ -4,3 +4,6 @@ agents:
   - id: robot_0
     initial_pose: [6.6, 9.5, 0]
     radius: 0.2
+    behavior:
+      type: stilman_2005_behavior
+

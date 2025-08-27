@@ -8,7 +8,7 @@ import shapely
 from shapely.geometry import Polygon
 import shapely.ops
 
-from namosim.data_models import NamoConfigModel
+from namosim.data_models import NamoConfigXmlModel
 from namosim.mapgen import utils
 from namosim.mapgen.connected_components import ConnectedComponents
 from namosim.mapgen.types import FLOOR, PERM_WALL, WALL, GridCell
@@ -194,7 +194,7 @@ class MapGen:
         world_width = self.width * map_cell_size
         world_height = self.height * map_cell_size
         world_cell_size = round(robot_radius_cm / 2.0)
-        config = NamoConfigModel(cell_size_cm=world_cell_size * 100, agents=[])
+        config = NamoConfigXmlModel(cell_size_cm=world_cell_size * 100, agents=[])
         walls = self.get_wall_polygons(cell_size=map_cell_size)
         map = BinaryOccupancyGrid(
             static_polygons=walls,

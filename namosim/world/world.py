@@ -21,9 +21,10 @@ import namosim.utils.conversion as conversion
 import namosim.utils.utils as utils
 from namosim import agents
 from namosim.data_models import (
-    NamoAgentYamlModel,
+    AgentConfigXmlModel,
+    AgentConfigYamlModel,
     NamoConfigYamlModel,
-    NamoConfigModel,
+    NamoConfigXmlModel,
     Pose2D,
     StilmanBehaviorConfigModel,
     StilmanBehaviorParametersModel,
@@ -50,7 +51,7 @@ class World:
         goals: t.Optional[t.Dict[str, Goal]] = None,
         init_geometry_file: t.Optional[minidom.Document] = None,
         logger: utils.NamosimLogger | None = None,
-        svg_config: NamoConfigModel | None = None,
+        svg_config: NamoConfigXmlModel | None = None,
         generate_report: bool = True,
         random_seed: int = 0,
     ):
@@ -119,7 +120,7 @@ class World:
             raise Exception("SVG document is empty or not found")
         conversion.set_all_id_attributes_as_ids(svg_doc)
         conversion.clean_attributes(svg_doc)
-        config = NamoConfigModel.from_xml(
+        config = NamoConfigXmlModel.from_xml(
             svg_doc.getElementsByTagName("namo_config")[0].toxml()
         )
 
@@ -199,18 +200,18 @@ class World:
         agents: t.List["agts.Agent"] = []
 
         # get agents
-        for agent in config.agents:
-            el = svg_doc.getElementById(agent.agent_id)
+        for agent_config in config.agents:
+            el = svg_doc.getElementById(agent_config.agent_id)
             if not el:
-                raise Exception(f"Robot {agent.agent_id} not found in svg")
+                raise Exception(f"Robot {agent_config.agent_id} not found in svg")
 
             if not el.tagName in ["path", "svg:path"]:
                 raise Exception(
-                    f"Robot {agent.agent_id} svg element is not a path element"
+                    f"Robot {agent_config.agent_id} svg element is not a path element"
                 )
 
             robot_shape_style = el.getAttribute("style")
-            robot_polygon = shapes[agent.agent_id]
+            robot_polygon = shapes[agent_config.agent_id]
             robot_angle = 0
             if el.hasAttribute("angle"):
                 robot_angle = float(el.getAttribute("angle"))
@@ -227,11 +228,10 @@ class World:
             )
 
             # make robot polygon a perfect circle
-            robot_radius = utils.get_circumscribed_radius(robot_polygon)
             robot_polygon = robot_polygon
             goals: t.List[Goal] = []
 
-            for goal in agent.goals:
+            for goal in agent_config.goals:
                 goal_el = svg_doc.getElementById(goal.goal_id)
                 if not goal_el:
                     raise Exception(f"Goal {goal.goal_id} not found in svg")
@@ -259,82 +259,17 @@ class World:
                 )
                 goals.append(goal)
 
-            if agent.behavior.type == "stilman_2005_behavior":
-                new_robot = agts.Stilman2005Agent(
-                    navigation_goals=goals,
-                    config=agent.behavior,
-                    logs_dir=logs_dir,
-                    uid=agent.agent_id,
-                    polygon=robot_polygon,
-                    style=agent_style,
-                    pose=init_pose,
-                    sensors=[OmniscientSensor()],
-                    cell_size=cell_size,
-                    collision_margin=collision_margin,
-                    logger=logger,
-                )
-            elif agent.behavior.type == "stilman_rrt_star_behavior":
-                new_robot = agts.StilmanRRTStarAgent(
-                    navigation_goals=goals,
-                    config=agent.behavior,
-                    logs_dir=logs_dir,
-                    uid=agent.agent_id,
-                    polygon=robot_polygon,
-                    style=agent_style,
-                    pose=init_pose,
-                    sensors=[OmniscientSensor()],
-                    cell_size=cell_size,
-                    collision_margin=collision_margin,
-                    logger=logger,
-                )
-            elif agent.behavior.type == "navigation_only_behavior":
-                new_robot = agts.NavigationOnlyAgent(
-                    navigation_goals=goals,
-                    config=agent.behavior,
-                    logs_dir=logs_dir,
-                    uid=agent.agent_id,
-                    polygon=robot_polygon,
-                    style=agent_style,
-                    pose=init_pose,
-                    sensors=[OmniscientSensor()],
-                    cell_size=cell_size,
-                    logger=logger,
-                )
-            elif agent.behavior.type == "rrt":
-                new_robot = agts.RRTAgent(
-                    navigation_goals=goals,
-                    config=agent.behavior,
-                    logs_dir=logs_dir,
-                    uid=agent.agent_id,
-                    polygon=robot_polygon,
-                    style=agent_style,
-                    pose=init_pose,
-                    sensors=[OmniscientSensor()],
-                    cell_size=cell_size,
-                    logger=logger,
-                )
-            elif agent.behavior.type == "teleop_behavior":
-                new_robot = agts.TeleopAgent(
-                    navigation_goals=goals,
-                    config=agent.behavior,
-                    logs_dir=logs_dir,
-                    uid=agent.agent_id,
-                    polygon=robot_polygon,
-                    style=agent_style,
-                    pose=init_pose,
-                    sensors=[OmniscientSensor()],
-                    cell_size=cell_size,
-                    logger=logger,
-                )
-            else:
-                raise NotImplementedError(
-                    "You tried to associate entity '{agent_name}' with a behavior named"
-                    "'{b_name}' that is not implemented yet."
-                    "Maybe you mispelled something ?".format(
-                        agent_name=agent.agent_id, b_name=agent.behavior.type
-                    )
-                )
-
+            new_robot = World.construct_agent_from_xml_model(
+                agent_config=agent_config,
+                goals=goals,
+                logs_dir=logs_dir,
+                robot_polygon=robot_polygon,
+                agent_style=agent_style,
+                init_pose=init_pose,
+                cell_size=cell_size,
+                collision_margin=collision_margin,
+                logger=logger,
+            )
             agents.append(new_robot)
 
         goals_node = svg_doc.getElementById("goals")
@@ -360,13 +295,141 @@ class World:
         for movable in dynamic_entities:
             world.add_entity(movable)
 
-        for agent in agents:
-            world.add_agent(agent)
+        for agent_config in agents:
+            world.add_agent(agent_config)
 
-        for agent in agents:
-            agent.init(world)
+        for agent_config in agents:
+            agent_config.init(world)
 
         return world
+
+    @classmethod
+    def construct_agent_from_xml_model(
+        cls,
+        *,
+        agent_config: AgentConfigXmlModel,
+        goals: t.List[Goal],
+        logs_dir: str,
+        robot_polygon: Polygon,
+        agent_style: AgentStyle,
+        init_pose: Pose2D,
+        cell_size: float,
+        collision_margin: float,
+        logger: utils.NamosimLogger,
+    ) -> "agts.Agent":
+        if agent_config.behavior.type == "stilman_2005_behavior":
+            new_robot = agts.Stilman2005Agent(
+                navigation_goals=goals,
+                config=agent_config.behavior,
+                logs_dir=logs_dir,
+                uid=agent_config.agent_id,
+                polygon=robot_polygon,
+                style=agent_style,
+                pose=init_pose,
+                sensors=[OmniscientSensor()],
+                cell_size=cell_size,
+                collision_margin=collision_margin,
+                logger=logger,
+            )
+        elif agent_config.behavior.type == "stilman_rrt_star_behavior":
+            new_robot = agts.StilmanRRTStarAgent(
+                navigation_goals=goals,
+                config=agent_config.behavior,
+                logs_dir=logs_dir,
+                uid=agent_config.agent_id,
+                polygon=robot_polygon,
+                style=agent_style,
+                pose=init_pose,
+                sensors=[OmniscientSensor()],
+                cell_size=cell_size,
+                collision_margin=collision_margin,
+                logger=logger,
+            )
+        elif agent_config.behavior.type == "navigation_only_behavior":
+            new_robot = agts.NavigationOnlyAgent(
+                navigation_goals=goals,
+                config=agent_config.behavior,
+                logs_dir=logs_dir,
+                uid=agent_config.agent_id,
+                polygon=robot_polygon,
+                style=agent_style,
+                pose=init_pose,
+                sensors=[OmniscientSensor()],
+                cell_size=cell_size,
+                logger=logger,
+            )
+        elif agent_config.behavior.type == "rrt":
+            new_robot = agts.RRTAgent(
+                navigation_goals=goals,
+                config=agent_config.behavior,
+                logs_dir=logs_dir,
+                uid=agent_config.agent_id,
+                polygon=robot_polygon,
+                style=agent_style,
+                pose=init_pose,
+                sensors=[OmniscientSensor()],
+                cell_size=cell_size,
+                logger=logger,
+            )
+        elif agent_config.behavior.type == "teleop_behavior":
+            new_robot = agts.TeleopAgent(
+                navigation_goals=goals,
+                config=agent_config.behavior,
+                logs_dir=logs_dir,
+                uid=agent_config.agent_id,
+                polygon=robot_polygon,
+                style=agent_style,
+                pose=init_pose,
+                sensors=[OmniscientSensor()],
+                cell_size=cell_size,
+                logger=logger,
+            )
+        else:
+            raise NotImplementedError(
+                "You tried to associate entity '{agent_name}' with a behavior named"
+                "'{b_name}' that is not implemented yet."
+                "Maybe you mispelled something ?".format(
+                    agent_name=agent_config.agent_id, b_name=agent_config.behavior.type
+                )
+            )
+        return new_robot
+
+    @classmethod
+    def construct_agent_from_yaml_model(
+        cls,
+        *,
+        agent: AgentConfigYamlModel,
+        goals: t.List[Goal],
+        logs_dir: str,
+        robot_polygon: Polygon,
+        agent_style: AgentStyle,
+        init_pose: Pose2D,
+        cell_size: float,
+        collision_margin: float,
+        logger: utils.NamosimLogger,
+    ) -> "agts.Agent":
+        if agent.behavior.type == "stilman_2005_behavior":
+            return agts.Stilman2005Agent(
+                navigation_goals=goals,
+                config=agent.behavior,
+                logs_dir=logs_dir,
+                uid=agent.id,
+                polygon=robot_polygon,
+                style=agent_style,
+                pose=init_pose,
+                sensors=[OmniscientSensor()],
+                cell_size=cell_size,
+                collision_margin=collision_margin,
+                logger=logger,
+            )
+        else:
+            raise NotImplementedError(
+                "You tried to associate entity '{agent_name}' with a behavior named"
+                "'{b_name}' that is not implemented yet."
+                "Maybe you mispelled something ?".format(
+                    agent_name=agent.id, b_name=agent.behavior.type
+                )
+            )
 
     @staticmethod
     def get_wall_polygons_from_svg(
@@ -909,7 +972,7 @@ class World:
         bounds = map.get_bounds()
         height = bounds[3]
 
-        agent_configs: t.Dict[str, NamoAgentYamlModel] = {
+        agent_configs: t.Dict[str, AgentConfigYamlModel] = {
             x.id: x for x in config.agents
         }
 
@@ -958,23 +1021,13 @@ class World:
                 pose = agent_poses[agent_config.id]
                 agent_polygon = agent_polygons[agent_config.id]
 
-            agent = agts.Stilman2005Agent(
-                navigation_goals=[],
-                config=StilmanBehaviorConfigModel(
-                    type="stilman_2005_behavior",
-                    parameters=StilmanBehaviorParametersModel(
-                        drive_type="differential",
-                        robot_rotation_unit_angle=30,
-                        push_only=agent_config.push_only,
-                        grab_start_distance=agent_config.grab_start_distance,
-                    ),
-                ),
+            agent = World.construct_agent_from_yaml_model(
+                agent=agent_config,
+                goals=[],
                 logs_dir=logs_dir,
-                uid=agent_config.id,
-                polygon=agent_polygon,
-                style=AgentStyle(),
-                pose=pose,
-                sensors=[OmniscientSensor()],
+                robot_polygon=agent_polygon,
+                agent_style=AgentStyle(),
+                init_pose=pose,
                 cell_size=map.cell_size,
                 collision_margin=collision_margin,
                 logger=logger,
@@ -996,8 +1049,8 @@ class World:
         map_yaml_path = os.path.join(config_dir, config.map_yaml)
         map = BinaryOccupancyGrid.load_from_yaml(map_yaml_path)
         collision_margin = map.cell_size
-        if config.collision_margin is not None:
-            collision_margin = config.collision_margin
+        if config.collision_margin_cm:
+            collision_margin = config.collision_margin_cm / 100
 
         world = cls(map=map, collision_margin=collision_margin, logger=logger)
 

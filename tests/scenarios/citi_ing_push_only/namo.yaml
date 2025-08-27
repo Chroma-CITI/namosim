@@ -4,4 +4,7 @@ agents:
   - id: robot_0
     initial_pose: [6.6, 9.5, 0]
     radius: 0.2
-    push_only: true
+    behavior:
+      type: stilman_2005_behavior
+      parameters:
+        push_only: true

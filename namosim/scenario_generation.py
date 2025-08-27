@@ -7,10 +7,10 @@ from xml.dom import minidom
 from shapely.geometry import Polygon
 
 from namosim.data_models import (
-    AgentConfigModel,
+    AgentConfigXmlModel,
     GoalConfigModel,
     GridCellModel,
-    NamoConfigModel,
+    NamoConfigXmlModel,
     Pose2D,
     StilmanBehaviorConfigModel,
     StilmanBehaviorParametersModel,
@@ -106,7 +106,7 @@ def generate_alternative_scenarios(
     """Randomly generates alternative versions of a given scenario with a given number of robots and goals."""
     # Load SVGs
     svg_data_init = minidom.parse(base_svg_filepath)
-    svg_init_config = NamoConfigModel.from_xml(
+    svg_init_config = NamoConfigXmlModel.from_xml(
         svg_data_init.getElementsByTagName("namo_config")[0].toxml()
     )
     conversion.set_all_id_attributes_as_ids(svg_data_init)
@@ -231,7 +231,7 @@ def generate_alternative_scenarios(
             if deadlock_strategy:
                 behavior_config.parameters.deadlock_strategy = deadlock_strategy
 
-            agent_config = AgentConfigModel.model_validate(
+            agent_config = AgentConfigXmlModel.model_validate(
                 {
                     "agent_id": f"robot_{i_robot}",
                     "behavior": behavior_config,

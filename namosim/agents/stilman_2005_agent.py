@@ -32,6 +32,7 @@ from namosim.data_models import (
     GridCellModel,
     Pose2D,
     StilmanBehaviorConfigModel,
+    StilmanBehaviorConfigYamlModel,
 )
 from namosim.input import Input
 from namosim.navigation.conflict import (
@@ -59,7 +60,7 @@ class Stilman2005Agent(Agent):
         self,
         *,
         navigation_goals: t.List[Goal],
-        config: StilmanBehaviorConfigModel,
+        config: StilmanBehaviorConfigModel | StilmanBehaviorConfigYamlModel,
         logs_dir: str,
         uid: str,
         polygon: Polygon,

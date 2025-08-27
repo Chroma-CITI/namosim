@@ -2,7 +2,7 @@ import typing as t
 
 from pydantic_xml import BaseXmlModel, attr, element
 import yaml
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Pose2D(t.NamedTuple):
@@ -74,18 +74,7 @@ class StilmanRRTStarBehaviorConfigModel(BaseBehaviorConfigModel):
     parameters: StilmanBehaviorParametersModel = element()
 
 
-class WuLevihnBehaviorConfigModel(BaseBehaviorConfigModel):
-    type: t.Literal["wu_levihn_2014_behavior"] = attr()
-    check_new_opening_activated: bool = attr()
-    manip_weight: float = attr()
-    reset_knowledge_activated: bool = attr()
-    social_movability_evaluation_activated: bool = attr()
-    social_placement_choice_activated: bool = attr()
-    use_social_layer: bool = attr()
-
-
-AgentBehaviorConfig = t.Union[
-    WuLevihnBehaviorConfigModel,
+AgentBehaviorXmlConfig = t.Union[
     NavigationOnlyBehaviorConfigModel,
     RRTAgentConfigModel,
     TeleopBehaviorConfigModel,
@@ -94,18 +83,51 @@ AgentBehaviorConfig = t.Union[
 ]
 
 
-class AgentConfigModel(BaseXmlModel, tag="agent_config"):
+class AgentConfigXmlModel(BaseXmlModel, tag="agent_config"):
     agent_id: str = attr()
     goals: t.List[GoalConfigModel] = element(tag="goal", default=[])
-    behavior: AgentBehaviorConfig = element(tag="behavior")
+    behavior: AgentBehaviorXmlConfig = element(tag="behavior")
 
 
-class NamoConfigModel(BaseXmlModel, tag="namo_config"):
+class NamoConfigXmlModel(BaseXmlModel, tag="namo_config"):
     cell_size_cm: float = attr()
     collision_margin_cm: float | None = attr(default=None)
     random_seed: int = attr(default=10)
     generate_report: bool = attr(default=True)
-    agents: t.List[AgentConfigModel] = element("agent", default=[])
+    agents: t.List[AgentConfigXmlModel] = element("agent", default=[])
+
+
+# YAML MODELS
+
+
+class BaseBehaviorConfigYamlModel(BaseModel):
+    pass  # Abstract base class, no fields defined here
+
+
+class StilmanBehaviorParametersYamlModel(BaseModel):
+    check_new_local_opening_before_global: bool = True
+    activate_grids_logging: bool = False
+    push_only: bool = False
+    robot_rotation_unit_angle: float = 15.0
+    manip_search_bound_percentage: float = 0.1
+    use_social_cost: bool = True
+    resolve_conflicts: bool = True
+    resolve_deadlocks: bool = True
+    deadlock_strategy: t.Literal["SOCIAL", "DISTANCE", ""] = ""
+    drive_type: t.Literal["holonomic", "differential"] = "differential"
+    grab_start_distance: t.Optional[float] = None
+    grab_end_distance: t.Optional[float] = None
+    conflict_horizon: int = 40
+
+
+class StilmanBehaviorConfigYamlModel(BaseBehaviorConfigYamlModel):
+    type: t.Literal["stilman_2005_behavior"] = "stilman_2005_behavior"
+    parameters: StilmanBehaviorParametersYamlModel = (
+        StilmanBehaviorParametersYamlModel()
+    )
+
+
+AgentBehaviorYamlConfig = t.Union[StilmanBehaviorConfigYamlModel,]
 
 
 class GoalYamlModel(BaseModel):
@@ -113,20 +135,20 @@ class GoalYamlModel(BaseModel):
     pose: t.List[float]
 
 
-class NamoAgentYamlModel(BaseModel):
+class AgentConfigYamlModel(BaseModel):
     id: str
     initial_pose: t.List[float] | None = None
     radius: float
-    push_only: bool = False
-    grab_start_distance: float | None = None
-    grab_end_distance: float | None = None
+    behavior: AgentBehaviorYamlConfig
 
 
 class NamoConfigYamlModel(BaseModel):
     map_yaml: str
     svg_file: str | None = None
-    agents: t.List[NamoAgentYamlModel] = []
-    collision_margin: float | None = None
+    agents: t.List[AgentConfigYamlModel] = []
+    collision_margin_cm: float | None = None
+    random_seed: int = 10
+    generate_report: bool = False
 
 
 class MapYamlConfigModel(BaseModel):

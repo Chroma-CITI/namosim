@@ -3,4 +3,7 @@ svg_file: citi_full.svg
 agents:
   - id: robot_0
     radius: 0.2
-    push_only: true
+    behavior:
+      type: stilman_2005_behavior
+      parameters:
+        push_only: true
