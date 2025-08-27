@@ -17,9 +17,15 @@ It computes plans for robots navigating in a 2D polygonal environment in which c
 obstacles may be grasped and moved. This problem is pertinent for real-world robotics applications such as indoor, social environments
 where robots may need to move or manipulate objects in order to navigate and complete their tasks.
 
-Cite Us
-=======
+Statement of Need
+-----------------------------------
+Many interesting applications in autonomous mobile robotics involve some kind of physical interaction with the environment as well as social coordination with other agents. 
+However, global navigation planners typically assume static, non-interactive environments, leaving higher-level behaviors to other parts of the software stack and thus complicating their implementation to some degree. 
+Ideally, motion planners should be able to reason about physical and social interactions, continuously update their internal state in response to incoming data, and adapt to changing conditions. 
+NAMOSIM takes a first step towards addressing this challenging problem by offering a simulation environment explicitly designed to study NAMO problems, which involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. Additionally, NAMOSIM supports multi-robot environments, facilitating reproducible research in social navigation.
 
+Cite Us
+-----------------------------------
 If you reuse any part of this project in your research, please cite the associated papers:
 
 .. code-block:: bibtex

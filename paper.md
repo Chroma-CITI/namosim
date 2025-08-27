@@ -46,7 +46,10 @@ NAMOSIM is packaged as a ROS2 package for easy integration into robotics project
 
 # Statement of Need
 
-Many interesting applications in autonomous mobile robotics involve some kind of physical interaction with the environment as well as social coordination with other agents. However, global navigation planners typically assume static, non-interactive environments, leaving higher-level behaviors to other parts of the robot software stack and thus complicating their implementation. This limits the applicability of the standard navigation stack in complex real-world scenarios. Ideally, motion planners should be able to reason about physical and social interactions. NAMOSIM addresses this gap by offering a simulation environment explicitly designed to study NAMO problems, which involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. Additionally, NAMOSIM supports multi-robot environments, facilitating reproducible research in social navigation.
+Many interesting applications in autonomous mobile robotics involve some kind of physical interaction with the environment as well as social coordination with other agents. 
+However, global navigation planners typically assume static, non-interactive environments, leaving higher-level behaviors to other parts of the software stack and thus complicating their implementation to some degree. 
+Ideally, motion planners should be able to reason about physical and social interactions, continuously update their internal state in response to incoming data, and adapt to changing conditions. 
+NAMOSIM takes a first step towards addressing this challenging problem by offering a simulation environment explicitly designed to study NAMO problems, which involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. Additionally, NAMOSIM supports multi-robot environments, facilitating reproducible research in social navigation.
 
 # Major Features
 
