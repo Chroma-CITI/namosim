@@ -23,7 +23,7 @@ Please ensure your contributions adhere to the following guidelines:
 Testing Requirements
 -------------------
 
-To maintain the reliability and correctness of NAMOSIM, all code contributions must include appropriate tests. Testing ensures that new features or bug fixes do not introduce regressions and that the planner behaves as expected in various scenarios. NAMOSIM is built and tested in a ROS Humble environment using `colcon` and custom test scripts.
+To maintain the reliability and correctness of NAMOSIM, all code contributions must include appropriate tests. Testing ensures that new features or bug fixes do not introduce regressions and that the planner behaves as expected in various scenarios.
 
 ### Testing Environment
 NAMOSIM uses the `osrf/ros:humble-desktop-full` Docker container for its CI pipeline, which includes ROS Humble and dependencies. To replicate this environment locally:
@@ -45,111 +45,79 @@ NAMOSIM uses the `osrf/ros:humble-desktop-full` Docker container for its CI pipe
 ### Types of Tests
 NAMOSIM uses a combination of the following tests to validate functionality:
 
-- **Linting/Formatting**: Ensures code adheres to style guidelines (e.g., PEP 8) using tools like `flake8` or `black`.
-- **Type Checking**: Verifies type correctness in Python code using static type checkers like `mypy`.
-- **Unit Tests**: Test individual components (e.g., path planning algorithms, obstacle manipulation logic) in isolation. These should cover edge cases and common use cases.
+- **Linting/Formatting**: Ensures code adheres to style guidelines using `black`.
+- **Type Checking**: Verifies type correctness in Python code using the static type checkers `pyright`.
+- **Unit Tests**: Test individual components (e.g., path planning algorithms, obstacle manipulation logic) in isolation. These should run fast and cover edge cases and common use cases.
 - **End-to-End Tests**: Verify the entire system, from environment setup to path planning and obstacle manipulation, in realistic scenarios.
 
 ### Testing Framework
-NAMOSIM uses `colcon` for building and testing, with tests executed via custom scripts (`scripts/test_unit.sh`, `scripts/test_e2e.sh`, `scripts/test_types.sh`). Tests are organized in the `tests/` directory and should be compatible with the ROS Humble environment.
+NAMOSIM tests are executed via custom scripts (`scripts/test_unit.sh`, `scripts/test_e2e.sh`, `scripts/test_types.sh`). Tests are organized in the `tests/` directory.
 
 ### Writing Tests
 When adding new functionality or fixing bugs, include corresponding tests in the `tests/` directory. Follow these guidelines:
 
-- **Test Structure**: Place tests in the `tests/` directory, organized by module (e.g., `tests/test_planner.py` for unit tests, `tests/e2e/e2e_test.py` for end-to-end tests).
-- **Test Naming**: Use descriptive names for test functions, prefixed with `test_` (e.g., `test_path_planner_handles_collisions`).
-- **Coverage**: Aim for high test coverage, especially for critical components like path planning and obstacle manipulation. Use `colcon test` to verify functionality.
-- **Edge Cases**: Include tests for edge cases, such as empty environments, fully blocked paths, or maximum obstacle weight limits.
+- **Test Structure**: Place tests in the `tests/` directory, organized by module (e.g., `tests/planner_test.py` for unit tests, `tests/e2e/e2e_test.py` for end-to-end tests).
+- **Test Naming**: Use descriptive names for test files, post-fixed with `_test.py` (e.g., `collision_test.py`).
+- **Coverage**: Aim for high test coverage, especially for critical components. Use test scripts to verify functionality.
+- **Edge Cases**: Include tests for edge cases, such as empty environments, fully blocked paths, etc.
 - **ROS Integration**: Ensure tests account for ROS-specific features, such as message passing (e.g., `grid_map_msgs`) and node communication.
-- **Mocking**: Use `unittest.mock` to mock ROS nodes or external dependencies when testing specific components.
 
 ### Example Test
 Below is an example of a unit test for a path planner function in a ROS context:
 
 .. code-block:: python
 
-    import pytest
-    from namosim.planner import PathPlanner
-    from geometry_msgs.msg import Point
+    import os
+    from namosim.world.world import World
 
-    def test_path_planner_empty_environment():
-        planner = PathPlanner(environment=[])
-        start = Point(x=0.0, y=0.0)
-        goal = Point(x=10.0, y=10.0)
-        path = planner.compute_path(start, goal)
-        assert path is not None, "Path should exist in an empty environment"
-        assert path[0].x == start.x and path[0].y == start.y, "Path should start at the given start point"
-        assert path[-1].x == goal.x and path[-1].y == goal.y, "Path should end at the given goal point"
+    dirname = os.path.dirname(os.path.abspath(__file__))
+
+
+    def test_load_from_svg():
+        world = World.load_from_svg(f"{dirname}/../scenarios/minimal_stilman_2005.svg")
+        assert len(world.agents) == 1
+        assert "robot_0" in world.agents
+        assert world.agents["robot_0"].is_initialized
+
 
 ### Running Tests
 To build and test the project locally, follow these steps:
 
-1. **Build the Project**:
+
+1. **Run Unit Tests**:
    .. code-block:: bash
 
-       source /opt/ros/humble/setup.bash
-       colcon build
-
-2. **Run Unit Tests**:
-   .. code-block:: bash
-
-       source /opt/ros/humble/setup.bash
-       source install/setup.bash
        ./scripts/test_unit.sh
 
-3. **Run End-to-End Tests**:
+2. **Run End-to-End Tests**:
    .. code-block:: bash
 
-       source /opt/ros/humble/setup.bash
-       source install/setup.bash
        ./scripts/test_e2e.sh
 
-4. **Run Type Checking**:
+3. **Run Type Checking**:
    .. code-block:: bash
 
-       source /opt/ros/humble/setup.bash
-       source install/setup.bash
        ./scripts/test_types.sh
 
-5. **Apply Code Formatting**:
+4. **Apply Code Formatting**:
    Ensure code adheres to the project's formatting standards:
    .. code-block:: bash
 
        ./scripts/format.sh
 
-6. **Run All Tests**:
+5. **Run All Tests**:
    To execute all tests (unit, end-to-end, and type checking), use:
    .. code-block:: bash
 
-       source /opt/ros/humble/setup.bash
-       source install/setup.bash
        ./scripts/test_all.sh
 
-### End-to-End Scenario Testing
-To experiment with different scenarios and parameters, use the Python Test Explorer in VSCode to run end-to-end tests located in `tests/e2e/`. This is the recommended approach for interactive testing.
+6. **Colcon Build and Test**:
+   Since namosim is also distributed as a ros2 package, please verify that it builds correctly with colcon:
+   .. code-block:: bash
 
-Alternatively, run specific end-to-end tests from the command line:
-.. code-block:: bash
-
-    source /opt/ros/humble/setup.bash
-    source install/setup.bash
-    python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
-
-Ensure test scenarios are included in the `scenarios/` directory and documented in the pull request.
-
-### Simulation-Based Testing
-For simulation-based tests, use the NAMOSIM simulator to validate planner behavior in realistic scenarios. Create test cases in the `scenarios/` directory, specifying:
-
-- Environment configuration (e.g., polygon shapes, obstacle positions).
-- Robot start and goal positions (using ROS message types like `geometry_msgs/Point`).
-- Expected outcomes (e.g., successful navigation, obstacle movement).
-
-Run simulation tests using:
-.. code-block:: bash
-
-    source /opt/ros/humble/setup.bash
-    source install/setup.bash
-    python -m namosim.simulate --test scenarios/test_scenario1.yaml
+       source /opt/ros/humble/setup.bash
+       colcon build
+       colcon test
 
 ### Continuous Integration
 NAMOSIM uses GitHub Actions for continuous integration (CI), running on the `humble` branch and all pull requests. The CI pipeline:

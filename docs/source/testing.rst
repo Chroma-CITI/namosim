@@ -2,7 +2,7 @@ Testing
 =======
 
 Unit Tests
----------
+----------------------------------
 
 Run unit tests with:
 
@@ -11,7 +11,7 @@ Run unit tests with:
    ./scripts/test_unit.sh
 
 End-to-end Tests
----------------
+----------------------------------
 
 Run end-to-end tests with:
 
@@ -20,7 +20,7 @@ Run end-to-end tests with:
    ./scripts/test_e2e.sh
 
 Type Checking
--------------
+----------------------------------
 
 Perform type checking with:
 
@@ -29,7 +29,7 @@ Perform type checking with:
    ./scripts/test_types.sh
 
 Formatting
-----------
+----------------------------------
 
 Apply code formatting with:
 
@@ -38,7 +38,7 @@ Apply code formatting with:
    ./scripts/format.sh
 
 Test End-to-end Scenarios
-------------------------
+----------------------------------
 
 The best way to experiment with different scenarios and parameters is to open the repository in VSCode and use the Python Test Explorer to run the ``e2e`` tests.
 
