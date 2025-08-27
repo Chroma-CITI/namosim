@@ -39,7 +39,7 @@ The scenario file must contain a `<namo_config>` element that is a direct child 
 This object configures the simulator and agents and it the place where all agent behavioral parameters are set.
 
 The full specification for the `<namo_config>` is defined by the `NamoConfigModel` class which can be found in 
-`namosim/data_models.py <https://gitlab.inria.fr/chroma/namo/namosim/-/blob/dev/namosim/data_models.py?ref_type=heads>`_.
+`namosim/data_models.py <https://github.com/Chroma-CITI/namosim/blob/humble/namosim/data_models.py?ref_type=heads>`_.
 
 Robots and Navigation Goals
 ---------------------------

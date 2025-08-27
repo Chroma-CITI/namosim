@@ -52,7 +52,7 @@ Namo Config Yaml File
 
 The namo config yaml file links the svg to the ros map and provides configuration settings for each robot in the scenario. 
 The full specification is defined by the `NamoConfigYamlModel` class which can be found in 
-`namosim/data_models.py <https://gitlab.inria.fr/chroma/namo/namosim/-/blob/dev/namosim/data_models.py?ref_type=heads>`_.
+`namosim/data_models.py <https://github.com/Chroma-CITI/namosim/blob/humble/namosim/data_models.py?ref_type=heads>`_.
 
 Example:
 

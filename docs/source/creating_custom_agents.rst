@@ -195,14 +195,15 @@ Ensure all relevant attributes are copied, especially those that are mutable (e.
 Configuration Model
 -------------------
 
-Define a configuration model for your agent to specify behavior parameters. For `NavigationOnlyAgent`, the `NavigationOnlyBehaviorConfigModel` is used, defined in `namosim/data_models.py <https://gitlab.inria.fr/chroma/namo/namosim/-/blob/dev/namosim/data_models.py?ref_type=heads>`_. Create a similar model using Pydantic or a similar library to validate and manage settings.
+Define a configuration model for your agent to specify behavior parameters. For `NavigationOnlyAgent`, the `NavigationOnlyBehaviorConfigModel` is used, defined in `namosim/data_models.py <https://github.com/Chroma-CITI/namosim/blob/humble/namosim/data_models.py?ref_type=heads>`_. Create a similar model using Pydantic or a similar library to validate and manage settings.
 
 .. code-block:: python
    :caption: Example: Configuration model (conceptual)
 
    from pydantic import BaseModel
 
-   class CustomAgentConfigModel(BaseModel):
+   class CustomAgentConfigModel(BaseBehaviorConfigModel):
+       type: t.Literal["custom_behavior"] = "custom_behavior"
        max_speed: float = 1.0
        rotation_speed: float = 0.5
        # Add other parameters as needed

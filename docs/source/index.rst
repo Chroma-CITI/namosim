@@ -48,6 +48,7 @@ Check out our IROS24 Paper at `https://hal.science/hal-04705395 <https://hal.sci
    usage.rst
    testing.rst
    guides.rst
+   contributing.rst
    namosim.rst
 
 Indices and tables
