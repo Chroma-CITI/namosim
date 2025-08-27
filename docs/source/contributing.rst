@@ -1,10 +1,10 @@
 Contributing to NAMOSIM
-======================
+===============================
 
 Thank you for your interest in contributing to NAMOSIM! We welcome contributions from the community to improve the project, whether through code, documentation, bug reports, or feature suggestions. This page outlines the guidelines for contributing, with a specific focus on testing requirements and methods to ensure the quality and reliability of the NAMOSIM codebase.
 
 How to Contribute
------------------
+-------------------------------
 
 1. **Fork the Repository**: Start by forking the NAMOSIM repository on GitHub to your own account.
 2. **Clone the Fork**: Clone your forked repository to your local machine.
@@ -21,7 +21,7 @@ Please ensure your contributions adhere to the following guidelines:
 - Ensure all tests pass before submitting a pull request.
 
 Testing Requirements
--------------------
+-------------------------------
 
 To maintain the reliability and correctness of NAMOSIM, all code contributions must include appropriate tests. Testing ensures that new features or bug fixes do not introduce regressions and that the planner behaves as expected in various scenarios.
 
@@ -131,7 +131,7 @@ NAMOSIM uses GitHub Actions for continuous integration (CI), running on the `hum
 Before submitting a pull request, verify locally that your changes pass the CI pipeline's testing steps. The CI pipeline will automatically run on your pull request, and maintainers will review the results.
 
 Code Review Process
--------------------
+-------------------------------
 
 Once you submit a pull request, it will be reviewed by the NAMOSIM maintainers. The review will focus on:
 
@@ -143,7 +143,7 @@ Once you submit a pull request, it will be reviewed by the NAMOSIM maintainers. 
 You may be asked to make revisions before your pull request is merged. Please respond promptly to review comments.
 
 Reporting Issues
----------------
+-------------------------------
 
 If you encounter bugs or have feature suggestions, please open an issue on the GitHub repository. Include:
 
@@ -153,7 +153,7 @@ If you encounter bugs or have feature suggestions, please open an issue on the G
 - Any relevant logs or screenshots.
 
 Community Guidelines
--------------------
+-------------------------------
 
 We strive to maintain a welcoming and inclusive community. Please adhere to the following:
 

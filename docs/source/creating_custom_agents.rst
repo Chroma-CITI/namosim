@@ -1,5 +1,5 @@
 Creating Custom Agents
-=====================
+=======================
 
 This guide explains how to create custom agents for the NAMO planner by extending the `Agent` base class. Agents in NAMO are responsible for navigating and interacting within a simulation environment, using sensors, navigation goals, and path planning. The `NavigationOnlyAgent` class, which focuses solely on navigation tasks, serves as a practical example.
 
@@ -16,7 +16,7 @@ The `Agent` base class, defined in `namosim/agents/agent.py <https://gitlab.inri
 The `NavigationOnlyAgent` is a simple example that navigates to predefined goals using A* path planning, avoiding obstacles without manipulating them.
 
 Defining the Custom Agent Class
-------------------------------
+-------------------------------
 
 To create a custom agent, start by defining a new class that inherits from `Agent`. Below is the structure of the `NavigationOnlyAgent` class as an example:
 
@@ -65,7 +65,7 @@ To create a custom agent, start by defining a new class that inherits from `Agen
 This constructor initializes the agent with parameters such as its unique ID, navigation goals, configuration, and geometry (represented by a `Polygon`). The `config` parameter should be an instance of a custom configuration model (e.g., `NavigationOnlyBehaviorConfigModel`), which defines behavior-specific settings.
 
 Implementing the `init` Method
------------------------------
+-------------------------------
 
 The `init` method is called to set up the agent with a reference to the simulation world. In `NavigationOnlyAgent`, it creates an inflated map to account for the robot's size during path planning:
 
@@ -81,7 +81,7 @@ The `init` method is called to set up the agent with a reference to the simulati
 You may override `init` to perform additional setup, such as initializing internal state or precomputing data structures.
 
 Implementing the `think` Method
-------------------------------
+-------------------------------
 
 The `think` method is the core of the agent's decision-making process, determining the next action based on the current state. It returns a `ThinkResult` object containing the plan, next action, and other metadata. Below is the `think` method from `NavigationOnlyAgent`:
 
@@ -169,7 +169,7 @@ This method:
 For a custom agent, implement `think` to define your agent's behavior, such as handling movable obstacles, integrating sensor data, or using alternative path-planning algorithms.
 
 Implementing the `copy` Method
------------------------------
+-------------------------------
 
 The `copy` method creates a deep copy of the agent, ensuring independent instances for simulations. Here's the implementation from `NavigationOnlyAgent`:
 
@@ -193,7 +193,7 @@ The `copy` method creates a deep copy of the agent, ensuring independent instanc
 Ensure all relevant attributes are copied, especially those that are mutable (e.g., lists, polygons).
 
 Configuration Model
--------------------
+-------------------------------
 
 Define a configuration model for your agent to specify behavior parameters. For `NavigationOnlyAgent`, the `NavigationOnlyBehaviorConfigModel` is used, defined in `namosim/data_models.py <https://github.com/Chroma-CITI/namosim/blob/humble/namosim/data_models.py?ref_type=heads>`_. Create a similar model using Pydantic or a similar library to validate and manage settings.
 
@@ -209,7 +209,7 @@ Define a configuration model for your agent to specify behavior parameters. For 
        # Add other parameters as needed
 
 Integrating with Scenarios
--------------------------
+-------------------------------
 
 To use your custom agent in a NAMO scenario, configure it in the `<namo_config>` element for SVG scenarios or the NAMO config YAML file for ROS map scenarios. Additionally, update the `World` class methods `construct_agent_from_xml()` and `construct_agent_from_yaml()` to support your custom agent.
 
@@ -421,7 +421,7 @@ The `World.construct_agent_from_yaml_model()` method instantiates agents based o
 Add an `elif` clause for your custom agent's behavior type (e.g., `custom_behavior`) and instantiate your `CustomAgent` class with the appropriate parameters. Ensure the `CustomAgent` class is imported into the `World` module.
 
 Testing Your Agent
------------------
+----------------------------
 
 Test your agent in a simulation environment using the NAMO simulator. Create a minimal SVG scenario (see :ref:`Creating an SVG Scenario <creating_svg_scenario>`) with a robot, goal, and obstacles. Run the simulation to verify the agent's navigation behavior. Use `Inkscape <https://inkscape.org/>`_ to create or edit scenario files.
 

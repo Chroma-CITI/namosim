@@ -2,13 +2,13 @@ Installation
 ============
 
 System Requirements
-------------------
+-------------------------------
 
 - Ubuntu 22.04
 - ROS2 Humble
 
 Setup
------
+-------------------------------
 
 First, clone the repository and navigate to its directory.
 
@@ -42,7 +42,7 @@ Standalone (Without ROS2)
 This project can also be used as a standalone Python module independently of ROS. To use it in this manner, skip the ``rosdep install`` step and install only the pip packages.
 
 Dev Container
--------------
+-------------------------------
 
 If you are working on another system such as a different version of Ubuntu, or Windows or MacOS, you can use the provided `dev container <https://code.visualstudio.com/docs/devcontainers/containers>`_ to run and edit this project.
 
