@@ -1,0 +1,557 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creating Custom Agents &mdash; namosim  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Contributing to NAMOSIM" href="contributing.html" />
+    <link rel="prev" title="Creating a YAML Scenario" href="creating_yaml_scenario.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            namosim
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="guides.html">Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="creating_custom_scenarios.html">Creating Custom Scenarios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_svg_scenario.html">Creating an SVG Scenario</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_yaml_scenario.html">Creating a YAML Scenario</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Creating Custom Agents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#defining-the-custom-agent-class">Defining the Custom Agent Class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#implementing-the-init-method">Implementing the <cite>init</cite> Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#implementing-the-think-method">Implementing the <cite>think</cite> Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#implementing-the-copy-method">Implementing the <cite>copy</cite> Method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-model">Configuration Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#integrating-with-scenarios">Integrating with Scenarios</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#testing-your-agent">Testing Your Agent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#additional-considerations">Additional Considerations</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to NAMOSIM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="namosim.html">namosim package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">namosim</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="guides.html">Guides</a></li>
+      <li class="breadcrumb-item active">Creating Custom Agents</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/creating_custom_agents.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="creating-custom-agents">
+<h1>Creating Custom Agents<a class="headerlink" href="#creating-custom-agents" title="Link to this heading"></a></h1>
+<p>This guide explains how to create custom agents for the NAMO planner by extending the <cite>Agent</cite> base class. Agents in NAMO are responsible for navigating and interacting within a simulation environment, using sensors, navigation goals, and path planning. The <cite>NavigationOnlyAgent</cite> class, which focuses solely on navigation tasks, serves as a practical example.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The <cite>Agent</cite> base class, defined in <a class="reference external" href="https://gitlab.inria.fr/chroma/namo/namosim/-/blob/dev/namosim/agents/agent.py?ref_type=heads">namosim/agents/agent.py</a>, provides the core functionality for all agents. To create a custom agent, you must:</p>
+<ol class="arabic simple">
+<li><p>Inherit from the <cite>Agent</cite> class.</p></li>
+<li><p>Implement the abstract <cite>think</cite> method to define the agent’s decision-making logic.</p></li>
+<li><p>Optionally override other methods (e.g., <cite>init</cite>, <cite>sense</cite>) to customize initialization, sensor updates, or other behaviors.</p></li>
+<li><p>Define a configuration model specific to your agent’s behavior.</p></li>
+</ol>
+<p>The <cite>NavigationOnlyAgent</cite> is a simple example that navigates to predefined goals using A* path planning, avoiding obstacles without manipulating them.</p>
+</section>
+<section id="defining-the-custom-agent-class">
+<h2>Defining the Custom Agent Class<a class="headerlink" href="#defining-the-custom-agent-class" title="Link to this heading"></a></h2>
+<p>To create a custom agent, start by defining a new class that inherits from <cite>Agent</cite>. Below is the structure of the <cite>NavigationOnlyAgent</cite> class as an example:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">Example: NavigationOnlyAgent class definition</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">shapely.geometry</span><span class="w"> </span><span class="kn">import</span> <span class="n">Polygon</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">Self</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">namosim.world.world</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">w</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">namosim.agents.agent</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">ThinkResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">namosim.data_models</span><span class="w"> </span><span class="kn">import</span> <span class="n">NavigationOnlyBehaviorConfigModel</span><span class="p">,</span> <span class="n">Pose2D</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">namosim.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">utils</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">NavigationOnlyAgent</span><span class="p">(</span><span class="n">Agent</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">navigation_goals</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">Goal</span><span class="p">],</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">NavigationOnlyBehaviorConfigModel</span><span class="p">,</span>
+        <span class="n">logs_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">uid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">polygon</span><span class="p">:</span> <span class="n">Polygon</span><span class="p">,</span>
+        <span class="n">pose</span><span class="p">:</span> <span class="n">Pose2D</span><span class="p">,</span>
+        <span class="n">sensors</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">OmniscientSensor</span><span class="p">],</span>
+        <span class="n">style</span><span class="p">:</span> <span class="n">AgentStyle</span><span class="p">,</span>
+        <span class="n">logger</span><span class="p">:</span> <span class="n">utils</span><span class="o">.</span><span class="n">NamosimLogger</span><span class="p">,</span>
+        <span class="n">cell_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">Agent</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">,</span>
+            <span class="n">navigation_goals</span><span class="o">=</span><span class="n">navigation_goals</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">,</span>
+            <span class="n">logs_dir</span><span class="o">=</span><span class="n">logs_dir</span><span class="p">,</span>
+            <span class="n">polygon</span><span class="o">=</span><span class="n">polygon</span><span class="p">,</span>
+            <span class="n">pose</span><span class="o">=</span><span class="n">pose</span><span class="p">,</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="n">sensors</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+            <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neighborhood</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">CHESSBOARD_NEIGHBORHOOD</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">robot_max_inflation_radius</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_circumscribed_radius</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">polygon</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>This constructor initializes the agent with parameters such as its unique ID, navigation goals, configuration, and geometry (represented by a <cite>Polygon</cite>). The <cite>config</cite> parameter should be an instance of a custom configuration model (e.g., <cite>NavigationOnlyBehaviorConfigModel</cite>), which defines behavior-specific settings.</p>
+</section>
+<section id="implementing-the-init-method">
+<h2>Implementing the <cite>init</cite> Method<a class="headerlink" href="#implementing-the-init-method" title="Link to this heading"></a></h2>
+<p>The <cite>init</cite> method is called to set up the agent with a reference to the simulation world. In <cite>NavigationOnlyAgent</cite>, it creates an inflated map to account for the robot’s size during path planning:</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Example: init method</span><a class="headerlink" href="#id2" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">world</span><span class="p">:</span> <span class="s2">&quot;w.World&quot;</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">init</span><span class="p">(</span><span class="n">world</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">robot_inflated_static_map</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span>
+        <span class="n">world</span><span class="o">.</span><span class="n">map</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">inflate_map_destructive</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">robot_max_inflation_radius</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>You may override <cite>init</cite> to perform additional setup, such as initializing internal state or precomputing data structures.</p>
+</section>
+<section id="implementing-the-think-method">
+<h2>Implementing the <cite>think</cite> Method<a class="headerlink" href="#implementing-the-think-method" title="Link to this heading"></a></h2>
+<p>The <cite>think</cite> method is the core of the agent’s decision-making process, determining the next action based on the current state. It returns a <cite>ThinkResult</cite> object containing the plan, next action, and other metadata. Below is the <cite>think</cite> method from <cite>NavigationOnlyAgent</cite>:</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">Example: think method</span><a class="headerlink" href="#id3" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">think</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">ros_publisher</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="s2">&quot;rp.RosPublisher&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="nb">input</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">Input</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ThinkResult</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_goal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_navigation_goals</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_goal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_navigation_goals</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_p_opt</span> <span class="o">=</span> <span class="n">nav_plan</span><span class="o">.</span><span class="n">Plan</span><span class="p">(</span><span class="n">agent_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span> <span class="n">goal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ThinkResult</span><span class="p">(</span>
+                <span class="n">plan</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">next_action</span><span class="o">=</span><span class="n">ba</span><span class="o">.</span><span class="n">GoalsFinished</span><span class="p">(),</span>
+                <span class="n">goal_pose</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">did_replan</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">agent_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_p_opt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No plan&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_goal_reached</span><span class="p">(</span>
+        <span class="n">robot_pose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">dynamic_entities</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">]</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span>
+        <span class="n">goal_pose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ThinkResult</span><span class="p">(</span>
+            <span class="n">plan</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">next_action</span><span class="o">=</span><span class="n">ba</span><span class="o">.</span><span class="n">GoalSuccess</span><span class="p">(</span><span class="n">goal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">),</span>
+            <span class="n">goal_pose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span>
+            <span class="n">did_replan</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">agent_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_goal</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_p_opt</span><span class="o">.</span><span class="n">is_empty</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">ThinkResult</span><span class="p">(</span>
+            <span class="n">plan</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_p_opt</span><span class="p">,</span>
+            <span class="n">goal_pose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span>
+            <span class="n">did_replan</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">agent_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_path</span><span class="p">(</span>
+        <span class="n">robot_pose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">dynamic_entities</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">]</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span>
+        <span class="n">goal_pose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span>
+        <span class="n">robot_inflated_grid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">robot_inflated_static_map</span><span class="p">,</span>
+        <span class="n">robot_polygon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">world</span><span class="o">.</span><span class="n">dynamic_entities</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">]</span><span class="o">.</span><span class="n">polygon</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ThinkResult</span><span class="p">(</span>
+            <span class="n">plan</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">next_action</span><span class="o">=</span><span class="n">ba</span><span class="o">.</span><span class="n">GoalFailed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">),</span>
+            <span class="n">goal_pose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span>
+            <span class="n">did_replan</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">agent_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_p_opt</span> <span class="o">=</span> <span class="n">nav_plan</span><span class="o">.</span><span class="n">Plan</span><span class="p">(</span>
+        <span class="n">paths</span><span class="o">=</span><span class="p">[</span><span class="n">path</span><span class="p">],</span> <span class="n">goal</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span> <span class="n">agent_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span>
+    <span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">goal_to_plans</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_p_opt</span>
+
+    <span class="k">return</span> <span class="n">ThinkResult</span><span class="p">(</span>
+        <span class="n">plan</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_p_opt</span><span class="p">,</span>
+        <span class="n">next_action</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">goal_pose</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_goal</span><span class="o">.</span><span class="n">pose</span><span class="p">,</span>
+        <span class="n">did_replan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">agent_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>This method:
+1. Checks if a goal is set; if not, it selects the next goal from the list.
+2. Verifies if the current goal is reached using <cite>is_goal_reached</cite>.
+3. Reuses an existing plan if valid, or computes a new path using <cite>find_path</cite> (A* algorithm).
+4. Returns appropriate <cite>ThinkResult</cite> objects for success, failure, or ongoing navigation.</p>
+<p>For a custom agent, implement <cite>think</cite> to define your agent’s behavior, such as handling movable obstacles, integrating sensor data, or using alternative path-planning algorithms.</p>
+</section>
+<section id="implementing-the-copy-method">
+<h2>Implementing the <cite>copy</cite> Method<a class="headerlink" href="#implementing-the-copy-method" title="Link to this heading"></a></h2>
+<p>The <cite>copy</cite> method creates a deep copy of the agent, ensuring independent instances for simulations. Here’s the implementation from <cite>NavigationOnlyAgent</cite>:</p>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">Example: copy method</span><a class="headerlink" href="#id4" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">NavigationOnlyAgent</span><span class="p">(</span>
+        <span class="n">navigation_goals</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_navigation_goals</span><span class="p">),</span>
+        <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+        <span class="n">logs_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logs_dir</span><span class="p">,</span>
+        <span class="n">uid</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">uid</span><span class="p">,</span>
+        <span class="n">polygon</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">polygon</span><span class="p">),</span>
+        <span class="n">style</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_style</span><span class="p">),</span>
+        <span class="n">pose</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pose</span><span class="p">),</span>
+        <span class="n">sensors</span><span class="o">=</span><span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sensors</span><span class="p">),</span>
+        <span class="n">cell_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cell_size</span><span class="p">,</span>
+        <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Ensure all relevant attributes are copied, especially those that are mutable (e.g., lists, polygons).</p>
+</section>
+<section id="configuration-model">
+<h2>Configuration Model<a class="headerlink" href="#configuration-model" title="Link to this heading"></a></h2>
+<p>Define a configuration model for your agent to specify behavior parameters. For <cite>NavigationOnlyAgent</cite>, the <cite>NavigationOnlyBehaviorConfigModel</cite> is used, defined in <a class="reference external" href="https://github.com/Chroma-CITI/namosim/blob/humble/namosim/data_models.py?ref_type=heads">namosim/data_models.py</a>. Create a similar model using Pydantic or a similar library to validate and manage settings.</p>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">Example: Configuration model (conceptual)</span><a class="headerlink" href="#id5" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">CustomAgentConfigModel</span><span class="p">(</span><span class="n">BaseBehaviorConfigModel</span><span class="p">):</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;custom_behavior&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;custom_behavior&quot;</span>
+    <span class="n">max_speed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">rotation_speed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="c1"># Add other parameters as needed</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="integrating-with-scenarios">
+<h2>Integrating with Scenarios<a class="headerlink" href="#integrating-with-scenarios" title="Link to this heading"></a></h2>
+<p>To use your custom agent in a NAMO scenario, configure it in the <cite>&lt;namo_config&gt;</cite> element for SVG scenarios or the NAMO config YAML file for ROS map scenarios. Additionally, update the <cite>World</cite> class methods <cite>construct_agent_from_xml()</cite> and <cite>construct_agent_from_yaml()</cite> to support your custom agent.</p>
+<p><strong>SVG Scenario Configuration</strong></p>
+<p>In an SVG scenario, the <cite>&lt;namo_config&gt;</cite> element, defined by <cite>NamoConfigModel</cite>, specifies agents and their behaviors. Include your custom agent by setting the <cite>type</cite> attribute in the <cite>behavior</cite> element to match your behavior configuration (e.g., <cite>custom_behavior</cite>). Below is an example:</p>
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">Example: namo_config for CustomAgent in SVG scenario</span><a class="headerlink" href="#id6" title="Link to this code"></a></div>
+<div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;namo_config</span><span class="w"> </span><span class="na">cell_size_cm=</span><span class="s">&quot;10&quot;</span><span class="w"> </span><span class="na">random_seed=</span><span class="s">&quot;10&quot;</span><span class="w"> </span><span class="na">generate_report=</span><span class="s">&quot;true&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;agent</span><span class="w"> </span><span class="na">agent_id=</span><span class="s">&quot;robot_0&quot;</span><span class="nt">&gt;</span>
+<span class="w">        </span><span class="nt">&lt;goal</span><span class="w"> </span><span class="na">goal_id=</span><span class="s">&quot;goal_0&quot;</span><span class="nt">/&gt;</span>
+<span class="w">        </span><span class="nt">&lt;behavior</span><span class="w"> </span><span class="na">type=</span><span class="s">&quot;custom_behavior&quot;</span><span class="nt">/&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/agent&gt;</span>
+<span class="nt">&lt;/namo_config&gt;</span>
+</pre></div>
+</div>
+</div>
+<p>Ensure the <cite>agent_id</cite> matches the <cite>id</cite> of an <cite>&lt;svg:path&gt;</cite> element in the SVG file, and the <cite>goal_id</cite> corresponds to a goal path. The <cite>behavior</cite> element’s <cite>type</cite> attribute must match the <cite>type</cite> defined in your custom behavior configuration model (e.g., <cite>CustomAgentConfigModel</cite>).</p>
+<p><strong>Updating construct_agent_from_xml</strong></p>
+<p>The <cite>World.construct_agent_from_xml()</cite> method instantiates agents based on the behavior type specified in the XML configuration. To support your custom agent, add a condition to check for your behavior type and instantiate your <cite>CustomAgent</cite> class. Below is an example of how to update this method:</p>
+<div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">Example: Updating construct_agent_from_xml for CustomAgent</span><a class="headerlink" href="#id7" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">construct_agent_from_xml_model</span><span class="p">(</span>
+    <span class="bp">cls</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">agent_config</span><span class="p">:</span> <span class="n">AgentConfigXmlModel</span><span class="p">,</span>
+    <span class="n">goals</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">Goal</span><span class="p">],</span>
+    <span class="n">logs_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">robot_polygon</span><span class="p">:</span> <span class="n">Polygon</span><span class="p">,</span>
+    <span class="n">agent_style</span><span class="p">:</span> <span class="n">AgentStyle</span><span class="p">,</span>
+    <span class="n">init_pose</span><span class="p">:</span> <span class="n">Pose2D</span><span class="p">,</span>
+    <span class="n">cell_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">collision_margin</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">logger</span><span class="p">:</span> <span class="n">utils</span><span class="o">.</span><span class="n">NamosimLogger</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">agts</span><span class="o">.</span><span class="n">Agent</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;stilman_2005_behavior&quot;</span><span class="p">:</span>
+        <span class="n">new_robot</span> <span class="o">=</span> <span class="n">agts</span><span class="o">.</span><span class="n">Stilman2005Agent</span><span class="p">(</span>
+            <span class="n">navigation_goals</span><span class="o">=</span><span class="n">goals</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="p">,</span>
+            <span class="n">logs_dir</span><span class="o">=</span><span class="n">logs_dir</span><span class="p">,</span>
+            <span class="n">uid</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
+            <span class="n">polygon</span><span class="o">=</span><span class="n">robot_polygon</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">agent_style</span><span class="p">,</span>
+            <span class="n">pose</span><span class="o">=</span><span class="n">init_pose</span><span class="p">,</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="p">[</span><span class="n">OmniscientSensor</span><span class="p">()],</span>
+            <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size</span><span class="p">,</span>
+            <span class="n">collision_margin</span><span class="o">=</span><span class="n">collision_margin</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;stilman_rrt_star_behavior&quot;</span><span class="p">:</span>
+        <span class="n">new_robot</span> <span class="o">=</span> <span class="n">agts</span><span class="o">.</span><span class="n">StilmanRRTStarAgent</span><span class="p">(</span>
+            <span class="n">navigation_goals</span><span class="o">=</span><span class="n">goals</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="p">,</span>
+            <span class="n">logs_dir</span><span class="o">=</span><span class="n">logs_dir</span><span class="p">,</span>
+            <span class="n">uid</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
+            <span class="n">polygon</span><span class="o">=</span><span class="n">robot_polygon</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">agent_style</span><span class="p">,</span>
+            <span class="n">pose</span><span class="o">=</span><span class="n">init_pose</span><span class="p">,</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="p">[</span><span class="n">OmniscientSensor</span><span class="p">()],</span>
+            <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size</span><span class="p">,</span>
+            <span class="n">collision_margin</span><span class="o">=</span><span class="n">collision_margin</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;navigation_only_behavior&quot;</span><span class="p">:</span>
+        <span class="n">new_robot</span> <span class="o">=</span> <span class="n">agts</span><span class="o">.</span><span class="n">NavigationOnlyAgent</span><span class="p">(</span>
+            <span class="n">navigation_goals</span><span class="o">=</span><span class="n">goals</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="p">,</span>
+            <span class="n">logs_dir</span><span class="o">=</span><span class="n">logs_dir</span><span class="p">,</span>
+            <span class="n">uid</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
+            <span class="n">polygon</span><span class="o">=</span><span class="n">robot_polygon</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">agent_style</span><span class="p">,</span>
+            <span class="n">pose</span><span class="o">=</span><span class="n">init_pose</span><span class="p">,</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="p">[</span><span class="n">OmniscientSensor</span><span class="p">()],</span>
+            <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;rrt&quot;</span><span class="p">:</span>
+        <span class="n">new_robot</span> <span class="o">=</span> <span class="n">agts</span><span class="o">.</span><span class="n">RRTAgent</span><span class="p">(</span>
+            <span class="n">navigation_goals</span><span class="o">=</span><span class="n">goals</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="p">,</span>
+            <span class="n">logs_dir</span><span class="o">=</span><span class="n">logs_dir</span><span class="p">,</span>
+            <span class="n">uid</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
+            <span class="n">polygon</span><span class="o">=</span><span class="n">robot_polygon</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">agent_style</span><span class="p">,</span>
+            <span class="n">pose</span><span class="o">=</span><span class="n">init_pose</span><span class="p">,</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="p">[</span><span class="n">OmniscientSensor</span><span class="p">()],</span>
+            <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;teleop_behavior&quot;</span><span class="p">:</span>
+        <span class="n">new_robot</span> <span class="o">=</span> <span class="n">agts</span><span class="o">.</span><span class="n">TeleopAgent</span><span class="p">(</span>
+            <span class="n">navigation_goals</span><span class="o">=</span><span class="n">goals</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="p">,</span>
+            <span class="n">logs_dir</span><span class="o">=</span><span class="n">logs_dir</span><span class="p">,</span>
+            <span class="n">uid</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
+            <span class="n">polygon</span><span class="o">=</span><span class="n">robot_polygon</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">agent_style</span><span class="p">,</span>
+            <span class="n">pose</span><span class="o">=</span><span class="n">init_pose</span><span class="p">,</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="p">[</span><span class="n">OmniscientSensor</span><span class="p">()],</span>
+            <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;custom_behavior&quot;</span><span class="p">:</span>
+        <span class="n">new_robot</span> <span class="o">=</span> <span class="n">agts</span><span class="o">.</span><span class="n">CustomAgent</span><span class="p">(</span>
+            <span class="n">navigation_goals</span><span class="o">=</span><span class="n">goals</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="p">,</span>
+            <span class="n">logs_dir</span><span class="o">=</span><span class="n">logs_dir</span><span class="p">,</span>
+            <span class="n">uid</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span>
+            <span class="n">polygon</span><span class="o">=</span><span class="n">robot_polygon</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">agent_style</span><span class="p">,</span>
+            <span class="n">pose</span><span class="o">=</span><span class="n">init_pose</span><span class="p">,</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="p">[</span><span class="n">OmniscientSensor</span><span class="p">()],</span>
+            <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;You tried to associate entity &#39;</span><span class="si">{agent_name}</span><span class="s2">&#39; with a behavior named&quot;</span>
+            <span class="s2">&quot;&#39;</span><span class="si">{b_name}</span><span class="s2">&#39; that is not implemented yet.&quot;</span>
+            <span class="s2">&quot;Maybe you mispelled something ?&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">agent_id</span><span class="p">,</span> <span class="n">b_name</span><span class="o">=</span><span class="n">agent_config</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">new_robot</span>
+</pre></div>
+</div>
+</div>
+<p>Add an <cite>elif</cite> clause for your custom agent’s behavior type (e.g., <cite>custom_behavior</cite>) and instantiate your <cite>CustomAgent</cite> class with the appropriate parameters. Ensure the <cite>CustomAgent</cite> class is imported into the <cite>World</cite> module (e.g., <cite>import namosim.agents as agts</cite>).</p>
+<p><strong>ROS Map Scenario Configuration</strong></p>
+<p>For ROS map scenarios, the NAMO config YAML file, defined by <cite>NamoConfigYamlModel</cite>, links the SVG geometry to the ROS map and configures agents. Below is an example:</p>
+<div class="literal-block-wrapper docutils container" id="id8">
+<div class="code-block-caption"><span class="caption-text">Example: NAMO config YAML for CustomAgent</span><a class="headerlink" href="#id8" title="Link to this code"></a></div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">map_yaml</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;map.yaml&quot;</span>
+<span class="nt">svg_file</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;scenario.svg&quot;</span>
+<span class="nt">collision_margin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.1</span>
+<span class="nt">agents</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">robot_0</span>
+<span class="w">    </span><span class="nt">initial_pose</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">1.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">1.0</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">90</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">radius</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
+<span class="w">    </span><span class="nt">push_only</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">    </span><span class="nt">behavior</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">custom_behavior</span>
+</pre></div>
+</div>
+</div>
+<p>The <cite>id</cite> must match an <cite>&lt;svg:path&gt;</cite> in the SVG file’s <cite>robots_layer</cite>, and the <cite>initial_pose</cite> defines the starting position and orientation in meters and degrees. The <cite>radius</cite> specifies the agent’s size, and <cite>push_only</cite> is specific to manipulation behaviors (set to <cite>false</cite> for navigation-only agents). The <cite>behavior</cite> field must match the <cite>type</cite> defined in your custom behavior configuration model. Goals are defined in the SVG file’s <cite>goals_layer</cite>.</p>
+<p><strong>Updating construct_agent_from_yaml</strong></p>
+<p>The <cite>World.construct_agent_from_yaml_model()</cite> method instantiates agents based on the behavior type specified in the YAML configuration. To support your custom agent, add a condition to check for your behavior type and instantiate your <cite>CustomAgent</cite> class. Below is an example of how to update this method:</p>
+<div class="literal-block-wrapper docutils container" id="id9">
+<div class="code-block-caption"><span class="caption-text">Example: Updating construct_agent_from_yaml_model for CustomAgent</span><a class="headerlink" href="#id9" title="Link to this code"></a></div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@classmethod</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">construct_agent_from_yaml_model</span><span class="p">(</span>
+    <span class="bp">cls</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">agent</span><span class="p">:</span> <span class="n">AgentConfigYamlModel</span><span class="p">,</span>
+    <span class="n">goals</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">Goal</span><span class="p">],</span>
+    <span class="n">logs_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">robot_polygon</span><span class="p">:</span> <span class="n">Polygon</span><span class="p">,</span>
+    <span class="n">agent_style</span><span class="p">:</span> <span class="n">AgentStyle</span><span class="p">,</span>
+    <span class="n">init_pose</span><span class="p">:</span> <span class="n">Pose2D</span><span class="p">,</span>
+    <span class="n">cell_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">collision_margin</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">logger</span><span class="p">:</span> <span class="n">utils</span><span class="o">.</span><span class="n">NamosimLogger</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">agts</span><span class="o">.</span><span class="n">Agent</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">agent</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;stilman_2005_behavior&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">agts</span><span class="o">.</span><span class="n">Stilman2005Agent</span><span class="p">(</span>
+            <span class="n">navigation_goals</span><span class="o">=</span><span class="n">goals</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">agent</span><span class="o">.</span><span class="n">behavior</span><span class="p">,</span>
+            <span class="n">logs_dir</span><span class="o">=</span><span class="n">logs_dir</span><span class="p">,</span>
+            <span class="n">uid</span><span class="o">=</span><span class="n">agent</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">polygon</span><span class="o">=</span><span class="n">robot_polygon</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">agent_style</span><span class="p">,</span>
+            <span class="n">pose</span><span class="o">=</span><span class="n">init_pose</span><span class="p">,</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="p">[</span><span class="n">OmniscientSensor</span><span class="p">()],</span>
+            <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size</span><span class="p">,</span>
+            <span class="n">collision_margin</span><span class="o">=</span><span class="n">collision_margin</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">agent</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s2">&quot;custom_behavior&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">agts</span><span class="o">.</span><span class="n">CustomAgent</span><span class="p">(</span>
+            <span class="n">navigation_goals</span><span class="o">=</span><span class="n">goals</span><span class="p">,</span>
+            <span class="n">config</span><span class="o">=</span><span class="n">agent</span><span class="o">.</span><span class="n">behavior</span><span class="p">,</span>
+            <span class="n">logs_dir</span><span class="o">=</span><span class="n">logs_dir</span><span class="p">,</span>
+            <span class="n">uid</span><span class="o">=</span><span class="n">agent</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="n">polygon</span><span class="o">=</span><span class="n">robot_polygon</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">agent_style</span><span class="p">,</span>
+            <span class="n">pose</span><span class="o">=</span><span class="n">init_pose</span><span class="p">,</span>
+            <span class="n">sensors</span><span class="o">=</span><span class="p">[</span><span class="n">OmniscientSensor</span><span class="p">()],</span>
+            <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size</span><span class="p">,</span>
+            <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;You tried to associate entity &#39;</span><span class="si">{agent_name}</span><span class="s2">&#39; with a behavior named&quot;</span>
+            <span class="s2">&quot;&#39;</span><span class="si">{b_name}</span><span class="s2">&#39; that is not implemented yet.&quot;</span>
+            <span class="s2">&quot;Maybe you mispelled something ?&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">agent_name</span><span class="o">=</span><span class="n">agent</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">b_name</span><span class="o">=</span><span class="n">agent</span><span class="o">.</span><span class="n">behavior</span><span class="o">.</span><span class="n">type</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>Add an <cite>elif</cite> clause for your custom agent’s behavior type (e.g., <cite>custom_behavior</cite>) and instantiate your <cite>CustomAgent</cite> class with the appropriate parameters. Ensure the <cite>CustomAgent</cite> class is imported into the <cite>World</cite> module.</p>
+</section>
+<section id="testing-your-agent">
+<h2>Testing Your Agent<a class="headerlink" href="#testing-your-agent" title="Link to this heading"></a></h2>
+<p>Test your agent in a simulation environment using the NAMO simulator. Create a minimal SVG scenario (see <a class="reference internal" href="creating_svg_scenario.html#creating-svg-scenario"><span class="std std-ref">Creating an SVG Scenario</span></a>) with a robot, goal, and obstacles. Run the simulation to verify the agent’s navigation behavior. Use <a class="reference external" href="https://inkscape.org/">Inkscape</a> to create or edit scenario files.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Ensure your agent’s <cite>find_path</cite> method (if overridden) handles the <cite>BinaryOccupancyGrid</cite> correctly, as it uses a grid-based representation of the environment.</p>
+</div>
+<p>For advanced debugging, enable logging via the <cite>NamosimLogger</cite> passed to the agent, and inspect the logs in the specified <cite>logs_dir</cite>.</p>
+</section>
+<section id="additional-considerations">
+<h2>Additional Considerations<a class="headerlink" href="#additional-considerations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Sensors</strong>: The <cite>NavigationOnlyAgent</cite> uses an <cite>OmniscientSensor</cite> for simplicity. For realistic scenarios, implement custom sensors in <cite>namosim/world/sensors/</cite> to simulate limited fields of view or noisy data.</p></li>
+<li><p><strong>Path Planning</strong>: The example uses A* (<cite>graph_search.real_to_grid_search_a_star</cite>). You can implement alternative algorithms like RRT or potential fields by overriding <cite>find_path</cite>.</p></li>
+<li><p><strong>Movability</strong>: To handle movable objects, extend the <cite>think</cite> method to detect and manipulate objects of type <cite>Movability.MOVABLE</cite>, using actions like <cite>Push</cite> or <cite>Pull</cite> from <cite>namosim.navigation.basic_actions</cite>.</p></li>
+<li><p><strong>Thread Safety</strong>: Ensure thread-safe operations if your agent interacts with ROS publishers or external systems.</p></li>
+</ul>
+<p>Refer to the NAMO source code, particularly <cite>namosim/agents/agent.py</cite> and <cite>namosim/data_models.py</cite>, for detailed specifications and additional methods.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="creating_yaml_scenario.html" class="btn btn-neutral float-left" title="Creating a YAML Scenario" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="contributing.html" class="btn btn-neutral float-right" title="Contributing to NAMOSIM" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Benoit Renault, David Brown.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

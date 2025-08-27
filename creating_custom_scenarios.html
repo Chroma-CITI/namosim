@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Testing &mdash; namosim  documentation</title>
+  <title>Creating Custom Scenarios &mdash; namosim  documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -22,8 +22,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Guides" href="guides.html" />
-    <link rel="prev" title="Usage" href="usage.html" /> 
+    <link rel="next" title="Creating an SVG Scenario" href="creating_svg_scenario.html" />
+    <link rel="prev" title="Guides" href="guides.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -49,15 +49,14 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Testing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#unit-tests">Unit Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#end-to-end-tests">End-to-end Tests</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#type-checking">Type Checking</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#formatting">Formatting</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#test-end-to-end-scenarios">Test End-to-end Scenarios</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="guides.html">Guides</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Creating Custom Scenarios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_svg_scenario.html">Creating an SVG Scenario</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_yaml_scenario.html">Creating a YAML Scenario</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_custom_agents.html">Creating Custom Agents</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="guides.html">Guides</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to NAMOSIM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="namosim.html">namosim package</a></li>
 </ul>
@@ -76,9 +75,10 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Testing</li>
+          <li class="breadcrumb-item"><a href="guides.html">Guides</a></li>
+      <li class="breadcrumb-item active">Creating Custom Scenarios</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/testing.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/creating_custom_scenarios.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -86,52 +86,23 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="testing">
-<h1>Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h1>
-<section id="unit-tests">
-<h2>Unit Tests<a class="headerlink" href="#unit-tests" title="Link to this heading"></a></h2>
-<p>Run unit tests with:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./scripts/test_unit.sh
-</pre></div>
-</div>
-</section>
-<section id="end-to-end-tests">
-<h2>End-to-end Tests<a class="headerlink" href="#end-to-end-tests" title="Link to this heading"></a></h2>
-<p>Run end-to-end tests with:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./scripts/test_e2e.sh
-</pre></div>
-</div>
-</section>
-<section id="type-checking">
-<h2>Type Checking<a class="headerlink" href="#type-checking" title="Link to this heading"></a></h2>
-<p>Perform type checking with:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./scripts/test_types.sh
-</pre></div>
-</div>
-</section>
-<section id="formatting">
-<h2>Formatting<a class="headerlink" href="#formatting" title="Link to this heading"></a></h2>
-<p>Apply code formatting with:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./scripts/format.sh
-</pre></div>
-</div>
-</section>
-<section id="test-end-to-end-scenarios">
-<h2>Test End-to-end Scenarios<a class="headerlink" href="#test-end-to-end-scenarios" title="Link to this heading"></a></h2>
-<p>The best way to experiment with different scenarios and parameters is to open the repository in VSCode and use the Python Test Explorer to run the <code class="docutils literal notranslate"><span class="pre">e2e</span></code> tests.</p>
-<p>Alternatively, you can launch a specific test from the command line like so:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d
-</pre></div>
-</div>
-</section>
+  <section id="creating-custom-scenarios">
+<h1>Creating Custom Scenarios<a class="headerlink" href="#creating-custom-scenarios" title="Link to this heading"></a></h1>
+<p>The NAMO planner supports loading scenarios in one of two ways:</p>
+<ol class="arabic simple">
+<li><p>From an SVG file</p></li>
+<li><p>From a ROS map</p></li>
+</ol>
+<p>The first method is best when executing purely in simulation, while the second is intended for usage with
+real robots.</p>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="guides.html" class="btn btn-neutral float-right" title="Guides" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="guides.html" class="btn btn-neutral float-left" title="Guides" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="creating_svg_scenario.html" class="btn btn-neutral float-right" title="Creating an SVG Scenario" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -50,6 +50,7 @@
 <li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="testing.html">Testing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="guides.html">Guides</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to NAMOSIM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="namosim.html">namosim package</a></li>
 </ul>
 
@@ -86,28 +87,45 @@
 It computes plans for robots navigating in a 2D polygonal environment in which certain
 obstacles may be grasped and moved. This problem is pertinent for real-world robotics applications such as indoor, social environments
 where robots may need to move or manipulate objects in order to navigate and complete their tasks.</p>
+</section>
 <section id="cite-us">
-<h2>Cite Us<a class="headerlink" href="#cite-us" title="Link to this heading"></a></h2>
-<p>If you use NAMO in any capacity for your research, please do cite the associated paper:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@inproceedings</span><span class="p">{</span><span class="n">renault</span><span class="p">:</span><span class="n">hal</span><span class="o">-</span><span class="mi">02912925</span><span class="p">,</span>
-  <span class="n">TITLE</span> <span class="o">=</span> <span class="p">{{</span><span class="n">Modeling</span> <span class="n">a</span> <span class="n">Social</span> <span class="n">Placement</span> <span class="n">Cost</span> <span class="n">to</span> <span class="n">Extend</span> <span class="n">Navigation</span> <span class="n">Among</span> <span class="n">Movable</span> <span class="n">Obstacles</span> <span class="p">(</span><span class="n">NAMO</span><span class="p">)</span> <span class="n">Algorithms</span><span class="p">}},</span>
-  <span class="n">AUTHOR</span> <span class="o">=</span> <span class="p">{</span><span class="n">Renault</span><span class="p">,</span> <span class="n">Benoit</span> <span class="ow">and</span> <span class="n">Saraydaryan</span><span class="p">,</span> <span class="n">Jacques</span> <span class="ow">and</span> <span class="n">Simonin</span><span class="p">,</span> <span class="n">Olivier</span><span class="p">},</span>
-  <span class="n">URL</span> <span class="o">=</span> <span class="p">{</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">hal</span><span class="o">.</span><span class="n">archives</span><span class="o">-</span><span class="n">ouvertes</span><span class="o">.</span><span class="n">fr</span><span class="o">/</span><span class="n">hal</span><span class="o">-</span><span class="mi">02912925</span><span class="p">},</span>
-  <span class="n">BOOKTITLE</span> <span class="o">=</span> <span class="p">{{</span><span class="n">IROS</span> <span class="mi">2020</span> <span class="o">-</span> <span class="n">IEEE</span><span class="o">/</span><span class="n">RSJ</span> <span class="n">International</span> <span class="n">Conference</span> <span class="n">on</span> <span class="n">Intelligent</span> <span class="n">Robots</span> <span class="ow">and</span> <span class="n">Systems</span><span class="p">}},</span>
-  <span class="n">ADDRESS</span> <span class="o">=</span> <span class="p">{</span><span class="n">Las</span> <span class="n">Vegas</span><span class="p">,</span> <span class="n">United</span> <span class="n">States</span><span class="p">},</span>
-  <span class="n">SERIES</span> <span class="o">=</span> <span class="p">{</span><span class="mi">2020</span> <span class="n">IEEE</span><span class="o">/</span><span class="n">RSJ</span> <span class="n">International</span> <span class="n">Conference</span> <span class="n">on</span> <span class="n">Intelligent</span> <span class="n">Robots</span> <span class="ow">and</span> <span class="n">Systems</span> <span class="p">(</span><span class="n">IROS</span><span class="p">)</span> <span class="n">Conference</span> <span class="n">Proceedings</span><span class="p">},</span>
-  <span class="n">PAGES</span> <span class="o">=</span> <span class="p">{</span><span class="mi">11345</span><span class="o">-</span><span class="mi">11351</span><span class="p">},</span>
-  <span class="n">YEAR</span> <span class="o">=</span> <span class="p">{</span><span class="mi">2020</span><span class="p">},</span>
-  <span class="n">MONTH</span> <span class="o">=</span> <span class="n">Oct</span><span class="p">,</span>
-  <span class="n">DOI</span> <span class="o">=</span> <span class="p">{</span><span class="mf">10.1109</span><span class="o">/</span><span class="n">IROS45743</span><span class="mf">.2020.9340892</span><span class="p">},</span>
-  <span class="n">KEYWORDS</span> <span class="o">=</span> <span class="p">{</span><span class="n">Navigation</span> <span class="n">Among</span> <span class="n">Movable</span> <span class="n">Obstacles</span> <span class="p">(</span><span class="n">NAMO</span><span class="p">)</span> <span class="p">;</span> <span class="n">Socially</span><span class="o">-</span> <span class="n">Aware</span> <span class="n">Navigation</span> <span class="p">(</span><span class="n">SAN</span><span class="p">)</span> <span class="p">;</span> <span class="n">Path</span> <span class="n">planning</span> <span class="p">;</span> <span class="n">Simulation</span><span class="p">},</span>
-  <span class="n">PDF</span> <span class="o">=</span> <span class="p">{</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">hal</span><span class="o">.</span><span class="n">archives</span><span class="o">-</span><span class="n">ouvertes</span><span class="o">.</span><span class="n">fr</span><span class="o">/</span><span class="n">hal</span><span class="o">-</span><span class="mi">02912925</span><span class="o">/</span><span class="n">file</span><span class="o">/</span><span class="n">IROS_2020_Camera_Ready</span><span class="o">.</span><span class="n">pdf</span><span class="p">},</span>
-  <span class="n">HAL_ID</span> <span class="o">=</span> <span class="p">{</span><span class="n">hal</span><span class="o">-</span><span class="mi">02912925</span><span class="p">},</span>
-  <span class="n">HAL_VERSION</span> <span class="o">=</span> <span class="p">{</span><span class="n">v1</span><span class="p">},</span>
+<h1>Cite Us<a class="headerlink" href="#cite-us" title="Link to this heading"></a></h1>
+<p>If you reuse any part of this project in your research, please cite the associated papers:</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">renault:hal-04705395</span><span class="p">,</span>
+<span class="w">  </span><span class="na">TITLE</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{{Multi-Robot Navigation among Movable Obstacles: Implicit Coordination to Deal with Conflicts and Deadlocks}}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">AUTHOR</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Renault, Benoit and Saraydaryan, Jacques and Brown, David and Simonin, Olivier}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">URL</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{https://hal.science/hal-04705395}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">BOOKTITLE</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{{IROS 2024 - IEEE/RSJ International Conference on Intelligent Robots and Systems}}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">ADDRESS</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Abu DHABI, United Arab Emirates}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">PUBLISHER</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{{IEEE}}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">PAGES</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{1-7}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">YEAR</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{2024}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">MONTH</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nv">Oct</span><span class="p">,</span>
+<span class="w">  </span><span class="na">KEYWORDS</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Planning ; Scheduling and Coordination ; Path Planning for Multiple Mobile Robots or Agents ; Multi-Robot Systems}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">PDF</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{https://hal.science/hal-04705395v1/file/IROS24_1134_FI.pdf}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">HAL_ID</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{hal-04705395}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">HAL_VERSION</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{v1}</span><span class="p">,</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>Check out our IROS24 Paper at <a class="reference external" href="https://hal.science/hal-04705395">https://hal.science/hal-04705395</a>.</p>
+<div class="highlight-bibtex notranslate"><div class="highlight"><pre><span></span><span class="nc">@inproceedings</span><span class="p">{</span><span class="nl">renault:hal-02912925</span><span class="p">,</span>
+<span class="w">  </span><span class="na">TITLE</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{{Modeling a Social Placement Cost to Extend Navigation Among Movable Obstacles (NAMO) Algorithms}}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">AUTHOR</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Renault, Benoit and Saraydaryan, Jacques and Simonin, Olivier}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">URL</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{https://hal.archives-ouvertes.fr/hal-02912925}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">BOOKTITLE</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{{IROS 2020 - IEEE/RSJ International Conference on Intelligent Robots and Systems}}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">ADDRESS</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Las Vegas, United States}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">SERIES</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{2020 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) Conference Proceedings}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">PAGES</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{11345-11351}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">YEAR</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{2020}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">MONTH</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nv">Oct</span><span class="p">,</span>
+<span class="w">  </span><span class="na">DOI</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{10.1109/IROS45743.2020.9340892}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">KEYWORDS</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{Navigation Among Movable Obstacles (NAMO) ; Socially- Aware Navigation (SAN) ; Path planning ; Simulation}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">PDF</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{https://hal.archives-ouvertes.fr/hal-02912925/file/IROS_2020_Camera_Ready.pdf}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">HAL_ID</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{hal-02912925}</span><span class="p">,</span>
+<span class="w">  </span><span class="na">HAL_VERSION</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">{v1}</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
@@ -132,9 +150,18 @@ where robots may need to move or manipulate objects in order to navigate and com
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="guides.html">Guides</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="guides.html#creating-custom-scenarios">Creating Custom Scenarios</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides.html#creating-an-svg-scenario">Creating an SVG Scenario</a></li>
-<li class="toctree-l2"><a class="reference internal" href="guides.html#creating-a-ros-map-scenario">Creating a ROS MAP Scenario</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_custom_scenarios.html">Creating Custom Scenarios</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_svg_scenario.html">Creating an SVG Scenario</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_yaml_scenario.html">Creating a YAML Scenario</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_custom_agents.html">Creating Custom Agents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to NAMOSIM</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#how-to-contribute">How to Contribute</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#testing-requirements">Testing Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#code-review-process">Code Review Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#reporting-issues">Reporting Issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#community-guidelines">Community Guidelines</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="namosim.html">namosim package</a><ul>
@@ -155,7 +182,6 @@ where robots may need to move or manipulate objects in order to navigate and com
 </li>
 </ul>
 </div>
-</section>
 </section>
 <section id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>

@@ -1,0 +1,319 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contributing to NAMOSIM &mdash; namosim  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="namosim package" href="namosim.html" />
+    <link rel="prev" title="Creating Custom Agents" href="creating_custom_agents.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            namosim
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guides.html">Guides</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing to NAMOSIM</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-contribute">How to Contribute</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#testing-requirements">Testing Requirements</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#code-review-process">Code Review Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reporting-issues">Reporting Issues</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#community-guidelines">Community Guidelines</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="namosim.html">namosim package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">namosim</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Contributing to NAMOSIM</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/contributing.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="contributing-to-namosim">
+<h1>Contributing to NAMOSIM<a class="headerlink" href="#contributing-to-namosim" title="Link to this heading"></a></h1>
+<p>Thank you for your interest in contributing to NAMOSIM! We welcome contributions from the community to improve the project, whether through code, documentation, bug reports, or feature suggestions. This page outlines the guidelines for contributing, with a specific focus on testing requirements and methods to ensure the quality and reliability of the NAMOSIM codebase.</p>
+<section id="how-to-contribute">
+<h2>How to Contribute<a class="headerlink" href="#how-to-contribute" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Fork the Repository</strong>: Start by forking the NAMOSIM repository on GitHub to your own account.</p></li>
+<li><p><strong>Clone the Fork</strong>: Clone your forked repository to your local machine.</p></li>
+<li><p><strong>Create a Branch</strong>: Create a new branch for your changes (e.g., <cite>feature/new-planner</cite> or <cite>bugfix/issue-123</cite>).</p></li>
+<li><p><strong>Make Changes</strong>: Implement your changes, ensuring they align with the project’s coding standards (see below).</p></li>
+<li><p><strong>Test Your Changes</strong>: Run the test suite and add new tests as needed (see Testing Requirements below).</p></li>
+<li><p><strong>Submit a Pull Request</strong>: Push your changes to your fork and submit a pull request to the main NAMOSIM repository. Include a clear description of your changes and reference any related issues.</p></li>
+</ol>
+<p>Please ensure your contributions adhere to the following guidelines:</p>
+<ul class="simple">
+<li><p>Follow the existing code style (PEP 8 for Python code).</p></li>
+<li><p>Write clear, concise commit messages.</p></li>
+<li><p>Update documentation if your changes affect usage or functionality.</p></li>
+<li><p>Ensure all tests pass before submitting a pull request.</p></li>
+</ul>
+</section>
+<section id="testing-requirements">
+<h2>Testing Requirements<a class="headerlink" href="#testing-requirements" title="Link to this heading"></a></h2>
+<p>To maintain the reliability and correctness of NAMOSIM, all code contributions must include appropriate tests. Testing ensures that new features or bug fixes do not introduce regressions and that the planner behaves as expected in various scenarios. NAMOSIM is built and tested in a ROS Humble environment using <cite>colcon</cite> and custom test scripts.</p>
+<p>### Testing Environment
+NAMOSIM uses the <cite>osrf/ros:humble-desktop-full</cite> Docker container for its CI pipeline, which includes ROS Humble and dependencies. To replicate this environment locally:</p>
+<ul>
+<li><p><strong>Use ROS Humble</strong>: Ensure you have ROS Humble installed. Refer to <cite>installation.rst</cite> for setup instructions.</p></li>
+<li><p><strong>Install Dependencies</strong>: Install required system packages and Python dependencies:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>sudo apt-get update
+sudo apt-get install -y swig curl python3-pip ros-humble-grid-map-msgs
+rosdep install –from-paths . -r -y
+pip install -r requirements.txt</p>
+</div></blockquote>
+</li>
+<li><p><strong>Set Up ROS Environment</strong>: Source the ROS Humble setup script before building or testing:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>source /opt/ros/humble/setup.bash</p>
+</div></blockquote>
+</li>
+</ul>
+<p>### Types of Tests
+NAMOSIM uses a combination of the following tests to validate functionality:</p>
+<ul class="simple">
+<li><p><strong>Linting/Formatting</strong>: Ensures code adheres to style guidelines (e.g., PEP 8) using tools like <cite>flake8</cite> or <cite>black</cite>.</p></li>
+<li><p><strong>Type Checking</strong>: Verifies type correctness in Python code using static type checkers like <cite>mypy</cite>.</p></li>
+<li><p><strong>Unit Tests</strong>: Test individual components (e.g., path planning algorithms, obstacle manipulation logic) in isolation. These should cover edge cases and common use cases.</p></li>
+<li><p><strong>End-to-End Tests</strong>: Verify the entire system, from environment setup to path planning and obstacle manipulation, in realistic scenarios.</p></li>
+</ul>
+<p>### Testing Framework
+NAMOSIM uses <cite>colcon</cite> for building and testing, with tests executed via custom scripts (<cite>scripts/test_unit.sh</cite>, <cite>scripts/test_e2e.sh</cite>, <cite>scripts/test_types.sh</cite>). Tests are organized in the <cite>tests/</cite> directory and should be compatible with the ROS Humble environment.</p>
+<p>### Writing Tests
+When adding new functionality or fixing bugs, include corresponding tests in the <cite>tests/</cite> directory. Follow these guidelines:</p>
+<ul class="simple">
+<li><p><strong>Test Structure</strong>: Place tests in the <cite>tests/</cite> directory, organized by module (e.g., <cite>tests/test_planner.py</cite> for unit tests, <cite>tests/e2e/e2e_test.py</cite> for end-to-end tests).</p></li>
+<li><p><strong>Test Naming</strong>: Use descriptive names for test functions, prefixed with <cite>test_</cite> (e.g., <cite>test_path_planner_handles_collisions</cite>).</p></li>
+<li><p><strong>Coverage</strong>: Aim for high test coverage, especially for critical components like path planning and obstacle manipulation. Use <cite>colcon test</cite> to verify functionality.</p></li>
+<li><p><strong>Edge Cases</strong>: Include tests for edge cases, such as empty environments, fully blocked paths, or maximum obstacle weight limits.</p></li>
+<li><p><strong>ROS Integration</strong>: Ensure tests account for ROS-specific features, such as message passing (e.g., <cite>grid_map_msgs</cite>) and node communication.</p></li>
+<li><p><strong>Mocking</strong>: Use <cite>unittest.mock</cite> to mock ROS nodes or external dependencies when testing specific components.</p></li>
+</ul>
+<p>### Example Test
+Below is an example of a unit test for a path planner function in a ROS context:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">namosim.planner</span><span class="w"> </span><span class="kn">import</span> <span class="n">PathPlanner</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">geometry_msgs.msg</span><span class="w"> </span><span class="kn">import</span> <span class="n">Point</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">test_path_planner_empty_environment</span><span class="p">():</span>
+    <span class="n">planner</span> <span class="o">=</span> <span class="n">PathPlanner</span><span class="p">(</span><span class="n">environment</span><span class="o">=</span><span class="p">[])</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">Point</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">goal</span> <span class="o">=</span> <span class="n">Point</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mf">10.0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">planner</span><span class="o">.</span><span class="n">compute_path</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">goal</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;Path should exist in an empty environment&quot;</span>
+    <span class="k">assert</span> <span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">start</span><span class="o">.</span><span class="n">x</span> <span class="ow">and</span> <span class="n">path</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">y</span> <span class="o">==</span> <span class="n">start</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Path should start at the given start point&quot;</span>
+    <span class="k">assert</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">x</span> <span class="o">==</span> <span class="n">goal</span><span class="o">.</span><span class="n">x</span> <span class="ow">and</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">y</span> <span class="o">==</span> <span class="n">goal</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="s2">&quot;Path should end at the given goal point&quot;</span>
+</pre></div>
+</div>
+<p>### Running Tests
+To build and test the project locally, follow these steps:</p>
+<ol class="arabic">
+<li><p><strong>Build the Project</strong>:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>source /opt/ros/humble/setup.bash
+colcon build</p>
+</div></blockquote>
+</li>
+<li><p><strong>Run Unit Tests</strong>:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>source /opt/ros/humble/setup.bash
+source install/setup.bash
+./scripts/test_unit.sh</p>
+</div></blockquote>
+</li>
+<li><p><strong>Run End-to-End Tests</strong>:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>source /opt/ros/humble/setup.bash
+source install/setup.bash
+./scripts/test_e2e.sh</p>
+</div></blockquote>
+</li>
+<li><p><strong>Run Type Checking</strong>:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>source /opt/ros/humble/setup.bash
+source install/setup.bash
+./scripts/test_types.sh</p>
+</div></blockquote>
+</li>
+<li><p><strong>Apply Code Formatting</strong>:
+Ensure code adheres to the project’s formatting standards:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>./scripts/format.sh</p>
+</div></blockquote>
+</li>
+<li><p><strong>Run All Tests</strong>:
+To execute all tests (unit, end-to-end, and type checking), use:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>source /opt/ros/humble/setup.bash
+source install/setup.bash
+./scripts/test_all.sh</p>
+</div></blockquote>
+</li>
+</ol>
+<p>### End-to-End Scenario Testing
+To experiment with different scenarios and parameters, use the Python Test Explorer in VSCode to run end-to-end tests located in <cite>tests/e2e/</cite>. This is the recommended approach for interactive testing.</p>
+<p>Alternatively, run specific end-to-end tests from the command line:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>source /opt/ros/humble/setup.bash
+source install/setup.bash
+python3 -m pytest tests/e2e/e2e_test.py::TestE2E::test_social_dr_success_d</p>
+</div></blockquote>
+<p>Ensure test scenarios are included in the <cite>scenarios/</cite> directory and documented in the pull request.</p>
+<p>### Simulation-Based Testing
+For simulation-based tests, use the NAMOSIM simulator to validate planner behavior in realistic scenarios. Create test cases in the <cite>scenarios/</cite> directory, specifying:</p>
+<ul class="simple">
+<li><p>Environment configuration (e.g., polygon shapes, obstacle positions).</p></li>
+<li><p>Robot start and goal positions (using ROS message types like <cite>geometry_msgs/Point</cite>).</p></li>
+<li><p>Expected outcomes (e.g., successful navigation, obstacle movement).</p></li>
+</ul>
+<p>Run simulation tests using:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>source /opt/ros/humble/setup.bash
+source install/setup.bash
+python -m namosim.simulate –test scenarios/test_scenario1.yaml</p>
+</div></blockquote>
+<p>### Continuous Integration
+NAMOSIM uses GitHub Actions for continuous integration (CI), running on the <cite>humble</cite> branch and all pull requests. The CI pipeline:</p>
+<ul class="simple">
+<li><p>Uses the <cite>osrf/ros:humble-desktop-full</cite> container.</p></li>
+<li><p>Installs dependencies (<cite>swig</cite>, <cite>curl</cite>, <cite>python3-pip</cite>, <cite>ros-humble-grid-map-msgs</cite>, etc.).</p></li>
+<li><p>Builds the project with <cite>colcon build</cite>.</p></li>
+<li><p>Runs tests with <cite>colcon test</cite>, <cite>test_unit.sh</cite>, <cite>test_e2e.sh</cite>, and <cite>test_types.sh</cite>.</p></li>
+<li><p>Ensures all tests pass and reports results.</p></li>
+</ul>
+<p>Before submitting a pull request, verify locally that your changes pass the CI pipeline’s testing steps. The CI pipeline will automatically run on your pull request, and maintainers will review the results.</p>
+</section>
+<section id="code-review-process">
+<h2>Code Review Process<a class="headerlink" href="#code-review-process" title="Link to this heading"></a></h2>
+<p>Once you submit a pull request, it will be reviewed by the NAMOSIM maintainers. The review will focus on:</p>
+<ul class="simple">
+<li><p>Code quality and adherence to style guidelines.</p></li>
+<li><p>Test coverage and correctness.</p></li>
+<li><p>Compatibility with existing functionality and ROS Humble.</p></li>
+<li><p>Clarity of documentation and commit messages.</p></li>
+</ul>
+<p>You may be asked to make revisions before your pull request is merged. Please respond promptly to review comments.</p>
+</section>
+<section id="reporting-issues">
+<h2>Reporting Issues<a class="headerlink" href="#reporting-issues" title="Link to this heading"></a></h2>
+<p>If you encounter bugs or have feature suggestions, please open an issue on the GitHub repository. Include:</p>
+<ul class="simple">
+<li><p>A clear description of the issue or feature.</p></li>
+<li><p>Steps to reproduce (for bugs).</p></li>
+<li><p>Expected and actual behavior.</p></li>
+<li><p>Any relevant logs or screenshots.</p></li>
+</ul>
+</section>
+<section id="community-guidelines">
+<h2>Community Guidelines<a class="headerlink" href="#community-guidelines" title="Link to this heading"></a></h2>
+<p>We strive to maintain a welcoming and inclusive community. Please adhere to the following:</p>
+<ul class="simple">
+<li><p>Be respectful and constructive in all interactions.</p></li>
+<li><p>Follow the project’s code of conduct (available in the repository).</p></li>
+<li><p>Provide clear and actionable feedback in issues and pull requests.</p></li>
+</ul>
+<p>Thank you for contributing to NAMOSIM! Your efforts help advance research and development in navigation among movable obstacles.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="creating_custom_agents.html" class="btn btn-neutral float-left" title="Creating Custom Agents" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="namosim.html" class="btn btn-neutral float-right" title="namosim package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Benoit Renault, David Brown.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

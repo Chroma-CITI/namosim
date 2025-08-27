@@ -1,0 +1,280 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creating an SVG Scenario &mdash; namosim  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Creating a YAML Scenario" href="creating_yaml_scenario.html" />
+    <link rel="prev" title="Creating Custom Scenarios" href="creating_custom_scenarios.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            namosim
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="guides.html">Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="creating_custom_scenarios.html">Creating Custom Scenarios</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Creating an SVG Scenario</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-geometry-file">The Geometry File</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#units">Units</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-namo-config">The Namo Config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#robots-and-navigation-goals">Robots and Navigation Goals</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="creating_yaml_scenario.html">Creating a YAML Scenario</a></li>
+<li class="toctree-l2"><a class="reference internal" href="creating_custom_agents.html">Creating Custom Agents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing to NAMOSIM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="namosim.html">namosim package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">namosim</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="guides.html">Guides</a></li>
+      <li class="breadcrumb-item active">Creating an SVG Scenario</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/creating_svg_scenario.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="creating-an-svg-scenario">
+<span id="creating-svg-scenario"></span><h1>Creating an SVG Scenario<a class="headerlink" href="#creating-an-svg-scenario" title="Link to this heading"></a></h1>
+<p>Each Namo scenario is fully contained in a single SVG file.</p>
+<section id="the-geometry-file">
+<h2>The Geometry File<a class="headerlink" href="#the-geometry-file" title="Link to this heading"></a></h2>
+<p>Here are the contents of a minimal svg geometry file. All geometries in the world must be svg <strong>path</strong>
+elements and each must have an <strong>id</strong> attribute which is used by the <strong>&lt;namo_config&gt;</strong> to configure the geometry
+as an entity in the simulation.</p>
+<div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;</span>
+<span class="nt">&lt;svg:svg</span>
+<span class="w">   </span><span class="na">version=</span><span class="s">&quot;1.1&quot;</span>
+<span class="w">   </span><span class="na">viewBox=</span><span class="s">&quot;0 0 151.86302 147.25102&quot;</span>
+<span class="w">   </span><span class="na">stroke-miterlimit=</span><span class="s">&quot;10&quot;</span>
+<span class="w">   </span><span class="na">id=</span><span class="s">&quot;svg2&quot;</span>
+<span class="w">   </span><span class="na">inkscape:version=</span><span class="s">&quot;1.1.2 (0a00cf5339, 2022-02-04)&quot;</span>
+<span class="w">   </span><span class="na">sodipodi:docname=</span><span class="s">&quot;minimal_stilman_2005.svg&quot;</span>
+<span class="w">   </span><span class="na">width=</span><span class="s">&quot;4.0180426cm&quot;</span>
+<span class="w">   </span><span class="na">height=</span><span class="s">&quot;3.8960166cm&quot;</span>
+<span class="w">   </span><span class="na">style=</span><span class="s">&quot;fill:none;stroke:none;stroke-linecap:square;stroke-miterlimit:10&quot;</span>
+<span class="w">   </span><span class="na">xmlns:inkscape=</span><span class="s">&quot;http://www.inkscape.org/namespaces/inkscape&quot;</span>
+<span class="w">   </span><span class="na">xmlns:sodipodi=</span><span class="s">&quot;http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd&quot;</span>
+<span class="w">   </span><span class="na">xmlns:svg=</span><span class="s">&quot;http://www.w3.org/2000/svg&quot;</span>
+<span class="w">   </span><span class="na">xmlns:rdf=</span><span class="s">&quot;http://www.w3.org/1999/02/22-rdf-syntax-ns#&quot;</span>
+<span class="w">   </span><span class="na">xmlns:cc=</span><span class="s">&quot;http://creativecommons.org/ns#&quot;</span>
+<span class="w">   </span><span class="na">xmlns:dc=</span><span class="s">&quot;http://purl.org/dc/elements/1.1/&quot;</span><span class="nt">&gt;</span>
+<span class="w">  </span><span class="nt">&lt;svg:metadata</span>
+<span class="w">     </span><span class="na">id=</span><span class="s">&quot;metadata41&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;rdf:RDF&gt;</span>
+<span class="w">      </span><span class="nt">&lt;cc:Work</span>
+<span class="w">         </span><span class="na">rdf:about=</span><span class="s">&quot;&quot;</span><span class="nt">&gt;</span>
+<span class="w">        </span><span class="nt">&lt;dc:format&gt;</span>image/svg+xml<span class="nt">&lt;/dc:format&gt;</span>
+<span class="w">        </span><span class="nt">&lt;dc:type</span>
+<span class="w">           </span><span class="na">rdf:resource=</span><span class="s">&quot;http://purl.org/dc/dcmitype/StillImage&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="w">      </span><span class="nt">&lt;/cc:Work&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/rdf:RDF&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/svg:metadata&gt;</span>
+<span class="w">  </span><span class="nt">&lt;svg:defs</span>
+<span class="w">     </span><span class="na">id=</span><span class="s">&quot;defs39&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;namo_config</span>
+<span class="w">     </span><span class="na">cell_size_cm=</span><span class="s">&quot;3.0&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;agent</span>
+<span class="w">       </span><span class="na">agent_id=</span><span class="s">&quot;robot_0&quot;</span><span class="nt">&gt;</span>
+<span class="w">      </span><span class="nt">&lt;goal</span>
+<span class="w">         </span><span class="na">goal_id=</span><span class="s">&quot;goal_0&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="w">      </span><span class="nt">&lt;behavior</span>
+<span class="w">         </span><span class="na">type=</span><span class="s">&quot;stilman_2005_behavior&quot;</span><span class="nt">&gt;</span>
+<span class="w">        </span><span class="nt">&lt;parameters</span>
+<span class="w">           </span><span class="na">use_social_cost=</span><span class="s">&quot;true&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="w">      </span><span class="nt">&lt;/behavior&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/agent&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/namo_config&gt;</span>
+<span class="w">  </span><span class="nt">&lt;sodipodi:namedview</span>
+<span class="w">     </span><span class="na">pagecolor=</span><span class="s">&quot;#ffffff&quot;</span>
+<span class="w">     </span><span class="na">bordercolor=</span><span class="s">&quot;#666666&quot;</span>
+<span class="w">     </span><span class="na">borderopacity=</span><span class="s">&quot;1&quot;</span>
+<span class="w">     </span><span class="na">objecttolerance=</span><span class="s">&quot;10&quot;</span>
+<span class="w">     </span><span class="na">gridtolerance=</span><span class="s">&quot;10&quot;</span>
+<span class="w">     </span><span class="na">guidetolerance=</span><span class="s">&quot;10&quot;</span>
+<span class="w">     </span><span class="na">inkscape:pageopacity=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">inkscape:pageshadow=</span><span class="s">&quot;2&quot;</span>
+<span class="w">     </span><span class="na">inkscape:window-width=</span><span class="s">&quot;2490&quot;</span>
+<span class="w">     </span><span class="na">inkscape:window-height=</span><span class="s">&quot;1376&quot;</span>
+<span class="w">     </span><span class="na">id=</span><span class="s">&quot;namedview37&quot;</span>
+<span class="w">     </span><span class="na">showgrid=</span><span class="s">&quot;false&quot;</span>
+<span class="w">     </span><span class="na">inkscape:zoom=</span><span class="s">&quot;4&quot;</span>
+<span class="w">     </span><span class="na">inkscape:cx=</span><span class="s">&quot;28.125&quot;</span>
+<span class="w">     </span><span class="na">inkscape:cy=</span><span class="s">&quot;29.125&quot;</span>
+<span class="w">     </span><span class="na">inkscape:current-layer=</span><span class="s">&quot;svg2&quot;</span>
+<span class="w">     </span><span class="na">fit-margin-top=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">fit-margin-left=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">fit-margin-right=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">fit-margin-bottom=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">inkscape:pagecheckerboard=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">inkscape:window-x=</span><span class="s">&quot;70&quot;</span>
+<span class="w">     </span><span class="na">inkscape:window-y=</span><span class="s">&quot;27&quot;</span>
+<span class="w">     </span><span class="na">inkscape:window-maximized=</span><span class="s">&quot;1&quot;</span>
+<span class="w">     </span><span class="na">units=</span><span class="s">&quot;cm&quot;</span>
+<span class="w">     </span><span class="na">inkscape:document-units=</span><span class="s">&quot;cm&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;svg:path</span>
+<span class="w">     </span><span class="na">inkscape:label=</span><span class="s">&quot;#path3336-6-0&quot;</span>
+<span class="w">     </span><span class="na">style=</span><span class="s">&quot;fill:#f1c232;fill-opacity:1;stroke:none;stroke-width:0.806407px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1&quot;</span>
+<span class="w">     </span><span class="na">d=</span><span class="s">&quot;m 63.027053,20.770784 h -15.11811 v 15.11811 h 15.11811 z&quot;</span>
+<span class="w">     </span><span class="na">id=</span><span class="s">&quot;movable_box&quot;</span>
+<span class="w">     </span><span class="na">inkscape:connector-curvature=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:nodetypes=</span><span class="s">&quot;ccccc&quot;</span>
+<span class="w">     </span><span class="na">type=</span><span class="s">&quot;movable&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;svg:path</span>
+<span class="w">     </span><span class="na">style=</span><span class="s">&quot;fill:#000000;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1&quot;</span>
+<span class="w">     </span><span class="na">d=</span><span class="s">&quot;M 151.85619,0 H 0 v 5.5861 h 151.85619 z&quot;</span>
+<span class="w">     </span><span class="na">id=</span><span class="s">&quot;wall_top&quot;</span>
+<span class="w">     </span><span class="na">inkscape:connector-curvature=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:nodetypes=</span><span class="s">&quot;ccccc&quot;</span>
+<span class="w">     </span><span class="na">inkscape:label=</span><span class="s">&quot;#path3336-6-3&quot;</span>
+<span class="w">     </span><span class="na">type=</span><span class="s">&quot;wall&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;svg:path</span>
+<span class="w">     </span><span class="na">style=</span><span class="s">&quot;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.913109px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1&quot;</span>
+<span class="w">     </span><span class="na">d=</span><span class="s">&quot;M 57.980695,59.69316 H 5.8444541 v 82.14351 H 145.74027 V 59.383769 H 93.604034 V 54.742893 H 151.86303 V 147.25102 H 0.2783074 V 54.588197 H 57.96944 Z&quot;</span>
+<span class="w">     </span><span class="na">id=</span><span class="s">&quot;wall_bottom&quot;</span>
+<span class="w">     </span><span class="na">type=</span><span class="s">&quot;wall&quot;</span>
+<span class="w">     </span><span class="na">inkscape:connector-curvature=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:nodetypes=</span><span class="s">&quot;ccccccccccccc&quot;</span>
+<span class="w">     </span><span class="na">inkscape:label=</span><span class="s">&quot;#path4149&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;svg:path</span>
+<span class="w">     </span><span class="na">sodipodi:type=</span><span class="s">&quot;star&quot;</span>
+<span class="w">     </span><span class="na">style=</span><span class="s">&quot;fill:#6d9eeb;fill-opacity:1;stroke:none;stroke-linecap:square;stroke-miterlimit:10;stroke-opacity:1&quot;</span>
+<span class="w">     </span><span class="na">id=</span><span class="s">&quot;robot_0&quot;</span>
+<span class="w">     </span><span class="na">type=</span><span class="s">&quot;shape&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:sides=</span><span class="s">&quot;16&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:cx=</span><span class="s">&quot;16.754114&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:cy=</span><span class="s">&quot;28.062744&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:r1=</span><span class="s">&quot;7.3751149&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:r2=</span><span class="s">&quot;7.2334037&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:arg1=</span><span class="s">&quot;-0.10272987&quot;</span>
+<span class="w">     </span><span class="na">sodipodi:arg2=</span><span class="s">&quot;0.093619673&quot;</span>
+<span class="w">     </span><span class="na">inkscape:flatsided=</span><span class="s">&quot;true&quot;</span>
+<span class="w">     </span><span class="na">inkscape:rounded=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">inkscape:randomized=</span><span class="s">&quot;0&quot;</span>
+<span class="w">     </span><span class="na">inkscape:label=</span><span class="s">&quot;#path4172&quot;</span>
+<span class="w">     </span><span class="na">d=</span><span class="s">&quot;m 24.090347,27.306431 -0.269009,2.865026 -1.34493,2.543993 -2.216097,1.835661 -2.749884,0.847866 -2.865026,-0.269009 -2.543993,-1.34493 -1.835661,-2.216097 -0.8478656,-2.749884 0.2690091,-2.865026 1.3449295,-2.543993 2.216098,-1.835661 2.749883,-0.847866 2.865026,0.26901 2.543993,1.344929 1.835661,2.216098 z&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;svg:path</span>
+<span class="w">     </span><span class="na">id=</span><span class="s">&quot;goal_0&quot;</span>
+<span class="w">     </span><span class="na">style=</span><span class="s">&quot;stroke:#6d9eeb;stroke-width:0.982677;stroke-miterlimit:4&quot;</span>
+<span class="w">     </span><span class="na">inkscape:label=</span><span class="s">&quot;#path4172&quot;</span>
+<span class="w">     </span><span class="na">d=</span><span class="s">&quot;m 134.92116,125.58704 c -0.1021,0.96642 -0.16001,1.94602 -0.28973,2.9042 -0.45725,0.84073 -0.87873,1.71054 -1.35834,2.53309 -0.74418,0.60174 -1.46644,1.24406 -2.22432,1.82045 -0.91781,0.27115 -1.83089,0.58817 -2.75166,0.83066 -0.95171,-0.10072 -1.91661,-0.15725 -2.86008,-0.28558 -0.84072,-0.45725 -1.71054,-0.87873 -2.53308,-1.35835 -0.60175,-0.74417 -1.24406,-1.46643 -1.82045,-2.22431 -0.27116,-0.91781 -0.58818,-1.8309 -0.83067,-2.75166 0.10072,-0.95171 0.15725,-1.91661 0.28558,-2.86008 0.45726,-0.84073 0.87874,-1.71054 1.35835,-2.53309 0.74418,-0.60174 1.46644,-1.24405 2.22432,-1.82044 0.91781,-0.27116 1.83089,-0.58818 2.75166,-0.83067 0.95171,0.10072 1.9166,0.15725 2.86008,0.28558 0.84072,0.45726 1.71054,0.87873 2.53308,1.35835 0.60175,0.74418 1.24406,1.46643 1.82045,2.22432 0.27827,0.90251 0.55654,1.80502 0.83481,2.70753 z&quot;</span><span class="w"> </span><span class="nt">/&gt;</span>
+<span class="nt">&lt;/svg:svg&gt;</span>
+</pre></div>
+</div>
+<p>Here is the same file rendered as an image:</p>
+<a class="reference internal image-reference" href="_images/minimal_stilman_2005.svg"><img alt="NAMO Simulator" src="_images/minimal_stilman_2005.svg" style="width: 400px;" />
+</a>
+<p>You can see the robot starting position in the top left. To the right of the robot is a movable box. The walls
+are in black. The robot goal pose is visible in the bottom right.</p>
+<p>We recommend using <a class="reference external" href="https://inkscape.org/">Inkscape</a> to edit your svg geometry file.</p>
+</section>
+<section id="units">
+<h2>Units<a class="headerlink" href="#units" title="Link to this heading"></a></h2>
+<p>It is essential that all units in your SVG geometry file be in CENTIMETERs. The reasons for this is because, Inkscape
+only supports centimeters and not meters. The NAMO planner will convert the units to meters during execution.</p>
+</section>
+<section id="the-namo-config">
+<h2>The Namo Config<a class="headerlink" href="#the-namo-config" title="Link to this heading"></a></h2>
+<p>The scenario file must contain a <cite>&lt;namo_config&gt;</cite> element that is a direct child of the root <cite>&lt;svg&gt;</cite> element.
+This object configures the simulator and agents and it the place where all agent behavioral parameters are set.</p>
+<p>The full specification for the <cite>&lt;namo_config&gt;</cite> is defined by the <cite>NamoConfigModel</cite> class which can be found in
+<a class="reference external" href="https://github.com/Chroma-CITI/namosim/blob/humble/namosim/data_models.py?ref_type=heads">namosim/data_models.py</a>.</p>
+</section>
+<section id="robots-and-navigation-goals">
+<h2>Robots and Navigation Goals<a class="headerlink" href="#robots-and-navigation-goals" title="Link to this heading"></a></h2>
+<p>Each robot and goal listed in the <cite>&lt;namo_config&gt;</cite> must have a corresponding <cite>&lt;svg:path id=”[your_agent_id]”&gt;</cite> path element somewhere in the svg file. These elements
+provides the shape, position, and orientation of the robots and goals.</p>
+<p>You can optionally add a <cite>angle=”90”</cite> attribute to specify the orientation in degrees.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="creating_custom_scenarios.html" class="btn btn-neutral float-left" title="Creating Custom Scenarios" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="creating_yaml_scenario.html" class="btn btn-neutral float-right" title="Creating a YAML Scenario" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Benoit Renault, David Brown.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
