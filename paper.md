@@ -76,6 +76,8 @@ The static map can also be included as an image layer within the SVG to convenie
 
 # Architecture
 
+![NAMOSIM High-Level Architecture](docs/source/_static/namosim_architecture.png)
+
 At a high level, NAMOSIM executes a SENSE-THINK-ACT loop that performs the following functions at each iteration:
 
 1. **SENSE**: Each agent senses the environment and updates its internal representation.
