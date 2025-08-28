@@ -45,5 +45,5 @@ Both Tkinter and RViz visualization can be disabled by setting the following env
 
 .. code-block:: bash
 
-   export NAMO_NO_DISPLAY_WINDOW="TRUE"
+   export NAMO_DEACTIVATE_TKINTER="TRUE"
    export NAMO_DEACTIVATE_RVIZ="TRUE"
