@@ -39,17 +39,84 @@
 }
 
 @article{stilman_2005,
-  title = {Navigation among Movable Obstacles: Real-Time Reasoning in Complex Environments},
-  author = {Stilman, M. and Kuffner, J. J.},
-  journal = {International Journal of Humanoid Robotics},
-  volume = {2},
-  number = {4},
-  year = {2005},
-  pages = {479--503},
-  issn = {0219-8436},
-  doi = {10.1142/S0219843605000545},
-  url = {http://www.worldscientific.com/doi/abs/10.1142/S0219843605000545},
-  urldate = {2018-02-28},
-  abstract = {In this paper, we address the problem of Navigation Among Movable Obstacles (NAMO): a practical extension to navigation for humanoids and other dexterous mobile robots. The robot is permitted to reconfigure the environment by moving obstacles and clearing free space for a path. This paper presents a resolution complete planner for a subclass of NAMO problems. Our planner takes advantage of the navigational structure through state-space decomposition and heuristic search. The planning complexity is reduced to the difficulty of the specific navigation task, rather than the dimensionality of the multi-object domain. We demonstrate real-time results for spaces that contain large numbers of movable obstacles. We also present a practical framework for single-agent search that can be used in algorithmic reasoning about this domain.},
+  title      = {Navigation among Movable Obstacles: Real-Time Reasoning in Complex Environments},
+  author     = {Stilman, M. and Kuffner, J. J.},
+  journal    = {International Journal of Humanoid Robotics},
+  volume     = {2},
+  number     = {4},
+  year       = {2005},
+  pages      = {479--503},
+  issn       = {0219-8436},
+  doi        = {10.1142/S0219843605000545},
+  url        = {http://www.worldscientific.com/doi/abs/10.1142/S0219843605000545},
+  urldate    = {2018-02-28},
+  abstract   = {In this paper, we address the problem of Navigation Among Movable Obstacles (NAMO): a practical extension to navigation for humanoids and other dexterous mobile robots. The robot is permitted to reconfigure the environment by moving obstacles and clearing free space for a path. This paper presents a resolution complete planner for a subclass of NAMO problems. Our planner takes advantage of the navigational structure through state-space decomposition and heuristic search. The planning complexity is reduced to the difficulty of the specific navigation task, rather than the dimensionality of the multi-object domain. We demonstrate real-time results for spaces that contain large numbers of movable obstacles. We also present a practical framework for single-agent search that can be used in algorithmic reasoning about this domain.},
   shorttitle = {Navigation among Movable Obstacles}
+}
+
+@inproceedings{wu_and_levihn,
+  author    = {Hai-Ning Wu and Levihn, Martin and Stilman, Mike},
+  booktitle = {2010 IEEE/RSJ International Conference on Intelligent Robots and Systems},
+  title     = {Navigation Among Movable Obstacles in unknown environments},
+  year      = {2010},
+  volume    = {},
+  number    = {},
+  pages     = {1433-1438},
+  keywords  = {Heuristic algorithms;Optimization;Planning;Navigation;Robot sensing systems;Robot kinematics},
+  doi       = {10.1109/IROS.2010.5649744}
+}
+
+@inproceedings{levihn_2014,
+  author    = {Levihn, Martin and Stilman, Mike and Christensen, Henrik},
+  booktitle = {2014 IEEE-RAS International Conference on Humanoid Robots},
+  title     = {Locally optimal navigation among movable obstacles in unknown environments},
+  year      = {2014},
+  volume    = {},
+  number    = {},
+  pages     = {86-91},
+  keywords  = {Navigation;Collision avoidance;Optimization;Robot sensing systems;Planning;Robot kinematics},
+  doi       = {10.1109/HUMANOIDS.2014.7041342}
+}
+
+@inproceedings{levihn_2013,
+  author    = {Levihn, Martin
+               and Scholz, Jonathan
+               and Stilman, Mike},
+  editor    = {Frazzoli, Emilio
+               and Lozano-Perez, Tomas
+               and Roy, Nicholas
+               and Rus, Daniela},
+  title     = {Hierarchical Decision Theoretic Planning for Navigation Among Movable Obstacles},
+  booktitle = {Algorithmic Foundations of Robotics X},
+  year      = {2013},
+  publisher = {Springer Berlin Heidelberg},
+  address   = {Berlin, Heidelberg},
+  pages     = {19--35},
+  abstract  = {In this paper we present the first decision theoretic planner for the problem of Navigation Among Movable Obstacles (NAMO). While efficient planners for NAMO exist, they are challenging to implement in practice due to the inherent uncertainty in both perception and control of real robots. Generalizing existing NAMO planners to nondeterministic domains is particularly difficult due to the sensitivity of MDP methods to task dimensionality. Our work addresses this challenge by combining ideas from Hierarchical Reinforcement Learning with Monte Carlo Tree Search, and results in an algorithm that can be used for fast online planning in uncertain environments. We evaluate our algorithm in simulation, and provide a theoretical argument for our results which suggest linear time complexity in the number of obstacles for typical environments.},
+  isbn      = {978-3-642-36279-8}
+}
+
+@inproceedings{scholz_2016,
+  author    = {Scholz, Jonathan and Jindal, Nehchal and Levihn, Martin and Isbell, Charles L. and Christensen, Henrik I.},
+  booktitle = {2016 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+  title     = {Navigation Among Movable Obstacles with learned dynamic constraints},
+  year      = {2016},
+  volume    = {},
+  number    = {},
+  pages     = {3706-3713},
+  keywords  = {Robots;Aerospace electronics;Grippers;Navigation;Learning (artificial intelligence);Dynamics;Planning},
+  doi       = {10.1109/IROS.2016.7759546}
+}
+
+@inproceedings{zhang_2023,
+  title       = {{Navigation among movable obstacles using machine learning based total time cost optimization}},
+  author      = {Zhang, Kai and Lucet, Eric and Alexandre Dit Sandretto, Julien and Filliat, David},
+  url         = {https://ip-paris.hal.science/hal-04250608},
+  booktitle   = {{IROS 2023 - IEEE/RSJ International Conference on Intelligent Robots and Systems}},
+  address     = {Detroit (MI), United States},
+  year        = {2023},
+  month       = Oct,
+  pdf         = {https://ip-paris.hal.science/hal-04250608v1/file/namo_iros2023_preprint.pdf},
+  hal_id      = {hal-04250608},
+  hal_version = {v1}
 }

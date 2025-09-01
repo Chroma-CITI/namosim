@@ -4,7 +4,7 @@ tags:
   - robotics
   - motion planning
   - NAMO
-  - ROS2
+  - ROS 2
   - simulation
   - path planning
 authors:
@@ -42,14 +42,16 @@ bibliography: paper.bib
 
 NAMOSIM supports the development of custom NAMO algorithms using a modular agent-based architecture. It includes a baseline agent that implements Stilman's NAMO algorithm [@stilman_2005] and also incorporates a communication-free coordination strategy for multi-robot scenarios [@renault_2024_iros]. A variety of other agent behaviors are implemented, and new agents utilizing alternative approaches can be created and integrated into the planner by implementing the **Agent** base class. NAMOSIM thus supports reproducible research in single and multi-robot NAMO algorithms.
 
-NAMOSIM is packaged as a ROS2 package for easy integration into robotics projects and can also be used as a standalone Python module. It utilizes ROS2 messages for visualization of environments, plans, and execution via RViz and includes several prebuilt scenarios for testing and benchmarking. Scenarios are stored as SVG files, allowing the convenient creation of custom scenarios using a free SVG editor such as Inkscape.
+NAMOSIM is packaged as a ROS 2 package for easy integration into robotics projects and can also be used as a standalone Python module. It utilizes ROS 2 messages for visualization of environments, plans, and execution via RViz and includes several prebuilt scenarios for testing and benchmarking. Scenarios are stored as SVG files, allowing the convenient creation of custom scenarios using a free SVG editor such as Inkscape.
 
 # Statement of Need
 
-Many interesting applications in autonomous mobile robotics involve some kind of physical interaction with the environment as well as social coordination with other agents. 
-However, global navigation planners typically assume static, non-interactive environments, leaving higher-level behaviors to other parts of the software stack and thus complicating their implementation to some degree. 
-Ideally, motion planners should be able to reason about physical and social interactions, continuously update their internal state in response to incoming data, and adapt to changing conditions. 
-NAMOSIM takes a first step towards addressing this challenging problem by offering a simulation environment explicitly designed to study NAMO problems, which involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. Additionally, NAMOSIM supports multi-robot environments, facilitating reproducible research in social navigation.
+Many interesting applications in autonomous mobile robotics involve some kind of physical interaction with the environment as well as social coordination with other agents.
+However, global navigation planners typically assume static, non-interactive environments, leaving higher-level behaviors to other parts of the software stack.
+Ideally, motion planners should be able to reason about physical and social interactions and adapt to changing conditions. NAMOSIM takes a first step to address this challenging problem by offering a simulation environment designed for experimentation with NAMO algorithms, which involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. NAMOSIM additionally supports multi-robot environments, facilitating reproducible research in social navigation.
+
+While there have been several prior works on NAMO, including [@stilman_2005; @wu_and_levihn; @levihn_2013; @levihn_2014; @scholz_2016; @zhang_2023], to our knowledge,
+an open-source package dedicated to reproducible experimentation with NAMO algorithms in single and multi-robot environments is unavaible. NAMOSIM aims to fills this gap, and is designed for compatibility with real robot platforms and integration with the ROS ecosystem.
 
 # Major Features
 
@@ -57,7 +59,7 @@ NAMOSIM provides a robust set of features to support research and development in
 
 - **Modular Agent-Based Architecture**: The simulator is built around a flexible `Agent` interface, allowing users to implement and test custom NAMO planning algorithms. A baseline NAMO algorithm implementation is available for immediate use and benchmarking.
 - **Support for Multiple Robot Models**: NAMOSIM supports both holonomic and differential-drive robot models, enabling realistic simulation of various robotic platforms.
-- **ROS2 Integration**: NAMOSIM forms a ROS2 package, enabling seamless integration into simulated and physical robotics projects and visualization via RViz.
+- **ROS 2 Integration**: NAMOSIM forms a ROS 2 package, enabling seamless integration into simulated and physical robotics projects and visualization via RViz.
 - **2D Environment Simulation**: The simulator provides a customizable 2D environment where users can define static and movable obstacles, supporting complex scenarios for testing multi-robot coordination strategies and NAMO algorithms.
 - **Prebuilt Scenarios and Tests**: NAMOSIM includes several custom scenario files for benchmarking and testing specific situations.
 - **Multi-Robot Coordination**: The simulator supports multi-robot scenarios, and our baseline agent implements a communication-free coordination strategy [@renault_2024_iros].
