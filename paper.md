@@ -46,12 +46,13 @@ NAMOSIM is packaged as a ROS 2 package for easy integration into robotics projec
 
 # Statement of Need
 
-Many interesting applications in autonomous mobile robotics involve some kind of physical interaction with the environment as well as social coordination with other agents.
-However, global navigation planners typically assume static, non-interactive environments, leaving higher-level behaviors to other parts of the software stack.
-Ideally, motion planners should be able to reason about physical and social interactions and adapt to changing conditions. NAMOSIM takes a first step to address this challenging problem by offering a simulation environment designed for experimentation with NAMO algorithms, which involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. NAMOSIM additionally supports multi-robot environments, facilitating reproducible research in social navigation.
+Many interesting applications in autonomous mobile robotics involve physical interaction with the environment as well as social coordination with other agents.
+However, global navigation planners typically assume static environments, leaving complex behaviors to be managed by separate software components, complicating implementation.
+Ideally, motion planners should reason about physical and social interactions and adapt to changing conditions.
 
-While there have been several prior works on NAMO, including [@stilman_2005; @wu_and_levihn; @levihn_2013; @levihn_2014; @scholz_2016; @zhang_2023], to our knowledge,
-an open-source package dedicated to reproducible experimentation with NAMO algorithms in single and multi-robot environments is unavaible. NAMOSIM aims to fills this gap, and is designed for compatibility with real robot platforms and integration with the ROS ecosystem.
+NAMOSIM addresses this challenge by providing an open-source planner and simulation environment designed for single and multi-robot NAMO algorithms. While prior works on NAMO, including [@stilman_2005; @wu_and_levihn; @levihn_2013; @levihn_2014; @scholz_2016; @zhang_2023], have introduced new methodologies, an open-source package dedicated to testing and refining different NAMO algorithms and compatible with real-robot platforms is lacking.
+
+Designed for researches and engineers working on mobile robot navigation in dynamic environments, NAMOSIM supports reproducible research and real-world deployment via compatibility with the ROS ecosystem. By offering a versatile tool for experimenting with NAMO algorithms, NAMOSIM supports the robotics community to develop more capable and adaptive robotic systems.
 
 # Major Features
 
