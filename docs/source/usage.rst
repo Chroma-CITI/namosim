@@ -26,6 +26,20 @@ A set of executable examples demonstrating key features are available in the ``e
 
    ./examples/with_slam_generated_map.sh
 
+Examples Code Usage
+----------------------------
+
+Here is a quick example of using ``namosim`` in Python to load a scenario and compute a plan:
+
+.. literalinclude:: ../../examples/compute_plan.py
+   :language: python
+
+This example can be executed with
+
+.. code-block:: bash
+
+   python3 -m examples.compute_plan
+
 Visualization
 -------------
 

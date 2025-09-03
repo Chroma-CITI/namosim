@@ -4,7 +4,7 @@ tags:
   - robotics
   - motion planning
   - NAMO
-  - ROS2
+  - ROS 2
   - simulation
   - path planning
 authors:
@@ -38,18 +38,21 @@ bibliography: paper.bib
 
 # Summary
 
-**NAMOSIM** is a mobile robot motion planner designed for the problem of **N**avigation **A**mong **M**ovable **O**bstacles (NAMO). The planner simulates robots navigating in 2D polygonal environments where certain obstacles can be grasped and relocated to enable robots to reach their goals. NAMOSIM thus extends the classic navigation problem with a layer of interactivity, posing interesting research questions while remaining well-defined and amenable to various algorithmic approaches. NAMOSIM is intended for researchers and developers working on robot navigation in dynamic environments, particularly where physical interaction is necessary.
+**NAMOSIM** is a mobile robot motion planner and simulator designed for the problem of **N**avigation **A**mong **M**ovable **O**bstacles (NAMO). The planner simulates robots navigating in 2D polygonal environments where certain obstacles can be grasped and relocated to enable robots to reach their goals. NAMOSIM thus extends the classic navigation problem with a layer of interactivity, posing interesting research questions while remaining well-defined and amenable to various algorithmic approaches. NAMOSIM is intended for researchers and developers working on robot navigation in dynamic environments, particularly where physical interaction is necessary.
 
-NAMOSIM supports the development of custom NAMO algorithms using a modular agent-based architecture. It includes a baseline agent that implements Stilman's NAMO algorithm [@stilman_2005] and also incorporates a communication-free coordination strategy for multi-robot scenarios [@renault_2024_iros]. A variety of other agent behaviors are implemented, and new agents utilizing alternative approaches can be created and integrated into the planner by implementing the **Agent** base class. NAMOSIM thus supports reproducible research in single and multi-robot NAMO algorithms.
+NAMOSIM supports the development of custom NAMO algorithms using a modular agent-based architecture. It includes a baseline agent implementing Stilman's NAMO algorithm [@stilman_2005] and incorporating a communication-free coordination strategy for multi-robot scenarios [@renault_2024_iros]. A variety of other agent behaviors are implemented, and new agents utilizing alternative approaches can be integrated into the planner by implementing the **Agent** base class. NAMOSIM thus supports reproducible research in single and multi-robot NAMO algorithms.
 
-NAMOSIM is packaged as a ROS2 package for easy integration into robotics projects and can also be used as a standalone Python module. It utilizes ROS2 messages for visualization of environments, plans, and execution via RViz and includes several prebuilt scenarios for testing and benchmarking. Scenarios are stored as SVG files, allowing the convenient creation of custom scenarios using a free SVG editor such as Inkscape.
+NAMOSIM is packaged as a ROS 2 package for easy integration into robotics projects but can also be used as a standalone Python module. Simulations are displayed in a Tkinter window and ROS 2 messages are published for more-detailed visualization in RViz. Several prebuilt scenarios for testing and benchmarking are included. These are stored as SVG files, allowing for convenient creation of custom scenarios using a free SVG editor such as Inkscape.
 
 # Statement of Need
 
-Many interesting applications in autonomous mobile robotics involve some kind of physical interaction with the environment as well as social coordination with other agents. 
-However, global navigation planners typically assume static, non-interactive environments, leaving higher-level behaviors to other parts of the software stack and thus complicating their implementation to some degree. 
-Ideally, motion planners should be able to reason about physical and social interactions, continuously update their internal state in response to incoming data, and adapt to changing conditions. 
-NAMOSIM takes a first step towards addressing this challenging problem by offering a simulation environment explicitly designed to study NAMO problems, which involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. Additionally, NAMOSIM supports multi-robot environments, facilitating reproducible research in social navigation.
+Many interesting applications in autonomous mobile robotics involve physical interaction with the environment as well as social coordination with other agents.
+However, global navigation planners typically assume static environments, leaving complex behaviors to be managed by separate software components, complicating implementation.
+Ideally, motion planners should reason about physical and social interactions and adapt to changing conditions.
+
+NAMOSIM addresses this challenge by providing an open-source planner and simulation environment designed for single and multi-robot NAMO algorithms. While prior works on NAMO, including [@stilman_2005; @wu_and_levihn; @levihn_2013; @levihn_2014; @scholz_2016; @zhang_2023], have introduced new methodologies, an open-source package dedicated to testing and refining different NAMO algorithms and compatible with real-robot platforms is lacking.
+
+Designed for researchers and engineers working on mobile robot navigation in dynamic environments, NAMOSIM supports reproducible research and real-world deployment via compatibility with the ROS ecosystem. By offering a versatile tool for experimenting with NAMO algorithms, NAMOSIM supports the robotics community to develop more capable and adaptive robotic systems.
 
 # Major Features
 
@@ -57,7 +60,7 @@ NAMOSIM provides a robust set of features to support research and development in
 
 - **Modular Agent-Based Architecture**: The simulator is built around a flexible `Agent` interface, allowing users to implement and test custom NAMO planning algorithms. A baseline NAMO algorithm implementation is available for immediate use and benchmarking.
 - **Support for Multiple Robot Models**: NAMOSIM supports both holonomic and differential-drive robot models, enabling realistic simulation of various robotic platforms.
-- **ROS2 Integration**: NAMOSIM forms a ROS2 package, enabling seamless integration into simulated and physical robotics projects and visualization via RViz.
+- **ROS 2 Integration**: NAMOSIM forms a ROS 2 package, enabling seamless integration into simulated and physical robotics projects and visualization via RViz.
 - **2D Environment Simulation**: The simulator provides a customizable 2D environment where users can define static and movable obstacles, supporting complex scenarios for testing multi-robot coordination strategies and NAMO algorithms.
 - **Prebuilt Scenarios and Tests**: NAMOSIM includes several custom scenario files for benchmarking and testing specific situations.
 - **Multi-Robot Coordination**: The simulator supports multi-robot scenarios, and our baseline agent implements a communication-free coordination strategy [@renault_2024_iros].
@@ -99,7 +102,7 @@ Each iteration of the algorithm continues with a copy of the environment where t
 
 ## Collision Detection
 
-Custom agents are free to implement their own collision detection routines; however, the baseline agent detects collisions using a simple binary-occupancy grid during transit paths (when not carrying an obstacle), assuming a circular robot footprint. When transporting a movable obstacle, the robot footprint is non-circular, and collision detection is based on the **convex swept volume** resulting from the area swept by the combined robot-obstacle footprint due to the action motion. Although computationally expensive, this ensures all possible collisions are detected, regardless of the shape of the robot or obstacle.
+Custom agents are free to implement their own collision detection routines; however, the baseline agent detects collisions using a simple binary-occupancy grid during transit paths (when not carrying an obstacle), assuming a circular robot footprint. When transporting a movable obstacle, the robot footprint is non-circular, and collision detection is based on the **convex swept volume** resulting from the area swept by the combined robot-obstacle footprint due to the action motion [@Jiménez1998]. Although computationally expensive, this ensures all possible collisions are detected, regardless of the shape of the robot or obstacle.
 
 ## Social Costmap
 
