@@ -50,6 +50,7 @@
 <li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#examples-code-usage">Examples Code Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#visualization">Visualization</a></li>
 </ul>
 </li>
@@ -100,6 +101,29 @@
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./examples/with_slam_generated_map.sh
+</pre></div>
+</div>
+</section>
+<section id="examples-code-usage">
+<h2>Examples Code Usage<a class="headerlink" href="#examples-code-usage" title="Link to this heading"></a></h2>
+<p>Here is a quick example of using <code class="docutils literal notranslate"><span class="pre">namosim</span></code> in Python to load a scenario and compute a plan:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">namosim.navigation.action_result</span><span class="w"> </span><span class="kn">import</span> <span class="n">ActionSuccess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">namosim.world.world</span><span class="w"> </span><span class="kn">import</span> <span class="n">World</span>
+
+
+<span class="n">world</span> <span class="o">=</span> <span class="n">World</span><span class="o">.</span><span class="n">load_from_svg</span><span class="p">(</span>
+    <span class="s2">&quot;tests/scenarios/minimal_stilman_2005.svg&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">agent</span> <span class="o">=</span> <span class="n">world</span><span class="o">.</span><span class="n">agents</span><span class="p">[</span><span class="s1">&#39;robot_0&#39;</span><span class="p">]</span>
+<span class="n">agent</span><span class="o">.</span><span class="n">sense</span><span class="p">(</span><span class="n">ref_world</span><span class="o">=</span><span class="n">world</span><span class="p">,</span> <span class="n">last_action_result</span><span class="o">=</span><span class="n">ActionSuccess</span><span class="p">(),</span> <span class="n">step_count</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">think_result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">think</span><span class="p">()</span>
+<span class="k">assert</span> <span class="n">think_result</span><span class="o">.</span><span class="n">plan</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">think_result</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
+<span class="k">assert</span> <span class="n">think_result</span><span class="o">.</span><span class="n">plan</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">is_transfer</span>
+</pre></div>
+</div>
+<p>This example can be executed with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>examples.compute_plan
 </pre></div>
 </div>
 </section>
