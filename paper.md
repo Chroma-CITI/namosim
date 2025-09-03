@@ -52,7 +52,7 @@ Ideally, motion planners should reason about physical and social interactions an
 
 NAMOSIM addresses this challenge by providing an open-source planner and simulation environment designed for single and multi-robot NAMO algorithms. While prior works on NAMO, including [@stilman_2005; @wu_and_levihn; @levihn_2013; @levihn_2014; @scholz_2016; @zhang_2023], have introduced new methodologies, an open-source package dedicated to testing and refining different NAMO algorithms and compatible with real-robot platforms is lacking.
 
-Designed for researches and engineers working on mobile robot navigation in dynamic environments, NAMOSIM supports reproducible research and real-world deployment via compatibility with the ROS ecosystem. By offering a versatile tool for experimenting with NAMO algorithms, NAMOSIM supports the robotics community to develop more capable and adaptive robotic systems.
+Designed for researchers and engineers working on mobile robot navigation in dynamic environments, NAMOSIM supports reproducible research and real-world deployment via compatibility with the ROS ecosystem. By offering a versatile tool for experimenting with NAMO algorithms, NAMOSIM supports the robotics community to develop more capable and adaptive robotic systems.
 
 # Major Features
 
