@@ -16,6 +16,19 @@ To build the docs site locally, run:
 ./scripts/make_docs.sh
 ```
 
+# Demos
+
+Here are a couple demo videos applying namosim on real and simulated robots.
+
+#### NAMOSIM on a Turtlebo
+
+[![NAMOSIM on Turtlebot](docs/source/_static/namo_demo_thumbnail.png)](https://youtu.be/076ecBfaBTw)
+
+
+#### NAMOSIM on Multiple Robots in Gazebo
+
+[![NAMOSIM on Multiple Robots in Gazebo](docs/source/_static/multi_robot_demo_thumbnail.png)](https://youtu.be/qgPz69Dk9bc)
+
 ## Authors
 
 - Benoit Renault
