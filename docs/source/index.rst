@@ -24,6 +24,25 @@ However, global navigation planners typically assume static, non-interactive env
 Ideally, motion planners should be able to reason about physical and social interactions, continuously update their internal state in response to incoming data, and adapt to changing conditions. 
 NAMOSIM takes a first step towards addressing this challenging problem by offering a simulation environment explicitly designed to study NAMO problems, which involve not only path planning but also reasoning about which obstacles to move, where to move them, and how to combine standard navigation with obstacle manipulation. Additionally, NAMOSIM supports multi-robot environments, facilitating reproducible research in social navigation.
 
+DEMOS
+-----------------------------------
+
+Here are a couple demo videos applying namosim on real and simulated robots.
+
+NAMOSIM on a Turtlebot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. raw:: html
+
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/076ecBfaBTw" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+NAMOSIM on Multiple Robots in Gazebo
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. raw:: html
+
+   <iframe width="560" height="315" src="https://www.youtube.com/embed/qgPz69Dk9bc" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+
 Cite Us
 -----------------------------------
 If you reuse any part of this project in your research, please cite the associated papers:
