@@ -48,9 +48,9 @@ NAMOSIM is packaged as a ROS 2 package for easy integration into robotics projec
 
 Many interesting applications in autonomous mobile robotics involve physical interaction with the environment as well as social coordination with other agents.
 However, global navigation planners typically assume static environments, leaving complex behaviors to be managed by separate software components, complicating implementation.
-Ideally, motion planners should reason about physical and social interactions and adapt to changing conditions.
+Ideally, motion planners should reason about physical and social interactions and adapt to changing conditions. NAMOSIM addresses this challenge by providing an open-source planner and simulation environment designed for single and multi-robot NAMO algorithms.
 
-NAMOSIM addresses this challenge by providing an open-source planner and simulation environment designed for single and multi-robot NAMO algorithms. While prior works on NAMO, including [@stilman_2005; @wu_and_levihn; @levihn_2013; @levihn_2014; @scholz_2016; @zhang_2023], have introduced new methodologies, an open-source package dedicated to testing and refining different NAMO algorithms and compatible with real-robot platforms is lacking.
+While prior works on NAMO [@stilman_2005; @wu_and_levihn; @levihn_2013; @levihn_2014; @scholz_2016; @zhang_2023] have introduced new methodologies, an open-source package dedicated to developing NAMO algorithms and compatible with real-robot platforms is lacking.
 
 Designed for researchers and engineers working on mobile robot navigation in dynamic environments, NAMOSIM supports reproducible research and real-world deployment via compatibility with the ROS ecosystem. By offering a versatile tool for experimenting with NAMO algorithms, NAMOSIM supports the robotics community to develop more capable and adaptive robotic systems.
 
@@ -98,7 +98,7 @@ The algorithm works by recursively performing the following two stages:
 1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A\* grid search, allowing the agent to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the optimal path to the goal and the ID of the component encountered after passing through the obstacle.
 2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then, it finds a **transfer path** by performing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails, the obstacle and component pair are added to an avoid-list, and the algorithm returns to stage 1.
 
-Each iteration of the algorithm continues with a copy of the environment where the robot and obstacle start from the poses resulting from the previous obstacle manipulation search. See also [@renault_phd_thesis] for more details.
+Each iteration of the algorithm continues with a copy of the environment where the robot and obstacle start from the poses resulting from the previous obstacle manipulation search. See also [@renault_phd_thesis] for more details. [@wu_and_levihn] extended Stilman's algorithm to unknown environments where obstacle movability is ascertained through interaction. We hope to implement this idea in NAMOSIM in future work.
 
 ## Collision Detection
 

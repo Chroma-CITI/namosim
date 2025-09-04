@@ -1,4 +1,4 @@
-Contributing to NAMOSIM
+Contributing
 ===============================
 
 Thank you for your interest in contributing to NAMOSIM! We welcome contributions from the community to improve the project, whether through code, documentation, bug reports, or feature suggestions. This page outlines the guidelines for contributing, with a specific focus on testing requirements and methods to ensure the quality and reliability of the NAMOSIM codebase.
