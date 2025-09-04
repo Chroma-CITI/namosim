@@ -42,7 +42,7 @@ bibliography: paper.bib
 
 NAMOSIM supports the development of custom NAMO algorithms using a modular agent-based architecture. It includes a baseline agent implementing Stilman's NAMO algorithm [@stilman_2005] and incorporating a communication-free coordination strategy for multi-robot scenarios [@renault_2024_iros]. A variety of other agent behaviors are implemented, and new agents utilizing alternative approaches can be integrated into the planner by implementing the **Agent** base class. NAMOSIM thus supports reproducible research in single and multi-robot NAMO algorithms.
 
-NAMOSIM is packaged as a ROS 2 package for easy integration into robotics projects but can also be used as a standalone Python module. Simulations are displayed in a Tkinter window and ROS 2 messages are published for more-detailed visualization in RViz. Several prebuilt scenarios for testing and benchmarking are included. These are stored as SVG files, allowing for convenient creation of custom scenarios using a free SVG editor such as Inkscape.
+NAMOSIM is packaged as a ROS 2 package for easy integration into robotics projects but can also be used as a standalone Python module. Simulations are displayed in a Tkinter window and ROS 2 messages are published for more-detailed visualization in RViz [@rviz]. Several prebuilt scenarios for testing and benchmarking are included. These are stored as SVG files, allowing for convenient creation of custom scenarios using a free SVG editor such as Inkscape.
 
 # Statement of Need
 
