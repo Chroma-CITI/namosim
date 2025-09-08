@@ -2,8 +2,8 @@
 Changelog for package namosim
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.0.2 (2025-09-08)
+------------------
 * add citation
 * docs
 * docs

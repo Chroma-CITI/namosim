@@ -13,7 +13,7 @@ def read_requirements():
 
 setup(
     name=package_name,
-    version="0.0.1",
+    version="0.0.2",
     packages=find_packages(
         exclude=["tests", "tests.*"]
     ),  # Exclude tests and subpackages
