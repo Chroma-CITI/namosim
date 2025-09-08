@@ -2,6 +2,54 @@
 Changelog for package namosim
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* add citation
+* docs
+* docs
+* add demo videos
+* Merge pull request `#17 <https://github.com/Chroma-CITI/namosim/issues/17>`_ from Chroma-CITI/related_work
+  add demo videos to readme
+* add demo videos to readme
+* Merge pull request `#16 <https://github.com/Chroma-CITI/namosim/issues/16>`_ from Chroma-CITI/related_work
+  Related work
+* cite the collision detection algorithm
+* docs
+* typo
+* sop
+* docs/examples
+* add citations
+* rename env var
+* add architecture diagram
+* cleanup
+* docs
+* docs
+* docs
+* docs
+* docs
+* Merge pull request `#15 <https://github.com/Chroma-CITI/namosim/issues/15>`_ from Chroma-CITI/usage_docs
+  add a guide for creating custom agents
+* docs
+* add contributing guidelines
+* fix unit test
+* add a guide for creating custom agents
+* docs
+* move docs from readme to docs site
+* docs
+* docs
+* remove notebooks
+* rm old notebooks
+* docs
+* Merge pull request `#14 <https://github.com/Chroma-CITI/namosim/issues/14>`_ from Chroma-CITI/e2e_coverage
+  compute coverage for e2e tests
+* merge humble
+* docs
+* compute coverage for e2e tests
+* Merge pull request `#13 <https://github.com/Chroma-CITI/namosim/issues/13>`_ from Chroma-CITI/examples
+  add examples
+* add examples
+* Contributors: David Brown
+
 0.0.1 (2025-08-26)
 ------------------
 * Merge pull request `#12 <https://github.com/Chroma-CITI/namosim/issues/12>`_ from Chroma-CITI/rm_torch
