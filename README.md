@@ -22,7 +22,7 @@ Here are a couple demo videos applying namosim on real and simulated robots.
 
 #### NAMOSIM on a Turtlebo
 
-[![NAMOSIM on Turtlebot](docs/source/_static/namo_demo_thumbnail.png)](https://youtu.be/076ecBfaBTw)
+[![NAMOSIM on Turtlebot](docs/source/_static/namo_demo_thumbnail.png)](https://youtu.be/wFH2GOeBHEA)
 
 
 #### NAMOSIM on Multiple Robots in Gazebo
