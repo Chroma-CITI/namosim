@@ -49,40 +49,32 @@ If you reuse any part of this project in your research, please cite the associat
 
 .. code-block:: bibtex
 
-    @inproceedings{renault:hal-04705395,
-      TITLE = {{Multi-Robot Navigation among Movable Obstacles: Implicit Coordination to Deal with Conflicts and Deadlocks}},
-      AUTHOR = {Renault, Benoit and Saraydaryan, Jacques and Brown, David and Simonin, Olivier},
-      URL = {https://hal.science/hal-04705395},
-      BOOKTITLE = {{IROS 2024 - IEEE/RSJ International Conference on Intelligent Robots and Systems}},
-      ADDRESS = {Abu DHABI, United Arab Emirates},
-      PUBLISHER = {{IEEE}},
-      PAGES = {1-7},
-      YEAR = {2024},
-      MONTH = Oct,
-      KEYWORDS = {Planning ; Scheduling and Coordination ; Path Planning for Multiple Mobile Robots or Agents ; Multi-Robot Systems},
-      PDF = {https://hal.science/hal-04705395v1/file/IROS24_1134_FI.pdf},
-      HAL_ID = {hal-04705395},
-      HAL_VERSION = {v1},
-    }
+      @inproceedings{renault_2024_iros,
+      author    = {Renault, Benoit and Saraydaryan, Jacques and Brown, David and Simonin, Olivier},
+      booktitle = {2024 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+      title     = {Multi-Robot Navigation Among Movable Obstacles: Implicit Coordination to Deal with Conflicts and Deadlocks},
+      year      = {2024},
+      volume    = {},
+      number    = {},
+      pages     = {3505-3511},
+      keywords  = {Machine learning algorithms;Costs;Navigation;Robot kinematics;Machine learning;System recovery;Benchmark testing;Multi-robot systems;Intelligent robots},
+      doi       = {10.1109/IROS58592.2024.10802092}
+      }
 
 .. code-block:: bibtex
 
-    @inproceedings{renault:hal-02912925,
-      TITLE = {{Modeling a Social Placement Cost to Extend Navigation Among Movable Obstacles (NAMO) Algorithms}},
-      AUTHOR = {Renault, Benoit and Saraydaryan, Jacques and Simonin, Olivier},
-      URL = {https://hal.archives-ouvertes.fr/hal-02912925},
-      BOOKTITLE = {{IROS 2020 - IEEE/RSJ International Conference on Intelligent Robots and Systems}},
-      ADDRESS = {Las Vegas, United States},
-      SERIES = {2020 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS) Conference Proceedings},
-      PAGES = {11345-11351},
-      YEAR = {2020},
-      MONTH = Oct,
-      DOI = {10.1109/IROS45743.2020.9340892},
-      KEYWORDS = {Navigation Among Movable Obstacles (NAMO) ; Socially- Aware Navigation (SAN) ; Path planning ; Simulation},
-      PDF = {https://hal.archives-ouvertes.fr/hal-02912925/file/IROS_2020_Camera_Ready.pdf},
-      HAL_ID = {hal-02912925},
-      HAL_VERSION = {v1},
-    }
+      @inproceedings{renault_2020_iros,
+         title     = {Modeling a Social Placement Cost to Extend Navigation Among Movable Obstacles (NAMO) Algorithms},
+         author    = {Renault, Benoit and Saraydaryan, Jacques and Simonin, Olivier},
+         booktitle = {IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)},
+         address   = {Las Vegas, United States},
+         year      = {2020},
+         month     = {October},
+         pages     = {11345--11351},
+         doi       = {10.1109/IROS45743.2020.9340892},
+         url       = {https://hal.archives-ouvertes.fr/hal-02912925},
+         pdf       = {https://hal.archives-ouvertes.fr/hal-02912925/file/IROS_2020_Camera_Ready.pdf}
+      }
 
 .. toctree::
    :maxdepth: 2
