@@ -17,7 +17,7 @@ Install with Debian Package
 
 .. note::
 
-   Some python dependencies may need to be install separately via pip.
+   Some python dependencies may need to be installed separately via pip.
 
 
 Manual Setup
