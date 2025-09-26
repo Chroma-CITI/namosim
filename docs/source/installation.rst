@@ -7,7 +7,20 @@ System Requirements
 - Ubuntu 22.04
 - ROS2 Humble
 
-Setup
+Install with Debian Package
+-------------------------------
+
+
+.. code-block:: bash
+
+   sudo apt install ros-humble-namosim
+
+.. note::
+
+   Some python dependencies may need to be installed separately via pip.
+
+
+Manual Setup
 -------------------------------
 
 First, clone the repository and navigate to its directory.
