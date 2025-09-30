@@ -24,7 +24,6 @@ Here are a couple demo videos applying namosim on real and simulated robots.
 
 [![NAMOSIM on Turtlebot](docs/source/_static/namo_demo_thumbnail.png)](https://youtu.be/wFH2GOeBHEA)
 
-
 #### NAMOSIM on Multiple Robots in Gazebo
 
 [![NAMOSIM on Multiple Robots in Gazebo](docs/source/_static/multi_robot_demo_thumbnail.png)](https://youtu.be/qgPz69Dk9bc)
@@ -34,7 +33,6 @@ Here are a couple demo videos applying namosim on real and simulated robots.
 Checkout the associated JOSS paper:
 
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.08816/status.svg)](https://doi.org/10.21105/joss.08816)
-
 
 ## Authors
 
@@ -55,6 +53,21 @@ Checkout the associated JOSS paper:
 ## Cite Us
 
 If you reuse any part of this project in your research, please cite the associated papers:
+
+```bibtex
+@article{Brown2025,
+  doi       = {10.21105/joss.08816},
+  url       = {https://doi.org/10.21105/joss.08816},
+  year      = {2025},
+  publisher = {The Open Journal},
+  volume    = {10},
+  number    = {113},
+  pages     = {8816},
+  author    = {Brown, David and Saraydaryan, Jacques and Renault, Benoit and Simonin, Olivier},
+  title     = {NAMOSIM: a Robot Motion Planner for Navigation Among Movable Obstacles},
+  journal   = {Journal of Open Source Software}
+}
+```
 
 ```bibtex
 @inproceedings{renault_2024_iros,
