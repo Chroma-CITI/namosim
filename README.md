@@ -29,6 +29,13 @@ Here are a couple demo videos applying namosim on real and simulated robots.
 
 [![NAMOSIM on Multiple Robots in Gazebo](docs/source/_static/multi_robot_demo_thumbnail.png)](https://youtu.be/qgPz69Dk9bc)
 
+# JOSS Paper
+
+Checkout the associated JOSS paper:
+
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.08816/status.svg)](https://doi.org/10.21105/joss.08816)
+
+
 ## Authors
 
 - Benoit Renault
