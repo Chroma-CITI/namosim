@@ -96,7 +96,7 @@ The algorithm works by recursively performing the following two stages:
 1. **SELECT_OBSTACLE_AND_COMPONENT**: The first stage performs a simplified A\* grid search, allowing the agent to pass through movable obstacles. It returns the ID of the first movable obstacle encountered on the optimal path to the goal and the ID of the component encountered after passing through the obstacle.
 2. **OBSTACLE_MANIPULATION_SEARCH**: The second stage finds a **transit path** from the robot's current position to a grasp pose near the obstacle. Then, it finds a **transfer path** by performing an obstacle manipulation search to join the robot's current component to the component selected in stage 1. If this stage fails, the obstacle and component pair are added to an avoid-list, and the algorithm returns to stage 1.
 
-Each iteration of the algorithm continues with a copy of the environment where the robot and obstacle start from the poses resulting from the previous obstacle manipulation search. See also [@renault_phd_thesis] for more details. [@wu_and_levihn] extended Stilman's algorithm to unknown environments where obstacle movability is ascertained through interaction. We hope to implement this idea in NAMOSIM in future work.
+Each iteration of the algorithm continues with a copy of the environment where the robot and obstacle start from the poses resulting from the previous obstacle manipulation search. See also @renault_phd_thesis for more details. @wu_and_levihn extended Stilman's algorithm to unknown environments where obstacle movability is ascertained through interaction. We hope to implement this idea in NAMOSIM in future work.
 
 ## Collision Detection
 
@@ -104,7 +104,7 @@ Custom agents are free to implement their own collision detection routines; howe
 
 ## Social Costmap
 
-A novel contribution in the baseline implementation is the option to use a social costmap during the obstacle manipulation search to guide obstacle placement decisions. This allows robots to place obstacles in areas less likely to block the free passage of other agents, including humans, reducing the likelihood that obstacles will need to be moved again. The key heuristic of the social costmap is to **avoid narrow corridors and central areas**, assigning higher costs to narrow corridors and the centers of open spaces. This helps robots avoid placing obstacles in front of doorways or in the center of rooms. The social costmap is explained in greater detail in [@renault_2020_iros; @renault_phd_thesis].
+A novel contribution in the baseline implementation is the option to use a social costmap during the obstacle manipulation search to guide obstacle placement decisions. This allows robots to place obstacles in areas less likely to block the free passage of other agents, including humans, reducing the likelihood that obstacles will need to be moved again. The key heuristic of the social costmap is to **avoid narrow corridors and central areas**, assigning higher costs to narrow corridors and the centers of open spaces. This helps robots avoid placing obstacles in front of doorways or in the center of rooms. The social costmap is explained in greater detail in @renault_2020_iros and @renault_phd_thesis.
 
 ## Conflict Avoidance and Deadlock Resolution
 
