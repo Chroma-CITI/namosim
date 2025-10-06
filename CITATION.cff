@@ -1,0 +1,46 @@
+cff-version: "1.2.0"
+authors:
+- family-names: Brown
+  given-names: David
+  orcid: "https://orcid.org/0009-0000-3804-7734"
+- family-names: Saraydaryan
+  given-names: Jacques
+  orcid: "https://orcid.org/0000-0002-1436-3393"
+- family-names: Renault
+  given-names: Benoit
+  orcid: "https://orcid.org/0009-0001-3332-7371"
+- family-names: Simonin
+  given-names: Olivier
+  orcid: "https://orcid.org/0000-0002-3070-7790"
+doi: 10.5281/zenodo.17151934
+message: If you use this software, please cite our article in the
+  Journal of Open Source Software.
+preferred-citation:
+  authors:
+  - family-names: Brown
+    given-names: David
+    orcid: "https://orcid.org/0009-0000-3804-7734"
+  - family-names: Saraydaryan
+    given-names: Jacques
+    orcid: "https://orcid.org/0000-0002-1436-3393"
+  - family-names: Renault
+    given-names: Benoit
+    orcid: "https://orcid.org/0009-0001-3332-7371"
+  - family-names: Simonin
+    given-names: Olivier
+    orcid: "https://orcid.org/0000-0002-3070-7790"
+  date-published: 2025-09-30
+  doi: 10.21105/joss.08816
+  issn: 2475-9066
+  issue: 113
+  journal: Journal of Open Source Software
+  publisher:
+    name: Open Journals
+  start: 8816
+  title: "NAMOSIM: a Robot Motion Planner for Navigation Among Movable
+    Obstacles"
+  type: article
+  url: "https://joss.theoj.org/papers/10.21105/joss.08816"
+  volume: 10
+title: "NAMOSIM: a Robot Motion Planner for Navigation Among Movable
+  Obstacles"
